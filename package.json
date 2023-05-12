@@ -1,0 +1,45 @@
+{
+  "name": "eventqueue",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "jest",
+    "lint": "npm run eslint && npm run prettier",
+    "lint:ci": "npm run eslint:ci && npm run prettier:ci",
+    "eslint": "eslint --fix .",
+    "eslint:ci": "eslint .",
+    "prettier": "prettier --write --loglevel error .",
+    "prettier:ci": "prettier --check .",
+    "prepareRelease": "npm prune --production",
+    "docs": "cd docs && bundle exec jekyll serve",
+    "docs:install": "cd docs && npx shx rm -rf vendor Gemfile.lock && bundle install",
+    "upgrade-lock": "npx shx rm -rf package-lock.json node_modules && npm i --package-lock",
+    "test:prepare": "cds-indexer"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.11.0"
+  },
+  "dependencies": {
+    "@sap/btp-feature-toggles": "0.5.18",
+    "verror": "^1.10.1",
+    "yaml": "^2.2.2"
+  },
+  "devDependencies": {
+    "sqlite3": "5.1.4",
+    "express": "^4.18.2",
+    "@sap/cds": "^6.8.1",
+    "@sap/cds-indexer": "1.0.14",
+    "eslint": "^8.39.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-jest": "^27.2.1",
+    "jest": "^29.5.0",
+    "prettier": "^2.8.8"
+  },
+  "author": "Maximilian Gruenfelder <maximilian.gruenfelder@sap.com>",
+  "license": "ISC"
+}

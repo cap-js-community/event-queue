@@ -1,0 +1,8 @@
+
+
+events:
+  - type: Notifications
+    subType: Task
+    impl: ./test/asset/EventQueueTest
+    load: 40
+    parallelEventProcessing: 5
