@@ -7,16 +7,24 @@ const fs = require("fs");
 const yaml = require("yaml");
 const VError = require("verror");
 const { getConfigInstance } = require("./config");
+const { RunningModes } = require("./constants");
 
 const readFileAsync = promisify(fs.readFile);
 
 // const COMPONENT_NAME = "/FeatureToggles";
 const VERROR_CLUSTER_NAME = "EventQueueInitialization";
 
-const initialize = async ({ configFilePath, mode, scheduleInterval } = {}) => {
+const initialize = async ({
+  configFilePath,
+  mode = RunningModes.singleInstance,
+  redisEnabled = false,
+  interval: { betweenRuns = 5 * 60 * 1000, betweenEvents = 100 } = {},
+} = {}) => {
   const config = await readConfigFromFile(configFilePath);
   const configInstance = getConfigInstance();
   configInstance.fileContent = config;
+  configInstance.betweenRuns = betweenRuns;
+  configInstance.betweenEvents = betweenEvents;
 };
 
 const readConfigFromFile = async (configFilepath) => {

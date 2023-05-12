@@ -17,23 +17,22 @@ const { Logger } = require("./shared/logger");
 const COMPONENT_NAME = "/util/processEventQueue";
 const MAX_EXECUTION_TIME = 5 * 60 * 1000;
 
-// const eventQueueTickHandler = async (context) => {
-//   const events = getAllEventsForEventQueueTickHandler();
-//   const startTime = new Date();
-//   const funnel = new Funnel();
-//   await Promise.allSettled(
-//     events.map((event) =>
-//       funnel.run(event.config.load, async () =>
-//         processEventQueue(
-//           context,
-//           event.eventType,
-//           event.eventSubType,
-//           startTime
-//         )
-//       )
-//     )
-//   );
-// };
+const eventQueueRunner = async (context, events) => {
+  const startTime = new Date();
+  const funnel = new Funnel();
+  await Promise.allSettled(
+    events.map((event) =>
+      funnel.run(event.config.load, async () =>
+        processEventQueue(
+          context,
+          event.eventType,
+          event.eventSubType,
+          startTime
+        )
+      )
+    )
+  );
+};
 
 const processEventQueue = async (
   context,
@@ -283,5 +282,5 @@ const resilientRequire = (path) => {
 
 module.exports = {
   processEventQueue,
-  // eventQueueTickHandler
+  eventQueueRunner,
 };

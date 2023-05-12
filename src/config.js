@@ -10,6 +10,8 @@ class Config {
     this.__config = null;
     this.__forUpdateTimeout = FOR_UPDATE_TIMEOUT;
     this.__globalTxTimeout = GLOBAL_TX_TIMEOUT;
+    this.__betweenRuns = null;
+    this.__betweenEvents = null;
   }
 
   getEventConfig(type, subType) {
@@ -50,6 +52,22 @@ class Config {
 
   set globalTxTimeout(value) {
     this.__globalTxTimeout = value;
+  }
+
+  get betweenRuns() {
+    return this.__betweenRuns;
+  }
+
+  get betweenEvents() {
+    return this.__betweenEvents;
+  }
+
+  set betweenRuns(value) {
+    this.__betweenRuns = value;
+  }
+
+  set betweenEvents(value) {
+    this.__betweenEvents = value;
   }
 }
 

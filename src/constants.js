@@ -8,4 +8,11 @@ module.exports = {
     Error: 3,
     Exceeded: 4,
   },
+  TenantModes: {
+    single: "SINGLE",
+  },
+  RunningModes: {
+    singleInstance: "SINGLE_INSTANCE",
+    multiInstance: "MULTI_INSTANCE",
+  },
 };
