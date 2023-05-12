@@ -16,6 +16,10 @@ class Config {
     return this.__eventMap[[type, subType].join("##")];
   }
 
+  getEventsForAutomaticRuns() {
+    return this.__config.events.filter((event) => event.runAutomatically);
+  }
+
   set fileContent(config) {
     this.__config = config;
     this.__eventMap = config.events.reduce((result, event) => {

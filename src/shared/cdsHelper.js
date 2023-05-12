@@ -31,7 +31,6 @@ async function executeInNewTransaction(
   const logger = Logger(context, COMPONENT_NAME);
   try {
     if (cds.db.kind === "hana") {
-      // eslint-disable-next-line custom-lint-rules/cds-tx-handling
       await cds.tx(
         {
           id: context.id,

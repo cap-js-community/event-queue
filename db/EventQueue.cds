@@ -1,4 +1,4 @@
-namespace sap.eventQueue;
+namespace sap.core;
 
 using cuid from '@sap/cds/common';
 
@@ -12,7 +12,6 @@ type Status: Integer enum {
 }
 
 @cds.persistence.journal
-@AFC.Description: 'Event Queue'
 entity EventQueue: cuid {
     type: String not null;
     subType: String not null;
