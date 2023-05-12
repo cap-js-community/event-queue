@@ -3,7 +3,7 @@
 const { publishEvent } = require("./redisPubSub");
 
 const registerEventQueueDbHandler = (dbService) => {
-  const def = dbService.model.definitions["sap.eventQueue.EventQueue"];
+  const def = dbService.model.definitions["sap.core.EventQueue"];
   dbService.after("CREATE", def, (_, req) => {
     req.tx._ = req.tx._ ?? {};
     req.tx._.afc = req.tx._.afc ?? {};

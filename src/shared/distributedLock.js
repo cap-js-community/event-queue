@@ -61,7 +61,7 @@ const _checkLockExistsDb = async (context, fullKey) => {
     "distributedLock-checkExists",
     async (tx) => {
       result = await tx.run(
-        SELECT.one.from("sap.eventQueue.EventLock").where("code =", fullKey)
+        SELECT.one.from("sap.core.EventLock").where("code =", fullKey)
       );
     }
   );
@@ -78,9 +78,7 @@ const _releaseLockDb = async (context, fullKey) => {
     context,
     "distributedLock-release",
     async (tx) => {
-      await tx.run(
-        DELETE.from("sap.eventQueue.EventLock").where("code =", fullKey)
-      );
+      await tx.run(DELETE.from("sap.core.EventLock").where("code =", fullKey));
     }
   );
 };
@@ -93,7 +91,7 @@ const _acquireLockDB = async (context, fullKey, expiryTime) => {
     async (tx) => {
       try {
         await tx.run(
-          INSERT.into("sap.eventQueue.EventLock").entries({
+          INSERT.into("sap.core.EventLock").entries({
             code: fullKey,
           })
         );
@@ -101,7 +99,7 @@ const _acquireLockDB = async (context, fullKey, expiryTime) => {
       } catch (err) {
         const currentEntry = await tx.run(
           SELECT.one
-            .from("sap.eventQueue.EventLock")
+            .from("sap.core.EventLock")
             .forUpdate({ wait: config.getConfigInstance().forUpdateTimeout })
             .where("code =", fullKey)
         );
@@ -110,7 +108,7 @@ const _acquireLockDB = async (context, fullKey, expiryTime) => {
           new Date(currentEntry.createdAt).getTime() + expiryTime <= Date.now()
         ) {
           await tx.run(
-            UPDATE.entity("sap.eventQueue.EventLock")
+            UPDATE.entity("sap.core.EventLock")
               .set({
                 createdAt: new Date().toISOString(),
               })

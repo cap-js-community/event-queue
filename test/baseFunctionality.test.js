@@ -23,8 +23,8 @@ describe("baseFunctionality", () => {
   beforeEach(async () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
-    await tx.run(DELETE.from("sap.eventQueue.EventLock"));
-    await tx.run(DELETE.from("sap.eventQueue.EventQueue"));
+    await tx.run(DELETE.from("sap.core.EventLock"));
+    await tx.run(DELETE.from("sap.core.EventQueue"));
   });
 
   afterEach(async () => {

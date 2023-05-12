@@ -49,14 +49,14 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   beforeEach(async () => {
     context = new cds.EventContext({ user: { id: "alice" } });
     tx = cds.tx(context);
-    await tx.run(DELETE.from("sap.eventQueue.EventQueue"));
+    await tx.run(DELETE.from("sap.core.EventQueue"));
     mockRedisPublishCalls = [];
   });
 
   test("db handler should be called if event is inserted", async () => {
     checkLockExistsSpy.mockResolvedValueOnce(false);
     await tx.run(
-      INSERT.into("sap.eventQueue.EventQueue").entries({
+      INSERT.into("sap.core.EventQueue").entries({
         ...queueEntry,
       })
     );
@@ -74,7 +74,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   test("should do nothing no lock is available", async () => {
     checkLockExistsSpy.mockResolvedValueOnce(true);
     await tx.run(
-      INSERT.into("sap.eventQueue.EventQueue").entries({
+      INSERT.into("sap.core.EventQueue").entries({
         ...queueEntry,
       })
     );
@@ -86,7 +86,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   test("publish event should be called only once even if the same combination is inserted twice", async () => {
     checkLockExistsSpy.mockResolvedValueOnce(false);
     await tx.run(
-      INSERT.into("sap.eventQueue.EventQueue").entries([
+      INSERT.into("sap.core.EventQueue").entries([
         { ...queueEntry },
         { ...queueEntry },
       ])
@@ -104,12 +104,12 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   test("publish event should be called only once even if the same combination is inserted twice - two inserts", async () => {
     checkLockExistsSpy.mockResolvedValueOnce(false);
     await tx.run(
-      INSERT.into("sap.eventQueue.EventQueue").entries({
+      INSERT.into("sap.core.EventQueue").entries({
         ...queueEntry,
       })
     );
     await tx.run(
-      INSERT.into("sap.eventQueue.EventQueue").entries({
+      INSERT.into("sap.core.EventQueue").entries({
         ...queueEntry,
       })
     );
@@ -126,12 +126,12 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   test("different event combinations should result in two requests", async () => {
     checkLockExistsSpy.mockResolvedValue(false);
     await tx.run(
-      INSERT.into("sap.eventQueue.EventQueue").entries({
+      INSERT.into("sap.core.EventQueue").entries({
         ...queueEntry,
       })
     );
     await tx.run(
-      INSERT.into("sap.eventQueue.EventQueue").entries({
+      INSERT.into("sap.core.EventQueue").entries({
         ...queueEntry,
         type: "Fiori",
       })

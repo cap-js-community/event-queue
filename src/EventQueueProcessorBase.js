@@ -18,7 +18,7 @@ const eventQueueConfig = require("./config");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
 const COMPONENT_NAME = "util/EventQueueProcessorBase";
-const DB_TABLE_QUEUE = "sap.eventQueue.EventQueue";
+const DB_TABLE_QUEUE = "sap.core.EventQueue";
 const VERROR_CLUSTER_NAME = "EventQueueProcessorBaseError";
 
 const DEFAULT_RETRY_ATTEMPTS = 3;
