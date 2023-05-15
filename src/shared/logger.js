@@ -60,7 +60,7 @@ const Logger = (
   const combineProperties = (
     level,
     message,
-    { correlationId, date, customFields, additionalMessageProperties }
+    { correlationId, date, customFields, additionalMessageProperties, error }
   ) => {
     if (message instanceof VError) {
       message = util.formatWithOptions(
@@ -84,6 +84,9 @@ const Logger = (
               "%O",
               additionalMessageProperties
             )
+          : "") +
+        (error
+          ? "\n" + util.formatWithOptions({ colors: false }, "%O", error)
           : ""),
       written_at: date ?? new Date().toISOString(),
       correlation_id: correlationId ?? correlationIdLogger,

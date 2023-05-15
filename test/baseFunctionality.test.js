@@ -70,8 +70,10 @@ describe("baseFunctionality", () => {
           [
             "No Implementation found for queue type in 'eventTypeRegister.js'",
             {
-              "eventSubType": "NOT FOUND",
-              "eventType": "404",
+              "additionalMessageProperties": {
+                "eventSubType": "NOT FOUND",
+                "eventType": "404",
+              },
             },
           ],
         ]
