@@ -1,15 +1,16 @@
 "use strict";
 
-const path = require("path");
 const { promisify } = require("util");
 const fs = require("fs");
 
 const yaml = require("yaml");
 const VError = require("verror");
+
 const { getConfigInstance } = require("./config");
 const { RunningModes } = require("./constants");
-const { singleInstanceRunner } = require("./runner");
+const runner = require("./runner");
 const dbHandler = require("./dbHandler");
+const { getAllTenantIds } = require("./shared/cdsHelper");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -21,19 +22,31 @@ const initialize = async ({
   mode = RunningModes.singleInstance,
   redisEnabled = false,
   registerDbHandler = true,
-  interval: { betweenRuns = 5 * 60 * 1000, betweenEvents = 100 } = {},
+  betweenRuns = 5 * 60 * 1000,
 } = {}) => {
   const config = await readConfigFromFile(configFilePath);
   const configInstance = getConfigInstance();
   configInstance.fileContent = config;
   configInstance.betweenRuns = betweenRuns;
-  configInstance.betweenEvents = betweenEvents;
   if (registerDbHandler) {
     const dbService = await cds.connect.to("db");
     dbHandler.registerEventQueueDbHandler(dbService);
   }
+  const multiTenancyEnabled = await getAllTenantIds();
   if (mode === RunningModes.singleInstance) {
-    singleInstanceRunner();
+    // TODO: find a better way to determine this
+    if (multiTenancyEnabled) {
+      runner.singleInstanceAndMultiTenancy();
+    } else {
+      runner.singleInstanceAndTenant();
+    }
+  }
+  if (mode === RunningModes.multiInstance) {
+    if (multiTenancyEnabled) {
+      runner.multiInstanceAndTenancy();
+    } else {
+      runner.multiInstanceAndSingleTenancy();
+    }
   }
 };
 

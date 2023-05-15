@@ -117,8 +117,19 @@ const getSubdomainForTenantId = async (tenantId) => {
   }
 };
 
+const getAllTenantIds = async () => {
+  try {
+    const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
+    const response = await ssp.get("/tenant");
+    return response.map((tenant) => tenant.subscribedTenantId);
+  } catch (err) {
+    return null;
+  }
+};
+
 module.exports = {
   executeInNewTransaction,
   TriggerRollback,
   getSubdomainForTenantId,
+  getAllTenantIds,
 };
