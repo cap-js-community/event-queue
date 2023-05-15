@@ -143,10 +143,9 @@ class EventQueueProcessorBase {
   }
 
   logStartMessage(queueEntries) {
-    this.logger.log({
+    this.logger.info("Processing queue event", {
       level: "info",
-      message: "Processing queue event",
-      messageParams: {
+      additionalMessageProperties: {
         numberQueueEntries: queueEntries.length,
         eventType: this.__eventType,
         eventSubType: this.__eventSubType,

@@ -6,14 +6,15 @@ const { eventQueueRunner } = require("./processEventQueue");
 
 const singleInstanceRunner = () => {
   const configInstance = eventQueueConfig.getConfigInstance();
-  setTimeout(executeRunForTenantAndScheduleNext, configInstance.betweenRuns);
+  // setTimeout(executeRunForTenantAndScheduleNext, configInstance.betweenRuns);
+  executeRunForTenantAndScheduleNext();
 };
 
 const executeRunForTenantAndScheduleNext = async (tenantId) => {
   const configInstance = eventQueueConfig.getConfigInstance();
   // NOTE: schedule next run immediately to avoid time shifts due to event execution
   setTimeout(executeRunForTenantAndScheduleNext, configInstance.betweenRuns);
-  const eventsForAutomaticRun = configInstance.getEventsForAutomaticRuns;
+  const eventsForAutomaticRun = configInstance.getEventsForAutomaticRuns();
 
   // TODO: think about adding switch for that
   const subdomain = await getSubdomainForTenantId(tenantId);
@@ -21,6 +22,7 @@ const executeRunForTenantAndScheduleNext = async (tenantId) => {
     tenant: tenantId,
     // NOTE: we need this because of logging otherwise logs would not contain the subdomain
     http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+    // http: { req: { authInfo: { getSubdomain: () => "dummyDomain" } } },
   });
   await eventQueueRunner(context, eventsForAutomaticRun);
 };

@@ -76,7 +76,7 @@ const messageHandlerProcessEvents = async (messageData) => {
 };
 
 const publishEvent = async (tenantId, type, subType) => {
-  if (!isOnCF && cds.db.kind === "hana") {
+  if (!isOnCF) {
     await _handleEventInternally(tenantId, type, subType);
     return;
   }
@@ -119,10 +119,11 @@ const _handleEventInternally = async (tenantId, type, subType) => {
     type,
     subType,
   });
+  const subdomain = await getSubdomainForTenantId(tenantId);
   const context = new cds.EventContext({
     tenant: tenantId,
     // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-    http: { req: { authInfo: { getSubdomain: () => "skyfin-company" } } },
+    http: { req: { authInfo: { getSubdomain: () => subdomain } } },
   });
   processEventQueue(context, type, subType);
 };

@@ -17,7 +17,7 @@ describe("baseFunctionality", () => {
 
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
-    await eventQueue.initialize({ configFilePath });
+    await eventQueue.initialize({ configFilePath, registerDbHandler: false });
   });
 
   beforeEach(async () => {

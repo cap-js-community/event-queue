@@ -8,6 +8,8 @@ const yaml = require("yaml");
 const VError = require("verror");
 const { getConfigInstance } = require("./config");
 const { RunningModes } = require("./constants");
+const { singleInstanceRunner } = require("./runner");
+const dbHandler = require("./dbHandler");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -18,6 +20,7 @@ const initialize = async ({
   configFilePath,
   mode = RunningModes.singleInstance,
   redisEnabled = false,
+  registerDbHandler = true,
   interval: { betweenRuns = 5 * 60 * 1000, betweenEvents = 100 } = {},
 } = {}) => {
   const config = await readConfigFromFile(configFilePath);
@@ -25,6 +28,13 @@ const initialize = async ({
   configInstance.fileContent = config;
   configInstance.betweenRuns = betweenRuns;
   configInstance.betweenEvents = betweenEvents;
+  if (registerDbHandler) {
+    const dbService = await cds.connect.to("db");
+    dbHandler.registerEventQueueDbHandler(dbService);
+  }
+  if (mode === RunningModes.singleInstance) {
+    singleInstanceRunner();
+  }
 };
 
 const readConfigFromFile = async (configFilepath) => {

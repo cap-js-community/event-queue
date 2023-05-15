@@ -22,13 +22,8 @@ const eventQueueRunner = async (context, events) => {
   const funnel = new Funnel();
   await Promise.allSettled(
     events.map((event) =>
-      funnel.run(event.config.load, async () =>
-        processEventQueue(
-          context,
-          event.eventType,
-          event.eventSubType,
-          startTime
-        )
+      funnel.run(event.load, async () =>
+        processEventQueue(context, event.type, event.subType, startTime)
       )
     )
   );

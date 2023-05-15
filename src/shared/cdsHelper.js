@@ -107,10 +107,14 @@ const getSubdomainForTenantId = async (tenantId) => {
   if (subdomainCache[tenantId]) {
     return subdomainCache[tenantId];
   }
-  const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
-  const response = await ssp.get("/tenant", { subscribedTenantId: tenantId });
-  subdomainCache[tenantId] = response.subscribedSubdomain;
-  return response.subscribedSubdomain;
+  try {
+    const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
+    const response = await ssp.get("/tenant", { subscribedTenantId: tenantId });
+    subdomainCache[tenantId] = response.subscribedSubdomain;
+    return response.subscribedSubdomain;
+  } catch (err) {
+    return null;
+  }
 };
 
 module.exports = {

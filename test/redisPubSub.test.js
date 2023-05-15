@@ -1,5 +1,7 @@
 "use strict";
 
+const env = require("../src/shared/env");
+env.isOnCF = true;
 const distributedLock = require("../src/shared/distributedLock");
 const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExists");
 
@@ -34,7 +36,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
 
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
-    await eventQueue.initialize({ configFilePath });
+    await eventQueue.initialize({ configFilePath, registerDbHandler: false });
     eventQueue.registerEventQueueDbHandler(cds.db);
     const event = eventQueue.getConfigInstance().events[0];
     queueEntry = {

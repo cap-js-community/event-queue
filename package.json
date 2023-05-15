@@ -1,5 +1,5 @@
 {
-  "name": "eventqueue",
+  "name": "@sap/event-queue",
   "version": "1.0.0",
   "description": "",
   "main": "src/index.js",
