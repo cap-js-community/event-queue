@@ -1,7 +1,5 @@
 "use strict";
 
-const path = require("path");
-
 // https://eslint.org/docs/rules/
 module.exports = {
   root: true,
@@ -22,7 +20,7 @@ module.exports = {
     CREATE: false,
     DROP: false,
   },
-  plugins: ["jest", "custom-lint-rules", "node"],
+  plugins: ["jest", "node"],
   extends: [
     "eslint:recommended",
     "plugin:jest/recommended",

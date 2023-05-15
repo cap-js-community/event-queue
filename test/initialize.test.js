@@ -16,6 +16,6 @@ describe("initialize", () => {
     const configFilePath = path.join(__dirname, "asset", "config.kk");
     await expect(
       eventQueue.initialize({ configFilePath, registerDbHandler: false })
-    ).rejects.toThrowError();
+    ).rejects.toThrow();
   });
 });

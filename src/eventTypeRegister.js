@@ -2,11 +2,6 @@
 
 const { getConfigInstance } = require("./config");
 
-const SEPARATOR = "##";
-
-let eventsForEventQueueTickHandler;
-const eventMap = {};
-
 // NOTE: retryAttempts:             for infinite retries maintain -1 as 'config.retryAttempts'
 //                                  default retry attempts is 3
 //       runOnEventQueueTickHandler if true the events will automatically process on the eventQueue tick handler
@@ -34,25 +29,6 @@ const getAllEvents = () => {
   return getConfigInstance().fileContent.events;
 };
 
-const getAllEventsForEventQueueTickHandler = () => {
-  if (eventsForEventQueueTickHandler) {
-    return eventsForEventQueueTickHandler;
-  }
-  eventsForEventQueueTickHandler = _parseEvents(
-    Object.entries(CONFIG).reduce((result, [key, value]) => {
-      if (value.runOnEventQueueTickHandler) {
-        result[key] = value;
-      }
-      return result;
-    }, {})
-  );
-  return eventsForEventQueueTickHandler;
-};
-
-const getEventConfig = (type, subType) => {};
-
 module.exports = {
-  getEventConfig,
   getAllEvents,
-  getAllEventsForEventQueueTickHandler,
 };

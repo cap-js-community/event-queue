@@ -252,7 +252,6 @@ const _processEvent = async (
     if (eventOutdated) {
       return;
     }
-    // eslint-disable-next-line custom-lint-rules/cds-tx-handling
     eventTypeInstance.setTxForEventProcessing(key, cds.tx(processContext));
     const statusTuple = await eventTypeInstance.processEvent(
       processContext,

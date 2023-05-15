@@ -52,7 +52,6 @@ async function executeInNewTransaction(
         !contextTxState ||
         ["committed", "rolled back"].includes(contextTxState)
       ) {
-        // eslint-disable-next-line custom-lint-rules/cds-tx-handling
         await cds.tx(
           {
             id: context.id,

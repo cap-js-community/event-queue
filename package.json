@@ -29,6 +29,8 @@
     "yaml": "^2.2.2"
   },
   "devDependencies": {
+    "@sap/eslint-plugin-cds": "2.6.3",
+    "eslint-plugin-node": "11.1.0",
     "sqlite3": "5.1.6",
     "express": "^4.18.2",
     "@sap/cds": "^6.8.1",

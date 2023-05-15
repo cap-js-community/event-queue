@@ -4,7 +4,6 @@ const cds = require("@sap/cds");
 const VError = require("verror");
 
 const { Logger } = require("./shared/logger");
-const constants = require("./constants");
 const { executeInNewTransaction } = require("./shared/cdsHelper");
 const {
   EventTypeCode,
@@ -563,7 +562,6 @@ class EventQueueProcessorBase {
       "eventQueue-getQueueEntriesAndSetToInProgress",
       async (tx) => {
         const entries = await tx.run(
-          // eslint-disable-next-line custom-lint-rules/cds-where-check
           SELECT.from(DB_TABLE_QUEUE)
             .forUpdate({ wait: this.__eventQueueConfig.forUpdateTimeout })
             .limit(this.getSelectMaxChunkSize())

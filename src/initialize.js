@@ -20,7 +20,6 @@ const VERROR_CLUSTER_NAME = "EventQueueInitialization";
 const initialize = async ({
   configFilePath,
   mode = RunningModes.singleInstance,
-  redisEnabled = false,
   registerDbHandler = true,
   betweenRuns = 5 * 60 * 1000,
 } = {}) => {

@@ -1,3 +1,5 @@
+"use strict";
+
 const CUSTOM_FIELD_EXECUTION_TIME = "response_time_ms";
 const CUSTOM_FIELD_QUANTITY = "quantity";
 

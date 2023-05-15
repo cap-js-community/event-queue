@@ -38,7 +38,7 @@ const multiInstanceAndTenancy = () => {
 };
 
 const multiInstanceAndSingleTenancy = () => {
-  multiInstanceAndSingleTenancy();
+  _multiInstanceAndSingleTenancy();
 };
 
 const _multiInstanceAndTenancy = async () => {
