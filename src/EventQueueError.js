@@ -4,6 +4,7 @@ const VError = require("verror");
 
 const ERROR_CODES = {
   WRONG_TX_USAGE: "WRONG_TX_USAGE",
+  UNKNOWN_EVENT_TYPE: "UNKNOWN_EVENT_TYPE",
 };
 
 const ERROR_CODES_META = {
@@ -11,16 +12,30 @@ const ERROR_CODES_META = {
     message:
       "Usage of this.tx|this.context is not allowed if parallel event processing is enabled",
   },
+  [ERROR_CODES.UNKNOWN_EVENT_TYPE]: {
+    message:
+      "The event type and subType configuration is not configured! Maintain the combination in the config file.",
+  },
 };
 
 class EventQueueError extends VError {
   constructor(...args) {
     super(args);
   }
+
   static wrongTxUsage(type, subType) {
     const { message } = ERROR_CODES_META[ERROR_CODES.WRONG_TX_USAGE];
     return new EventQueueError({
       name: ERROR_CODES.WRONG_TX_USAGE,
+      info: { type, subType },
+      message,
+    });
+  }
+
+  static unknownEventType(type, subType) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.UNKNOWN_EVENT_TYPE];
+    return new EventQueueError({
+      name: ERROR_CODES.UNKNOWN_EVENT_TYPE,
       info: { type, subType },
       message,
     });

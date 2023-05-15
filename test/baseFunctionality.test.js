@@ -103,4 +103,42 @@ describe("baseFunctionality", () => {
       await testHelper.selectEventQueueAndExpectOpen(tx);
     });
   });
+
+  describe("insert events", () => {
+    test("straight forward", async () => {
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.publishEvent(tx, {
+        type: event.type,
+        subType: event.subType,
+        payload: JSON.stringify({
+          testPayload: 123,
+        }),
+      });
+      const events = await tx.run(SELECT.from("sap.core.EventQueue"));
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: event.type,
+        subType: event.subType,
+        payload: JSON.stringify({
+          testPayload: 123,
+        }),
+      });
+    });
+
+    test("unknown event", async () => {
+      try {
+        await eventQueue.publishEvent(tx, {
+          type: "404",
+          subType: "NOT FOUND",
+          payload: JSON.stringify({
+            testPayload: 123,
+          }),
+        });
+      } catch (err) {
+        expect(err.toString()).toMatchInlineSnapshot(`"EventQueueError"`);
+      }
+      const events = await tx.run(SELECT.from("sap.core.EventQueue"));
+      expect(events).toHaveLength(0);
+    });
+  });
 });

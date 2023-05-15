@@ -52,7 +52,7 @@ class PerformanceTracer {
             ? options.additionalQuantityThreshold * options.quantity
             : 0);
 
-    if (!isBelowThreshold) {
+    if (isBelowThreshold) {
       return;
     }
 

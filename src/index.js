@@ -11,5 +11,6 @@ module.exports = {
   ...require("./processEventQueue"),
   ...require("./dbHandler"),
   ...require("./constants"),
+  ...require("./publishEvent"),
   EventQueueProcessorBase: require("./EventQueueProcessorBase"),
 };
