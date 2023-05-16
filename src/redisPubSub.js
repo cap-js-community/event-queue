@@ -24,7 +24,7 @@ const subscribeRedisClient = () => {
   const errorHandlerCreateClient = (err) => {
     Logger(cds.context, COMPONENT_NAME).error(
       "error from redis client for pub/sub failed",
-      err
+      { error: err }
     );
     subscriberClientPromise = null;
     setTimeout(subscribeRedisClient, 5 * 1000);
@@ -42,7 +42,7 @@ const subscribeRedisClient = () => {
     .catch((err) => {
       Logger(cds.context, COMPONENT_NAME).error(
         "error from redis client for pub/sub failed during startup - trying to reconnect",
-        err
+        { error: err }
       );
     });
 };
@@ -55,7 +55,7 @@ const messageHandlerProcessEvents = async (messageData) => {
     Logger(cds.context, COMPONENT_NAME).error(
       "could not parse event information",
       {
-        messageData,
+        additionalMessageProperties: messageData,
       }
     );
     return;
@@ -68,9 +68,11 @@ const messageHandlerProcessEvents = async (messageData) => {
   });
   cds.context = context;
   Logger(context, COMPONENT_NAME).debug("received redis event", {
-    tenantId,
-    type,
-    subType,
+    additionalMessageProperties: {
+      tenantId,
+      type,
+      subType,
+    },
   });
   processEventQueue(context, type, subType);
 };

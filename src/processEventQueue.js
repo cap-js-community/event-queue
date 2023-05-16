@@ -154,7 +154,7 @@ const processEventQueue = async (
   } catch (err) {
     Logger(context, COMPONENT_NAME).error(
       "Processing event queue failed with unexpected error",
-      err
+      { error: err }
     );
   } finally {
     await baseInstance?.handleReleaseLock();
