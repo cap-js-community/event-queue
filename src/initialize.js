@@ -33,6 +33,8 @@ const initialize = async ({
   }
   const multiTenancyEnabled = await getAllTenantIds();
   if (mode === RunningModes.singleInstance) {
+    // TODO: check if there is a redis binding
+    configInstance.redisEnabled = false;
     // TODO: find a better way to determine this
     if (multiTenancyEnabled) {
       runner.singleInstanceAndMultiTenancy();
@@ -41,6 +43,8 @@ const initialize = async ({
     }
   }
   if (mode === RunningModes.multiInstance) {
+    // TODO: check if there is a redis binding
+    configInstance.redisEnabled = true;
     if (multiTenancyEnabled) {
       runner.multiInstanceAndTenancy();
     } else {

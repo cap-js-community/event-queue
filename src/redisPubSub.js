@@ -83,7 +83,9 @@ const publishEvent = async (tenantId, type, subType) => {
 
   const logger = Logger(cds.context, COMPONENT_NAME);
   const errorHandlerCreateClient = (err) => {
-    logger.error("error from redis client for pub/sub failed", err);
+    logger.error("error from redis client for pub/sub failed", {
+      error: err,
+    });
     publishClient = null;
   };
   try {
@@ -102,22 +104,29 @@ const publishEvent = async (tenantId, type, subType) => {
       logger.info("skip publish redis event as no lock is available");
       return;
     }
-    logger.debug("publishing redis event", { tenantId, type, subType });
+    logger.debug("publishing redis event", {
+      additionalMessageProperties: { tenantId, type, subType },
+    });
     await publishClient.publish(
       MESSAGE_CHANNEL,
       JSON.stringify({ tenantId, type, subType })
     );
   } catch (err) {
-    logger.error("publish event failed", { tenantId, type, subType }, err);
+    logger.error("publish event failed", {
+      additionalMessageProperties: { tenantId, type, subType },
+      error: err,
+    });
   }
 };
 
 const _handleEventInternally = async (tenantId, type, subType) => {
   const logger = Logger(cds.context, COMPONENT_NAME);
   logger.info("processEventQueue internally", {
-    tenantId,
-    type,
-    subType,
+    additionalMessageProperties: {
+      tenantId,
+      type,
+      subType,
+    },
   });
   const subdomain = await getSubdomainForTenantId(tenantId);
   const context = new cds.EventContext({

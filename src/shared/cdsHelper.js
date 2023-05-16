@@ -87,7 +87,9 @@ async function executeInNewTransaction(
     }
     return false;
   } finally {
-    logger.debug("Execution in new transaction finished", info);
+    logger.debug("Execution in new transaction finished", {
+      additionalMessageProperties: info,
+    });
   }
   return true;
 }

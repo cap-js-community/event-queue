@@ -11,6 +11,7 @@ class Config {
     this.__forUpdateTimeout = FOR_UPDATE_TIMEOUT;
     this.__globalTxTimeout = GLOBAL_TX_TIMEOUT;
     this.__betweenRuns = null;
+    this.__redisEnabled = null;
   }
 
   getEventConfig(type, subType) {
@@ -59,6 +60,14 @@ class Config {
 
   set betweenRuns(value) {
     this.__betweenRuns = value;
+  }
+
+  get redisEnabled() {
+    return this.__redisEnabled;
+  }
+
+  set redisEnabled(value) {
+    this.__redisEnabled = value;
   }
 }
 

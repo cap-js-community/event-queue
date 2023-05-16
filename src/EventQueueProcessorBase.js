@@ -115,9 +115,11 @@ class EventQueueProcessorBase {
 
   logTimeExceeded(iterationCounter) {
     this.logger.info("Exiting event queue processing as max time exceeded", {
-      eventType: this.eventType,
-      eventSubType: this.eventSubType,
-      iterationCounter,
+      additionalMessageProperties: {
+        eventType: this.eventType,
+        eventSubType: this.eventSubType,
+        iterationCounter,
+      },
     });
   }
 
@@ -178,9 +180,11 @@ class EventQueueProcessorBase {
       this.logger.error(
         "The supplied queueEntry has not been selected before and should not be processed. Entry will not be processed.",
         {
-          eventType: this.__eventType,
-          eventSubType: this.__eventSubType,
-          queueEntryId: queueEntry.ID,
+          additionalMessageProperties: {
+            eventType: this.__eventType,
+            eventSubType: this.__eventSubType,
+            queueEntryId: queueEntry.ID,
+          },
         }
       );
       return;
@@ -197,9 +201,11 @@ class EventQueueProcessorBase {
    */
   setStatusToDone(queueEntry) {
     this.logger.debug("setting status for queueEntry to done", {
-      id: queueEntry.ID,
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      additionalMessageProperties: {
+        id: queueEntry.ID,
+        eventType: this.__eventType,
+        eventSubType: this.__eventSubType,
+      },
     });
     this._determineAndAddEventStatusToMap(
       queueEntry.ID,
@@ -224,10 +230,12 @@ class EventQueueProcessorBase {
 
   _addEntryToProcessingMap(key, queueEntry, payload) {
     this.logger.debug("add entry to processing map", {
-      key,
-      queueEntry,
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      additionalMessageProperties: {
+        key,
+        queueEntry,
+        eventType: this.__eventType,
+        eventSubType: this.__eventSubType,
+      },
     });
     this.__eventProcessingMap[key] = this.__eventProcessingMap[key] ?? {
       queueEntries: [],
@@ -247,11 +255,13 @@ class EventQueueProcessorBase {
    */
   setEventStatus(queueEntries, queueEntryProcessingStatusTuple) {
     this.logger.debug("setting event status for entries", {
-      queueEntryProcessingStatusTuple: JSON.stringify(
-        queueEntryProcessingStatusTuple
-      ),
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      additionalMessageProperties: {
+        queueEntryProcessingStatusTuple: JSON.stringify(
+          queueEntryProcessingStatusTuple
+        ),
+        eventType: this.__eventType,
+        eventSubType: this.__eventSubType,
+      },
     });
     const statusMap = this.__commitOnEventLevel ? {} : this.__statusMap;
     try {
@@ -270,8 +280,10 @@ class EventQueueProcessorBase {
         "The supplied status tuple doesn't have the required structure. Setting all entries to error",
         {
           error,
-          eventType: this.__eventType,
-          eventSubType: this.__eventSubType,
+          additionalMessageProperties: {
+            eventType: this.__eventType,
+            eventSubType: this.__eventSubType,
+          },
         }
       );
     }
