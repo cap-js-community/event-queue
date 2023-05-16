@@ -4,6 +4,13 @@
 // TODO: how to deal with fatal logs
 // TODO: think about switching to cds.env from own config class
 // TODO: add createdAt to persistence to proper order/sort event queue entries
+// FIXME: Performance measurement executed\n{ name: undefined, milliseconds: 2776 }
+// TODO: control concurrency for runner files
+// TODO: modifyQueueEntry|checkEventAndGeneratePayload should not produce an unexpected error
+
+// TODO: for test
+// --> deeper look into the functions e.g. getQueueEntriesAndSetToInProgress
+// find a good way to test tx handling with sqlite --> commits/rollbacks should be validated
 
 module.exports = {
   ...require("./initialize"),

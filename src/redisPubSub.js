@@ -7,6 +7,7 @@ const { Logger } = require("./shared/logger");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const { checkLockExists } = require("./shared/distributedLock");
 const { isOnCF } = require("./shared/env");
+const config = require("./config");
 
 const MESSAGE_CHANNEL = "cdsEventQueue";
 const COMPONENT_NAME = "/eventQueue/redisPubSub";
@@ -78,7 +79,8 @@ const messageHandlerProcessEvents = async (messageData) => {
 };
 
 const publishEvent = async (tenantId, type, subType) => {
-  if (!isOnCF) {
+  const configInstance = config.getConfigInstance();
+  if (!isOnCF || !configInstance.redisEnabled) {
     await _handleEventInternally(tenantId, type, subType);
     return;
   }

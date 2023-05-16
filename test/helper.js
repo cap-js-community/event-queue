@@ -16,6 +16,7 @@ const insertEventEntry = async (tx, entires) => {
     const event = eventQueue.getConfigInstance().events[0];
     entires = [
       {
+        ID: "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
         type: event.type,
         subType: event.subType,
         payload: JSON.stringify({
@@ -33,8 +34,12 @@ const selectEventQueueAndExpectDone = async (tx, expectedLength = 1) =>
 const selectEventQueueAndExpectOpen = async (tx, expectedLength = 1) =>
   _selectEventQueueAndExpect(tx, EventProcessingStatus.Open, expectedLength);
 
+const selectEventQueueAndExpectError = async (tx, expectedLength = 1) =>
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Error, expectedLength);
+
 module.exports = {
   selectEventQueueAndExpectDone,
   selectEventQueueAndExpectOpen,
+  selectEventQueueAndExpectError,
   insertEventEntry,
 };

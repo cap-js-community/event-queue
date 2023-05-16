@@ -32,13 +32,13 @@ describe("baseFunctionality", () => {
     jest.clearAllMocks();
   });
 
-  it("empty queue - nothing to do", async () => {
+  test("empty queue - nothing to do", async () => {
     const event = eventQueue.getConfigInstance().events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
   });
 
-  it("insert one entry and process", async () => {
+  test("insert one entry and process", async () => {
     await testHelper.insertEventEntry(tx);
     const event = eventQueue.getConfigInstance().events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
@@ -46,7 +46,7 @@ describe("baseFunctionality", () => {
     await testHelper.selectEventQueueAndExpectDone(tx);
   });
 
-  it("should do nothing if no lock is available", async () => {
+  test("should do nothing if no lock is available", async () => {
     await testHelper.insertEventEntry(tx);
     jest
       .spyOn(
@@ -61,27 +61,15 @@ describe("baseFunctionality", () => {
   });
 
   describe("error handling", () => {
-    it("missing event implementation", async () => {
+    test("missing event implementation", async () => {
       await testHelper.insertEventEntry(tx);
       await eventQueue.processEventQueue(context, "404", "NOT FOUND");
       expect(loggerMock.callsLengths().error).toEqual(1);
-      expect(loggerMock.calls().error).toMatchInlineSnapshot(`
-        [
-          [
-            "No Implementation found for queue type in 'eventTypeRegister.js'",
-            {
-              "additionalMessageProperties": {
-                "eventSubType": "NOT FOUND",
-                "eventType": "404",
-              },
-            },
-          ],
-        ]
-      `);
+      expect(loggerMock.calls().error).toMatchSnapshot();
       await testHelper.selectEventQueueAndExpectOpen(tx);
     });
 
-    it("handle handleDistributedLock fails", async () => {
+    test("handle handleDistributedLock fails", async () => {
       await testHelper.insertEventEntry(tx);
       jest
         .spyOn(
@@ -92,15 +80,69 @@ describe("baseFunctionality", () => {
       const event = eventQueue.getConfigInstance().events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
-      expect(loggerMock.calls().error).toMatchInlineSnapshot(`
-        [
-          [
-            "Processing event queue failed with unexpected error",
-            [Error: lock require failed],
-          ],
-        ]
-      `);
+      expect(loggerMock.calls().error).toMatchSnapshot();
       await testHelper.selectEventQueueAndExpectOpen(tx);
+    });
+
+    test("handle getQueueEntriesAndSetToInProgress fails", async () => {
+      await testHelper.insertEventEntry(tx);
+      jest
+        .spyOn(
+          eventQueue.EventQueueProcessorBase.prototype,
+          "getQueueEntriesAndSetToInProgress"
+        )
+        .mockRejectedValueOnce(new Error("db error"));
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchSnapshot();
+      await testHelper.selectEventQueueAndExpectOpen(tx);
+    });
+
+    test("handle modifyQueueEntry fails", async () => {
+      await testHelper.insertEventEntry(tx);
+      jest
+        .spyOn(eventQueue.EventQueueProcessorBase.prototype, "modifyQueueEntry")
+        .mockImplementationOnce(() => {
+          throw new Error("syntax error");
+        });
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchSnapshot();
+      await testHelper.selectEventQueueAndExpectError(tx);
+    });
+
+    test("handle checkEventAndGeneratePayload fails", async () => {
+      await testHelper.insertEventEntry(tx);
+      jest
+        .spyOn(
+          eventQueue.EventQueueProcessorBase.prototype,
+          "checkEventAndGeneratePayload"
+        )
+        .mockRejectedValueOnce(new Error("syntax error"));
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchSnapshot();
+      await testHelper.selectEventQueueAndExpectError(tx);
+    });
+
+    test("handle clusterQueueEntries fails", async () => {
+      await testHelper.insertEventEntry(tx);
+      jest
+        .spyOn(
+          eventQueue.EventQueueProcessorBase.prototype,
+          "clusterQueueEntries"
+        )
+        .mockImplementationOnce(() => {
+          throw new Error("syntax error");
+        });
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchSnapshot();
+      await testHelper.selectEventQueueAndExpectError(tx);
     });
   });
 

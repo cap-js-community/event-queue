@@ -4,6 +4,9 @@ const eventQueueConfig = require("./config");
 const cdsHelper = require("./shared/cdsHelper");
 const { eventQueueRunner } = require("./processEventQueue");
 const { publishEvent } = require("./redisPubSub");
+const { Logger } = require("./shared/logger");
+
+const COMPONENT_NAME = "eventQueue/runner";
 
 const singleInstanceAndTenant = () => {
   _singleInstanceAndTenant();
@@ -15,7 +18,6 @@ const _singleInstanceAndTenant = async () => {
   setTimeout(_singleInstanceAndTenant, configInstance.betweenRuns);
 };
 
-// TODO: control concurrency
 const singleInstanceAndMultiTenancy = () => {
   _singleInstanceAndMultiTenancy();
 };
@@ -28,7 +30,10 @@ const _singleInstanceAndMultiTenancy = async () => {
       await _executeRunForTenant(tenantId);
     }
   } catch (err) {
-    // TODO: error handling
+    Logger(cds.context, COMPONENT_NAME).error(
+      "Couldn't fetch tenant ids for event queue processing! Next try after defined interval.",
+      { error: err }
+    );
   }
   setTimeout(_singleInstanceAndMultiTenancy, configInstance.betweenRuns);
 };
@@ -49,18 +54,17 @@ const _multiInstanceAndTenancy = async () => {
       await _executeRunForTenantWithRedis(tenantId);
     }
   } catch (err) {
-    // TODO: error handling
+    Logger(cds.context, COMPONENT_NAME).error(
+      "Couldn't fetch tenant ids for event queue processing! Next try after defined interval.",
+      { error: err }
+    );
   }
   setTimeout(_multiInstanceAndTenancy, configInstance.betweenRuns);
 };
 
 const _multiInstanceAndSingleTenancy = async () => {
   const configInstance = eventQueueConfig.getConfigInstance();
-  try {
-    await _executeRunForTenant();
-  } catch (err) {
-    // TODO: error handling
-  }
+  await _executeRunForTenant();
   setTimeout(_multiInstanceAndSingleTenancy, configInstance.betweenRuns);
 };
 
@@ -76,7 +80,16 @@ const _executeRunForTenant = async (tenantId) => {
     });
     await eventQueueRunner(context, eventsForAutomaticRun);
   } catch (err) {
-    // TODO: error handling
+    Logger(cds.context, COMPONENT_NAME).error(
+      "Couldn't process eventQueue for tenant! Next try after defined interval.",
+      {
+        error: err,
+        additionalMessageProperties: {
+          tenantId,
+          redisEnabled: false,
+        },
+      }
+    );
   }
 };
 
@@ -88,7 +101,16 @@ const _executeRunForTenantWithRedis = async (tenantId) => {
       await publishEvent(tenantId, type, subType);
     }
   } catch (err) {
-    // TODO: error handling
+    Logger(cds.context, COMPONENT_NAME).error(
+      "Couldn't process eventQueue for tenant! Next try after defined interval.",
+      {
+        error: err,
+        additionalMessageProperties: {
+          tenantId,
+          redisEnabled: true,
+        },
+      }
+    );
   }
 };
 

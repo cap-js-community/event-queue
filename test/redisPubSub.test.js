@@ -36,7 +36,9 @@ describe("eventQueue Redis Events and DB Handlers", () => {
 
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
-    await eventQueue.initialize({ configFilePath, registerDbHandler: false });
+    const configInstance = eventQueue.getConfigInstance();
+    await eventQueue.initialize({ configFilePath, registerDbHandler: true });
+    configInstance.redisEnabled = true;
     eventQueue.registerEventQueueDbHandler(cds.db);
     const event = eventQueue.getConfigInstance().events[0];
     queueEntry = {
