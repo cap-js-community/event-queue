@@ -49,14 +49,13 @@ const _scheduleFunction = (fn) => {
   }, OFFSET_FIRST_RUN);
 };
 
-const _multiInstanceAndTenancy = async (id) => {
+const _multiInstanceAndTenancy = async () => {
   const emptyContext = new cds.EventContext({});
   const logger = Logger(emptyContext, COMPONENT_NAME);
   const tenantIds = await cdsHelper.getAllTenantIds();
   const configInstance = eventQueueConfig.getConfigInstance();
   const runId = await acquireRunId(emptyContext);
 
-  console.log(runId);
   if (!runId) {
     logger.error("could not acquire runId, skip processing events!");
     return;
@@ -74,7 +73,6 @@ const _multiInstanceAndTenancy = async (id) => {
     if (!couldAcquireLock) {
       continue;
     }
-    console.log("tenant executed", tenantId, id);
     await _executeRunForTenant(tenantId);
   }
 };

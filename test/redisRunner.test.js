@@ -70,8 +70,8 @@ describe("redisRunner", () => {
     getAllTenantIdsSpy
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds);
-    const p1 = runner._._multiInstanceAndTenancy(1);
-    const p2 = runner._._multiInstanceAndTenancy(2);
+    const p1 = runner._._multiInstanceAndTenancy();
+    const p2 = runner._._multiInstanceAndTenancy();
 
     await Promise.allSettled([p1, p2]);
 
