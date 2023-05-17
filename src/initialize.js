@@ -11,10 +11,10 @@ const { RunningModes } = require("./constants");
 const runner = require("./runner");
 const dbHandler = require("./dbHandler");
 const { getAllTenantIds } = require("./shared/cdsHelper");
+const { initEventQueueRedisSubscribe } = require("./redisPubSub");
 
 const readFileAsync = promisify(fs.readFile);
 
-// const COMPONENT_NAME = "/FeatureToggles";
 const VERROR_CLUSTER_NAME = "EventQueueInitialization";
 
 const initialize = async ({
@@ -23,9 +23,13 @@ const initialize = async ({
   registerDbHandler = true,
   betweenRuns = 5 * 60 * 1000,
 } = {}) => {
-  const config = await readConfigFromFile(configFilePath);
   const configInstance = getConfigInstance();
-  configInstance.fileContent = config;
+  if (configInstance.initialized) {
+    return;
+  }
+  configInstance.initialized = true;
+  cds.context = new cds.EventContext();
+  configInstance.fileContent = await readConfigFromFile(configFilePath);
   configInstance.betweenRuns = betweenRuns;
   if (registerDbHandler) {
     const dbService = await cds.connect.to("db");
@@ -43,6 +47,7 @@ const initialize = async ({
     }
   }
   if (mode === RunningModes.multiInstance) {
+    initEventQueueRedisSubscribe();
     // TODO: check if there is a redis binding
     configInstance.redisEnabled = true;
     if (multiTenancyEnabled) {

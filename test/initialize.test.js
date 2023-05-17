@@ -8,6 +8,12 @@ const eventQueue = require("../src");
 const runner = require("../src/runner");
 
 describe("initialize", () => {
+  beforeEach(() => {
+    const configInstance = eventQueue.getConfigInstance();
+    configInstance.initialized = false;
+    jest.clearAllMocks();
+  });
+
   const configFilePath = path.join(__dirname, "asset", "configFaulty.yml");
   test("read yaml config file", async () => {
     tenantIdsSpy.mockResolvedValueOnce(null);
@@ -53,6 +59,22 @@ describe("initialize", () => {
         .mockReturnValueOnce();
       await eventQueue.initialize({ configFilePath, registerDbHandler: false });
       expect(singleInstanceAndMultiTenancySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("calling initialize twice should only processed once", async () => {
+      const singleInstanceAndTenant = jest
+        .spyOn(runner, "singleInstanceAndTenant")
+        .mockReturnValueOnce();
+      const p1 = eventQueue.initialize({
+        configFilePath,
+        registerDbHandler: false,
+      });
+      const p2 = eventQueue.initialize({
+        configFilePath,
+        registerDbHandler: false,
+      });
+      await Promise.allSettled([p1, p2]);
+      expect(singleInstanceAndTenant).toHaveBeenCalledTimes(1);
     });
 
     test("multi Instance, multi tenant", async () => {

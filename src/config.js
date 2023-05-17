@@ -15,6 +15,7 @@ class Config {
     this.__betweenRuns = null;
     this.__redisEnabled = null;
     this.__isOnCF = env.isOnCF;
+    this.__initialized = false;
   }
 
   getEventConfig(type, subType) {
@@ -79,6 +80,14 @@ class Config {
 
   set isOnCF(value) {
     this.__isOnCF = value;
+  }
+
+  get initialized() {
+    return this.__initialized;
+  }
+
+  set initialized(value) {
+    this.__initialized = value;
   }
 }
 

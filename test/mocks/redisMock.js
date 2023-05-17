@@ -1,7 +1,7 @@
 "use strict";
 
 const state = {};
-const _createMainClientAndConnect = () => ({
+const _createMainClientAndConnect = async () => ({
   get: async (key) => state[key],
   set: async (key, value) => {
     if (state[key]) {
@@ -19,5 +19,6 @@ const _createMainClientAndConnect = () => ({
 module.exports = {
   _: {
     _createMainClientAndConnect,
+    _createClientAndConnect: _createMainClientAndConnect,
   },
 };

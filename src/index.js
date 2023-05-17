@@ -8,6 +8,7 @@
 // TODO: control concurrency for runner files
 // TODO: modifyQueueEntry|checkEventAndGeneratePayload should not produce an unexpected error
 // TODO: multiInstance without redis??
+// TODO: runAutomatically: true flag in config
 
 // TODO: for test
 // --> deeper look into the functions e.g. getQueueEntriesAndSetToInProgress
