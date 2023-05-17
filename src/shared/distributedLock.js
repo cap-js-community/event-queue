@@ -4,7 +4,6 @@ const redisWrapper = require("@sap/btp-feature-toggles/src/redisWrapper");
 
 const config = require("../config");
 const { executeInNewTransaction } = require("./cdsHelper");
-const { isOnCF } = require("./env");
 
 const acquireLock = async (
   context,
@@ -15,7 +14,7 @@ const acquireLock = async (
   } = {}
 ) => {
   const fullKey = _generateKey(context, tenantScoped, key);
-  if (isOnCF) {
+  if (config.getConfigInstance().isOnCF) {
     return await _acquireLockRedis(context, fullKey, expiryTime);
   } else {
     return await _acquireLockDB(context, fullKey, expiryTime);
@@ -32,7 +31,7 @@ const setValueWithExpire = async (
   } = {}
 ) => {
   const fullKey = _generateKey(context, tenantScoped, key);
-  if (isOnCF) {
+  if (config.getConfigInstance().isOnCF) {
     return await _acquireLockRedis(context, fullKey, expiryTime, value);
   } else {
     return await _acquireLockDB(context, fullKey, expiryTime, value);
@@ -41,7 +40,7 @@ const setValueWithExpire = async (
 
 const releaseLock = async (context, key, { tenantScoped = true } = {}) => {
   const fullKey = _generateKey(context, tenantScoped, key);
-  if (isOnCF) {
+  if (config.getConfigInstance().isOnCF) {
     return await _releaseLockRedis(context, fullKey);
   } else {
     return await _releaseLockDb(context, fullKey);
@@ -54,7 +53,7 @@ const checkLockExistsAndReturnValue = async (
   { tenantScoped = true } = {}
 ) => {
   const fullKey = _generateKey(context, tenantScoped, key);
-  if (isOnCF) {
+  if (config.getConfigInstance().isOnCF) {
     return await _checkLockExistsRedis(context, fullKey);
   } else {
     return await _checkLockExistsDb(context, fullKey);
@@ -65,7 +64,7 @@ const _acquireLockRedis = async (
   context,
   fullKey,
   expiryTime,
-  value = true
+  value = "true"
 ) => {
   const client = await redisWrapper._._createMainClientAndConnect();
   const result = await client.set(fullKey, value, {

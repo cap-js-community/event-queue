@@ -1,5 +1,7 @@
 "use strict";
 
+const env = require("./shared/env");
+
 let instance;
 
 const FOR_UPDATE_TIMEOUT = 10;
@@ -12,6 +14,7 @@ class Config {
     this.__globalTxTimeout = GLOBAL_TX_TIMEOUT;
     this.__betweenRuns = null;
     this.__redisEnabled = null;
+    this.__isOnCF = env.isOnCF;
   }
 
   getEventConfig(type, subType) {
@@ -68,6 +71,14 @@ class Config {
 
   set redisEnabled(value) {
     this.__redisEnabled = value;
+  }
+
+  get isOnCF() {
+    return this.__isOnCF;
+  }
+
+  set isOnCF(value) {
+    this.__isOnCF = value;
   }
 }
 

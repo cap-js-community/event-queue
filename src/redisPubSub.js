@@ -6,7 +6,6 @@ const { processEventQueue } = require("./processEventQueue");
 const { Logger } = require("./shared/logger");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
-const { isOnCF } = require("./shared/env");
 const config = require("./config");
 
 const MESSAGE_CHANNEL = "cdsEventQueue";
@@ -80,7 +79,7 @@ const messageHandlerProcessEvents = async (messageData) => {
 
 const publishEvent = async (tenantId, type, subType) => {
   const configInstance = config.getConfigInstance();
-  if (!isOnCF || !configInstance.redisEnabled) {
+  if (!configInstance.isOnCF || !configInstance.redisEnabled) {
     await _handleEventInternally(tenantId, type, subType);
     return;
   }

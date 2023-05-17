@@ -49,21 +49,23 @@ const _scheduleFunction = (fn) => {
   }, OFFSET_FIRST_RUN);
 };
 
-const _multiInstanceAndTenancy = async () => {
+const _multiInstanceAndTenancy = async (id) => {
   const emptyContext = new cds.EventContext({});
   const logger = Logger(emptyContext, COMPONENT_NAME);
   const tenantIds = await cdsHelper.getAllTenantIds();
   const configInstance = eventQueueConfig.getConfigInstance();
   const runId = await acquireRunId(emptyContext);
 
+  console.log(runId);
   if (!runId) {
     logger.error("could not acquire runId, skip processing events!");
     return;
   }
 
   for (const tenantId of tenantIds) {
+    const tenantContext = new cds.EventContext({ tenant: tenantId });
     const couldAcquireLock = await distributedLock.acquireLock(
-      emptyContext,
+      tenantContext,
       runId,
       {
         expiryTime: configInstance.betweenRuns,
@@ -72,6 +74,7 @@ const _multiInstanceAndTenancy = async () => {
     if (!couldAcquireLock) {
       continue;
     }
+    console.log("tenant executed", tenantId, id);
     await _executeRunForTenant(tenantId);
   }
 };
@@ -136,4 +139,7 @@ module.exports = {
   singleInstanceAndMultiTenancy,
   multiInstanceAndTenancy,
   multiInstanceAndSingleTenancy,
+  _: {
+    _multiInstanceAndTenancy,
+  },
 };
