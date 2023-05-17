@@ -7,6 +7,7 @@
 // FIXME: Performance measurement executed\n{ name: undefined, milliseconds: 2776 }
 // TODO: control concurrency for runner files
 // TODO: modifyQueueEntry|checkEventAndGeneratePayload should not produce an unexpected error
+// TODO: multiInstance without redis??
 
 // TODO: for test
 // --> deeper look into the functions e.g. getQueueEntriesAndSetToInProgress

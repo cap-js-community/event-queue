@@ -5,7 +5,7 @@ const redisWrapper = require("@sap/btp-feature-toggles/src/redisWrapper");
 const { processEventQueue } = require("./processEventQueue");
 const { Logger } = require("./shared/logger");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
-const { checkLockExists } = require("./shared/distributedLock");
+const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
 const { isOnCF } = require("./shared/env");
 const config = require("./config");
 
@@ -100,7 +100,7 @@ const publishEvent = async (tenantId, type, subType) => {
       logger.info("publish redis client connected");
     }
 
-    const result = await checkLockExists(
+    const result = await checkLockExistsAndReturnValue(
       new cds.EventContext({ tenant: tenantId }),
       [type, subType].join("##")
     );

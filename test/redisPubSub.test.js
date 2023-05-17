@@ -3,7 +3,10 @@
 const env = require("../src/shared/env");
 env.isOnCF = true;
 const distributedLock = require("../src/shared/distributedLock");
-const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExists");
+const checkLockExistsSpy = jest.spyOn(
+  distributedLock,
+  "checkLockExistsAndReturnValue"
+);
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);

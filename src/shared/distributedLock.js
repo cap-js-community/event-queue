@@ -22,6 +22,23 @@ const acquireLock = async (
   }
 };
 
+const setValueWithExpire = async (
+  context,
+  key,
+  value,
+  {
+    tenantScoped = true,
+    expiryTime = config.getConfigInstance().globalTxTimeout,
+  } = {}
+) => {
+  const fullKey = _generateKey(context, tenantScoped, key);
+  if (isOnCF) {
+    return await _acquireLockRedis(context, fullKey, expiryTime, value);
+  } else {
+    return await _acquireLockDB(context, fullKey, expiryTime, value);
+  }
+};
+
 const releaseLock = async (context, key, { tenantScoped = true } = {}) => {
   const fullKey = _generateKey(context, tenantScoped, key);
   if (isOnCF) {
@@ -31,7 +48,11 @@ const releaseLock = async (context, key, { tenantScoped = true } = {}) => {
   }
 };
 
-const checkLockExists = async (context, key, { tenantScoped = true } = {}) => {
+const checkLockExistsAndReturnValue = async (
+  context,
+  key,
+  { tenantScoped = true } = {}
+) => {
   const fullKey = _generateKey(context, tenantScoped, key);
   if (isOnCF) {
     return await _checkLockExistsRedis(context, fullKey);
@@ -40,10 +61,15 @@ const checkLockExists = async (context, key, { tenantScoped = true } = {}) => {
   }
 };
 
-const _acquireLockRedis = async (context, fullKey, expiryTime) => {
+const _acquireLockRedis = async (
+  context,
+  fullKey,
+  expiryTime,
+  value = true
+) => {
   const client = await redisWrapper._._createMainClientAndConnect();
-  const result = await client.set(fullKey, "true", {
-    EX: expiryTime,
+  const result = await client.set(fullKey, value, {
+    PX: expiryTime,
     NX: true,
   });
   return result === "OK";
@@ -65,7 +91,7 @@ const _checkLockExistsDb = async (context, fullKey) => {
       );
     }
   );
-  return !!result;
+  return result?.value;
 };
 
 const _releaseLockRedis = async (context, fullKey) => {
@@ -83,7 +109,7 @@ const _releaseLockDb = async (context, fullKey) => {
   );
 };
 
-const _acquireLockDB = async (context, fullKey, expiryTime) => {
+const _acquireLockDB = async (context, fullKey, expiryTime, value = true) => {
   let result;
   await executeInNewTransaction(
     context,
@@ -93,6 +119,7 @@ const _acquireLockDB = async (context, fullKey, expiryTime) => {
         await tx.run(
           INSERT.into("sap.core.EventLock").entries({
             code: fullKey,
+            value,
           })
         );
         result = true;
@@ -111,6 +138,7 @@ const _acquireLockDB = async (context, fullKey, expiryTime) => {
             UPDATE.entity("sap.core.EventLock")
               .set({
                 createdAt: new Date().toISOString(),
+                value,
               })
               .where("code =", currentEntry.code)
           );
@@ -134,5 +162,6 @@ const _generateKey = (context, tenantScoped, key) => {
 module.exports = {
   acquireLock,
   releaseLock,
-  checkLockExists,
+  checkLockExistsAndReturnValue,
+  setValueWithExpire,
 };

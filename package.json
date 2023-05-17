@@ -24,6 +24,7 @@
     "node": ">=8"
   },
   "dependencies": {
+    "uuid": "9.0.0",
     "@sap/btp-feature-toggles": "0.5.18",
     "verror": "^1.10.1",
     "yaml": "^2.2.2"
