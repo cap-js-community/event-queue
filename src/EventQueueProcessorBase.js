@@ -24,7 +24,6 @@ const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_PARALLEL_EVENT_PROCESSING = 1;
 const LIMIT_PARALLEL_EVENT_PROCESSING = 10;
 const SELECT_LIMIT_EVENTS_PER_TICK = 100;
-const DEFAULT_PARALLEL_EXECUTION = true;
 
 class EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
@@ -45,8 +44,8 @@ class EventQueueProcessorBase {
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
-    this.__concurrentEventProcessing =
-      this.__config.concurrentEventProcessing ?? DEFAULT_PARALLEL_EXECUTION;
+    // NOTE: keep the feature, this might be needed again
+    this.__concurrentEventProcessing = true;
     this.__startTime = this.__config.startTime ?? new Date();
     this.__retryAttempts =
       this.__config.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;

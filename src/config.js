@@ -26,6 +26,12 @@ class Config {
     return this.__config.events.filter((event) => event.runAutomatically);
   }
 
+  hasEventAfterCommitFlag(type, subType) {
+    return (
+      this.__eventMap[[type, subType].join("##")]?.processAfterCommit ?? true
+    );
+  }
+
   set fileContent(config) {
     this.__config = config;
     this.__eventMap = config.events.reduce((result, event) => {

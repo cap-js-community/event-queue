@@ -15,9 +15,10 @@ let publishClient;
 let subscriberClientPromise;
 
 const initEventQueueRedisSubscribe = () => {
-  if (!subscriberClientPromise) {
-    subscribeRedisClient();
+  if (subscriberClientPromise || !config.getConfigInstance().redisEnabled) {
+    return;
   }
+  subscribeRedisClient();
 };
 
 const subscribeRedisClient = () => {

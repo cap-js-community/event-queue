@@ -20,10 +20,6 @@ const { getConfigInstance } = require("./config");
 //       checkForNextChunk          Determines if after processing a chunk (the size depends on the value of selectMaxChunkSize)
 //                                  a next chunk is being processed if there are more open events and the processing
 //                                  time has not already exceeded 5 minutes. Default is false
-//       concurrentEventProcessing  EXPERIMENTAL FEATURE: avoid parallel executions of the event type and subtype combination.
-//                                  If the app is running on CF the lock will be handled by redis if not the database is used
-//                                  Locks are expiring after 30 minutes (tx timeout). As long as experimental the
-//                                  default is true!
 
 const getAllEvents = () => {
   return getConfigInstance().fileContent.events;

@@ -16,10 +16,6 @@
 #         checkForNextChunk            Determines if after processing a chunk (the size depends on the value of selectMaxChunkSize)
 #                                      a next chunk is being processed if there are more open events and the processing
 #                                      time has not already exceeded 5 minutes. Default is false
-#         concurrentEventProcessing    EXPERIMENTAL FEATURE: avoid parallel executions of the event type and subtype combination.
-#                                      If the app is running on CF the lock will be handled by redis if not the database is used
-#                                      Locks are expiring after 30 minutes (tx timeout). As long as experimental the
-#                                      default is true!
 
 events:
   - type: Notifications
@@ -28,3 +24,20 @@ events:
     load: 40
     parallelEventProcessing: 5
     runAutomatically: true
+    processAfterCommit: true
+
+  - type: Fiori
+    subType: Task
+    impl: ./test/asset/EventQueueTest
+    load: 40
+    parallelEventProcessing: 5
+    runAutomatically: true
+    processAfterCommit: true
+
+  - type: Test
+    subType: NoProcessAfterCommit
+    impl: ./test/asset/EventQueueTest
+    load: 40
+    parallelEventProcessing: 5
+    runAutomatically: true
+    processAfterCommit: false

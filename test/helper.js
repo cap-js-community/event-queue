@@ -11,21 +11,39 @@ const _selectEventQueueAndExpect = async (tx, status, expectedLength = 1) => {
   }
 };
 
-const insertEventEntry = async (tx, entires) => {
-  if (!entires || entires?.length === 0) {
+const getEventEntry = () => {
+  const event = eventQueue.getConfigInstance().events[0];
+  return {
+    type: event.type,
+    subType: event.subType,
+    payload: JSON.stringify({
+      testPayload: 123,
+    }),
+  };
+};
+
+const insertEventEntry = async (tx, { entries, numberOfEntries = 1 } = {}) => {
+  if (!entries || entries?.length === 0) {
     const event = eventQueue.getConfigInstance().events[0];
-    entires = [
+    entries = [
       {
         ID: "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
-        type: event.type,
-        subType: event.subType,
-        payload: JSON.stringify({
-          testPayload: 123,
-        }),
+        ...getEventEntry(),
       },
     ];
+    Array(numberOfEntries - 1)
+      .fill({})
+      .forEach(() => {
+        entries.push({
+          type: event.type,
+          subType: event.subType,
+          payload: JSON.stringify({
+            testPayload: 123,
+          }),
+        });
+      });
   }
-  await tx.run(INSERT.into("sap.core.EventQueue").entries(entires));
+  await tx.run(INSERT.into("sap.core.EventQueue").entries(entries));
 };
 
 const selectEventQueueAndExpectDone = async (tx, expectedLength = 1) =>
@@ -42,4 +60,5 @@ module.exports = {
   selectEventQueueAndExpectOpen,
   selectEventQueueAndExpectError,
   insertEventEntry,
+  getEventEntry,
 };

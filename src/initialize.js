@@ -13,6 +13,7 @@ const dbHandler = require("./dbHandler");
 const { getAllTenantIds } = require("./shared/cdsHelper");
 const { initEventQueueRedisSubscribe } = require("./redisPubSub");
 const { Logger } = require("./shared/logger");
+const { isOnCF } = require("./shared/env");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -33,7 +34,7 @@ const initialize = async ({
   cds.context = new cds.EventContext();
   configInstance.fileContent = await readConfigFromFile(configFilePath);
   configInstance.betweenRuns = betweenRuns;
-  configInstance.redisEnabled = checkRedisIsBound();
+  configInstance.redisEnabled = checkRedisIsBound() && isOnCF;
   if (registerDbHandler) {
     const dbService = await cds.connect.to("db");
     dbHandler.registerEventQueueDbHandler(dbService);
