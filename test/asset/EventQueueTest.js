@@ -18,6 +18,11 @@ class EventQueueTest extends EventQueueBaseClass {
       EventProcessingStatus.Done,
     ]);
   }
+
+  async checkEventAndGeneratePayload(queueEntry) {
+    await this.tx.run(SELECT.from("sap.core.EventQueue"));
+    return queueEntry;
+  }
 }
 
 module.exports = EventQueueTest;

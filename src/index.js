@@ -7,7 +7,6 @@
 // FEATURES
 // TODO: think about switching to cds.env from own config class
 // TODO: multiInstance without redis??
-// TODO: runAutomatically: true flag in config
 // TODO: control concurrency for runner files
 // TODO: add createdAt to persistence to proper order/sort event queue entries
 

@@ -1,0 +1,12 @@
+{
+  "name": "@sap/cds-event-queue-test-integration-db",
+  "version": "1.0.0",
+  "dependencies": {
+    "@sap/hdi-deploy": "4.5.3"
+  },
+  "private": true,
+  "scripts": {
+    "start": "node node_modules/@sap/hdi-deploy/deploy.js --exit",
+    "undeploy": "node node_modules/@sap/hdi-deploy/deploy.js --undeploy"
+  }
+}

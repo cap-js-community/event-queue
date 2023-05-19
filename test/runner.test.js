@@ -58,6 +58,8 @@ describe("redisRunner", () => {
     jest.clearAllMocks();
   });
 
+  afterAll(() => cds.shutdown);
+
   it("redis", async () => {
     const setValueWithExpireSpy = jest.spyOn(
       distributedLock,

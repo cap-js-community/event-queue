@@ -18,6 +18,8 @@ describe("distributedLock", () => {
     await tx.rollback();
   });
 
+  afterAll(() => cds.shutdown);
+
   it("straight forward - acquire and release", async () => {
     const lockAcquired = await acquireLock(context, "key");
     expect(lockAcquired).toEqual(true);

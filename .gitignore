@@ -88,7 +88,7 @@ app/**/.user.project.json
 .mtxcache.json
 
 # default env
-default-env.json
+test-integration/_env/db/default-env.json
 
 # appInfo
 appInfo.json
@@ -111,3 +111,8 @@ read-sql-scenario-temp-logs.json
 .pipeline/piper-defaults.yml
 .pipeline/tmp/
 sap-piper
+
+test-integration/_env/db
+*.hdbmigrationtable
+test-integration/_env/db/last-dev
+

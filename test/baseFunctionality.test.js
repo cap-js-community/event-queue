@@ -6,6 +6,7 @@ const cds = require("@sap/cds/lib");
 
 const eventQueue = require("../src");
 const testHelper = require("./helper");
+const EventQueueTest = require("./asset/EventQueueTest");
 jest.mock("../src/shared/logger", () => require("./mocks/logger"));
 const loggerMock = require("../src/shared/logger").Logger();
 
@@ -31,6 +32,8 @@ describe("baseFunctionality", () => {
     await tx.rollback();
     jest.clearAllMocks();
   });
+
+  afterAll(() => cds.shutdown);
 
   test("empty queue - nothing to do", async () => {
     const event = eventQueue.getConfigInstance().events[0];
@@ -116,10 +119,7 @@ describe("baseFunctionality", () => {
     test("handle checkEventAndGeneratePayload fails", async () => {
       await testHelper.insertEventEntry(tx);
       jest
-        .spyOn(
-          eventQueue.EventQueueProcessorBase.prototype,
-          "checkEventAndGeneratePayload"
-        )
+        .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
         .mockRejectedValueOnce(new Error("syntax error"));
       const event = eventQueue.getConfigInstance().events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
