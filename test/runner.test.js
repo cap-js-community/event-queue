@@ -41,7 +41,7 @@ describe("redisRunner", () => {
       mode: eventQueue.RunningModes.multiInstance,
     });
     configInstance = eventQueue.getConfigInstance();
-    configInstance.isOnCF = true;
+    configInstance.redisEnabled = true;
   });
 
   beforeEach(async () => {
@@ -110,7 +110,7 @@ describe("redisRunner", () => {
       .mockImplementation(async (context = {}, transactionTag, fn) => {
         await fn(tx);
       });
-    configInstance.isOnCF = false;
+    configInstance.redisEnabled = false;
     const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
     getAllTenantIdsSpy
       .mockResolvedValueOnce(tenantIds)

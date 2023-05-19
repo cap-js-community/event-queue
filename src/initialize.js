@@ -33,14 +33,13 @@ const initialize = async ({
   cds.context = new cds.EventContext();
   configInstance.fileContent = await readConfigFromFile(configFilePath);
   configInstance.betweenRuns = betweenRuns;
+  configInstance.redisEnabled = checkRedisIsBound();
   if (registerDbHandler) {
     const dbService = await cds.connect.to("db");
     dbHandler.registerEventQueueDbHandler(dbService);
   }
   const multiTenancyEnabled = await getAllTenantIds();
   if (mode === RunningModes.singleInstance) {
-    // TODO: check if there is a redis binding
-    configInstance.redisEnabled = false;
     // TODO: find a better way to determine this
     if (multiTenancyEnabled) {
       runner.singleInstanceAndMultiTenancy();
@@ -50,8 +49,6 @@ const initialize = async ({
   }
   if (mode === RunningModes.multiInstance) {
     initEventQueueRedisSubscribe();
-    // TODO: check if there is a redis binding
-    configInstance.redisEnabled = true;
     if (multiTenancyEnabled) {
       runner.multiInstanceAndTenancy();
     } else {
@@ -76,6 +73,15 @@ const readConfigFromFile = async (configFilepath) => {
     },
     "configFilepath with unsupported extension, allowed extensions are .yaml and .json"
   );
+};
+
+const checkRedisIsBound = () => {
+  try {
+    const services = JSON.parse(process.env.VCAP_SERVICES);
+    return !!services["redis-cache"];
+  } catch {
+    return false;
+  }
 };
 
 module.exports = {

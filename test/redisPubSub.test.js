@@ -1,7 +1,5 @@
 "use strict";
 
-const env = require("../src/shared/env");
-env.isOnCF = true;
 const distributedLock = require("../src/shared/distributedLock");
 const checkLockExistsSpy = jest.spyOn(
   distributedLock,

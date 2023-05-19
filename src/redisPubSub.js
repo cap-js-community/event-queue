@@ -79,7 +79,7 @@ const messageHandlerProcessEvents = async (messageData) => {
 
 const publishEvent = async (tenantId, type, subType) => {
   const configInstance = config.getConfigInstance();
-  if (!configInstance.isOnCF || !configInstance.redisEnabled) {
+  if (!configInstance.redisEnabled) {
     await _handleEventInternally(tenantId, type, subType);
     return;
   }

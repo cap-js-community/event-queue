@@ -14,7 +14,7 @@ const acquireLock = async (
   } = {}
 ) => {
   const fullKey = _generateKey(context, tenantScoped, key);
-  if (config.getConfigInstance().isOnCF) {
+  if (config.getConfigInstance().redisEnabled) {
     return await _acquireLockRedis(context, fullKey, expiryTime);
   } else {
     return await _acquireLockDB(context, fullKey, expiryTime);
@@ -31,7 +31,7 @@ const setValueWithExpire = async (
   } = {}
 ) => {
   const fullKey = _generateKey(context, tenantScoped, key);
-  if (config.getConfigInstance().isOnCF) {
+  if (config.getConfigInstance().redisEnabled) {
     return await _acquireLockRedis(context, fullKey, expiryTime, value);
   } else {
     return await _acquireLockDB(context, fullKey, expiryTime, value);
@@ -40,7 +40,7 @@ const setValueWithExpire = async (
 
 const releaseLock = async (context, key, { tenantScoped = true } = {}) => {
   const fullKey = _generateKey(context, tenantScoped, key);
-  if (config.getConfigInstance().isOnCF) {
+  if (config.getConfigInstance().redisEnabled) {
     return await _releaseLockRedis(context, fullKey);
   } else {
     return await _releaseLockDb(context, fullKey);
@@ -53,7 +53,7 @@ const checkLockExistsAndReturnValue = async (
   { tenantScoped = true } = {}
 ) => {
   const fullKey = _generateKey(context, tenantScoped, key);
-  if (config.getConfigInstance().isOnCF) {
+  if (config.getConfigInstance().redisEnabled) {
     return await _checkLockExistsRedis(context, fullKey);
   } else {
     return await _checkLockExistsDb(context, fullKey);
