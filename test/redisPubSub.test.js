@@ -49,6 +49,8 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     mockRedisPublishCalls = [];
   });
 
+  afterAll(() => cds.shutdown);
+
   test("should not be called if not activated for the event", async () => {
     await tx.run(
       INSERT.into("sap.core.EventQueue").entries({

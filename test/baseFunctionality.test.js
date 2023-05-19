@@ -32,6 +32,8 @@ describe("baseFunctionality", () => {
     jest.clearAllMocks();
   });
 
+  afterAll(() => cds.shutdown);
+
   test("empty queue - nothing to do", async () => {
     const event = eventQueue.getConfigInstance().events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
