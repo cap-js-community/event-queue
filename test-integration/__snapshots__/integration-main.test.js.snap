@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`integration-main empty queue - nothing to do 1`] = `
+{
+  "BEGIN": 1,
+  "COMMIT": 1,
+  "READ": 1,
+}
+`;
+
+exports[`integration-main insert one entry and process 1`] = `
+{
+  "BEGIN": 5,
+  "COMMIT": 3,
+  "READ": 4,
+  "ROLLBACK": 1,
+  "UPDATE": 3,
+}
+`;
