@@ -8,7 +8,7 @@
     "db"
   ],
   "scripts": {
-    "test": "jest",
+    "test": "npm run test:build && jest",
     "lint": "npm run eslint && npm run prettier",
     "lint:ci": "npm run eslint:ci && npm run prettier:ci",
     "eslint": "eslint --fix .",
