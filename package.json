@@ -19,7 +19,7 @@
     "docs": "cd docs && bundle exec jekyll serve",
     "docs:install": "cd docs && npx shx rm -rf vendor Gemfile.lock && bundle install",
     "upgrade-lock": "npx shx rm -rf package-lock.json node_modules && npm i --package-lock",
-    "test:prepare": "cds-indexer"
+    "test:build": "cds-indexer && npm run build --prefix=./test-integration/_env"
   },
   "engines": {
     "node": ">=8"

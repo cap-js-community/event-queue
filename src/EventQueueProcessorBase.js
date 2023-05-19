@@ -597,14 +597,14 @@ class EventQueueProcessorBase {
             )
             .orderBy("createdAt", "ID")
         );
-        this.logger.debug("no entries available for processing", {
-          additionalMessageProperties: {
-            eventType: this.__eventType,
-            eventSubType: this.__eventSubType,
-          },
-        });
 
         if (!entries.length) {
+          this.logger.debug("no entries available for processing", {
+            additionalMessageProperties: {
+              eventType: this.__eventType,
+              eventSubType: this.__eventSubType,
+            },
+          });
           this.__emptyChunkSelected = true;
           return;
         }

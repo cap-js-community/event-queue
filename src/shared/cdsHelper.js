@@ -42,7 +42,7 @@ async function executeInNewTransaction(
         },
         async (tx) => {
           tx.context._ = context._ ?? {};
-          return fn(tx, ...parameters);
+          return await fn(tx, ...parameters);
         }
       );
     } else {
