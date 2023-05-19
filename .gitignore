@@ -111,3 +111,6 @@ read-sql-scenario-temp-logs.json
 .pipeline/piper-defaults.yml
 .pipeline/tmp/
 sap-piper
+
+test-integration/_env/db/*.cds
+test-integration/_env/db/src/*.hdimigrationtable

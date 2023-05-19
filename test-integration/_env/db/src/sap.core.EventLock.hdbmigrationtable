@@ -1,9 +1,0 @@
-== version=1
-COLUMN TABLE sap_core_EventLock (
-  createdAt TIMESTAMP,
-  createdBy NVARCHAR(255),
-  modifiedAt TIMESTAMP,
-  modifiedBy NVARCHAR(255),
-  code NVARCHAR(5000) NOT NULL,
-  value NVARCHAR(5000)
-)
