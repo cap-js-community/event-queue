@@ -101,7 +101,13 @@ const Logger = (
     ...Object.keys(LOG_LEVELS).reduce((result, functionLogLevel) => {
       result[[LOG_LEVELS[functionLogLevel]]] = (
         message,
-        { correlationId, date, customFields, additionalMessageProperties } = {}
+        {
+          correlationId,
+          date,
+          customFields,
+          additionalMessageProperties,
+          error,
+        } = {}
       ) => {
         if (
           LOGS_BY_LEVEL[logLevel.toUpperCase()].includes(
@@ -114,6 +120,7 @@ const Logger = (
               date,
               customFields,
               additionalMessageProperties,
+              error,
             })
           );
         }
