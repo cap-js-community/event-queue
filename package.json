@@ -8,7 +8,7 @@
     "db"
   ],
   "scripts": {
-    "test": "jest --testPathIgnorePatterns=\"/test/integration/\"",
+    "test": "jest --testPathIgnorePatterns=\"/test-integration/\"",
     "lint": "npm run eslint && npm run prettier",
     "lint:ci": "npm run eslint:ci && npm run prettier:ci",
     "eslint": "eslint --fix .",
