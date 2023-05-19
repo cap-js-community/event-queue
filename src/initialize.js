@@ -12,10 +12,12 @@ const runner = require("./runner");
 const dbHandler = require("./dbHandler");
 const { getAllTenantIds } = require("./shared/cdsHelper");
 const { initEventQueueRedisSubscribe } = require("./redisPubSub");
+const { Logger } = require("./shared/logger");
 
 const readFileAsync = promisify(fs.readFile);
 
 const VERROR_CLUSTER_NAME = "EventQueueInitialization";
+const COMPONENT = "eventQueue/initialize";
 
 const initialize = async ({
   configFilePath,
@@ -56,6 +58,7 @@ const initialize = async ({
       runner.multiInstanceAndSingleTenancy();
     }
   }
+  Logger(cds.context, COMPONENT).info("event queue initialized");
 };
 
 const readConfigFromFile = async (configFilepath) => {

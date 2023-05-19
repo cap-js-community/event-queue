@@ -21,7 +21,7 @@ const multiInstanceAndTenancy = () =>
   _scheduleFunction(_multiInstanceAndTenancy);
 
 const multiInstanceAndSingleTenancy = () =>
-  _scheduleFunction(_multiInstanceAndSingleTenancy);
+  _scheduleFunction(_executeRunForTenant);
 
 const _scheduleFunction = (fn) => {
   const configInstance = eventQueueConfig.getConfigInstance();
@@ -34,6 +34,7 @@ const _scheduleFunction = (fn) => {
 const _multiInstanceAndTenancy = async () => {
   const emptyContext = new cds.EventContext({});
   const logger = Logger(emptyContext, COMPONENT_NAME);
+  logger.info("executing event queue run for multi instance and tenant");
   const tenantIds = await cdsHelper.getAllTenantIds();
   const configInstance = eventQueueConfig.getConfigInstance();
   const runId = await acquireRunId(emptyContext);
@@ -61,6 +62,11 @@ const _multiInstanceAndTenancy = async () => {
 
 const _singleInstanceAndMultiTenancy = async () => {
   try {
+    const emptyContext = new cds.EventContext({});
+    const logger = Logger(emptyContext, COMPONENT_NAME);
+    logger.info(
+      "executing event queue run for single instance and multi tenant"
+    );
     const configInstance = eventQueueConfig.getConfigInstance();
     const tenantIds = await cdsHelper.getAllTenantIds();
     for (const tenantId of tenantIds) {
@@ -85,10 +91,6 @@ const _singleInstanceAndMultiTenancy = async () => {
   }
 };
 
-const _multiInstanceAndSingleTenancy = async () => {
-  await _executeRunForTenant();
-};
-
 const _executeRunForTenant = async (tenantId) => {
   try {
     const configInstance = eventQueueConfig.getConfigInstance();
@@ -98,6 +100,12 @@ const _executeRunForTenant = async (tenantId) => {
       tenant: tenantId,
       // NOTE: we need this because of logging otherwise logs would not contain the subdomain
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+    });
+    Logger(context, COMPONENT_NAME).info("executing eventQueue run", {
+      additionalMessageProperties: {
+        tenantId,
+        subdomain,
+      },
     });
     await eventQueueRunner(context, eventsForAutomaticRun);
   } catch (err) {
