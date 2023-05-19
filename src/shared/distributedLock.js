@@ -108,7 +108,7 @@ const _releaseLockDb = async (context, fullKey) => {
   );
 };
 
-const _acquireLockDB = async (context, fullKey, expiryTime, value = true) => {
+const _acquireLockDB = async (context, fullKey, expiryTime, value = "true") => {
   let result;
   await cdsHelper.executeInNewTransaction(
     context,
@@ -130,7 +130,7 @@ const _acquireLockDB = async (context, fullKey, expiryTime, value = true) => {
             .where("code =", fullKey)
         );
         if (
-          !currentEntry ||
+          currentEntry &&
           new Date(currentEntry.createdAt).getTime() + expiryTime <= Date.now()
         ) {
           await tx.run(
