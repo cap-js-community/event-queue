@@ -3,7 +3,7 @@
 const redisWrapper = require("@sap/btp-feature-toggles/src/redisWrapper");
 
 const config = require("../config");
-const { executeInNewTransaction } = require("./cdsHelper");
+const cdsHelper = require("./cdsHelper");
 
 const acquireLock = async (
   context,
@@ -81,7 +81,7 @@ const _checkLockExistsRedis = async (context, fullKey) => {
 
 const _checkLockExistsDb = async (context, fullKey) => {
   let result;
-  await executeInNewTransaction(
+  await cdsHelper.executeInNewTransaction(
     context,
     "distributedLock-checkExists",
     async (tx) => {
@@ -99,7 +99,7 @@ const _releaseLockRedis = async (context, fullKey) => {
 };
 
 const _releaseLockDb = async (context, fullKey) => {
-  await executeInNewTransaction(
+  await cdsHelper.executeInNewTransaction(
     context,
     "distributedLock-release",
     async (tx) => {
@@ -110,7 +110,7 @@ const _releaseLockDb = async (context, fullKey) => {
 
 const _acquireLockDB = async (context, fullKey, expiryTime, value = true) => {
   let result;
-  await executeInNewTransaction(
+  await cdsHelper.executeInNewTransaction(
     context,
     "distributedLock-acquire",
     async (tx) => {

@@ -65,7 +65,7 @@ class PerformanceTracer {
 
     this.__logger.info("Performance measurement executed", {
       additionalMessageProperties: {
-        name: this._fnName,
+        name: this.__name,
         milliseconds: executionTime,
       },
       customFields,

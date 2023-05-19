@@ -2,13 +2,14 @@
 
 // TODO: how to deal with tx chaining - maybe inherit _ from context
 // TODO: how to deal with fatal logs
-// TODO: think about switching to cds.env from own config class
-// TODO: add createdAt to persistence to proper order/sort event queue entries
-// FIXME: Performance measurement executed\n{ name: undefined, milliseconds: 2776 }
-// TODO: control concurrency for runner files
 // TODO: modifyQueueEntry|checkEventAndGeneratePayload should not produce an unexpected error
+
+// FEATURES
+// TODO: think about switching to cds.env from own config class
 // TODO: multiInstance without redis??
 // TODO: runAutomatically: true flag in config
+// TODO: control concurrency for runner files
+// TODO: add createdAt to persistence to proper order/sort event queue entries
 
 // TODO: for test
 // --> deeper look into the functions e.g. getQueueEntriesAndSetToInProgress

@@ -41,7 +41,7 @@ async function executeInNewTransaction(
           http: context.http,
         },
         async (tx) => {
-          tx.context._ = tx.context._ ?? {};
+          tx.context._ = context._ ?? {};
           return fn(tx, ...parameters);
         }
       );

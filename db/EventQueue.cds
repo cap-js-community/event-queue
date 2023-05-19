@@ -21,4 +21,5 @@ entity EventQueue: cuid {
     payload: LargeString;
     attempts: Integer default 0 not null;
     lastAttemptTimestamp: Timestamp;
+    createdAt: Timestamp @cds.on.insert : $now;
 }

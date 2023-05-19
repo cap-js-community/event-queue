@@ -55,9 +55,10 @@ describe("redisRunner", () => {
 
   afterEach(async () => {
     await tx.rollback();
+    jest.clearAllMocks();
   });
 
-  it("redis test", async () => {
+  it("redis", async () => {
     const setValueWithExpireSpy = jest.spyOn(
       distributedLock,
       "setValueWithExpire"
@@ -68,6 +69,7 @@ describe("redisRunner", () => {
       "checkLockExistsAndReturnValue"
     );
     getAllTenantIdsSpy
+      .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds);
     const p1 = runner._._multiInstanceAndTenancy();
@@ -95,5 +97,64 @@ describe("redisRunner", () => {
       tenantChecks[tenantId].values.push(result);
     }
     expect(tenantChecks).toMatchSnapshot();
+
+    // another run within 5 minutes should do nothing
+    await runner._._multiInstanceAndTenancy();
+    expect(acquireLockSpy).toHaveBeenCalledTimes(9);
+    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it("db", async () => {
+    jest
+      .spyOn(cdsHelper, "executeInNewTransaction")
+      .mockImplementation(async (context = {}, transactionTag, fn) => {
+        await fn(tx);
+      });
+    configInstance.isOnCF = false;
+    const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+    getAllTenantIdsSpy
+      .mockResolvedValueOnce(tenantIds)
+      .mockResolvedValueOnce(tenantIds)
+      .mockResolvedValueOnce(tenantIds)
+      .mockResolvedValueOnce(tenantIds);
+    const p1 = runner._._singleInstanceAndMultiTenancy();
+    const p2 = runner._._singleInstanceAndMultiTenancy();
+
+    await Promise.allSettled([p1, p2]);
+
+    expect(acquireLockSpy).toHaveBeenCalledTimes(6);
+    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
+
+    const acquireLockMock = acquireLockSpy.mock;
+    const runId = acquireLockMock.calls[0][1];
+
+    const tenantChecks = tenantIds.reduce((result, tenantId) => {
+      result[tenantId] = { numberOfChecks: 0, values: [] };
+      return result;
+    }, {});
+    for (let i = 0; i < 6; i++) {
+      const tenantId = acquireLockMock.calls[i][0].tenant;
+      expect(runId).toEqual(acquireLockMock.calls[i][1]);
+      const result = await acquireLockMock.results[i].value;
+      tenantChecks[tenantId].numberOfChecks++;
+      tenantChecks[tenantId].values.push(result);
+    }
+    expect(tenantChecks).toMatchSnapshot();
+
+    // another run within 5 minutes should do nothing
+    await runner._._singleInstanceAndMultiTenancy();
+    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
+    expect(acquireLockSpy).toHaveBeenCalledTimes(9);
+
+    // 5 mins later the tenants should be processed again
+    await tx.run(
+      UPDATE.entity("sap.core.EventLock").set({
+        createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+      })
+    );
+
+    await runner._._singleInstanceAndMultiTenancy();
+    expect(acquireLockSpy).toHaveBeenCalledTimes(12);
+    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(6);
   });
 });

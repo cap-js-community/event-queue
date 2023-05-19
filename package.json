@@ -4,7 +4,8 @@
   "description": "event queue for cds",
   "main": "src/index.js",
   "files": [
-    "src"
+    "src",
+    "db"
   ],
   "scripts": {
     "test": "jest",

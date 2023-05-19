@@ -1,39 +1,21 @@
 "use strict";
 
+const uuid = require("uuid");
+
 const eventQueueConfig = require("./config");
 const cdsHelper = require("./shared/cdsHelper");
 const { eventQueueRunner } = require("./processEventQueue");
 const { Logger } = require("./shared/logger");
-const uuid = require("uuid");
 const distributedLock = require("./shared/distributedLock");
 
 const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
 const OFFSET_FIRST_RUN = 10 * 1000;
 
-const singleInstanceAndTenant = () =>
-  _scheduleFunction(_singleInstanceAndTenant);
-
-const _singleInstanceAndTenant = async () => {
-  await _executeRunForTenant();
-};
+const singleInstanceAndTenant = () => _scheduleFunction(_executeRunForTenant);
 
 const singleInstanceAndMultiTenancy = () =>
   _scheduleFunction(_singleInstanceAndMultiTenancy);
-
-const _singleInstanceAndMultiTenancy = async () => {
-  try {
-    const tenantIds = await cdsHelper.getAllTenantIds();
-    for (const tenantId of tenantIds) {
-      await _executeRunForTenant(tenantId);
-    }
-  } catch (err) {
-    Logger(cds.context, COMPONENT_NAME).error(
-      "Couldn't fetch tenant ids for event queue processing! Next try after defined interval.",
-      { error: err }
-    );
-  }
-};
 
 const multiInstanceAndTenancy = () =>
   _scheduleFunction(_multiInstanceAndTenancy);
@@ -74,6 +56,32 @@ const _multiInstanceAndTenancy = async () => {
       continue;
     }
     await _executeRunForTenant(tenantId);
+  }
+};
+
+const _singleInstanceAndMultiTenancy = async () => {
+  try {
+    const configInstance = eventQueueConfig.getConfigInstance();
+    const tenantIds = await cdsHelper.getAllTenantIds();
+    for (const tenantId of tenantIds) {
+      const tenantContext = new cds.EventContext({ tenant: tenantId });
+      const couldAcquireLock = await distributedLock.acquireLock(
+        tenantContext,
+        EVENT_QUEUE_RUN_ID,
+        {
+          expiryTime: configInstance.betweenRuns * 0.9,
+        }
+      );
+      if (!couldAcquireLock) {
+        continue;
+      }
+      await _executeRunForTenant(tenantId);
+    }
+  } catch (err) {
+    Logger(cds.context, COMPONENT_NAME).error(
+      "Couldn't fetch tenant ids for event queue processing! Next try after defined interval.",
+      { error: err }
+    );
   }
 };
 
@@ -139,5 +147,6 @@ module.exports = {
   multiInstanceAndSingleTenancy,
   _: {
     _multiInstanceAndTenancy,
+    _singleInstanceAndMultiTenancy,
   },
 };

@@ -596,7 +596,7 @@ class EventQueueProcessorBase {
               ).toISOString(),
               ") )"
             )
-            .orderBy("ID")
+            .orderBy("createdAt", "ID")
         );
         this.logger.debug("no entries available for processing", {
           additionalMessageProperties: {
