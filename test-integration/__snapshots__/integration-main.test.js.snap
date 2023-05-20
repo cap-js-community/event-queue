@@ -8,6 +8,143 @@ exports[`integration-main empty queue - nothing to do 1`] = `
 }
 `;
 
+exports[`integration-main end-to-end insert entry, entry should be automatically processed 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "READ": 4,
+  "ROLLBACK": 1,
+  "UPDATE": 3,
+}
+`;
+
+exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 1`] = `
+[
+  [
+    "Unexpected error during event processing - setting queue entry to error",
+    {
+      "additionalMessageProperties": {
+        "eventSubType": "Task",
+        "eventType": "Notifications",
+        "queueEntriesIds": [
+          "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
+        ],
+      },
+      "error": [Error: error during processing],
+    },
+  ],
+]
+`;
+
+exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 2`] = `
+{
+  "BEGIN": 3,
+  "COMMIT": 2,
+  "READ": 2,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 3`] = `
+[
+  [
+    "Unexpected error during event processing - setting queue entry to error",
+    {
+      "additionalMessageProperties": {
+        "eventSubType": "Task",
+        "eventType": "Notifications",
+        "queueEntriesIds": [
+          "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
+        ],
+      },
+      "error": [Error: error during processing],
+    },
+  ],
+]
+`;
+
+exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 4`] = `
+{
+  "BEGIN": 3,
+  "COMMIT": 2,
+  "READ": 2,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main if cluster methods throws an error --> entry should not be processed + status should be error 1`] = `
+[
+  [
+    "Error during clustering of events - setting all queue entries to error",
+    {
+      "additionalMessageProperties": {
+        "eventSubType": "Task",
+        "eventType": "Notifications",
+      },
+      "error": [Error: error during processing],
+    },
+  ],
+]
+`;
+
+exports[`integration-main if cluster methods throws an error --> entry should not be processed + status should be error 2`] = `
+{
+  "BEGIN": 4,
+  "COMMIT": 2,
+  "READ": 3,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main if modifyQueueEntry methods throws an error --> entry should not be processed + status should be error 1`] = `
+[
+  [
+    "Unexpected error during event processing - setting queue entry to error",
+    {
+      "additionalMessageProperties": {
+        "eventSubType": "Task",
+        "eventType": "Notifications",
+        "queueEntriesIds": [
+          "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
+        ],
+      },
+      "error": [Error: error during processing],
+    },
+  ],
+]
+`;
+
+exports[`integration-main if modifyQueueEntry methods throws an error --> entry should not be processed + status should be error 2`] = `
+{
+  "BEGIN": 3,
+  "COMMIT": 2,
+  "READ": 2,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main if process event returns an error --> tx should be rolled backed 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 3,
+  "READ": 5,
+  "ROLLBACK": 2,
+  "UPDATE": 3,
+}
+`;
+
+exports[`integration-main if process event throws an error --> tx should be rolled backed 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 3,
+  "READ": 5,
+  "ROLLBACK": 2,
+  "UPDATE": 3,
+}
+`;
+
 exports[`integration-main insert one entry and process 1`] = `
 {
   "BEGIN": 5,

@@ -3,6 +3,7 @@
 // TODO: how to deal with tx chaining - maybe inherit _ from context
 // TODO: how to deal with fatal logs
 // TODO: modifyQueueEntry|checkEventAndGeneratePayload should not produce an unexpected error
+// TODO: returning exceeded is not a valid status
 
 // FEATURES
 // TODO: think about switching to cds.env from own config class
