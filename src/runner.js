@@ -95,6 +95,7 @@ const _executeRunForTenant = async (tenantId) => {
       // NOTE: we need this because of logging otherwise logs would not contain the subdomain
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     });
+    cds.context = context;
     Logger(context, COMPONENT_NAME).info("executing eventQueue run", {
       additionalMessageProperties: {
         tenantId,
