@@ -1,20 +1,28 @@
 "use strict";
 
-const cds = require("@sap/cds/lib");
+const { promisify } = require("util");
+
+const cds = require("@sap/cds");
+cds.test(__dirname + "/_env");
 
 jest.mock("@sap/btp-feature-toggles/src/redisWrapper", () =>
-  require("./mocks/redisMock")
+  require("../test/mocks/redisMock")
 );
 const cdsHelper = require("../src/shared/cdsHelper");
+const { getWorkerPoolInstance } = require("../src/shared/WorkerQueue");
 const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
 jest.spyOn(cdsHelper, "getSubdomainForTenantId").mockResolvedValue("dummy");
 const processEventQueue = require("../src/processEventQueue");
+
+let counter = 0;
 const eventQueueRunnerSpy = jest
   .spyOn(processEventQueue, "eventQueueRunner")
-  .mockResolvedValue(
-    new Promise((resolve) => {
-      setTimeout(resolve, 10);
-    })
+  .mockImplementation(
+    async () =>
+      new Promise((resolve) => {
+        counter++;
+        setTimeout(resolve, 10);
+      })
   );
 
 const distributedLock = require("../src/shared/distributedLock");
@@ -22,8 +30,6 @@ const eventQueue = require("../src");
 const runner = require("../src/runner");
 const path = require("path");
 
-const project = __dirname + "/.."; // The project's root folder
-cds.test(project);
 const tenantIds = [
   "cd805323-879c-4bf7-b19c-8ffbbee22e1f",
   "9f3ed8f0-8aaf-439e-a96a-04cd5b680c59",
@@ -34,20 +40,27 @@ describe("redisRunner", () => {
   let context, tx, configInstance;
 
   beforeAll(async () => {
-    const configFilePath = path.join(__dirname, "asset", "config.yml");
+    const configFilePath = path.join(
+      __dirname,
+      "..",
+      "./test",
+      "asset",
+      "config.yml"
+    );
     await eventQueue.initialize({
       configFilePath,
       registerDbHandler: false,
-      mode: eventQueue.RunningModes.multiInstance,
+      mode: eventQueue.RunningModes.none,
     });
     configInstance = eventQueue.getConfigInstance();
     configInstance.redisEnabled = true;
+    jest.clearAllMocks();
   });
 
   beforeEach(async () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
-    await tx.run(DELETE.from("sap.core.EventLock"));
+    await cds.tx({}, (tx2) => tx2.run(DELETE.from("sap.core.EventLock")));
     await distributedLock.releaseLock({}, "EVENT_QUEUE_RUN_ID", {
       tenantScoped: false,
     });
@@ -58,7 +71,10 @@ describe("redisRunner", () => {
     jest.clearAllMocks();
   });
 
-  afterAll(() => cds.shutdown);
+  afterAll(async () => {
+    await cds.disconnect();
+    await cds.shutdown();
+  });
 
   it("redis", async () => {
     const setValueWithExpireSpy = jest.spyOn(
@@ -78,6 +94,10 @@ describe("redisRunner", () => {
     const p2 = runner._._multiInstanceAndTenancy();
 
     await Promise.allSettled([p1, p2]);
+    const workerPoolInstance = getWorkerPoolInstance();
+    await Promise.allSettled(workerPoolInstance.__runningPromises);
+    await promisify(setTimeout)(500);
+    await Promise.allSettled(workerPoolInstance.__runningPromises);
 
     expect(setValueWithExpireSpy).toHaveBeenCalledTimes(2);
     expect(checkLockExistsAndReturnValueSpy).toHaveBeenCalledTimes(1);
@@ -102,27 +122,34 @@ describe("redisRunner", () => {
 
     // another run within 5 minutes should do nothing
     await runner._._multiInstanceAndTenancy();
+    await promisify(setTimeout)(500);
+    await Promise.allSettled(workerPoolInstance.__runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
   });
 
   it("db", async () => {
-    jest
-      .spyOn(cdsHelper, "executeInNewTransaction")
-      .mockImplementation(async (context = {}, transactionTag, fn) => {
-        await fn(tx);
-      });
     configInstance.redisEnabled = false;
+    const originalCdsTx = cds.tx;
+    jest.spyOn(cds, "tx").mockImplementation((context, fn) => {
+      context.tenant = null;
+      return originalCdsTx(context, fn);
+    });
     const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
     getAllTenantIdsSpy
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds);
+    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(0);
     const p1 = runner._._singleInstanceAndMultiTenancy();
     const p2 = runner._._singleInstanceAndMultiTenancy();
 
     await Promise.allSettled([p1, p2]);
+    const workerPoolInstance = getWorkerPoolInstance();
+    await Promise.allSettled(workerPoolInstance.__runningPromises);
+    await promisify(setTimeout)(500);
+    await Promise.allSettled(workerPoolInstance.__runningPromises);
 
     expect(acquireLockSpy).toHaveBeenCalledTimes(6);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
@@ -131,7 +158,7 @@ describe("redisRunner", () => {
     const runId = acquireLockMock.calls[0][1];
 
     const tenantChecks = tenantIds.reduce((result, tenantId) => {
-      result[tenantId] = { numberOfChecks: 0, values: [] };
+      result[tenantId] = { numberOfChecks: 0, values: {} };
       return result;
     }, {});
     for (let i = 0; i < 6; i++) {
@@ -139,23 +166,29 @@ describe("redisRunner", () => {
       expect(runId).toEqual(acquireLockMock.calls[i][1]);
       const result = await acquireLockMock.results[i].value;
       tenantChecks[tenantId].numberOfChecks++;
-      tenantChecks[tenantId].values.push(result);
+      tenantChecks[tenantId].values[result] = 1;
     }
     expect(tenantChecks).toMatchSnapshot();
 
     // another run within 5 minutes should do nothing
     await runner._._singleInstanceAndMultiTenancy();
+    await promisify(setTimeout)(500);
+    await Promise.allSettled(workerPoolInstance.__runningPromises);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
 
-    // 5 mins later the tenants should be processed again
-    await tx.run(
-      UPDATE.entity("sap.core.EventLock").set({
-        createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-      })
+    // 5 min's later the tenants should be processed again
+    await cds.tx({}, (tx2) =>
+      tx2.run(
+        UPDATE.entity("sap.core.EventLock").set({
+          createdAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
+        })
+      )
     );
 
     await runner._._singleInstanceAndMultiTenancy();
+    await promisify(setTimeout)(500);
+    await Promise.allSettled(workerPoolInstance.__runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(12);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(6);
   });
