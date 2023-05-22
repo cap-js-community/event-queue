@@ -25,6 +25,7 @@ const initialize = async ({
   mode = RunningModes.singleInstance,
   registerDbHandler = true,
   betweenRuns = 5 * 60 * 1000,
+  parallelTenantProcessing = 5,
 } = {}) => {
   const configInstance = getConfigInstance();
   if (configInstance.initialized) {
@@ -35,6 +36,7 @@ const initialize = async ({
   configInstance.fileContent = await readConfigFromFile(configFilePath);
   configInstance.betweenRuns = betweenRuns;
   configInstance.redisEnabled = checkRedisIsBound() && isOnCF;
+  configInstance.parallelTenantProcessing = parallelTenantProcessing;
   if (registerDbHandler) {
     const dbService = await cds.connect.to("db");
     dbHandler.registerEventQueueDbHandler(dbService);

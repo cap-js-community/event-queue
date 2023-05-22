@@ -7,10 +7,13 @@ const cdsHelper = require("./shared/cdsHelper");
 const { eventQueueRunner } = require("./processEventQueue");
 const { Logger } = require("./shared/logger");
 const distributedLock = require("./shared/distributedLock");
+const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
 
 const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
 const OFFSET_FIRST_RUN = 10 * 1000;
+
+let workerQueueInstance = null;
 
 const singleInstanceAndTenant = () => _scheduleFunction(_executeRunForTenant);
 
@@ -36,7 +39,6 @@ const _multiInstanceAndTenancy = async () => {
   const logger = Logger(emptyContext, COMPONENT_NAME);
   logger.info("executing event queue run for multi instance and tenant");
   const tenantIds = await cdsHelper.getAllTenantIds();
-  const configInstance = eventQueueConfig.getConfigInstance();
   const runId = await acquireRunId(emptyContext);
 
   if (!runId) {
@@ -44,20 +46,7 @@ const _multiInstanceAndTenancy = async () => {
     return;
   }
 
-  for (const tenantId of tenantIds) {
-    const tenantContext = new cds.EventContext({ tenant: tenantId });
-    const couldAcquireLock = await distributedLock.acquireLock(
-      tenantContext,
-      runId,
-      {
-        expiryTime: configInstance.betweenRuns,
-      }
-    );
-    if (!couldAcquireLock) {
-      continue;
-    }
-    await _executeRunForTenant(tenantId);
-  }
+  _executeAllTenants(tenantIds, runId);
 };
 
 const _singleInstanceAndMultiTenancy = async () => {
@@ -67,28 +56,37 @@ const _singleInstanceAndMultiTenancy = async () => {
     logger.info(
       "executing event queue run for single instance and multi tenant"
     );
-    const configInstance = eventQueueConfig.getConfigInstance();
     const tenantIds = await cdsHelper.getAllTenantIds();
-    for (const tenantId of tenantIds) {
-      const tenantContext = new cds.EventContext({ tenant: tenantId });
-      const couldAcquireLock = await distributedLock.acquireLock(
-        tenantContext,
-        EVENT_QUEUE_RUN_ID,
-        {
-          expiryTime: configInstance.betweenRuns * 0.9,
-        }
-      );
-      if (!couldAcquireLock) {
-        continue;
-      }
-      await _executeRunForTenant(tenantId);
-    }
+    _executeAllTenants(tenantIds, EVENT_QUEUE_RUN_ID);
   } catch (err) {
     Logger(cds.context, COMPONENT_NAME).error(
       "Couldn't fetch tenant ids for event queue processing! Next try after defined interval.",
       { error: err }
     );
   }
+};
+
+const _executeAllTenants = (tenantIds, acquireLockKey) => {
+  const configInstance = eventQueueConfig.getConfigInstance();
+  if (!workerQueueInstance) {
+    workerQueueInstance = getWorkerPoolInstance();
+  }
+  tenantIds.forEach((tenantId) => {
+    workerQueueInstance.addToQueue(async () => {
+      const tenantContext = new cds.EventContext({ tenant: tenantId });
+      const couldAcquireLock = await distributedLock.acquireLock(
+        tenantContext,
+        acquireLockKey,
+        {
+          expiryTime: configInstance.betweenRuns * 0.9,
+        }
+      );
+      if (!couldAcquireLock) {
+        return;
+      }
+      await _executeRunForTenant(tenantId);
+    });
+  });
 };
 
 const _executeRunForTenant = async (tenantId) => {

@@ -8,8 +8,9 @@
     "db"
   ],
   "scripts": {
-    "test": "jest --testPathIgnorePatterns=\"/test-integration/\"",
-    "test:all": "jest",
+    "test:unit": "jest --testPathIgnorePatterns=\"/test-integration/\"",
+    "test:integration": "jest --testPathIgnorePatterns=\"/test/\" --runInBand --forceExit --detectOpenHandles",
+    "test:all": "npm run test:unit && npm run test:integration",
     "lint": "npm run eslint && npm run prettier",
     "lint:ci": "npm run eslint:ci && npm run prettier:ci",
     "eslint": "eslint --fix .",

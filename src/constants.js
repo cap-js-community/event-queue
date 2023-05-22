@@ -14,5 +14,6 @@ module.exports = {
   RunningModes: {
     singleInstance: "SINGLE_INSTANCE",
     multiInstance: "MULTI_INSTANCE",
+    none: "NONE",
   },
 };

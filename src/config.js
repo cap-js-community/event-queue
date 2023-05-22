@@ -16,6 +16,7 @@ class Config {
     this.__redisEnabled = null;
     this.__isOnCF = env.isOnCF;
     this.__initialized = false;
+    this.__parallelTenantProcessing = 1;
   }
 
   getEventConfig(type, subType) {
@@ -94,6 +95,14 @@ class Config {
 
   set initialized(value) {
     this.__initialized = value;
+  }
+
+  get parallelTenantProcessing() {
+    return this.__parallelTenantProcessing;
+  }
+
+  set parallelTenantProcessing(value) {
+    this.__parallelTenantProcessing = value;
   }
 }
 
