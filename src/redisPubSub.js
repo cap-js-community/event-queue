@@ -7,6 +7,7 @@ const { Logger } = require("./shared/logger");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
 const config = require("./config");
+const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
 
 const MESSAGE_CHANNEL = "cdsEventQueue";
 const COMPONENT_NAME = "/eventQueue/redisPubSub";
@@ -75,7 +76,9 @@ const messageHandlerProcessEvents = async (messageData) => {
       subType,
     },
   });
-  processEventQueue(context, type, subType);
+  getWorkerPoolInstance().addToQueue(async () =>
+    processEventQueue(context, type, subType)
+  );
 };
 
 const publishEvent = async (tenantId, type, subType) => {

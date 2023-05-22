@@ -13,8 +13,6 @@ const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
 const OFFSET_FIRST_RUN = 10 * 1000;
 
-let workerQueueInstance = null;
-
 const singleInstanceAndTenant = () => _scheduleFunction(_executeRunForTenant);
 
 const singleInstanceAndMultiTenancy = () =>
@@ -68,9 +66,7 @@ const _singleInstanceAndMultiTenancy = async () => {
 
 const _executeAllTenants = (tenantIds, acquireLockKey) => {
   const configInstance = eventQueueConfig.getConfigInstance();
-  if (!workerQueueInstance) {
-    workerQueueInstance = getWorkerPoolInstance();
-  }
+  const workerQueueInstance = getWorkerPoolInstance();
   tenantIds.forEach((tenantId) => {
     workerQueueInstance.addToQueue(async () => {
       const tenantContext = new cds.EventContext({ tenant: tenantId });
