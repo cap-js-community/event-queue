@@ -14,13 +14,11 @@ const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
 jest.spyOn(cdsHelper, "getSubdomainForTenantId").mockResolvedValue("dummy");
 const processEventQueue = require("../src/processEventQueue");
 
-let counter = 0;
 const eventQueueRunnerSpy = jest
   .spyOn(processEventQueue, "eventQueueRunner")
   .mockImplementation(
     async () =>
       new Promise((resolve) => {
-        counter++;
         setTimeout(resolve, 10);
       })
   );

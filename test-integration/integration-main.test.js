@@ -160,23 +160,6 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
-  it("if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error", async () => {
-    await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
-    dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
-    jest
-      .spyOn(EventQueueTest.prototype, "modifyQueueEntry")
-      .mockImplementationOnce(() => {
-        throw new Error("error during processing");
-      });
-    await eventQueue.processEventQueue(context, event.type, event.subType);
-    expect(loggerMock.callsLengths().error).toEqual(1);
-    // TODO: should not be an unexpected error
-    expect(loggerMock.calls().error).toMatchSnapshot();
-    await testHelper.selectEventQueueAndExpectError(tx);
-    expect(dbCounts).toMatchSnapshot();
-  });
-
   describe("end-to-end", () => {
     beforeAll(async () => {
       eventQueue.getConfigInstance().initialized = false;

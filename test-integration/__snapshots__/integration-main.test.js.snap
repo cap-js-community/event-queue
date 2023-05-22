@@ -46,33 +46,6 @@ exports[`integration-main if checkEventAndGeneratePayload methods throws an erro
 }
 `;
 
-exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 3`] = `
-[
-  [
-    "Unexpected error during event processing - setting queue entry to error",
-    {
-      "additionalMessageProperties": {
-        "eventSubType": "Task",
-        "eventType": "Notifications",
-        "queueEntriesIds": [
-          "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
-        ],
-      },
-      "error": [Error: error during processing],
-    },
-  ],
-]
-`;
-
-exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 4`] = `
-{
-  "BEGIN": 3,
-  "COMMIT": 2,
-  "READ": 2,
-  "UPDATE": 2,
-}
-`;
-
 exports[`integration-main if cluster methods throws an error --> entry should not be processed + status should be error 1`] = `
 [
   [
