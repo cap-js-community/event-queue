@@ -17,6 +17,8 @@ class Config {
     this.__isOnCF = env.isOnCF;
     this.__initialized = false;
     this.__parallelTenantProcessing = 1;
+    this.__tableNameEventQueue = null;
+    this.__tableNameEventLock = null;
   }
 
   getEventConfig(type, subType) {
@@ -103,6 +105,22 @@ class Config {
 
   set parallelTenantProcessing(value) {
     this.__parallelTenantProcessing = value;
+  }
+
+  get tableNameEventQueue() {
+    return this.__tableNameEventQueue;
+  }
+
+  set tableNameEventQueue(value) {
+    this.__tableNameEventQueue = value;
+  }
+
+  get tableNameEventLock() {
+    return this.__tableNameEventLock;
+  }
+
+  set tableNameEventLock(value) {
+    this.__tableNameEventLock = value;
   }
 }
 

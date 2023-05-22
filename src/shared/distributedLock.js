@@ -4,6 +4,7 @@ const redisWrapper = require("@sap/btp-feature-toggles/src/redisWrapper");
 
 const config = require("../config");
 const cdsHelper = require("./cdsHelper");
+const { getConfigInstance } = require("../config");
 
 const acquireLock = async (
   context,
@@ -81,12 +82,15 @@ const _checkLockExistsRedis = async (context, fullKey) => {
 
 const _checkLockExistsDb = async (context, fullKey) => {
   let result;
+  const configInstance = getConfigInstance();
   await cdsHelper.executeInNewTransaction(
     context,
     "distributedLock-checkExists",
     async (tx) => {
       result = await tx.run(
-        SELECT.one.from("sap.core.EventLock").where("code =", fullKey)
+        SELECT.one
+          .from(configInstance.tableNameEventLock)
+          .where("code =", fullKey)
       );
     }
   );
@@ -99,24 +103,28 @@ const _releaseLockRedis = async (context, fullKey) => {
 };
 
 const _releaseLockDb = async (context, fullKey) => {
+  const configInstance = getConfigInstance();
   await cdsHelper.executeInNewTransaction(
     context,
     "distributedLock-release",
     async (tx) => {
-      await tx.run(DELETE.from("sap.core.EventLock").where("code =", fullKey));
+      await tx.run(
+        DELETE.from(configInstance.tableNameEventLock).where("code =", fullKey)
+      );
     }
   );
 };
 
 const _acquireLockDB = async (context, fullKey, expiryTime, value = "true") => {
   let result;
+  const configInstance = getConfigInstance();
   await cdsHelper.executeInNewTransaction(
     context,
     "distributedLock-acquire",
     async (tx) => {
       try {
         await tx.run(
-          INSERT.into("sap.core.EventLock").entries({
+          INSERT.into(configInstance.tableNameEventLock).entries({
             code: fullKey,
             value,
           })
@@ -125,7 +133,7 @@ const _acquireLockDB = async (context, fullKey, expiryTime, value = "true") => {
       } catch (err) {
         const currentEntry = await tx.run(
           SELECT.one
-            .from("sap.core.EventLock")
+            .from(configInstance.tableNameEventLock)
             .forUpdate({ wait: config.getConfigInstance().forUpdateTimeout })
             .where("code =", fullKey)
         );
@@ -134,7 +142,7 @@ const _acquireLockDB = async (context, fullKey, expiryTime, value = "true") => {
           new Date(currentEntry.createdAt).getTime() + expiryTime <= Date.now()
         ) {
           await tx.run(
-            UPDATE.entity("sap.core.EventLock")
+            UPDATE.entity(configInstance.tableNameEventLock)
               .set({
                 createdAt: new Date().toISOString(),
                 value,

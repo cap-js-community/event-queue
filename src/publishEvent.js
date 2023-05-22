@@ -12,7 +12,9 @@ const publishEvent = async (tx, events) => {
       throw EventQueueError.unknownEventType(type, subType);
     }
   }
-  await tx.run(INSERT.into("sap.core.EventQueue").entries(eventsForProcessing));
+  await tx.run(
+    INSERT.into(configInstance.tableNameEventQueue).entries(eventsForProcessing)
+  );
 };
 
 module.exports = {

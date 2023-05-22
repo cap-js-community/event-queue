@@ -26,6 +26,8 @@ const initialize = async ({
   registerDbHandler = true,
   betweenRuns = 5 * 60 * 1000,
   parallelTenantProcessing = 5,
+  tableNameEventQueue = "sap.core.EventQueue",
+  tableNameEventLock = "sap.core.EventLock",
 } = {}) => {
   const configInstance = getConfigInstance();
   if (configInstance.initialized) {
@@ -37,6 +39,8 @@ const initialize = async ({
   configInstance.betweenRuns = betweenRuns;
   configInstance.redisEnabled = checkRedisIsBound() && isOnCF;
   configInstance.parallelTenantProcessing = parallelTenantProcessing;
+  configInstance.tableNameEventQueue = tableNameEventQueue;
+  configInstance.tableNameEventLock = tableNameEventLock;
   if (registerDbHandler) {
     const dbService = await cds.connect.to("db");
     dbHandler.registerEventQueueDbHandler(dbService);

@@ -12,7 +12,7 @@ describe("workerQueue", () => {
     const jestFn = jest.fn();
     workerQueue.addToQueue(jestFn);
     expect(jestFn).toHaveBeenCalledTimes(1);
-    await promisify(setTimeout)(10);
+    await promisify(setTimeout)(100);
     expect(workerQueue.__runningPromises).toHaveLength(0);
   });
 

@@ -17,7 +17,6 @@ const eventQueueConfig = require("./config");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
 const COMPONENT_NAME = "eventQueue/EventQueueProcessorBase";
-const DB_TABLE_QUEUE = "sap.core.EventQueue";
 const VERROR_CLUSTER_NAME = "EventQueueProcessorBaseError";
 
 const DEFAULT_RETRY_ATTEMPTS = 3;
@@ -139,7 +138,9 @@ class EventQueueProcessorBase {
         );
       }
     }
-    return await tx.run(INSERT.into(DB_TABLE_QUEUE).entries(entries));
+    return await tx.run(
+      INSERT.into(this.__eventQueueConfig.tableNameEventQueue).entries(entries)
+    );
   }
 
   logStartMessage(queueEntries) {
@@ -396,7 +397,7 @@ class EventQueueProcessorBase {
     });
     if (invalidAttempts.length) {
       await tx.run(
-        UPDATE.entity(DB_TABLE_QUEUE)
+        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
           .set({
             status: EventProcessingStatus.Open,
             lastAttemptTimestamp: new Date().toISOString(),
@@ -407,7 +408,7 @@ class EventQueueProcessorBase {
     }
     if (success.length) {
       await tx.run(
-        UPDATE.entity(DB_TABLE_QUEUE)
+        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
           .set({
             status: EventProcessingStatus.Done,
             lastAttemptTimestamp: new Date().toISOString(),
@@ -417,10 +418,12 @@ class EventQueueProcessorBase {
     }
     if (failed.length) {
       await tx.run(
-        UPDATE.entity(DB_TABLE_QUEUE).where("ID IN", failed).with({
-          status: EventProcessingStatus.Error,
-          lastAttemptTimestamp: new Date().toISOString(),
-        })
+        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
+          .where("ID IN", failed)
+          .with({
+            status: EventProcessingStatus.Error,
+            lastAttemptTimestamp: new Date().toISOString(),
+          })
       );
     }
     this.logger.debug("exiting persistEventStatus", {
@@ -573,7 +576,7 @@ class EventQueueProcessorBase {
       "eventQueue-getQueueEntriesAndSetToInProgress",
       async (tx) => {
         const entries = await tx.run(
-          SELECT.from(DB_TABLE_QUEUE)
+          SELECT.from(this.__eventQueueConfig.tableNameEventQueue)
             .forUpdate({ wait: this.__eventQueueConfig.forUpdateTimeout })
             .limit(this.getSelectMaxChunkSize())
             .where(
@@ -631,7 +634,7 @@ class EventQueueProcessorBase {
 
         const isoTimestamp = new Date().toISOString();
         await tx.run(
-          UPDATE.entity(DB_TABLE_QUEUE)
+          UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
             .with({
               status: EventProcessingStatus.InProgress,
               lastAttemptTimestamp: isoTimestamp,
@@ -666,7 +669,7 @@ class EventQueueProcessorBase {
 
   async handleExceededEvents(exceededEvents) {
     await this.tx.run(
-      UPDATE.entity(DB_TABLE_QUEUE)
+      UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
         .with({
           status: EventProcessingStatus.Exceeded,
         })
@@ -739,7 +742,7 @@ class EventQueueProcessorBase {
         "eventProcessing-isOutdatedAndKeepalive",
         async (tx) => {
           const queueEntriesFresh = await tx.run(
-            SELECT.from(DB_TABLE_QUEUE)
+            SELECT.from(this.__eventQueueConfig.tableNameEventQueue)
               .forUpdate({ wait: this.__eventQueueConfig.forUpdateTimeout })
               .where(
                 "ID IN",
@@ -757,7 +760,7 @@ class EventQueueProcessorBase {
           let newTs = new Date().toISOString();
           if (!eventOutdated) {
             await tx.run(
-              UPDATE.entity(DB_TABLE_QUEUE)
+              UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
                 .set("lastAttemptTimestamp =", newTs)
                 .where(
                   "ID IN",

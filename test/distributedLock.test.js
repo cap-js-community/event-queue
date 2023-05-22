@@ -2,12 +2,20 @@
 
 const cds = require("@sap/cds/lib");
 const { acquireLock, releaseLock } = require("../src/shared/distributedLock");
+const path = require("path");
+const eventQueue = require("../src");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
 describe("distributedLock", () => {
   let context, tx;
+
+  beforeAll(async () => {
+    const configFilePath = path.join(__dirname, "asset", "config.yml");
+    await eventQueue.initialize({ configFilePath, registerDbHandler: false });
+  });
+
   beforeEach(async () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
