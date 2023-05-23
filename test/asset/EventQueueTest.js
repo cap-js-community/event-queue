@@ -13,6 +13,9 @@ class EventQueueTest extends EventQueueBaseClass {
   }
 
   async processEvent(processContext, key, queueEntries, payload) {
+    await this.getTxForEventProcessing(key).run(
+      SELECT.from("sap.core.EventQueue")
+    );
     return queueEntries.map((queueEntry) => [
       queueEntry.ID,
       EventProcessingStatus.Done,

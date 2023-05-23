@@ -227,9 +227,9 @@ const processEventMap = async (eventTypeInstance) => {
           payload
         );
       }
-      eventTypeInstance.clearEventProcessingContext();
     }
   ).finally(() => {
+    eventTypeInstance.clearEventProcessingContext();
     if (eventTypeInstance.commitOnEventLevel) {
       eventTypeInstance.txUsageAllowed = true;
     }

@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "test:unit": "jest --testPathIgnorePatterns=\"/test-integration/\"",
-    "test:integration": "jest --testPathIgnorePatterns=\"/test/\" --runInBand --forceExit --detectOpenHandles",
+    "test:integration": "jest --testPathIgnorePatterns=\"/test/\" --runInBand --forceExit",
     "test:all": "npm run test:unit && npm run test:integration",
     "lint": "npm run eslint && npm run prettier",
     "lint:ci": "npm run eslint:ci && npm run prettier:ci",

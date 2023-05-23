@@ -28,7 +28,11 @@ describe("integration-main", () => {
       "asset",
       "config.yml"
     );
-    await eventQueue.initialize({ configFilePath, registerDbHandler: false });
+    await eventQueue.initialize({
+      configFilePath,
+      registerDbHandler: false,
+      mode: eventQueue.RunningModes.none,
+    });
     const db = await cds.connect.to("db");
     db.before("*", (cdsContext) => {
       if (dbCounts[cdsContext.event]) {
@@ -157,6 +161,18 @@ describe("integration-main", () => {
     // TODO: should not be an unexpected error
     expect(loggerMock.calls().error).toMatchSnapshot();
     await testHelper.selectEventQueueAndExpectError(tx);
+    expect(dbCounts).toMatchSnapshot();
+  });
+
+  it("two entries with no commit on event level", async () => {
+    await cds.tx({}, (tx2) =>
+      testHelper.insertEventEntry(tx2, { numberOfEntries: 2 })
+    );
+    dbCounts = {};
+    const event = eventQueue.getConfigInstance().events[0];
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectDone(tx, 2);
     expect(dbCounts).toMatchSnapshot();
   });
 
