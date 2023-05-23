@@ -35,6 +35,19 @@ class Config {
     );
   }
 
+  _checkRedisIsBound() {
+    try {
+      const services = JSON.parse(process.env.VCAP_SERVICES);
+      return !!services["redis-cache"];
+    } catch {
+      return false;
+    }
+  }
+
+  calculateIsRedisEnabled() {
+    this.__redisEnabled = this._checkRedisIsBound() && this.__isOnCF;
+  }
+
   set fileContent(config) {
     this.__config = config;
     this.__eventMap = config.events.reduce((result, event) => {

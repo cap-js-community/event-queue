@@ -21,18 +21,20 @@ class WorkerQueue {
   }
 
   addToQueue(cb) {
-    if (this.__runningPromises.length >= this.__concurrencyLimit) {
-      this.__queue.push(cb);
-    } else {
-      this._executeFunction(cb);
-    }
+    const p = new Promise((resolve, reject) => {
+      this.__queue.push([cb, resolve, reject]);
+    });
+    this._checkForNext();
+    return p;
   }
 
-  _executeFunction(cb) {
-    const promise =
-      cb.constructor.name === "AsyncFunction" ? cb() : Promise.resolve(cb());
+  _executeFunction(cb, resolve, reject) {
+    const promise = Promise.resolve().then(() => cb());
     this.__runningPromises.push(promise);
     promise
+      .then((...ars) => {
+        resolve(...ars);
+      })
       .catch((err) => {
         Logger(cds.context, COMPONENT_NAME).error(
           "Error happened in WorkQueue. Errors should be caught before!",
@@ -40,6 +42,7 @@ class WorkerQueue {
             error: err,
           }
         );
+        reject(err);
       })
       .finally(() => {
         this.__runningPromises.splice(
@@ -57,8 +60,8 @@ class WorkerQueue {
     ) {
       return;
     }
-    const cb = this.__queue.shift();
-    this._executeFunction(cb);
+    const [cb, resolve, reject] = this.__queue.shift();
+    this._executeFunction(cb, resolve, reject);
   }
 }
 

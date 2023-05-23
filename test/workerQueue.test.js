@@ -10,9 +10,10 @@ describe("workerQueue", () => {
   it("straight forward - limit one and one function", async () => {
     const workerQueue = new WorkerQueue(1);
     const jestFn = jest.fn();
-    workerQueue.addToQueue(jestFn);
+    await workerQueue.addToQueue(jestFn);
     expect(jestFn).toHaveBeenCalledTimes(1);
-    await promisify(setTimeout)(100);
+    // NOTE: finally in workQueue has lower prio in event loop --> force node to process event loop
+    await promisify(setTimeout)(1);
     expect(workerQueue.__runningPromises).toHaveLength(0);
   });
 
@@ -31,21 +32,24 @@ describe("workerQueue", () => {
     const fn1 = () => {
       result["fn1"] = { called: true, done: true };
     };
-    workerQueue.addToQueue(fn);
-    workerQueue.addToQueue(fn1);
+    const p1 = workerQueue.addToQueue(fn);
+    const p2 = workerQueue.addToQueue(fn1);
+
+    // NOTE: get the work queue the chance to start working
+    await promisify(setTimeout)(1);
     expect(result.fn.called).toBeTruthy();
     expect(result.fn.done).toBeFalsy();
     expect(result.fn1).toBeFalsy();
     expect(workerQueue.__runningPromises).toHaveLength(1);
 
-    jest.runAllTimers();
+    await Promise.allSettled([p1, p2]);
 
-    // process node event queue
-    await promisify(setTimeout)(100);
     expect(result.fn.called).toBeTruthy();
     expect(result.fn.done).toBeTruthy();
     expect(result.fn1.called).toBeTruthy();
     expect(result.fn1.done).toBeTruthy();
+    // NOTE: finally in workQueue has lower prio in event loop --> force node to process event loop
+    await promisify(setTimeout)(1);
     expect(workerQueue.__runningPromises).toHaveLength(0);
   });
 
@@ -65,21 +69,25 @@ describe("workerQueue", () => {
     const fn1 = () => {
       result["fn1"] = { called: true, done: true };
     };
-    workerQueue.addToQueue(fn);
-    workerQueue.addToQueue(fn1);
+    const p1 = workerQueue.addToQueue(fn);
+    const p2 = workerQueue.addToQueue(fn1);
+    await promisify(setTimeout)(1);
+
+    // NOTE: get the work queue the chance to start working
     expect(result.fn.called).toBeTruthy();
     expect(result.fn.done).toBeFalsy();
     expect(result.fn1).toBeFalsy();
     expect(workerQueue.__runningPromises).toHaveLength(1);
 
-    jest.runAllTimers();
+    await Promise.allSettled([p1, p2]);
 
-    // process node event queue
-    await promisify(setTimeout)(100);
     expect(result.fn.called).toBeTruthy();
     expect(result.fn.done).toBeTruthy();
     expect(result.fn1.called).toBeTruthy();
     expect(result.fn1.done).toBeTruthy();
+
+    // NOTE: finally in workQueue has lower prio in event loop --> force node to process event loop
+    await promisify(setTimeout)(1);
     expect(workerQueue.__runningPromises).toHaveLength(0);
   });
 });

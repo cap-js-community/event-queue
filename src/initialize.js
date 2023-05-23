@@ -13,7 +13,6 @@ const dbHandler = require("./dbHandler");
 const { getAllTenantIds } = require("./shared/cdsHelper");
 const { initEventQueueRedisSubscribe } = require("./redisPubSub");
 const { Logger } = require("./shared/logger");
-const { isOnCF } = require("./shared/env");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -37,7 +36,7 @@ const initialize = async ({
   cds.context = new cds.EventContext();
   configInstance.fileContent = await readConfigFromFile(configFilePath);
   configInstance.betweenRuns = betweenRuns;
-  configInstance.redisEnabled = checkRedisIsBound() && isOnCF;
+  configInstance.calculateIsRedisEnabled();
   configInstance.parallelTenantProcessing = parallelTenantProcessing;
   configInstance.tableNameEventQueue = tableNameEventQueue;
   configInstance.tableNameEventLock = tableNameEventLock;
@@ -45,16 +44,18 @@ const initialize = async ({
     const dbService = await cds.connect.to("db");
     dbHandler.registerEventQueueDbHandler(dbService);
   }
+
+  // TODO: find a better way to determine this
+  // check cds.requires.multitenancy
   const multiTenancyEnabled = await getAllTenantIds();
-  if (mode === RunningModes.singleInstance) {
-    // TODO: find a better way to determine this
+  if (mode === RunningModes.singleInstance || !configInstance.redisEnabled) {
     if (multiTenancyEnabled) {
       runner.singleInstanceAndMultiTenancy();
     } else {
       runner.singleInstanceAndTenant();
     }
   }
-  if (mode === RunningModes.multiInstance) {
+  if (mode === RunningModes.multiInstance && configInstance.redisEnabled) {
     initEventQueueRedisSubscribe();
     if (multiTenancyEnabled) {
       runner.multiInstanceAndTenancy();
@@ -80,15 +81,6 @@ const readConfigFromFile = async (configFilepath) => {
     },
     "configFilepath with unsupported extension, allowed extensions are .yaml and .json"
   );
-};
-
-const checkRedisIsBound = () => {
-  try {
-    const services = JSON.parse(process.env.VCAP_SERVICES);
-    return !!services["redis-cache"];
-  } catch {
-    return false;
-  }
 };
 
 module.exports = {

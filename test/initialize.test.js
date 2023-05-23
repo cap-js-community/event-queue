@@ -44,6 +44,8 @@ describe("initialize", () => {
       const multiInstanceAndSingleTenancySpy = jest
         .spyOn(runner, "multiInstanceAndSingleTenancy")
         .mockReturnValueOnce();
+      eventQueue.getConfigInstance().isOnCF = true;
+      process.env.VCAP_SERVICES = JSON.stringify({ "redis-cache": {} });
       await eventQueue.initialize({
         configFilePath,
         registerDbHandler: false,

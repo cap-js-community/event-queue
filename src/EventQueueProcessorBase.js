@@ -1,15 +1,10 @@
 "use strict";
 
 const cds = require("@sap/cds");
-const VError = require("verror");
 
 const { Logger } = require("./shared/logger");
 const { executeInNewTransaction } = require("./shared/cdsHelper");
-const {
-  EventTypeCode,
-  EventSubTypeCode,
-  EventProcessingStatus,
-} = require("./constants");
+const { EventProcessingStatus } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
 const { arrayToFlatMap } = require("./shared/common");
@@ -17,7 +12,6 @@ const eventQueueConfig = require("./config");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
 const COMPONENT_NAME = "eventQueue/EventQueueProcessorBase";
-const VERROR_CLUSTER_NAME = "EventQueueProcessorBaseError";
 
 const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_PARALLEL_EVENT_PROCESSING = 1;
@@ -119,28 +113,6 @@ class EventQueueProcessorBase {
         iterationCounter,
       },
     });
-  }
-
-  static async insertIntoQueue(tx, entries) {
-    for (const { type, subType } of Array.isArray(entries)
-      ? entries
-      : [entries]) {
-      if (
-        !Object.values(EventTypeCode).includes(type) ||
-        !Object.values(EventSubTypeCode).includes(subType)
-      ) {
-        throw new VError(
-          {
-            name: VERROR_CLUSTER_NAME,
-            info: { type, subType },
-          },
-          "Either the type or subType exists. Event rejected."
-        );
-      }
-    }
-    return await tx.run(
-      INSERT.into(this.__eventQueueConfig.tableNameEventQueue).entries(entries)
-    );
   }
 
   logStartMessage(queueEntries) {
