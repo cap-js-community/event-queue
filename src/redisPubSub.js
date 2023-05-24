@@ -3,7 +3,6 @@
 const redisWrapper = require("@sap/btp-feature-toggles/src/redisWrapper");
 
 const { processEventQueue } = require("./processEventQueue");
-const { Logger } = require("./shared/logger");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
 const config = require("./config");
@@ -24,10 +23,9 @@ const initEventQueueRedisSubscribe = () => {
 
 const subscribeRedisClient = () => {
   const errorHandlerCreateClient = (err) => {
-    Logger(cds.context, COMPONENT_NAME).error(
-      "error from redis client for pub/sub failed",
-      { error: err }
-    );
+    cds
+      .log(COMPONENT_NAME)
+      .error("error from redis client for pub/sub failed", err);
     subscriberClientPromise = null;
     setTimeout(subscribeRedisClient, 5 * 1000);
   };
@@ -36,16 +34,16 @@ const subscribeRedisClient = () => {
   );
   subscriberClientPromise
     .then((client) => {
-      Logger(cds.context, COMPONENT_NAME).info(
-        "subscribe redis client connected"
-      );
+      cds.log(COMPONENT_NAME).info("subscribe redis client connected");
       client.subscribe(MESSAGE_CHANNEL, messageHandlerProcessEvents);
     })
     .catch((err) => {
-      Logger(cds.context, COMPONENT_NAME).error(
-        "error from redis client for pub/sub failed during startup - trying to reconnect",
-        { error: err }
-      );
+      cds
+        .log(COMPONENT_NAME)
+        .error(
+          "error from redis client for pub/sub failed during startup - trying to reconnect",
+          err
+        );
     });
 };
 
@@ -54,12 +52,9 @@ const messageHandlerProcessEvents = async (messageData) => {
   try {
     ({ tenantId, type, subType } = JSON.parse(messageData));
   } catch (err) {
-    Logger(cds.context, COMPONENT_NAME).error(
-      "could not parse event information",
-      {
-        additionalMessageProperties: messageData,
-      }
-    );
+    cds.log(COMPONENT_NAME).error("could not parse event information", {
+      messageData,
+    });
     return;
   }
   const subdomain = await getSubdomainForTenantId(tenantId);
@@ -69,12 +64,10 @@ const messageHandlerProcessEvents = async (messageData) => {
     http: { req: { authInfo: { getSubdomain: () => subdomain } } },
   });
   cds.context = context;
-  Logger(context, COMPONENT_NAME).debug("received redis event", {
-    additionalMessageProperties: {
-      tenantId,
-      type,
-      subType,
-    },
+  cds.log(COMPONENT_NAME).debug("received redis event", {
+    tenantId,
+    type,
+    subType,
   });
   getWorkerPoolInstance().addToQueue(async () =>
     processEventQueue(context, type, subType)
@@ -88,10 +81,10 @@ const publishEvent = async (tenantId, type, subType) => {
     return;
   }
 
-  const logger = Logger(cds.context, COMPONENT_NAME);
+  const logger = cds.log(COMPONENT_NAME);
   const errorHandlerCreateClient = (err) => {
     logger.error("error from redis client for pub/sub failed", {
-      error: err,
+      err,
     });
     publishClient = null;
   };
@@ -112,28 +105,29 @@ const publishEvent = async (tenantId, type, subType) => {
       return;
     }
     logger.debug("publishing redis event", {
-      additionalMessageProperties: { tenantId, type, subType },
+      tenantId,
+      type,
+      subType,
     });
     await publishClient.publish(
       MESSAGE_CHANNEL,
       JSON.stringify({ tenantId, type, subType })
     );
   } catch (err) {
-    logger.error("publish event failed", {
-      additionalMessageProperties: { tenantId, type, subType },
-      error: err,
+    logger.error(`publish event failed with error: ${err.toString()}`, {
+      tenantId,
+      type,
+      subType,
     });
   }
 };
 
 const _handleEventInternally = async (tenantId, type, subType) => {
-  const logger = Logger(cds.context, COMPONENT_NAME);
+  const logger = cds.log(COMPONENT_NAME);
   logger.info("processEventQueue internally", {
-    additionalMessageProperties: {
-      tenantId,
-      type,
-      subType,
-    },
+    tenantId,
+    type,
+    subType,
   });
   const subdomain = await getSubdomainForTenantId(tenantId);
   const context = new cds.EventContext({

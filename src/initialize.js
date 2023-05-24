@@ -12,7 +12,6 @@ const runner = require("./runner");
 const dbHandler = require("./dbHandler");
 const { getAllTenantIds } = require("./shared/cdsHelper");
 const { initEventQueueRedisSubscribe } = require("./redisPubSub");
-const { Logger } = require("./shared/logger");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -63,7 +62,7 @@ const initialize = async ({
       runner.multiInstanceAndSingleTenancy();
     }
   }
-  Logger(cds.context, COMPONENT).info("event queue initialized");
+  cds.log(COMPONENT).info("event queue initialized");
 };
 
 const readConfigFromFile = async (configFilepath) => {

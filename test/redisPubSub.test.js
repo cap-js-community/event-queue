@@ -13,15 +13,19 @@ const eventQueue = require("../src");
 const path = require("path");
 const { insertEventEntry, getEventEntry } = require("./helper");
 jest.mock("../src/shared/logger", () => require("./mocks/logger"));
-const loggerMock = require("../src/shared/logger").Logger();
+const { Logger } = require("../src/shared/logger");
 
 let mockRedisPublishCalls = [];
+let mockThrowErrorPublish = false;
 jest.mock("@sap/btp-feature-toggles/src/redisWrapper", () => {
   return {
     _: {
       _createClientAndConnect: jest.fn().mockImplementation(() => {
         return {
           publish: jest.fn().mockImplementation((...args) => {
+            if (mockThrowErrorPublish) {
+              throw new Error("publish failed");
+            }
             mockRedisPublishCalls.push(args);
           }),
         };
@@ -34,12 +38,17 @@ jest.mock("@sap/btp-feature-toggles/src/redisWrapper", () => {
 describe("eventQueue Redis Events and DB Handlers", () => {
   let context;
   let tx;
+  let loggerMock;
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
     const configInstance = eventQueue.getConfigInstance();
     await eventQueue.initialize({ configFilePath, registerDbHandler: true });
     configInstance.redisEnabled = true;
     eventQueue.registerEventQueueDbHandler(cds.db);
+    loggerMock = Logger();
+    jest.spyOn(cds, "log").mockImplementation((layer) => {
+      return Logger(layer);
+    });
   });
 
   beforeEach(async () => {
@@ -136,5 +145,16 @@ describe("eventQueue Redis Events and DB Handlers", () => {
         ],
       ]
     `);
+  });
+
+  test("publish event throws an error", async () => {
+    checkLockExistsSpy.mockResolvedValueOnce(false);
+    await insertEventEntry(tx);
+    mockThrowErrorPublish = true;
+    await tx.commit();
+    expect(mockRedisPublishCalls).toHaveLength(0);
+    expect(loggerMock.callsLengths().error).toEqual(1);
+    expect(loggerMock.calls().error).toMatchSnapshot();
+    mockThrowErrorPublish = false;
   });
 });

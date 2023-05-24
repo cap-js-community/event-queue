@@ -1,6 +1,10 @@
 "use strict";
 
 const path = require("path");
+
+const redisPubSub = require("../src/redisPubSub");
+jest.spyOn(redisPubSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
+
 const cdsHelper = require("../src/shared/cdsHelper");
 const tenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
 
