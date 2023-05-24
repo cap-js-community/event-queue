@@ -1,10 +1,11 @@
 {
   "name": "@sap/cds-event-queue",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "event queue for cds",
   "main": "src/index.js",
   "files": [
     "src",
+    "cds-plugin.js",
     "db"
   ],
   "scripts": {
