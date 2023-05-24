@@ -5,7 +5,6 @@
 // TODO: returning exceeded is not a valid status
 // TODO: wrong error msg "No Implementation found for queue type in 'eventTypeRegister.js'",
 // TODO: check during init, that table is deployed/part of the csn
-// TODO: set different table name
 
 // FEATURES
 // TODO: think about switching to cds.env from own config class
