@@ -762,7 +762,10 @@ class EventQueueProcessorBase {
         [this.eventType, this.eventSubType].join("##")
       );
     } catch (err) {
-      this.logger.error("Releasing distributed lock failed. Error:", error);
+      this.logger.error(
+        "Releasing distributed lock failed. Error:",
+        err.toString()
+      );
     }
   }
 
