@@ -86,8 +86,8 @@ const _executeAllTenants = (tenantIds, acquireLockKey) => {
 };
 
 const _executeRunForTenant = async (tenantId) => {
+  const configInstance = eventQueueConfig.getConfigInstance();
   try {
-    const configInstance = eventQueueConfig.getConfigInstance();
     const eventsForAutomaticRun = configInstance.getEventsForAutomaticRuns();
     const subdomain = await cdsHelper.getSubdomainForTenantId(tenantId);
     const context = new cds.EventContext({
@@ -97,23 +97,18 @@ const _executeRunForTenant = async (tenantId) => {
     });
     cds.context = context;
     cds.log(COMPONENT_NAME).info("executing eventQueue run", {
-      additionalMessageProperties: {
-        tenantId,
-        subdomain,
-      },
+      tenantId,
+      subdomain,
     });
     await eventQueueRunner(context, eventsForAutomaticRun);
   } catch (err) {
     cds
       .log(COMPONENT_NAME)
       .error(
-        "Couldn't process eventQueue for tenant! Next try after defined interval.",
+        `Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`,
         {
-          error: err,
-          additionalMessageProperties: {
-            tenantId,
-            redisEnabled: false,
-          },
+          tenantId,
+          redisEnabled: configInstance.redisEnabled,
         }
       );
   }
