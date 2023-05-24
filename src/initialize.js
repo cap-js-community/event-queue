@@ -31,7 +31,7 @@ const initialize = async ({
 } = {}) => {
   // Mix in cds.env.eventQueue
   configFilePath = cds.env.eventQueue?.configFilePath ?? configFilePath;
-  mode = cds.env.eventQueue?.configFilePath ?? mode;
+  mode = cds.env.eventQueue?.mode ?? mode;
   registerDbHandler =
     cds.env.eventQueue?.registerDbHandler ?? registerDbHandler;
   betweenRuns = cds.env.eventQueue?.betweenRuns ?? betweenRuns;
