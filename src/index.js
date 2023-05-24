@@ -4,7 +4,6 @@
 // TODO: modifyQueueEntry|checkEventAndGeneratePayload should not produce an unexpected error
 // TODO: returning exceeded is not a valid status
 // TODO: wrong error msg "No Implementation found for queue type in 'eventTypeRegister.js'",
-// TODO: replace req.tx._.afc.eventQueuePublishEvents
 // TODO: check during init, that table is deployed/part of the csn
 // TODO: set different table name
 
