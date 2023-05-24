@@ -1,5 +1,7 @@
 "use strict";
 
+const cds = require("@sap/cds");
+
 const { promisify } = require("util");
 const fs = require("fs");
 
@@ -27,6 +29,24 @@ const initialize = async ({
   tableNameEventQueue = "sap.core.EventQueue",
   tableNameEventLock = "sap.core.EventLock",
 } = {}) => {
+  // Mix in cds.env.eventQueue
+  configFilePath = cds.env.eventQueue?.configFilePath ?? configFilePath;
+  mode = cds.env.eventQueue?.configFilePath ?? mode;
+  registerDbHandler =
+    cds.env.eventQueue?.registerDbHandler ?? registerDbHandler;
+  betweenRuns = cds.env.eventQueue?.betweenRuns ?? betweenRuns;
+  parallelTenantProcessing =
+    cds.env.eventQueue?.parallelTenantProcessing ?? parallelTenantProcessing;
+  tableNameEventQueue =
+    cds.env.eventQueue?.tableNameEventQueue ?? tableNameEventQueue;
+  tableNameEventLock =
+    cds.env.eventQueue?.tableNameEventLock ?? tableNameEventLock;
+
+  // TODO: initialize check:
+  // - csn check
+  // - content of yaml check
+  // - betweenRuns and parallelTenantProcessing
+
   const configInstance = getConfigInstance();
   if (configInstance.initialized) {
     return;

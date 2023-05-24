@@ -17,12 +17,12 @@ const cds = require("@sap/cds");
 const eventQueue = require("@sap/cds-event-queue");
 
 cds.on("bootstrap", () => {
-    eventQueue.initialize({
-        configFilePath: "./srv/eventConfig.yml",
-        registerDbHandler: true,
-        mode: eventQueue.RunningModes.multiInstance,
-    });
-})
+  eventQueue.initialize({
+    configFilePath: "./srv/eventConfig.yml",
+    registerDbHandler: true,
+    mode: eventQueue.RunningModes.multiInstance,
+  });
+});
 
 module.exports = cds.server;
 ```
@@ -38,4 +38,3 @@ module.exports = cds.server;
 ## Examples
 
 ## Architecture
-
