@@ -2,7 +2,6 @@
 
 const cds = require("@sap/cds");
 
-const { Logger } = require("./logger");
 const { getConfigInstance } = require("../config");
 
 const COMPONENT_NAME = "eventQueue/WorkerQueue";
@@ -32,24 +31,26 @@ class WorkerQueue {
     const promise = Promise.resolve().then(() => cb());
     this.__runningPromises.push(promise);
     promise
-      .then((...ars) => {
-        resolve(...ars);
-      })
-      .catch((err) => {
-        Logger(cds.context, COMPONENT_NAME).error(
-          "Error happened in WorkQueue. Errors should be caught before!",
-          {
-            error: err,
-          }
-        );
-        reject(err);
-      })
       .finally(() => {
         this.__runningPromises.splice(
           this.__runningPromises.indexOf(promise),
           1
         );
         this._checkForNext();
+      })
+      .then((...results) => {
+        resolve(...results);
+      })
+      .catch((err) => {
+        cds
+          .log(COMPONENT_NAME)
+          .error(
+            "Error happened in WorkQueue. Errors should be caught before!",
+            {
+              error: err,
+            }
+          );
+        reject(err);
       });
   }
 

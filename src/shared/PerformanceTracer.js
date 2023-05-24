@@ -13,7 +13,7 @@ class PerformanceTracer {
    * @param {string} options.summary The summary to be used for logging
    * @param {Object} options.startMessage Writes a log record with the provided details when starting the action
    */
-  constructor(logger, name, options) {
+  constructor(logger, name, options = {}) {
     this.__start = new Date();
     this.__logger = logger;
     this.__name = name;

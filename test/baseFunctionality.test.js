@@ -7,18 +7,21 @@ const cds = require("@sap/cds/lib");
 const eventQueue = require("../src");
 const testHelper = require("./helper");
 const EventQueueTest = require("./asset/EventQueueTest");
-jest.mock("../src/shared/logger", () => require("./mocks/logger"));
-const loggerMock = require("../src/shared/logger").Logger();
+const { Logger: mockLogger } = require("./mocks/logger");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
 describe("baseFunctionality", () => {
-  let context, tx;
+  let context, tx, loggerMock;
 
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
     await eventQueue.initialize({ configFilePath, registerDbHandler: false });
+    loggerMock = mockLogger();
+    jest.spyOn(cds, "log").mockImplementation((layer) => {
+      return mockLogger(layer);
+    });
   });
 
   beforeEach(async () => {

@@ -5,7 +5,6 @@ const uuid = require("uuid");
 const eventQueueConfig = require("./config");
 const cdsHelper = require("./shared/cdsHelper");
 const { eventQueueRunner } = require("./processEventQueue");
-const { Logger } = require("./shared/logger");
 const distributedLock = require("./shared/distributedLock");
 const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
 
@@ -34,7 +33,7 @@ const _scheduleFunction = (fn) => {
 
 const _multiInstanceAndTenancy = async () => {
   const emptyContext = new cds.EventContext({});
-  const logger = Logger(emptyContext, COMPONENT_NAME);
+  const logger = cds.log(COMPONENT_NAME);
   logger.info("executing event queue run for multi instance and tenant");
   const tenantIds = await cdsHelper.getAllTenantIds();
   const runId = await acquireRunId(emptyContext);
@@ -49,18 +48,19 @@ const _multiInstanceAndTenancy = async () => {
 
 const _singleInstanceAndMultiTenancy = async () => {
   try {
-    const emptyContext = new cds.EventContext({});
-    const logger = Logger(emptyContext, COMPONENT_NAME);
+    const logger = cds.log(COMPONENT_NAME);
     logger.info(
       "executing event queue run for single instance and multi tenant"
     );
     const tenantIds = await cdsHelper.getAllTenantIds();
     _executeAllTenants(tenantIds, EVENT_QUEUE_RUN_ID);
   } catch (err) {
-    Logger(cds.context, COMPONENT_NAME).error(
-      "Couldn't fetch tenant ids for event queue processing! Next try after defined interval.",
-      { error: err }
-    );
+    cds
+      .log(COMPONENT_NAME)
+      .error(
+        "Couldn't fetch tenant ids for event queue processing! Next try after defined interval.",
+        { error: err }
+      );
   }
 };
 
@@ -96,7 +96,7 @@ const _executeRunForTenant = async (tenantId) => {
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     });
     cds.context = context;
-    Logger(context, COMPONENT_NAME).info("executing eventQueue run", {
+    cds.log(COMPONENT_NAME).info("executing eventQueue run", {
       additionalMessageProperties: {
         tenantId,
         subdomain,
@@ -104,16 +104,18 @@ const _executeRunForTenant = async (tenantId) => {
     });
     await eventQueueRunner(context, eventsForAutomaticRun);
   } catch (err) {
-    Logger(cds.context, COMPONENT_NAME).error(
-      "Couldn't process eventQueue for tenant! Next try after defined interval.",
-      {
-        error: err,
-        additionalMessageProperties: {
-          tenantId,
-          redisEnabled: false,
-        },
-      }
-    );
+    cds
+      .log(COMPONENT_NAME)
+      .error(
+        "Couldn't process eventQueue for tenant! Next try after defined interval.",
+        {
+          error: err,
+          additionalMessageProperties: {
+            tenantId,
+            redisEnabled: false,
+          },
+        }
+      );
   }
 };
 

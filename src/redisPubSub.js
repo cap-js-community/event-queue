@@ -9,7 +9,7 @@ const config = require("./config");
 const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
 
 const MESSAGE_CHANNEL = "cdsEventQueue";
-const COMPONENT_NAME = "/eventQueue/redisPubSub";
+const COMPONENT_NAME = "eventQueue/redisPubSub";
 
 let publishClient;
 let subscriberClientPromise;

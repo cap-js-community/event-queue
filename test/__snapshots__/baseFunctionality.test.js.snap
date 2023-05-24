@@ -3,16 +3,13 @@
 exports[`baseFunctionality error handling handle checkEventAndGeneratePayload fails 1`] = `
 [
   [
-    "Unexpected error during event processing - setting queue entry to error",
+    "Unexpected error during event processing - setting queue entry to error. Error: Error: syntax error",
     {
-      "additionalMessageProperties": {
-        "eventSubType": "Task",
-        "eventType": "Notifications",
-        "queueEntriesIds": [
-          "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
-        ],
-      },
-      "error": [Error: syntax error],
+      "eventSubType": "Task",
+      "eventType": "Notifications",
+      "queueEntriesIds": [
+        "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
+      ],
     },
   ],
 ]
@@ -21,13 +18,10 @@ exports[`baseFunctionality error handling handle checkEventAndGeneratePayload fa
 exports[`baseFunctionality error handling handle clusterQueueEntries fails 1`] = `
 [
   [
-    "Error during clustering of events - setting all queue entries to error",
+    "Error during clustering of events - setting all queue entries to error. Error: Error: syntax error",
     {
-      "additionalMessageProperties": {
-        "eventSubType": "Task",
-        "eventType": "Notifications",
-      },
-      "error": [Error: syntax error],
+      "eventSubType": "Task",
+      "eventType": "Notifications",
     },
   ],
 ]
@@ -58,16 +52,13 @@ exports[`baseFunctionality error handling handle handleDistributedLock fails 1`]
 exports[`baseFunctionality error handling handle modifyQueueEntry fails 1`] = `
 [
   [
-    "Unexpected error during event processing - setting queue entry to error",
+    "Unexpected error during event processing - setting queue entry to error. Error: Error: syntax error",
     {
-      "additionalMessageProperties": {
-        "eventSubType": "Task",
-        "eventType": "Notifications",
-        "queueEntriesIds": [
-          "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
-        ],
-      },
-      "error": [Error: syntax error],
+      "eventSubType": "Task",
+      "eventType": "Notifications",
+      "queueEntriesIds": [
+        "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
+      ],
     },
   ],
 ]
@@ -78,10 +69,8 @@ exports[`baseFunctionality error handling missing event implementation 1`] = `
   [
     "No Implementation found for queue type in 'eventTypeRegister.js'",
     {
-      "additionalMessageProperties": {
-        "eventSubType": "NOT FOUND",
-        "eventType": "404",
-      },
+      "eventSubType": "NOT FOUND",
+      "eventType": "404",
     },
   ],
 ]

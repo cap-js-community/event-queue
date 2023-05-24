@@ -12,8 +12,6 @@ describe("workerQueue", () => {
     const jestFn = jest.fn();
     await workerQueue.addToQueue(jestFn);
     expect(jestFn).toHaveBeenCalledTimes(1);
-    // NOTE: finally in workQueue has lower prio in event loop --> force node to process event loop
-    await promisify(setTimeout)(1);
     expect(workerQueue.__runningPromises).toHaveLength(0);
   });
 
@@ -48,8 +46,6 @@ describe("workerQueue", () => {
     expect(result.fn.done).toBeTruthy();
     expect(result.fn1.called).toBeTruthy();
     expect(result.fn1.done).toBeTruthy();
-    // NOTE: finally in workQueue has lower prio in event loop --> force node to process event loop
-    await promisify(setTimeout)(1);
     expect(workerQueue.__runningPromises).toHaveLength(0);
   });
 
@@ -86,8 +82,6 @@ describe("workerQueue", () => {
     expect(result.fn1.called).toBeTruthy();
     expect(result.fn1.done).toBeTruthy();
 
-    // NOTE: finally in workQueue has lower prio in event loop --> force node to process event loop
-    await promisify(setTimeout)(1);
     expect(workerQueue.__runningPromises).toHaveLength(0);
   });
 });

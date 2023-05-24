@@ -3,8 +3,6 @@
 const VError = require("verror");
 const cds = require("@sap/cds");
 
-const { Logger } = require("./logger");
-
 const subdomainCache = {};
 
 const VERROR_CLUSTER_NAME = "ExecuteInNewTransactionError";
@@ -28,7 +26,7 @@ async function executeInNewTransaction(
   { info = {} } = {}
 ) {
   const parameters = Array.isArray(args) ? args : [args];
-  const logger = Logger(context, COMPONENT_NAME);
+  const logger = cds.log(COMPONENT_NAME);
   try {
     if (cds.db.kind === "hana") {
       await cds.tx(

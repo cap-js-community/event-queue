@@ -12,8 +12,7 @@ cds.test(project);
 const eventQueue = require("../src");
 const path = require("path");
 const { insertEventEntry, getEventEntry } = require("./helper");
-jest.mock("../src/shared/logger", () => require("./mocks/logger"));
-const { Logger } = require("../src/shared/logger");
+const { Logger: mockLogger } = require("./mocks/logger");
 
 let mockRedisPublishCalls = [];
 let mockThrowErrorPublish = false;
@@ -45,9 +44,9 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     await eventQueue.initialize({ configFilePath, registerDbHandler: true });
     configInstance.redisEnabled = true;
     eventQueue.registerEventQueueDbHandler(cds.db);
-    loggerMock = Logger();
+    loggerMock = mockLogger();
     jest.spyOn(cds, "log").mockImplementation((layer) => {
-      return Logger(layer);
+      return mockLogger(layer);
     });
   });
 

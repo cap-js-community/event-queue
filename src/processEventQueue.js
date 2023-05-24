@@ -12,9 +12,8 @@ const {
   executeInNewTransaction,
   TriggerRollback,
 } = require("./shared/cdsHelper");
-const { Logger } = require("./shared/logger");
 
-const COMPONENT_NAME = "/util/processEventQueue";
+const COMPONENT_NAME = "eventQueue/processEventQueue";
 const MAX_EXECUTION_TIME = 5 * 60 * 1000;
 
 const eventQueueRunner = async (context, events) => {
@@ -152,10 +151,11 @@ const processEventQueue = async (
       );
     }
   } catch (err) {
-    Logger(context, COMPONENT_NAME).error(
-      "Processing event queue failed with unexpected error",
-      { error: err }
-    );
+    cds
+      .log(COMPONENT_NAME)
+      .error("Processing event queue failed with unexpected error", {
+        error: err,
+      });
   } finally {
     await baseInstance?.handleReleaseLock();
   }

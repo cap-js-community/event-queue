@@ -12,13 +12,13 @@ const eventQueue = require("../src");
 const testHelper = require("../test/helper");
 const EventQueueTest = require("../test/asset/EventQueueTest");
 const { EventProcessingStatus } = require("../src");
-jest.mock("../src/shared/logger", () => require("../test/mocks/logger"));
-const loggerMock = require("../src/shared/logger").Logger();
+const { Logger: mockLogger } = require("../test/mocks/logger");
 
 let dbCounts = {};
 describe("integration-main", () => {
   let context;
   let tx;
+  let loggerMock;
 
   beforeAll(async () => {
     const configFilePath = path.join(
@@ -32,6 +32,10 @@ describe("integration-main", () => {
       configFilePath,
       registerDbHandler: false,
       mode: eventQueue.RunningModes.none,
+    });
+    loggerMock = mockLogger();
+    jest.spyOn(cds, "log").mockImplementation((layer) => {
+      return mockLogger(layer);
     });
     const db = await cds.connect.to("db");
     db.before("*", (cdsContext) => {
