@@ -17,7 +17,6 @@
 module.exports = {
   ...require("./initialize"),
   ...require("./config"),
-  ...require("./eventTypeRegister"),
   ...require("./processEventQueue"),
   ...require("./dbHandler"),
   ...require("./constants"),
