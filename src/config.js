@@ -26,7 +26,9 @@ class Config {
   }
 
   getEventsForAutomaticRuns() {
-    return this.__config.events.filter((event) => event.runAutomatically);
+    return this.__config.events.filter(
+      (event) => event.runAutomatically !== false
+    );
   }
 
   hasEventAfterCommitFlag(type, subType) {

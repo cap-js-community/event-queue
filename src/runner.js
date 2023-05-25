@@ -25,6 +25,16 @@ const multiInstanceAndSingleTenancy = () =>
 
 const _scheduleFunction = (fn) => {
   const configInstance = eventQueueConfig.getConfigInstance();
+  const eventsForAutomaticRun = configInstance.getEventsForAutomaticRuns();
+  if (!eventsForAutomaticRun.length) {
+    cds
+      .log(COMPONENT_NAME)
+      .warn(
+        "no events for automatic run are configured - skipping runner registration"
+      );
+    return;
+  }
+
   setTimeout(() => {
     fn();
     setInterval(fn, configInstance.betweenRuns);

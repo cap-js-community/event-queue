@@ -5,11 +5,9 @@ const path = require("path");
 const redisPubSub = require("../src/redisPubSub");
 jest.spyOn(redisPubSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
 
-const cdsHelper = require("../src/shared/cdsHelper");
-const tenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
-
 const eventQueue = require("../src");
 const runner = require("../src/runner");
+const cds = require("@sap/cds");
 
 describe("initialize", () => {
   beforeEach(() => {
@@ -20,7 +18,6 @@ describe("initialize", () => {
 
   const configFilePath = path.join(__dirname, "asset", "configFaulty.yml");
   test("read yaml config file", async () => {
-    tenantIdsSpy.mockResolvedValueOnce(null);
     await eventQueue.initialize({ configFilePath, registerDbHandler: false });
     const config = eventQueue.getConfigInstance().events;
     expect(config).toMatchSnapshot();
@@ -35,7 +32,6 @@ describe("initialize", () => {
 
   describe("runner mode registration", () => {
     test("single instance, single tenant", async () => {
-      tenantIdsSpy.mockResolvedValueOnce(null);
       const singleInstanceAndTenantSpy = jest
         .spyOn(runner, "singleInstanceAndTenant")
         .mockReturnValueOnce();
@@ -44,7 +40,6 @@ describe("initialize", () => {
     });
 
     test("multi Instance, single tenant", async () => {
-      tenantIdsSpy.mockResolvedValueOnce(null);
       const multiInstanceAndSingleTenancySpy = jest
         .spyOn(runner, "multiInstanceAndSingleTenancy")
         .mockReturnValueOnce();
@@ -59,12 +54,13 @@ describe("initialize", () => {
     });
 
     test("single instance, multi tenant", async () => {
-      tenantIdsSpy.mockResolvedValueOnce([]);
+      cds.requires.multitenancy = {};
       const singleInstanceAndMultiTenancySpy = jest
         .spyOn(runner, "singleInstanceAndMultiTenancy")
         .mockReturnValueOnce();
       await eventQueue.initialize({ configFilePath, registerDbHandler: false });
       expect(singleInstanceAndMultiTenancySpy).toHaveBeenCalledTimes(1);
+      cds.requires.multitenancy = null;
     });
 
     test("calling initialize twice should only processed once", async () => {
@@ -84,7 +80,7 @@ describe("initialize", () => {
     });
 
     test("multi Instance, multi tenant", async () => {
-      tenantIdsSpy.mockResolvedValueOnce([]);
+      cds.requires.multitenancy = {};
       const multiInstanceAndTenancySoy = jest
         .spyOn(runner, "multiInstanceAndTenancy")
         .mockReturnValueOnce();
@@ -94,6 +90,7 @@ describe("initialize", () => {
         mode: eventQueue.RunningModes.multiInstance,
       });
       expect(multiInstanceAndTenancySoy).toHaveBeenCalledTimes(1);
+      cds.requires.multitenancy = null;
     });
   });
 });

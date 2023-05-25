@@ -12,7 +12,6 @@ const { getConfigInstance } = require("./config");
 const { RunningModes } = require("./constants");
 const runner = require("./runner");
 const dbHandler = require("./dbHandler");
-const { getAllTenantIds } = require("./shared/cdsHelper");
 const { initEventQueueRedisSubscribe } = require("./redisPubSub");
 
 const readFileAsync = promisify(fs.readFile);
@@ -53,6 +52,7 @@ const initialize = async ({
   }
   configInstance.initialized = true;
   cds.context = new cds.EventContext();
+  const logger = cds.log(COMPONENT);
   configInstance.fileContent = await readConfigFromFile(configFilePath);
   configInstance.betweenRuns = betweenRuns;
   configInstance.calculateIsRedisEnabled();
@@ -64,9 +64,7 @@ const initialize = async ({
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
-  // TODO: find a better way to determine this
-  // check cds.requires.multitenancy
-  const multiTenancyEnabled = await getAllTenantIds();
+  const multiTenancyEnabled = cds.requires.multitenancy;
   if (mode === RunningModes.singleInstance || !configInstance.redisEnabled) {
     if (multiTenancyEnabled) {
       runner.singleInstanceAndMultiTenancy();
@@ -82,7 +80,13 @@ const initialize = async ({
       runner.multiInstanceAndSingleTenancy();
     }
   }
-  cds.log(COMPONENT).info("event queue initialized");
+  logger.info("event queue initialized", {
+    mode,
+    multiTenancyEnabled,
+    redisEnabled: configInstance.redisEnabled,
+    betweenRuns,
+    parallelTenantProcessing,
+  });
 };
 
 const readConfigFromFile = async (configFilepath) => {
