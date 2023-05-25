@@ -64,8 +64,11 @@ const initialize = async ({
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
-  const multiTenancyEnabled = cds.requires.multitenancy;
-  if (mode === RunningModes.singleInstance || !configInstance.redisEnabled) {
+  const multiTenancyEnabled = !!cds.requires.multitenancy;
+  if (
+    mode === RunningModes.singleInstance ||
+    (!configInstance.redisEnabled && mode !== RunningModes.none)
+  ) {
     if (multiTenancyEnabled) {
       runner.singleInstanceAndMultiTenancy();
     } else {

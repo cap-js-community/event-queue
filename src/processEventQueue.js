@@ -56,13 +56,17 @@ const processEventQueue = async (
       );
       return;
     }
-    const config = eventConfig.config ?? {};
-    baseInstance = new EventTypeClass(context, eventType, eventSubType, config);
+    baseInstance = new EventTypeClass(
+      context,
+      eventType,
+      eventSubType,
+      eventConfig
+    );
     const continueProcessing = await baseInstance.handleDistributedLock();
     if (!continueProcessing) {
       return;
     }
-    config.startTime = startTime;
+    eventConfig.startTime = startTime;
     while (shouldContinue) {
       iterationCounter++;
       await executeInNewTransaction(
@@ -73,7 +77,7 @@ const processEventQueue = async (
             tx.context,
             eventType,
             eventSubType,
-            config
+            eventConfig
           );
           const queueEntries =
             await eventTypeInstance.getQueueEntriesAndSetToInProgress();

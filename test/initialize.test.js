@@ -81,7 +81,7 @@ describe("initialize", () => {
 
     test("multi Instance, multi tenant", async () => {
       cds.requires.multitenancy = {};
-      const multiInstanceAndTenancySoy = jest
+      const multiInstanceAndTenancySpy = jest
         .spyOn(runner, "multiInstanceAndTenancy")
         .mockReturnValueOnce();
       await eventQueue.initialize({
@@ -89,8 +89,36 @@ describe("initialize", () => {
         registerDbHandler: false,
         mode: eventQueue.RunningModes.multiInstance,
       });
-      expect(multiInstanceAndTenancySoy).toHaveBeenCalledTimes(1);
+      expect(multiInstanceAndTenancySpy).toHaveBeenCalledTimes(1);
       cds.requires.multitenancy = null;
+    });
+
+    test("mode none should not register any runner", async () => {
+      const multiInstanceAndTenancySpy = jest.spyOn(
+        runner,
+        "multiInstanceAndTenancy"
+      );
+      const singleInstanceAndTenantSpy = jest.spyOn(
+        runner,
+        "singleInstanceAndTenant"
+      );
+      const singleInstanceAndMultiTenancySpy = jest.spyOn(
+        runner,
+        "singleInstanceAndMultiTenancy"
+      );
+      const multiInstanceAndSingleTenancySpy = jest.spyOn(
+        runner,
+        "multiInstanceAndSingleTenancy"
+      );
+      await eventQueue.initialize({
+        configFilePath,
+        registerDbHandler: false,
+        mode: eventQueue.RunningModes.none,
+      });
+      expect(multiInstanceAndTenancySpy).toHaveBeenCalledTimes(0);
+      expect(singleInstanceAndTenantSpy).toHaveBeenCalledTimes(0);
+      expect(singleInstanceAndMultiTenancySpy).toHaveBeenCalledTimes(0);
+      expect(multiInstanceAndSingleTenancySpy).toHaveBeenCalledTimes(0);
     });
   });
 });
