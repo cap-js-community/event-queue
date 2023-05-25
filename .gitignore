@@ -28,7 +28,6 @@ data/afc*.sqlite
 data/afc.sqlite-shm
 data/afc.sqlite-wal
 data/test.sqlite
-index.cds
 
 # temp
 temp/

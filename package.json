@@ -47,6 +47,13 @@
     "jest": "^29.5.0",
     "prettier": "^2.8.8"
   },
+  "cds": {
+    "requires": {
+      "event-queue": {
+        "model": "@sap/event-queue"
+      }
+    }
+  },
   "author": "Maximilian Gruenfelder <maximilian.gruenfelder@sap.com>",
   "license": "ISC"
 }
