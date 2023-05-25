@@ -6,6 +6,7 @@
 // TODO: wrong error msg "No Implementation found for queue type in 'eventTypeRegister.js'",
 // TODO: check during init, that table is deployed/part of the csn
 // TODO: think about situations where isInitialized need to be checked - publishEvent access config which is not initialized
+// TODO: simplify modes --> production = multi, all others are single
 
 // FEATURES
 // TODO: think about switching to cds.env from own config class

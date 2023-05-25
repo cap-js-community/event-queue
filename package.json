@@ -1,12 +1,12 @@
 {
   "name": "@sap/cds-event-queue",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "event queue for cds",
   "main": "src/index.js",
   "files": [
     "src",
     "cds-plugin.js",
-    "db"
+    "index.cds"
   ],
   "scripts": {
     "test:unit": "jest --testPathIgnorePatterns=\"/test-integration/\"",

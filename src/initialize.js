@@ -28,6 +28,17 @@ const initialize = async ({
   tableNameEventQueue = "sap.core.EventQueue",
   tableNameEventLock = "sap.core.EventLock",
 } = {}) => {
+  // TODO: initialize check:
+  // - csn check
+  // - content of yaml check
+  // - betweenRuns and parallelTenantProcessing
+
+  const configInstance = getConfigInstance();
+  if (configInstance.initialized) {
+    return;
+  }
+  configInstance.initialized = true;
+
   // Mix in cds.env.eventQueue
   configFilePath = cds.env.eventQueue?.configFilePath ?? configFilePath;
   mode = cds.env.eventQueue?.mode ?? mode;
@@ -41,16 +52,6 @@ const initialize = async ({
   tableNameEventLock =
     cds.env.eventQueue?.tableNameEventLock ?? tableNameEventLock;
 
-  // TODO: initialize check:
-  // - csn check
-  // - content of yaml check
-  // - betweenRuns and parallelTenantProcessing
-
-  const configInstance = getConfigInstance();
-  if (configInstance.initialized) {
-    return;
-  }
-  configInstance.initialized = true;
   cds.context = new cds.EventContext();
   const logger = cds.log(COMPONENT);
   configInstance.fileContent = await readConfigFromFile(configFilePath);
