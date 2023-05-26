@@ -19,6 +19,7 @@ class Config {
     this.__parallelTenantProcessing = 1;
     this.__tableNameEventQueue = null;
     this.__tableNameEventLock = null;
+    this.__vcapServices = this._parseVcapServices();
   }
 
   getEventConfig(type, subType) {
@@ -38,11 +39,18 @@ class Config {
   }
 
   _checkRedisIsBound() {
+    return !!this.getRedisCredentialsFromEnv();
+  }
+
+  getRedisCredentialsFromEnv() {
+    return this.__vcapServices["redis-cache"]?.[0]?.credentials;
+  }
+
+  _parseVcapServices() {
     try {
-      const services = JSON.parse(process.env.VCAP_SERVICES);
-      return !!services["redis-cache"];
+      return JSON.parse(process.env.VCAP_SERVICES);
     } catch {
-      return false;
+      return {};
     }
   }
 

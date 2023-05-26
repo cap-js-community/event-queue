@@ -5,9 +5,7 @@ const { promisify } = require("util");
 const cds = require("@sap/cds");
 cds.test(__dirname + "/_env");
 
-jest.mock("@sap/btp-feature-toggles/src/redisWrapper", () =>
-  require("../test/mocks/redisMock")
-);
+jest.mock("../src/shared/redis", () => require("../test/mocks/redisMock"));
 const cdsHelper = require("../src/shared/cdsHelper");
 const { getWorkerPoolInstance } = require("../src/shared/WorkerQueue");
 const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
@@ -142,7 +140,6 @@ describe("redisRunner", () => {
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(0);
     const p1 = runner._._singleInstanceAndMultiTenancy();
     const p2 = runner._._singleInstanceAndMultiTenancy();
-
     await Promise.allSettled([p1, p2]);
     const workerPoolInstance = getWorkerPoolInstance();
     await Promise.allSettled(workerPoolInstance.__runningPromises);

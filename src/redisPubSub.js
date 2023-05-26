@@ -1,7 +1,6 @@
 "use strict";
 
-const redisWrapper = require("@sap/btp-feature-toggles/src/redisWrapper");
-
+const redis = require("./shared/redis");
 const { processEventQueue } = require("./processEventQueue");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
@@ -29,7 +28,7 @@ const subscribeRedisClient = () => {
     subscriberClientPromise = null;
     setTimeout(subscribeRedisClient, 5 * 1000);
   };
-  subscriberClientPromise = redisWrapper._._createClientAndConnect(
+  subscriberClientPromise = redis.createClientAndConnect(
     errorHandlerCreateClient
   );
   subscriberClientPromise
@@ -90,7 +89,7 @@ const publishEvent = async (tenantId, type, subType) => {
   };
   try {
     if (!publishClient) {
-      publishClient = await redisWrapper._._createClientAndConnect(
+      publishClient = await redis.createClientAndConnect(
         errorHandlerCreateClient
       );
       logger.info("publish redis client connected");

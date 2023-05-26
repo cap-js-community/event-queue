@@ -1,7 +1,6 @@
 "use strict";
 
-const redisWrapper = require("@sap/btp-feature-toggles/src/redisWrapper");
-
+const redis = require("./redis");
 const config = require("../config");
 const cdsHelper = require("./cdsHelper");
 const { getConfigInstance } = require("../config");
@@ -67,7 +66,7 @@ const _acquireLockRedis = async (
   expiryTime,
   value = "true"
 ) => {
-  const client = await redisWrapper._._createMainClientAndConnect();
+  const client = await redis.createMainClientAndConnect();
   const result = await client.set(fullKey, value, {
     PX: expiryTime,
     NX: true,
@@ -76,7 +75,7 @@ const _acquireLockRedis = async (
 };
 
 const _checkLockExistsRedis = async (context, fullKey) => {
-  const client = await redisWrapper._._createMainClientAndConnect();
+  const client = await redis.createMainClientAndConnect();
   return await client.get(fullKey);
 };
 
@@ -98,7 +97,7 @@ const _checkLockExistsDb = async (context, fullKey) => {
 };
 
 const _releaseLockRedis = async (context, fullKey) => {
-  const client = await redisWrapper._._createMainClientAndConnect();
+  const client = await redis.createMainClientAndConnect();
   await client.del(fullKey);
 };
 

@@ -16,21 +16,18 @@ const { Logger: mockLogger } = require("./mocks/logger");
 
 let mockRedisPublishCalls = [];
 let mockThrowErrorPublish = false;
-jest.mock("@sap/btp-feature-toggles/src/redisWrapper", () => {
+jest.mock("../src/shared/redis", () => {
   return {
-    _: {
-      _createClientAndConnect: jest.fn().mockImplementation(() => {
-        return {
-          publish: jest.fn().mockImplementation((...args) => {
-            if (mockThrowErrorPublish) {
-              throw new Error("publish failed");
-            }
-            mockRedisPublishCalls.push(args);
-          }),
-        };
-      }),
-      _getLogger: () => ({}),
-    },
+    createClientAndConnect: jest.fn().mockImplementation(() => {
+      return {
+        publish: jest.fn().mockImplementation((...args) => {
+          if (mockThrowErrorPublish) {
+            throw new Error("publish failed");
+          }
+          mockRedisPublishCalls.push(args);
+        }),
+      };
+    }),
   };
 });
 

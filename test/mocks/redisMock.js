@@ -17,8 +17,6 @@ const _createMainClientAndConnect = async () => ({
 });
 
 module.exports = {
-  _: {
-    _createMainClientAndConnect,
-    _createClientAndConnect: _createMainClientAndConnect,
-  },
+  createClientAndConnect: _createMainClientAndConnect,
+  createMainClientAndConnect: _createMainClientAndConnect,
 };
