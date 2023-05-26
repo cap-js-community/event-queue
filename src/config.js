@@ -1,5 +1,7 @@
 "use strict";
 
+const cds = require("@sap/cds");
+
 const env = require("./shared/env");
 
 let instance;
@@ -144,6 +146,10 @@ class Config {
 
   set tableNameEventLock(value) {
     this.__tableNameEventLock = value;
+  }
+
+  get isMultiTenancy() {
+    return !!cds.requires.multitenancy;
   }
 }
 

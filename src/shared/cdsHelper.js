@@ -3,6 +3,8 @@
 const VError = require("verror");
 const cds = require("@sap/cds");
 
+const config = require("../config");
+
 const subdomainCache = {};
 
 const VERROR_CLUSTER_NAME = "ExecuteInNewTransactionError";
@@ -101,6 +103,9 @@ class TriggerRollback extends VError {
 }
 
 const getSubdomainForTenantId = async (tenantId) => {
+  if (!config.getConfigInstance().isMultiTenancy) {
+    return null;
+  }
   if (subdomainCache[tenantId]) {
     return subdomainCache[tenantId];
   }
@@ -115,6 +120,9 @@ const getSubdomainForTenantId = async (tenantId) => {
 };
 
 const getAllTenantIds = async () => {
+  if (!config.getConfigInstance().isMultiTenancy) {
+    return null;
+  }
   try {
     const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
     const response = await ssp.get("/tenant");
