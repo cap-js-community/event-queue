@@ -5,6 +5,9 @@ const EventQueueError = require("./EventQueueError");
 
 const publishEvent = async (tx, events) => {
   const configInstance = config.getConfigInstance();
+  if (!configInstance.initialized) {
+    throw EventQueueError.notInitialized();
+  }
   const eventsForProcessing = Array.isArray(events) ? events : [events];
   for (const { type, subType } of eventsForProcessing) {
     const eventConfig = configInstance.getEventConfig(type, subType);
