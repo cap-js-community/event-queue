@@ -51,8 +51,8 @@ describe("integration-main", () => {
     context = new cds.EventContext({});
     tx = cds.tx(context);
     await cds.tx({}, async (tx2) => {
-      await tx2.run(DELETE.from("sap.core.EventLock"));
-      await tx2.run(DELETE.from("sap.core.EventQueue"));
+      await tx2.run(DELETE.from("sap.eventqueue.Lock"));
+      await tx2.run(DELETE.from("sap.eventqueue.Event"));
     });
     dbCounts = {};
   });
@@ -91,7 +91,7 @@ describe("integration-main", () => {
     jest
       .spyOn(EventQueueTest.prototype, "processEvent")
       .mockImplementationOnce(async (processContext, key, queueEntries) => {
-        await cds.tx(processContext).run(SELECT.from("sap.core.EventLock"));
+        await cds.tx(processContext).run(SELECT.from("sap.eventqueue.Lock"));
         return queueEntries.map((queueEntry) => [
           queueEntry.ID,
           EventProcessingStatus.Error,
@@ -110,7 +110,7 @@ describe("integration-main", () => {
     jest
       .spyOn(EventQueueTest.prototype, "processEvent")
       .mockImplementationOnce(async (processContext) => {
-        await cds.tx(processContext).run(SELECT.from("sap.core.EventLock"));
+        await cds.tx(processContext).run(SELECT.from("sap.eventqueue.Lock"));
         throw new Error("error during processing");
       });
     await eventQueue.processEventQueue(context, event.type, event.subType);
@@ -207,7 +207,7 @@ const waitEntryIsDone = async () => {
   let startTime = Date.now();
   while (true) {
     const row = await cds.tx({}, (tx2) =>
-      tx2.run(SELECT.one.from("sap.core.EventQueue"))
+      tx2.run(SELECT.one.from("sap.eventqueue.Event"))
     );
     dbCounts["BEGIN"]--;
     dbCounts["COMMIT"]--;

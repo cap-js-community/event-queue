@@ -58,7 +58,7 @@ describe("redisRunner", () => {
   beforeEach(async () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
-    await cds.tx({}, (tx2) => tx2.run(DELETE.from("sap.core.EventLock")));
+    await cds.tx({}, (tx2) => tx2.run(DELETE.from("sap.eventqueue.Lock")));
     await distributedLock.releaseLock({}, "EVENT_QUEUE_RUN_ID", {
       tenantScoped: false,
     });
@@ -178,7 +178,7 @@ describe("redisRunner", () => {
     // 5 min's later the tenants should be processed again
     await cds.tx({}, (tx2) =>
       tx2.run(
-        UPDATE.entity("sap.core.EventLock").set({
+        UPDATE.entity("sap.eventqueue.Lock").set({
           createdAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
         })
       )

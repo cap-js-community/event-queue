@@ -25,8 +25,8 @@ const initialize = async ({
   registerDbHandler = true,
   betweenRuns = 5 * 60 * 1000,
   parallelTenantProcessing = 5,
-  tableNameEventQueue = "sap.core.EventQueue",
-  tableNameEventLock = "sap.core.EventLock",
+  tableNameEventQueue = "sap.eventqueue.Event",
+  tableNameEventLock = "sap.eventqueue.Lock",
 } = {}) => {
   // TODO: initialize check:
   // - csn check

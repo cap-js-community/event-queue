@@ -1,2 +1,2 @@
-using from './EventLock';
-using from './EventQueue';
+using from './Event';
+using from './Lock';

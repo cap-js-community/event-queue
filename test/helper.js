@@ -4,7 +4,7 @@ const { EventProcessingStatus } = require("../src/constants");
 const eventQueue = require("../src");
 
 const _selectEventQueueAndExpect = async (tx, status, expectedLength = 1) => {
-  const events = await tx.run(SELECT.from("sap.core.EventQueue"));
+  const events = await tx.run(SELECT.from("sap.eventqueue.Event"));
   expect(events).toHaveLength(expectedLength);
   for (const event of events) {
     expect(event.status).toEqual(status);
@@ -43,7 +43,7 @@ const insertEventEntry = async (tx, { entries, numberOfEntries = 1 } = {}) => {
         });
       });
   }
-  await tx.run(INSERT.into("sap.core.EventQueue").entries(entries));
+  await tx.run(INSERT.into("sap.eventqueue.Event").entries(entries));
 };
 
 const selectEventQueueAndExpectDone = async (tx, expectedLength = 1) =>

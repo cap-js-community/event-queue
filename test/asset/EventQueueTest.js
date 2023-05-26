@@ -3,8 +3,6 @@
 const EventQueueBaseClass = require("../../src/EventQueueProcessorBase");
 const { EventProcessingStatus } = require("../../src/constants");
 
-const COMPONENT_NAME = "EventQueueTest";
-
 class EventQueueTest extends EventQueueBaseClass {
   constructor(context, eventType, eventSubType, config) {
     super(context, eventType, eventSubType, config);
@@ -12,7 +10,7 @@ class EventQueueTest extends EventQueueBaseClass {
 
   async processEvent(processContext, key, queueEntries, payload) {
     await this.getTxForEventProcessing(key).run(
-      SELECT.from("sap.core.EventQueue")
+      SELECT.from("sap.eventqueue.Event")
     );
     return queueEntries.map((queueEntry) => [
       queueEntry.ID,
@@ -21,7 +19,7 @@ class EventQueueTest extends EventQueueBaseClass {
   }
 
   async checkEventAndGeneratePayload(queueEntry) {
-    await this.tx.run(SELECT.from("sap.core.EventQueue"));
+    await this.tx.run(SELECT.from("sap.eventqueue.Event"));
     return queueEntry;
   }
 }

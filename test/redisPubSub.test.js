@@ -53,7 +53,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   beforeEach(async () => {
     context = new cds.EventContext({ user: { id: "alice" } });
     tx = cds.tx(context);
-    await tx.run(DELETE.from("sap.core.EventQueue"));
+    await tx.run(DELETE.from("sap.eventqueue.Event"));
     mockRedisPublishCalls = [];
   });
 
@@ -61,7 +61,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
 
   test("should not be called if not activated for the event", async () => {
     await tx.run(
-      INSERT.into("sap.core.EventQueue").entries({
+      INSERT.into("sap.eventqueue.Event").entries({
         ...getEventEntry(),
         type: "Test",
         subType: "NoProcessAfterCommit",
@@ -124,7 +124,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     checkLockExistsSpy.mockResolvedValue(false);
     await insertEventEntry(tx);
     await tx.run(
-      INSERT.into("sap.core.EventQueue").entries({
+      INSERT.into("sap.eventqueue.Event").entries({
         ...getEventEntry(),
         type: "Fiori",
       })

@@ -27,8 +27,8 @@ describe("baseFunctionality", () => {
   beforeEach(async () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
-    await tx.run(DELETE.from("sap.core.EventLock"));
-    await tx.run(DELETE.from("sap.core.EventQueue"));
+    await tx.run(DELETE.from("sap.eventqueue.Lock"));
+    await tx.run(DELETE.from("sap.eventqueue.Event"));
   });
 
   afterEach(async () => {
@@ -159,7 +159,7 @@ describe("baseFunctionality", () => {
           testPayload: 123,
         }),
       });
-      const events = await tx.run(SELECT.from("sap.core.EventQueue"));
+      const events = await tx.run(SELECT.from("sap.eventqueue.Event"));
       expect(events).toHaveLength(1);
       expect(events[0]).toMatchObject({
         type: event.type,
@@ -180,9 +180,11 @@ describe("baseFunctionality", () => {
           }),
         });
       } catch (err) {
-        expect(err.toString()).toMatchInlineSnapshot(`"EventQueueError"`);
+        expect(err.toString()).toMatchInlineSnapshot(
+          `"UNKNOWN_EVENT_TYPE: The event type and subType configuration is not configured! Maintain the combination in the config file."`
+        );
       }
-      const events = await tx.run(SELECT.from("sap.core.EventQueue"));
+      const events = await tx.run(SELECT.from("sap.eventqueue.Event"));
       expect(events).toHaveLength(0);
     });
   });

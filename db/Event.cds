@@ -1,4 +1,4 @@
-namespace sap.core;
+namespace sap.eventqueue;
 
 using cuid from '@sap/cds/common';
 
@@ -12,7 +12,7 @@ type Status: Integer enum {
 }
 
 @cds.persistence.journal
-entity EventQueue: cuid {
+entity Event: cuid {
     type: String not null;
     subType: String not null;
     referenceEntity: String;
