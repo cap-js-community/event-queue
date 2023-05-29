@@ -28,6 +28,7 @@ data/afc*.sqlite
 data/afc.sqlite-shm
 data/afc.sqlite-wal
 data/test.sqlite
+coverage
 
 # temp
 temp/
