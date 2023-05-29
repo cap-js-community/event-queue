@@ -9,7 +9,6 @@ const yaml = require("yaml");
 const VError = require("verror");
 
 const { getConfigInstance } = require("./config");
-const { RunningModes } = require("./constants");
 const runner = require("./runner");
 const dbHandler = require("./dbHandler");
 const { initEventQueueRedisSubscribe } = require("./redisPubSub");
@@ -21,7 +20,7 @@ const COMPONENT = "eventQueue/initialize";
 
 const initialize = async ({
   configFilePath,
-  mode = RunningModes.singleInstance,
+  registerAsEventProcessing = true,
   registerDbHandler = true,
   betweenRuns = 5 * 60 * 1000,
   parallelTenantProcessing = 5,
@@ -41,7 +40,8 @@ const initialize = async ({
 
   // Mix in cds.env.eventQueue
   configFilePath = cds.env.eventQueue?.configFilePath ?? configFilePath;
-  mode = cds.env.eventQueue?.mode ?? mode;
+  registerAsEventProcessing =
+    cds.env.eventQueue?.registerAsEventProcessing ?? registerAsEventProcessing;
   registerDbHandler =
     cds.env.eventQueue?.registerDbHandler ?? registerDbHandler;
   betweenRuns = cds.env.eventQueue?.betweenRuns ?? betweenRuns;
@@ -65,28 +65,10 @@ const initialize = async ({
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
-  const multiTenancyEnabled = !!cds.requires.multitenancy;
-  if (
-    mode === RunningModes.singleInstance ||
-    (!configInstance.redisEnabled && mode !== RunningModes.none)
-  ) {
-    if (multiTenancyEnabled) {
-      runner.singleInstanceAndMultiTenancy();
-    } else {
-      runner.singleInstanceAndTenant();
-    }
-  }
-  if (mode === RunningModes.multiInstance && configInstance.redisEnabled) {
-    initEventQueueRedisSubscribe();
-    if (multiTenancyEnabled) {
-      runner.multiInstanceAndTenancy();
-    } else {
-      runner.multiInstanceAndSingleTenancy();
-    }
-  }
+  registerEventProcessors(registerAsEventProcessing);
   logger.info("event queue initialized", {
-    mode,
-    multiTenancyEnabled,
+    registerAsEventProcessing,
+    multiTenancyEnabled: configInstance.isMultiTenancy,
     redisEnabled: configInstance.redisEnabled,
     betweenRuns,
     parallelTenantProcessing,
@@ -108,6 +90,26 @@ const readConfigFromFile = async (configFilepath) => {
     },
     "configFilepath with unsupported extension, allowed extensions are .yaml and .json"
   );
+};
+
+const registerEventProcessors = (registerAsEventProcessing) => {
+  const configInstance = getConfigInstance();
+
+  if (!registerAsEventProcessing) {
+    return;
+  }
+
+  if (!configInstance.isMultiTenancy) {
+    runner.singleTenant();
+    return;
+  }
+
+  if (configInstance.redisEnabled) {
+    initEventQueueRedisSubscribe();
+    runner.multiTenancyRedis();
+  } else {
+    runner.multiTenancyDb();
+  }
 };
 
 module.exports = {

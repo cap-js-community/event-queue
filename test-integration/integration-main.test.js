@@ -31,7 +31,7 @@ describe("integration-main", () => {
     await eventQueue.initialize({
       configFilePath,
       registerDbHandler: false,
-      mode: eventQueue.RunningModes.none,
+      registerAsEventProcessing: false,
     });
     loggerMock = mockLogger();
     jest.spyOn(cds, "log").mockImplementation((layer) => {

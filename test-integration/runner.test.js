@@ -46,7 +46,7 @@ describe("redisRunner", () => {
     await eventQueue.initialize({
       configFilePath,
       registerDbHandler: false,
-      mode: eventQueue.RunningModes.none,
+      registerAsEventProcessing: false,
     });
     configInstance = eventQueue.getConfigInstance();
     configInstance.redisEnabled = true;
@@ -86,8 +86,8 @@ describe("redisRunner", () => {
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds);
-    const p1 = runner._._multiInstanceAndTenancy();
-    const p2 = runner._._multiInstanceAndTenancy();
+    const p1 = runner._._multiTenancyRedis();
+    const p2 = runner._._multiTenancyRedis();
 
     await Promise.allSettled([p1, p2]);
     const workerPoolInstance = getWorkerPoolInstance();
@@ -117,7 +117,7 @@ describe("redisRunner", () => {
     expect(tenantChecks).toMatchSnapshot();
 
     // another run within 5 minutes should do nothing
-    await runner._._multiInstanceAndTenancy();
+    await runner._._multiTenancyRedis();
     await promisify(setTimeout)(500);
     await Promise.allSettled(workerPoolInstance.__runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
@@ -138,8 +138,8 @@ describe("redisRunner", () => {
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(0);
-    const p1 = runner._._singleInstanceAndMultiTenancy();
-    const p2 = runner._._singleInstanceAndMultiTenancy();
+    const p1 = runner._._multiTenancyDb();
+    const p2 = runner._._multiTenancyDb();
     await Promise.allSettled([p1, p2]);
     const workerPoolInstance = getWorkerPoolInstance();
     await Promise.allSettled(workerPoolInstance.__runningPromises);
@@ -166,7 +166,7 @@ describe("redisRunner", () => {
     expect(tenantChecks).toMatchSnapshot();
 
     // another run within 5 minutes should do nothing
-    await runner._._singleInstanceAndMultiTenancy();
+    await runner._._multiTenancyDb();
     await promisify(setTimeout)(500);
     await Promise.allSettled(workerPoolInstance.__runningPromises);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
@@ -181,7 +181,7 @@ describe("redisRunner", () => {
       )
     );
 
-    await runner._._singleInstanceAndMultiTenancy();
+    await runner._._multiTenancyDb();
     await promisify(setTimeout)(500);
     await Promise.allSettled(workerPoolInstance.__runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(12);

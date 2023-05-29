@@ -12,16 +12,11 @@ const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
 const OFFSET_FIRST_RUN = 10 * 1000;
 
-const singleInstanceAndTenant = () => _scheduleFunction(_executeRunForTenant);
+const singleTenant = () => _scheduleFunction(_executeRunForTenant);
 
-const singleInstanceAndMultiTenancy = () =>
-  _scheduleFunction(_singleInstanceAndMultiTenancy);
+const multiTenancyDb = () => _scheduleFunction(_multiTenancyDb);
 
-const multiInstanceAndTenancy = () =>
-  _scheduleFunction(_multiInstanceAndTenancy);
-
-const multiInstanceAndSingleTenancy = () =>
-  _scheduleFunction(_executeRunForTenant);
+const multiTenancyRedis = () => _scheduleFunction(_multiTenancyRedis);
 
 const _scheduleFunction = (fn) => {
   const configInstance = eventQueueConfig.getConfigInstance();
@@ -41,7 +36,7 @@ const _scheduleFunction = (fn) => {
   }, OFFSET_FIRST_RUN);
 };
 
-const _multiInstanceAndTenancy = async () => {
+const _multiTenancyRedis = async () => {
   const emptyContext = new cds.EventContext({});
   const logger = cds.log(COMPONENT_NAME);
   logger.info("executing event queue run for multi instance and tenant");
@@ -56,7 +51,7 @@ const _multiInstanceAndTenancy = async () => {
   _executeAllTenants(tenantIds, runId);
 };
 
-const _singleInstanceAndMultiTenancy = async () => {
+const _multiTenancyDb = async () => {
   try {
     const logger = cds.log(COMPONENT_NAME);
     logger.info(
@@ -151,12 +146,11 @@ const acquireRunId = async (context) => {
 };
 
 module.exports = {
-  singleInstanceAndTenant,
-  singleInstanceAndMultiTenancy,
-  multiInstanceAndTenancy,
-  multiInstanceAndSingleTenancy,
+  singleTenant,
+  multiTenancyDb,
+  multiTenancyRedis,
   _: {
-    _multiInstanceAndTenancy,
-    _singleInstanceAndMultiTenancy,
+    _multiTenancyRedis,
+    _multiTenancyDb,
   },
 };

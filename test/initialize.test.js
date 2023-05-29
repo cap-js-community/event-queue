@@ -31,43 +31,27 @@ describe("initialize", () => {
   });
 
   describe("runner mode registration", () => {
-    test("single instance, single tenant", async () => {
-      const singleInstanceAndTenantSpy = jest
-        .spyOn(runner, "singleInstanceAndTenant")
+    test("single tenant", async () => {
+      const singleTenantSpy = jest
+        .spyOn(runner, "singleTenant")
         .mockReturnValueOnce();
       await eventQueue.initialize({ configFilePath, registerDbHandler: false });
-      expect(singleInstanceAndTenantSpy).toHaveBeenCalledTimes(1);
+      expect(singleTenantSpy).toHaveBeenCalledTimes(1);
     });
 
-    test("multi Instance, single tenant", async () => {
-      const multiInstanceAndSingleTenancySpy = jest
-        .spyOn(runner, "multiInstanceAndSingleTenancy")
-        .mockReturnValueOnce();
-      eventQueue.getConfigInstance().__vcapServices = {
-        "redis-cache": [{ credentials: { hostname: "123" } }],
-      };
-      eventQueue.getConfigInstance().isOnCF = true;
-      await eventQueue.initialize({
-        configFilePath,
-        registerDbHandler: false,
-        mode: eventQueue.RunningModes.multiInstance,
-      });
-      expect(multiInstanceAndSingleTenancySpy).toHaveBeenCalledTimes(1);
-    });
-
-    test("single instance, multi tenant", async () => {
+    test("multi tenancy with db", async () => {
       cds.requires.multitenancy = {};
-      const singleInstanceAndMultiTenancySpy = jest
-        .spyOn(runner, "singleInstanceAndMultiTenancy")
+      const multiTenancyDbSpy = jest
+        .spyOn(runner, "multiTenancyDb")
         .mockReturnValueOnce();
       await eventQueue.initialize({ configFilePath, registerDbHandler: false });
-      expect(singleInstanceAndMultiTenancySpy).toHaveBeenCalledTimes(1);
+      expect(multiTenancyDbSpy).toHaveBeenCalledTimes(1);
       cds.requires.multitenancy = null;
     });
 
     test("calling initialize twice should only processed once", async () => {
-      const singleInstanceAndTenant = jest
-        .spyOn(runner, "singleInstanceAndTenant")
+      const singleTenant = jest
+        .spyOn(runner, "singleTenant")
         .mockReturnValueOnce();
       const p1 = eventQueue.initialize({
         configFilePath,
@@ -78,49 +62,39 @@ describe("initialize", () => {
         registerDbHandler: false,
       });
       await Promise.allSettled([p1, p2]);
-      expect(singleInstanceAndTenant).toHaveBeenCalledTimes(1);
+      expect(singleTenant).toHaveBeenCalledTimes(1);
     });
 
-    test("multi Instance, multi tenant", async () => {
+    test("multi tenancy with redis", async () => {
       cds.requires.multitenancy = {};
-      const multiInstanceAndTenancySpy = jest
-        .spyOn(runner, "multiInstanceAndTenancy")
+      eventQueue.getConfigInstance().__vcapServices = {
+        "redis-cache": [{ credentials: { hostname: "123" } }],
+      };
+      eventQueue.getConfigInstance().isOnCF = true;
+      const multiTenancyRedisSpy = jest
+        .spyOn(runner, "multiTenancyRedis")
         .mockReturnValueOnce();
       await eventQueue.initialize({
         configFilePath,
         registerDbHandler: false,
-        mode: eventQueue.RunningModes.multiInstance,
       });
-      expect(multiInstanceAndTenancySpy).toHaveBeenCalledTimes(1);
+      expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(1);
       cds.requires.multitenancy = null;
+      eventQueue.getConfigInstance().isOnCF = false;
     });
 
     test("mode none should not register any runner", async () => {
-      const multiInstanceAndTenancySpy = jest.spyOn(
-        runner,
-        "multiInstanceAndTenancy"
-      );
-      const singleInstanceAndTenantSpy = jest.spyOn(
-        runner,
-        "singleInstanceAndTenant"
-      );
-      const singleInstanceAndMultiTenancySpy = jest.spyOn(
-        runner,
-        "singleInstanceAndMultiTenancy"
-      );
-      const multiInstanceAndSingleTenancySpy = jest.spyOn(
-        runner,
-        "multiInstanceAndSingleTenancy"
-      );
+      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis");
+      const singleTenantSpy = jest.spyOn(runner, "singleTenant");
+      const multiTenancyDbSpy = jest.spyOn(runner, "multiTenancyDb");
       await eventQueue.initialize({
         configFilePath,
         registerDbHandler: false,
-        mode: eventQueue.RunningModes.none,
+        registerAsEventProcessing: false,
       });
-      expect(multiInstanceAndTenancySpy).toHaveBeenCalledTimes(0);
-      expect(singleInstanceAndTenantSpy).toHaveBeenCalledTimes(0);
-      expect(singleInstanceAndMultiTenancySpy).toHaveBeenCalledTimes(0);
-      expect(multiInstanceAndSingleTenancySpy).toHaveBeenCalledTimes(0);
+      expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(0);
+      expect(singleTenantSpy).toHaveBeenCalledTimes(0);
+      expect(multiTenancyDbSpy).toHaveBeenCalledTimes(0);
     });
   });
 });
