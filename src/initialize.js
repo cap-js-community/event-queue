@@ -32,6 +32,7 @@ const initialize = async ({
   parallelTenantProcessing = 5,
   tableNameEventQueue = BASE_TABLES.EVENT,
   tableNameEventLock = BASE_TABLES.LOCK,
+  skipCsnCheck = false,
 } = {}) => {
   // TODO: initialize check:
   // - content of yaml check
@@ -66,7 +67,7 @@ const initialize = async ({
   configInstance.tableNameEventLock = tableNameEventLock;
 
   const dbService = await cds.connect.to("db");
-  await csnCheck(dbService);
+  !skipCsnCheck && (await csnCheck(dbService));
   if (registerDbHandler) {
     dbHandler.registerEventQueueDbHandler(dbService);
   }
