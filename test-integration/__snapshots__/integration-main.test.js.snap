@@ -119,6 +119,24 @@ exports[`integration-main insert one entry and process 1`] = `
 }
 `;
 
+exports[`integration-main returning exceeded status should be allowed 1`] = `
+{
+  "BEGIN": 5,
+  "COMMIT": 3,
+  "READ": 4,
+  "ROLLBACK": 1,
+  "UPDATE": 3,
+}
+`;
+
+exports[`integration-main returning exceeded status should be allowed 2`] = `
+{
+  "BEGIN": 1,
+  "COMMIT": 1,
+  "READ": 2,
+}
+`;
+
 exports[`integration-main two entries with no commit on event level 1`] = `
 {
   "BEGIN": 7,

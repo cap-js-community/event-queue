@@ -55,10 +55,18 @@ const selectEventQueueAndExpectOpen = async (tx, expectedLength = 1) =>
 const selectEventQueueAndExpectError = async (tx, expectedLength = 1) =>
   _selectEventQueueAndExpect(tx, EventProcessingStatus.Error, expectedLength);
 
+const selectEventQueueAndExpectExceeded = async (tx, expectedLength = 1) =>
+  _selectEventQueueAndExpect(
+    tx,
+    EventProcessingStatus.Exceeded,
+    expectedLength
+  );
+
 module.exports = {
   selectEventQueueAndExpectDone,
   selectEventQueueAndExpectOpen,
   selectEventQueueAndExpectError,
+  selectEventQueueAndExpectExceeded,
   insertEventEntry,
   getEventEntry,
 };

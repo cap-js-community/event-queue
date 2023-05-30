@@ -93,7 +93,7 @@ describe("initialize", () => {
       await eventQueue.initialize({
         configFilePath,
         registerDbHandler: false,
-        registerAsEventProcessing: false,
+        registerAsEventProcessor: false,
       });
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(0);
       expect(singleTenantSpy).toHaveBeenCalledTimes(0);

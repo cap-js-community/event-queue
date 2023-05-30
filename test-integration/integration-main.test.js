@@ -31,7 +31,7 @@ describe("integration-main", () => {
     await eventQueue.initialize({
       configFilePath,
       registerDbHandler: false,
-      registerAsEventProcessing: false,
+      registerAsEventProcessor: false,
     });
     loggerMock = mockLogger();
     jest.spyOn(cds, "log").mockImplementation((layer) => {
@@ -178,6 +178,33 @@ describe("integration-main", () => {
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectDone(tx, 2);
     expect(dbCounts).toMatchSnapshot();
+  });
+
+  it("returning exceeded status should be allowed", async () => {
+    await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
+    const processSpy = jest
+      .spyOn(EventQueueTest.prototype, "processEvent")
+      .mockImplementationOnce((processContext, key, queueEntries) => {
+        return queueEntries.map((queueEntry) => [
+          queueEntry.ID,
+          EventProcessingStatus.Exceeded,
+        ]);
+      });
+    dbCounts = {};
+    const event = eventQueue.getConfigInstance().events[0];
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectExceeded(tx, 1);
+    expect(dbCounts).toMatchSnapshot();
+    dbCounts = {};
+    expect(processSpy).toHaveBeenCalledTimes(1);
+
+    // Event should not be processed anymore
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectExceeded(tx, 1);
+    expect(dbCounts).toMatchSnapshot();
+    expect(processSpy).toHaveBeenCalledTimes(1);
   });
 
   describe("end-to-end", () => {

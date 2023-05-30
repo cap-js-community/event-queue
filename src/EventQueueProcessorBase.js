@@ -269,8 +269,12 @@ class EventQueueProcessorBase {
       statusMap[id] = processingStatus;
       return;
     }
-    if (statusMap[id] === EventProcessingStatus.Error) {
-      // NOTE: worst aggregation --> if already error keep this state
+    if (
+      [EventProcessingStatus.Error, EventProcessingStatus.Exceeded].includes(
+        statusMap[id]
+      )
+    ) {
+      // NOTE: worst aggregation --> if already error|exceeded keep this state
       return;
     }
     if (statusMap[id] >= 0) {
@@ -281,7 +285,7 @@ class EventQueueProcessorBase {
   handleErrorDuringProcessing(error, queueEntries) {
     queueEntries = Array.isArray(queueEntries) ? queueEntries : [queueEntries];
     this.logger.error(
-      `Unexpected error during event processing - setting queue entry to error. Error: ${error}`,
+      `Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: ${error}`,
       {
         eventType: this.__eventType,
         eventSubType: this.__eventSubType,
@@ -321,7 +325,7 @@ class EventQueueProcessorBase {
     }
     this._ensureEveryStatusIsAllowed(statusMap);
 
-    const { success, failed, invalidAttempts } = Object.entries(
+    const { success, failed, exceeded, invalidAttempts } = Object.entries(
       statusMap
     ).reduce(
       (result, [notificationEntityId, processingStatus]) => {
@@ -332,12 +336,15 @@ class EventQueueProcessorBase {
           result.success.push(notificationEntityId);
         } else if (processingStatus === EventProcessingStatus.Error) {
           result.failed.push(notificationEntityId);
+        } else if (processingStatus === EventProcessingStatus.Exceeded) {
+          result.exceeded.push(notificationEntityId);
         }
         return result;
       },
       {
         success: [],
         failed: [],
+        exceeded: [],
         invalidAttempts: [],
       }
     );
@@ -346,6 +353,7 @@ class EventQueueProcessorBase {
       eventSubType: this.__eventSubType,
       invalidAttempts,
       failed,
+      exceeded,
       success,
     });
     if (invalidAttempts.length) {
@@ -375,6 +383,16 @@ class EventQueueProcessorBase {
           .where("ID IN", failed)
           .with({
             status: EventProcessingStatus.Error,
+            lastAttemptTimestamp: new Date().toISOString(),
+          })
+      );
+    }
+    if (exceeded.length) {
+      await tx.run(
+        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
+          .where("ID IN", exceeded)
+          .with({
+            status: EventProcessingStatus.Exceeded,
             lastAttemptTimestamp: new Date().toISOString(),
           })
       );
@@ -415,6 +433,7 @@ class EventQueueProcessorBase {
           EventProcessingStatus.Open,
           EventProcessingStatus.Done,
           EventProcessingStatus.Error,
+          EventProcessingStatus.Exceeded,
         ].includes(status)
       ) {
         return;
@@ -426,6 +445,7 @@ class EventQueueProcessorBase {
           eventType: this.__eventType,
           eventSubType: this.__eventSubType,
           queueEntryId,
+          status: statusMap[queueEntryId],
         }
       );
       delete statusMap[queueEntryId];
@@ -492,7 +512,7 @@ class EventQueueProcessorBase {
       eventSubType
     );
     baseInstance.logger.error(
-      "No Implementation found for queue type in 'eventTypeRegister.js'",
+      "No Implementation found in the provided configuration file.",
       {
         eventType,
         eventSubType,

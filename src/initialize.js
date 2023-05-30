@@ -26,7 +26,7 @@ const BASE_TABLES = {
 
 const initialize = async ({
   configFilePath,
-  registerAsEventProcessing = true,
+  registerAsEventProcessor = true,
   registerDbHandler = true,
   betweenRuns = 5 * 60 * 1000,
   parallelTenantProcessing = 5,
@@ -44,8 +44,8 @@ const initialize = async ({
   configInstance.initialized = true;
 
   configFilePath = cds.env.eventQueue?.configFilePath ?? configFilePath;
-  registerAsEventProcessing =
-    cds.env.eventQueue?.registerAsEventProcessing ?? registerAsEventProcessing;
+  registerAsEventProcessor =
+    cds.env.eventQueue?.registerAsEventProcessor ?? registerAsEventProcessor;
   registerDbHandler =
     cds.env.eventQueue?.registerDbHandler ?? registerDbHandler;
   betweenRuns = cds.env.eventQueue?.betweenRuns ?? betweenRuns;
@@ -71,9 +71,9 @@ const initialize = async ({
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
-  registerEventProcessors(registerAsEventProcessing);
+  registerEventProcessors(registerAsEventProcessor);
   logger.info("event queue initialized", {
-    registerAsEventProcessing,
+    registerAsEventProcessor,
     multiTenancyEnabled: configInstance.isMultiTenancy,
     redisEnabled: configInstance.redisEnabled,
     betweenRuns,
@@ -98,10 +98,10 @@ const readConfigFromFile = async (configFilepath) => {
   );
 };
 
-const registerEventProcessors = (registerAsEventProcessing) => {
+const registerEventProcessors = (registerAsEventProcessor) => {
   const configInstance = getConfigInstance();
 
-  if (!registerAsEventProcessing) {
+  if (!registerAsEventProcessor) {
     return;
   }
 

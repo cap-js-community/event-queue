@@ -46,7 +46,7 @@ describe("redisRunner", () => {
     await eventQueue.initialize({
       configFilePath,
       registerDbHandler: false,
-      registerAsEventProcessing: false,
+      registerAsEventProcessor: false,
     });
     configInstance = eventQueue.getConfigInstance();
     configInstance.redisEnabled = true;
