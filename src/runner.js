@@ -30,9 +30,19 @@ const _scheduleFunction = (fn) => {
     return;
   }
 
+  const fnWithRunningCheck = () => {
+    if (configInstance.isRunnerDeactivated) {
+      cds
+        .log(COMPONENT_NAME)
+        .info("runner is deactivated via config variable. Skipping this run.");
+      return;
+    }
+    return fn();
+  };
+
   setTimeout(() => {
-    fn();
-    setInterval(fn, configInstance.betweenRuns);
+    fnWithRunningCheck();
+    setInterval(fnWithRunningCheck, configInstance.betweenRuns);
   }, OFFSET_FIRST_RUN);
 };
 

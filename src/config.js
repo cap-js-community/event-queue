@@ -22,6 +22,7 @@ class Config {
     this.__tableNameEventQueue = null;
     this.__tableNameEventLock = null;
     this.__vcapServices = this._parseVcapServices();
+    this.__isRunnerDeactivated = false;
   }
 
   getEventConfig(type, subType) {
@@ -58,6 +59,14 @@ class Config {
 
   calculateIsRedisEnabled() {
     this.__redisEnabled = this._checkRedisIsBound() && this.__isOnCF;
+  }
+
+  get isRunnerDeactivated() {
+    return this.__isRunnerDeactivated;
+  }
+
+  set isRunnerDeactivated(value) {
+    this.__isRunnerDeactivated = value;
   }
 
   set fileContent(config) {
