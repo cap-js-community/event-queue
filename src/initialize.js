@@ -58,6 +58,11 @@ const initialize = async ({
 
   cds.context = new cds.EventContext();
   const logger = cds.log(COMPONENT);
+  const csnLoadedPromise = cds.model
+    ? Promise.resolve()
+    : new Promise((resolve) => {
+        cds.on("loaded", resolve);
+      });
   configInstance.fileContent = await readConfigFromFile(configFilePath);
   configInstance.betweenRuns = betweenRuns;
   configInstance.calculateIsRedisEnabled();
@@ -65,7 +70,11 @@ const initialize = async ({
   configInstance.tableNameEventQueue = tableNameEventQueue;
   configInstance.tableNameEventLock = tableNameEventLock;
 
-  const dbService = await cds.connect.to("db");
+  const dbServiceConnectedPromise = cds.connect.to("db");
+  const [dbService] = await Promise.all([
+    dbServiceConnectedPromise,
+    csnLoadedPromise,
+  ]);
   await csnCheck();
   if (registerDbHandler) {
     dbHandler.registerEventQueueDbHandler(dbService);
