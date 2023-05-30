@@ -9,6 +9,9 @@ const eventQueue = require("../src");
 const runner = require("../src/runner");
 const cds = require("@sap/cds");
 
+const project = __dirname + "/.."; // The project's root folder
+cds.test(project);
+
 describe("initialize", () => {
   beforeEach(() => {
     const configInstance = eventQueue.getConfigInstance();

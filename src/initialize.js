@@ -1,22 +1,28 @@
 "use strict";
 
-const cds = require("@sap/cds");
-
 const { promisify } = require("util");
 const fs = require("fs");
+const path = require("path");
+
+const cds = require("@sap/cds");
 
 const yaml = require("yaml");
 const VError = require("verror");
 
-const { getConfigInstance } = require("./config");
+const EventQueueError = require("./EventQueueError");
 const runner = require("./runner");
 const dbHandler = require("./dbHandler");
+const { getConfigInstance } = require("./config");
 const { initEventQueueRedisSubscribe } = require("./redisPubSub");
 
 const readFileAsync = promisify(fs.readFile);
 
 const VERROR_CLUSTER_NAME = "EventQueueInitialization";
 const COMPONENT = "eventQueue/initialize";
+const BASE_TABLES = {
+  EVENT: "sap.eventqueue.Event",
+  LOCK: "sap.eventqueue.Lock",
+};
 
 const initialize = async ({
   configFilePath,
@@ -24,11 +30,10 @@ const initialize = async ({
   registerDbHandler = true,
   betweenRuns = 5 * 60 * 1000,
   parallelTenantProcessing = 5,
-  tableNameEventQueue = "sap.eventqueue.Event",
-  tableNameEventLock = "sap.eventqueue.Lock",
+  tableNameEventQueue = BASE_TABLES.EVENT,
+  tableNameEventLock = BASE_TABLES.LOCK,
 } = {}) => {
   // TODO: initialize check:
-  // - csn check
   // - content of yaml check
   // - betweenRuns and parallelTenantProcessing
 
@@ -38,7 +43,6 @@ const initialize = async ({
   }
   configInstance.initialized = true;
 
-  // Mix in cds.env.eventQueue
   configFilePath = cds.env.eventQueue?.configFilePath ?? configFilePath;
   registerAsEventProcessing =
     cds.env.eventQueue?.registerAsEventProcessing ?? registerAsEventProcessing;
@@ -60,8 +64,10 @@ const initialize = async ({
   configInstance.parallelTenantProcessing = parallelTenantProcessing;
   configInstance.tableNameEventQueue = tableNameEventQueue;
   configInstance.tableNameEventLock = tableNameEventLock;
+
+  const dbService = await cds.connect.to("db");
+  await csnCheck();
   if (registerDbHandler) {
-    const dbService = await cds.connect.to("db");
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
@@ -109,6 +115,47 @@ const registerEventProcessors = (registerAsEventProcessing) => {
     runner.multiTenancyRedis();
   } else {
     runner.multiTenancyDb();
+  }
+};
+
+const csnCheck = async () => {
+  const configInstance = getConfigInstance();
+  const eventCsn = cds.model.definitions[configInstance.tableNameEventQueue];
+  if (!eventCsn) {
+    throw EventQueueError.missingTableInCsn(configInstance.tableNameEventQueue);
+  }
+
+  const lockCsn = cds.model.definitions[configInstance.tableNameEventLock];
+  if (!lockCsn) {
+    throw EventQueueError.missingTableInCsn(configInstance.tableNameEventLock);
+  }
+
+  if (
+    configInstance.tableNameEventQueue === BASE_TABLES.EVENT &&
+    configInstance.tableNameEventLock === BASE_TABLES.LOCK
+  ) {
+    return; // no need to check base tables
+  }
+
+  const csn = await cds.load(path.join(process.cwd(), "db"));
+  const baseEvent = csn.definitions["sap.eventqueue.Event"];
+  const baseLock = csn.definitions["sap.eventqueue.Lock"];
+
+  checkCustomTable(baseEvent, eventCsn);
+  checkCustomTable(baseLock, lockCsn);
+};
+
+const checkCustomTable = (baseCsn, customCsn) => {
+  for (const columnName in baseCsn.elements) {
+    if (!customCsn.elements[columnName]) {
+      throw EventQueueError.missingElementInTable(customCsn.name, columnName);
+    }
+
+    if (
+      customCsn.elements[columnName].type !== baseCsn.elements[columnName].type
+    ) {
+      throw EventQueueError.typeMismatchInTable(customCsn.name, columnName);
+    }
   }
 };
 

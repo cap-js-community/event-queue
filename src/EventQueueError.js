@@ -8,6 +8,9 @@ const ERROR_CODES = {
   NOT_INITIALIZED: "NOT_INITIALIZED",
   REDIS_CREATE_CLIENT: "REDIS_CREATE_CLIENT",
   REDIS_LOCAL_NO_RECONNECT: "REDIS_LOCAL_NO_RECONNECT",
+  MISSING_TABLE_DEFINITION: "MISSING_TABLE_DEFINITION",
+  MISSING_ELEMENT_IN_TABLE: "MISSING_ELEMENT_IN_TABLE",
+  TYPE_MISMATCH_TABLE: "TYPE_MISMATCH_TABLE",
 };
 
 const ERROR_CODES_META = {
@@ -28,6 +31,18 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.REDIS_LOCAL_NO_RECONNECT]: {
     message: "disabled reconnect, because we are not running on cloud foundry",
+  },
+  [ERROR_CODES.MISSING_TABLE_DEFINITION]: {
+    message:
+      "Could not find table in csn. Make sure the provided table name is correct and the table is known by CDS.",
+  },
+  [ERROR_CODES.MISSING_ELEMENT_IN_TABLE]: {
+    message:
+      "The provided table doesn't match the required structure. At least the following element is missing.",
+  },
+  [ERROR_CODES.TYPE_MISMATCH_TABLE]: {
+    message:
+      "At least one field in the provided table doesn't have the expected data type.",
   },
 };
 
@@ -84,6 +99,39 @@ class EventQueueError extends VError {
     return new EventQueueError(
       {
         name: ERROR_CODES.REDIS_LOCAL_NO_RECONNECT,
+      },
+      message
+    );
+  }
+
+  static missingTableInCsn(tableName) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.MISSING_TABLE_DEFINITION];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.MISSING_TABLE_DEFINITION,
+        info: { tableName },
+      },
+      message
+    );
+  }
+
+  static missingElementInTable(tableName, elementName) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.MISSING_ELEMENT_IN_TABLE];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.MISSING_ELEMENT_IN_TABLE,
+        info: { tableName, elementName },
+      },
+      message
+    );
+  }
+
+  static typeMismatchInTable(tableName, elementName) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.TYPE_MISMATCH_TABLE];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.TYPE_MISMATCH_TABLE,
+        info: { tableName, elementName },
       },
       message
     );
