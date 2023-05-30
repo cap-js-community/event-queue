@@ -12,19 +12,48 @@ the Event-Queue framework simplifies event processing, enhancing the overall per
 - Initialize the event queue for example in the CAP server.js
 - Enhance or create `./srv/server.js`:
 
+### By Code
 ```js
 const cds = require("@sap/cds");
 const eventQueue = require("@sap/cds-event-queue");
 
 cds.on("bootstrap", () => {
-  eventQueue.initialize({
-    configFilePath: "./srv/eventConfig.yml",
-    registerDbHandler: true,
-    mode: eventQueue.RunningModes.multiInstance,
-  });
+    eventQueue.initialize({
+        configFilePath: "./srv/eventConfig.yml",
+    });
 });
 
 module.exports = cds.server;
+```
+
+### As cds-plugin
+
+Extend the cds section of your package.json. Reference to the cds-plugin section in the capire documentation about the
+cds-plugin concept.
+https://cap.cloud.sap/docs/releases/march23#new-cds-plugin-technique
+
+```json
+{
+  "cds": {
+    "eventQueue": {
+      "plugin": true,
+      "configFilePath": "./srv/eventQueueConfig.yml"
+    }
+  }
+}
+```
+
+### Configure your events
+
+Events are configured in a configuration yml file. In this file all relevant information about how events should be
+processed
+can be maintained.
+
+```yaml
+events:
+  - type: Notifications
+    subType: Email
+    impl: ./test/asset/EventQueueTest
 ```
 
 ## Features
@@ -34,6 +63,18 @@ module.exports = cds.server;
 - async processing of processing intensive tasks for better UI responsiveness
 - push/pull mechanism for reducing delay between publish an event and processing
 - cluster published events during processing (e.g. for combining multiple E-Mail events to one E-Mail)
+
+## Event Configurations
+
+| Property                  | Description                                                                                                                                                                                                                                                                         |
+|---------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| retryAttempts             | For infinite retries, maintain -1 as 'config.retryAttempts'. Default retry attempts is 3.                                                                                                                                                                                         |
+| runOnEventQueueTickHandler | If true, the events will automatically process on the eventQueue tick handler. Load the load passed to the funnel - value needs to be between 1 - 100. This property is only allowed if runOnEventQueueTickHandler is true.                                                        |
+| parallelEventProcessing   | How many events of the same type and subType are parallel processed after clustering. Default value is 1 and limit is 10.                                                                                                                                                          |
+| eventOutdatedCheck         | Checks if the db record for the event has been modified since the selection and right before the processing of the event. Default is true.                                                                                                                                       |
+| commitOnEventLevel         | After processing an event, the associated transaction is committed and the associated status is committed with the same transaction. This should be used if events should be processed atomically. Default is false.                                                            |
+| selectMaxChunkSize         | Number of events which are selected at once. Default is 100. If it should be checked if there are more open events available, set the parameter checkForNextChunk to true.                                                                                                       |
+| checkForNextChunk          | Determines if after processing a chunk (the size depends on the value of selectMaxChunkSize), a next chunk is being processed if there are more open events and the processing time has not already exceeded 5 minutes. Default is false.                                          |
 
 ## Examples
 
