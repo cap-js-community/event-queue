@@ -140,7 +140,7 @@ const csnCheck = async (dbService) => {
     return; // no need to check base tables
   }
 
-  const csn = await cds.load(path.join(process.cwd(), "db"));
+  const csn = await cds.load(path.join(__dirname, "..", "db"));
   const baseEvent = csn.definitions["sap.eventqueue.Event"];
   const baseLock = csn.definitions["sap.eventqueue.Lock"];
 
@@ -155,7 +155,11 @@ const checkCustomTable = (baseCsn, customCsn) => {
     }
 
     if (
-      customCsn.elements[columnName].type !== baseCsn.elements[columnName].type
+      customCsn.elements[columnName].type !== "cds.Association" &&
+      customCsn.elements[columnName].type !==
+        baseCsn.elements[columnName].type &&
+      columnName === "status" &&
+      customCsn.elements[columnName].type !== "cds.Integer"
     ) {
       throw EventQueueError.typeMismatchInTable(customCsn.name, columnName);
     }
