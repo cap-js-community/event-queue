@@ -58,11 +58,6 @@ const initialize = async ({
 
   cds.context = new cds.EventContext();
   const logger = cds.log(COMPONENT);
-  const csnLoadedPromise = cds.model
-    ? Promise.resolve()
-    : new Promise((resolve) => {
-        cds.on("loaded", resolve);
-      });
   configInstance.fileContent = await readConfigFromFile(configFilePath);
   configInstance.betweenRuns = betweenRuns;
   configInstance.calculateIsRedisEnabled();
@@ -70,12 +65,8 @@ const initialize = async ({
   configInstance.tableNameEventQueue = tableNameEventQueue;
   configInstance.tableNameEventLock = tableNameEventLock;
 
-  const dbServiceConnectedPromise = cds.connect.to("db");
-  const [dbService] = await Promise.all([
-    dbServiceConnectedPromise,
-    csnLoadedPromise,
-  ]);
-  await csnCheck();
+  const dbService = await cds.connect.to("db");
+  await csnCheck(dbService);
   if (registerDbHandler) {
     dbHandler.registerEventQueueDbHandler(dbService);
   }
@@ -127,14 +118,16 @@ const registerEventProcessors = (registerAsEventProcessor) => {
   }
 };
 
-const csnCheck = async () => {
+const csnCheck = async (dbService) => {
   const configInstance = getConfigInstance();
-  const eventCsn = cds.model.definitions[configInstance.tableNameEventQueue];
+  const eventCsn =
+    dbService.model.definitions[configInstance.tableNameEventQueue];
   if (!eventCsn) {
     throw EventQueueError.missingTableInCsn(configInstance.tableNameEventQueue);
   }
 
-  const lockCsn = cds.model.definitions[configInstance.tableNameEventLock];
+  const lockCsn =
+    dbService.model.definitions[configInstance.tableNameEventLock];
   if (!lockCsn) {
     throw EventQueueError.missingTableInCsn(configInstance.tableNameEventLock);
   }
