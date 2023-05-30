@@ -3,7 +3,7 @@
 exports[`baseFunctionality error handling handle checkEventAndGeneratePayload fails 1`] = `
 [
   [
-    "Unexpected error during event processing - setting queue entry to error. Error: Error: syntax error",
+    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: syntax error",
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
@@ -52,7 +52,7 @@ exports[`baseFunctionality error handling handle handleDistributedLock fails 1`]
 exports[`baseFunctionality error handling handle modifyQueueEntry fails 1`] = `
 [
   [
-    "Unexpected error during event processing - setting queue entry to error. Error: Error: syntax error",
+    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: syntax error",
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
@@ -67,7 +67,7 @@ exports[`baseFunctionality error handling handle modifyQueueEntry fails 1`] = `
 exports[`baseFunctionality error handling missing event implementation 1`] = `
 [
   [
-    "No Implementation found for queue type in 'eventTypeRegister.js'",
+    "No Implementation found in the provided configuration file.",
     {
       "eventSubType": "NOT FOUND",
       "eventType": "404",

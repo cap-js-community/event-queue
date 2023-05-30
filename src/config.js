@@ -23,6 +23,7 @@ class Config {
     this.__tableNameEventLock = null;
     this.__vcapServices = this._parseVcapServices();
     this.__isRunnerDeactivated = false;
+    this.__eventsForAutomaticRun = null;
   }
 
   getEventConfig(type, subType) {
@@ -30,9 +31,12 @@ class Config {
   }
 
   getEventsForAutomaticRuns() {
-    return this.__config.events.filter(
-      (event) => event.runAutomatically !== false
-    );
+    if (!this.__eventsForAutomaticRun) {
+      this.__eventsForAutomaticRun = this.__config.events.filter(
+        (event) => event.runAutomatically !== false
+      );
+    }
+    return this.__eventsForAutomaticRun;
   }
 
   hasEventAfterCommitFlag(type, subType) {

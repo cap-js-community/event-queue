@@ -22,7 +22,7 @@ exports[`integration-main end-to-end insert entry, entry should be automatically
 exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 1`] = `
 [
   [
-    "Unexpected error during event processing - setting queue entry to error. Error: Error: error during processing",
+    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: error during processing",
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
@@ -68,7 +68,7 @@ exports[`integration-main if cluster methods throws an error --> entry should no
 exports[`integration-main if modifyQueueEntry methods throws an error --> entry should not be processed + status should be error 1`] = `
 [
   [
-    "Unexpected error during event processing - setting queue entry to error. Error: Error: error during processing",
+    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: error during processing",
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
