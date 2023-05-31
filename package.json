@@ -1,6 +1,6 @@
 {
   "name": "@sap/cds-event-queue",
-  "version": "0.1.32",
+  "version": "0.1.33",
   "description": "event queue for cds",
   "main": "src/index.js",
   "files": [

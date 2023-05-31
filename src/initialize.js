@@ -57,7 +57,6 @@ const initialize = async ({
   tableNameEventLock =
     cds.env.eventQueue?.tableNameEventLock ?? tableNameEventLock;
 
-  cds.context = new cds.EventContext();
   const logger = cds.log(COMPONENT);
   configInstance.fileContent = await readConfigFromFile(configFilePath);
   configInstance.betweenRuns = betweenRuns;
