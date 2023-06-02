@@ -13,6 +13,7 @@ const testHelper = require("../test/helper");
 const EventQueueTest = require("../test/asset/EventQueueTest");
 const { EventProcessingStatus } = require("../src");
 const { Logger: mockLogger } = require("../test/mocks/logger");
+const distributedLock = require("../src/shared/distributedLock");
 
 let dbCounts = {};
 describe("integration-main", () => {
@@ -205,6 +206,23 @@ describe("integration-main", () => {
     await testHelper.selectEventQueueAndExpectExceeded(tx, 1);
     expect(dbCounts).toMatchSnapshot();
     expect(processSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("should do nothing if lock for event combination cannot be acquired", async () => {
+    const event = eventQueue.getConfigInstance().events[0];
+    await cds.tx({}, async (tx2) => {
+      await testHelper.insertEventEntry(tx2);
+      await distributedLock.acquireLock(
+        tx2.context,
+        [event.type, event.subType].join("##")
+      );
+    });
+    dbCounts = {};
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+    expect(dbCounts).toMatchSnapshot();
+    dbCounts = {};
   });
 
   describe("end-to-end", () => {

@@ -39,7 +39,7 @@ class EventQueueProcessorBase {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
     // NOTE: keep the feature, this might be needed again
-    this.__concurrentEventProcessing = true;
+    this.__concurrentEventProcessing = false;
     this.__startTime = this.__config.startTime ?? new Date();
     this.__retryAttempts =
       this.__config.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;

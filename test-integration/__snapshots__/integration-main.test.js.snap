@@ -2,17 +2,20 @@
 
 exports[`integration-main empty queue - nothing to do 1`] = `
 {
-  "BEGIN": 1,
-  "COMMIT": 1,
+  "BEGIN": 3,
+  "COMMIT": 3,
+  "CREATE": 1,
+  "DELETE": 1,
   "READ": 1,
 }
 `;
 
 exports[`integration-main end-to-end insert entry, entry should be automatically processed 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
-  "CREATE": 1,
+  "BEGIN": 9,
+  "COMMIT": 7,
+  "CREATE": 2,
+  "DELETE": 1,
   "READ": 5,
   "ROLLBACK": 1,
   "UPDATE": 3,
@@ -36,8 +39,10 @@ exports[`integration-main if checkEventAndGeneratePayload methods throws an erro
 
 exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 2`] = `
 {
-  "BEGIN": 3,
-  "COMMIT": 2,
+  "BEGIN": 5,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 1,
   "READ": 2,
   "UPDATE": 2,
 }
@@ -57,8 +62,10 @@ exports[`integration-main if cluster methods throws an error --> entry should no
 
 exports[`integration-main if cluster methods throws an error --> entry should not be processed + status should be error 2`] = `
 {
-  "BEGIN": 4,
-  "COMMIT": 2,
+  "BEGIN": 6,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 1,
   "READ": 3,
   "ROLLBACK": 1,
   "UPDATE": 2,
@@ -82,8 +89,10 @@ exports[`integration-main if modifyQueueEntry methods throws an error --> entry 
 
 exports[`integration-main if modifyQueueEntry methods throws an error --> entry should not be processed + status should be error 2`] = `
 {
-  "BEGIN": 3,
-  "COMMIT": 2,
+  "BEGIN": 5,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 1,
   "READ": 2,
   "UPDATE": 2,
 }
@@ -91,8 +100,10 @@ exports[`integration-main if modifyQueueEntry methods throws an error --> entry 
 
 exports[`integration-main if process event returns an error --> tx should be rolled backed 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 3,
+  "BEGIN": 8,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
   "READ": 5,
   "ROLLBACK": 2,
   "UPDATE": 3,
@@ -101,8 +112,10 @@ exports[`integration-main if process event returns an error --> tx should be rol
 
 exports[`integration-main if process event throws an error --> tx should be rolled backed 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 3,
+  "BEGIN": 8,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
   "READ": 5,
   "ROLLBACK": 2,
   "UPDATE": 3,
@@ -111,8 +124,10 @@ exports[`integration-main if process event throws an error --> tx should be roll
 
 exports[`integration-main insert one entry and process 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 4,
+  "BEGIN": 8,
+  "COMMIT": 6,
+  "CREATE": 1,
+  "DELETE": 1,
   "READ": 5,
   "ROLLBACK": 1,
   "UPDATE": 3,
@@ -121,8 +136,10 @@ exports[`integration-main insert one entry and process 1`] = `
 
 exports[`integration-main returning exceeded status should be allowed 1`] = `
 {
-  "BEGIN": 5,
-  "COMMIT": 3,
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
   "READ": 4,
   "ROLLBACK": 1,
   "UPDATE": 3,
@@ -131,16 +148,29 @@ exports[`integration-main returning exceeded status should be allowed 1`] = `
 
 exports[`integration-main returning exceeded status should be allowed 2`] = `
 {
-  "BEGIN": 1,
+  "BEGIN": 3,
+  "COMMIT": 3,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 2,
+}
+`;
+
+exports[`integration-main should do nothing if lock for event combination cannot be acquired 1`] = `
+{
+  "BEGIN": 2,
   "COMMIT": 1,
+  "CREATE": 1,
   "READ": 2,
 }
 `;
 
 exports[`integration-main two entries with no commit on event level 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 9,
+  "COMMIT": 7,
+  "CREATE": 1,
+  "DELETE": 1,
   "READ": 8,
   "ROLLBACK": 1,
   "UPDATE": 4,
