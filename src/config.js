@@ -14,7 +14,7 @@ class Config {
     this.__config = null;
     this.__forUpdateTimeout = FOR_UPDATE_TIMEOUT;
     this.__globalTxTimeout = GLOBAL_TX_TIMEOUT;
-    this.__betweenRuns = null;
+    this.__runInterval = null;
     this.__redisEnabled = null;
     this.__isOnCF = env.isOnCF;
     this.__initialized = false;
@@ -105,12 +105,12 @@ class Config {
     this.__globalTxTimeout = value;
   }
 
-  get betweenRuns() {
-    return this.__betweenRuns;
+  get runInterval() {
+    return this.__runInterval;
   }
 
-  set betweenRuns(value) {
-    this.__betweenRuns = value;
+  set runInterval(value) {
+    this.__runInterval = value;
   }
 
   get redisEnabled() {

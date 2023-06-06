@@ -42,7 +42,7 @@ const _scheduleFunction = (fn) => {
 
   setTimeout(() => {
     fnWithRunningCheck();
-    setInterval(fnWithRunningCheck, configInstance.betweenRuns);
+    setInterval(fnWithRunningCheck, configInstance.runInterval);
   }, OFFSET_FIRST_RUN);
 };
 
@@ -89,7 +89,7 @@ const _executeAllTenants = (tenantIds, acquireLockKey) => {
         tenantContext,
         acquireLockKey,
         {
-          expiryTime: configInstance.betweenRuns * 0.9,
+          expiryTime: configInstance.runInterval * 0.9,
         }
       );
       if (!couldAcquireLock) {
@@ -138,7 +138,7 @@ const acquireRunId = async (context) => {
     runId,
     {
       tenantScoped: false,
-      expiryTime: configInstance.betweenRuns * 0.9,
+      expiryTime: configInstance.runInterval * 0.9,
     }
   );
 

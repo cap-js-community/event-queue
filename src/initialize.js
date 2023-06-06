@@ -28,7 +28,7 @@ const initialize = async ({
   configFilePath,
   registerAsEventProcessor = true,
   registerDbHandler = true,
-  betweenRuns = 5 * 60 * 1000,
+  runInterval = 5 * 60 * 1000,
   parallelTenantProcessing = 5,
   tableNameEventQueue = BASE_TABLES.EVENT,
   tableNameEventLock = BASE_TABLES.LOCK,
@@ -49,7 +49,7 @@ const initialize = async ({
     cds.env.eventQueue?.registerAsEventProcessor ?? registerAsEventProcessor;
   registerDbHandler =
     cds.env.eventQueue?.registerDbHandler ?? registerDbHandler;
-  betweenRuns = cds.env.eventQueue?.betweenRuns ?? betweenRuns;
+  runInterval = cds.env.eventQueue?.runInterval ?? runInterval;
   parallelTenantProcessing =
     cds.env.eventQueue?.parallelTenantProcessing ?? parallelTenantProcessing;
   tableNameEventQueue =
@@ -59,7 +59,7 @@ const initialize = async ({
 
   const logger = cds.log(COMPONENT);
   configInstance.fileContent = await readConfigFromFile(configFilePath);
-  configInstance.betweenRuns = betweenRuns;
+  configInstance.runInterval = runInterval;
   configInstance.calculateIsRedisEnabled();
   configInstance.parallelTenantProcessing = parallelTenantProcessing;
   configInstance.tableNameEventQueue = tableNameEventQueue;
@@ -76,7 +76,7 @@ const initialize = async ({
     registerAsEventProcessor,
     multiTenancyEnabled: configInstance.isMultiTenancy,
     redisEnabled: configInstance.redisEnabled,
-    betweenRuns,
+    runInterval,
     parallelTenantProcessing,
   });
 };
