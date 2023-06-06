@@ -4,6 +4,12 @@ const path = require("path");
 
 const cds = require("@sap/cds/lib");
 
+const cdsHelper = require("../src/shared/cdsHelper");
+const executeInNewTransactionSpy = jest.spyOn(
+  cdsHelper,
+  "executeInNewTransaction"
+);
+
 const eventQueue = require("../src");
 const testHelper = require("./helper");
 const EventQueueTest = require("./asset/EventQueueTest");
@@ -15,9 +21,25 @@ cds.test(project);
 describe("baseFunctionality", () => {
   let context, tx, loggerMock;
 
+  executeInNewTransactionSpy.mockImplementation(
+    async (context = {}, transactionTag, fn) => {
+      try {
+        return await fn(tx);
+      } catch (err) {
+        if (!(err instanceof cdsHelper.TriggerRollback)) {
+          throw err;
+        }
+      }
+    }
+  );
+
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
-    await eventQueue.initialize({ configFilePath, registerDbHandler: false });
+    await eventQueue.initialize({
+      configFilePath,
+      registerDbHandler: false,
+      registerAsEventProcessor: false,
+    });
     loggerMock = mockLogger();
     jest.spyOn(cds, "log").mockImplementation((layer) => {
       return mockLogger(layer);
