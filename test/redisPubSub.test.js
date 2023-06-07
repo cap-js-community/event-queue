@@ -38,7 +38,10 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
     const configInstance = eventQueue.getConfigInstance();
-    await eventQueue.initialize({ configFilePath, registerDbHandler: true });
+    await eventQueue.initialize({
+      configFilePath,
+      processEventsAfterPublish: true,
+    });
     configInstance.redisEnabled = true;
     eventQueue.registerEventQueueDbHandler(cds.db);
     loggerMock = mockLogger();

@@ -31,7 +31,7 @@ describe("integration-main", () => {
     );
     await eventQueue.initialize({
       configFilePath,
-      registerDbHandler: false,
+      processEventsAfterPublish: false,
       registerAsEventProcessor: false,
     });
     loggerMock = mockLogger();
@@ -235,7 +235,10 @@ describe("integration-main", () => {
         "asset",
         "config.yml"
       );
-      await eventQueue.initialize({ configFilePath, registerDbHandler: true });
+      await eventQueue.initialize({
+        configFilePath,
+        processEventsAfterPublish: true,
+      });
     });
 
     it("insert entry, entry should be automatically processed", async () => {

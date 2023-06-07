@@ -54,16 +54,40 @@ https://cap.cloud.sap/docs/releases/march23#new-cds-plugin-technique
 
 ## Initialize event queue configuration
 
-| Property                 | Description                                                                                                                                                                                           |
-|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| configFilePath           | Filepath as string for the event configuration file. Base path is the root directory of the project.                                                                                                  |
-| registerAsEventProcessor | Allows to enable/disable register event processor. The interval is based on the parameter `runInterval`.<br/> Based on this interval all events for all tenants will be processed. Default is `true`. |
-| runInterval              | The interval specifies how often events are processed for all tenants. If `registerDbHandler` is true                                                                                                                               |
-| registerDbHandler        |                                                                                                                                                                                                       |                                                                                                      |
-| tableNameEventQueue      |                                                                                                                                                                                                       |
-| tableNameEventLock       |                                                                                                                                                                                                       |
-| skipCsnCheck             |                                                                                                                                                                                                       |
-| parallelTenantProcessing |                                                                                                                                                                                                       |
+| Property                  | Description                                                                                                                                                                                                                                                                                                                                   |
+|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| configFilePath            | Filepath as a string for the event configuration file. The base path is the root directory of the project.                                                                                                                                                                                                                                    |
+| registerAsEventProcessor  | Allows enabling/disabling the registration of the app instance as an event processor. The interval is based on the `runInterval` parameter. Based on this interval, all events for all tenants will be processed. The default value is `true`.                                                                                                |
+| runInterval               | The interval specified in seconds, indicating how often events are processed for all tenants. If `processEventsAfterPublish` is true, in most situations, only erroneous events are processed during this run. All other events are automatically processed after they have been published (see the parameter `processEventsAfterPublish`).   |
+| processEventsAfterPublish | Allows enabling/disabling the automatic processing of events after they have been published. The behavior depends on whether a Redis service is bound to the app. With Redis, the processing will happen on any available app instance. If Redis is not bound, the processing will happen on the same instance where the event was published. |                                                                                                      |
+| tableNameEventQueue       | Allows 'Bring your own table'. This is the name of the event queue table. The required fields for this table can be found in the db-folder.                                                                                                                                                                                                   |
+| tableNameEventLock        | Allows 'Bring your own table'. This is the name of the event lock table. The required fields for this table can be found in the db-folder.                                                                                                                                                                                                    |
+| skipCsnCheck              | Specifies whether to skip the CSN check. This might be useful for testing purposes.                                                                                                                                                                                                                                                           |
+| parallelTenantProcessing  | Specifies the limit as an integer on how many tenants are processed on a given app-instance in parallel. The default is 5.                                                                                                                                                                                                                    |
+|
+
+## Persistence
+
+This library needs two tables two work as designed. The event tables contains the data and state about the events for
+processing.
+The second table is for keeping track of semantic locks. This table is used if no redis-instance is available.
+There are two options for getting the required tables into the project.
+
+- Use the tables provided by this library. For that add the following to `package.json` of the project:
+
+```json
+{
+  "cds": {
+    "requires": {
+      "cds-event-queue": {
+        "model": "@sap/cds-event-queue"
+      }
+    }
+  }
+}
+```
+
+-
 
 ## Configure your events
 
@@ -83,7 +107,7 @@ events:
 
 | Property                | Description                                                                                                                                                                                                                               |
 |-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| retryAttempts           | For infinite retries, maintain -1 as 'retryAttempts'. <br/>Default retry attempts is 3.                                                                                                                                                   |
+| retryAttempts           | For infinite retries, maintain -1 as 'retryAttempts'. Default retry attempts is 3.                                                                                                                                                        |
 | runAutomatically        | If true, the event will automatically process based on the run interval. Load the load passed to the funnel - value needs to be between 1 - 100. This property is only allowed if runOnEventQueueTickHandler is true.                     |
 | parallelEventProcessing | How many events of the same type and subType are parallel processed after clustering. Default value is 1 and limit is 10.                                                                                                                 |
 | eventOutdatedCheck      | Checks if the db record for the event has been modified since the selection and right before the processing of the event. Default is true.                                                                                                |

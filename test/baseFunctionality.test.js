@@ -37,7 +37,7 @@ describe("baseFunctionality", () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
     await eventQueue.initialize({
       configFilePath,
-      registerDbHandler: false,
+      processEventsAfterPublish: false,
       registerAsEventProcessor: false,
     });
     loggerMock = mockLogger();

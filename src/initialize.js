@@ -27,7 +27,7 @@ const BASE_TABLES = {
 const initialize = async ({
   configFilePath,
   registerAsEventProcessor = true,
-  registerDbHandler = true,
+  processEventsAfterPublish = true,
   runInterval = 5 * 60 * 1000,
   parallelTenantProcessing = 5,
   tableNameEventQueue = BASE_TABLES.EVENT,
@@ -47,8 +47,8 @@ const initialize = async ({
   configFilePath = cds.env.eventQueue?.configFilePath ?? configFilePath;
   registerAsEventProcessor =
     cds.env.eventQueue?.registerAsEventProcessor ?? registerAsEventProcessor;
-  registerDbHandler =
-    cds.env.eventQueue?.registerDbHandler ?? registerDbHandler;
+  processEventsAfterPublish =
+    cds.env.eventQueue?.processEventsAfterPublish ?? processEventsAfterPublish;
   runInterval = cds.env.eventQueue?.runInterval ?? runInterval;
   parallelTenantProcessing =
     cds.env.eventQueue?.parallelTenantProcessing ?? parallelTenantProcessing;
@@ -67,7 +67,7 @@ const initialize = async ({
 
   const dbService = await cds.connect.to("db");
   !skipCsnCheck && (await csnCheck(dbService));
-  if (registerDbHandler) {
+  if (processEventsAfterPublish) {
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
