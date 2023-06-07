@@ -57,7 +57,7 @@ const createClientAndConnect = async (errorHandlerCreateClient) => {
   try {
     await client.connect();
   } catch (err) {
-    throw EventQueueError.redisConnectionFailure(err);
+    errorHandlerCreateClient(err);
   }
   return client;
 };
