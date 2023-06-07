@@ -73,7 +73,9 @@ processing.
 The second table is for keeping track of semantic locks. This table is used if no redis-instance is available.
 There are two options for getting the required tables into the project.
 
-- Use the tables provided by this library. For that add the following to `package.json` of the project:
+### Use provided tables
+
+Use the tables provided by this library. For that add the following to `package.json` of the project:
 
 ```json
 {
@@ -87,7 +89,9 @@ There are two options for getting the required tables into the project.
 }
 ```
 
--
+### Bring your own persistence
+
+The table names can be specified during the initialization of the event-queue. It's important tha
 
 ## Configure your events
 
