@@ -26,7 +26,7 @@ const subscribeRedisClient = () => {
       .log(COMPONENT_NAME)
       .error("error from redis client for pub/sub failed", err);
     subscriberClientPromise = null;
-    setTimeout(subscribeRedisClient, 5 * 1000);
+    setTimeout(subscribeRedisClient, 5 * 1000).unref();
   };
   subscriberClientPromise = redis.createClientAndConnect(
     errorHandlerCreateClient

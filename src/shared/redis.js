@@ -19,7 +19,7 @@ const createMainClientAndConnect = () => {
       .log(COMPONENT_NAME)
       .error("error from redis client for pub/sub failed", err);
     subscriberClientPromise = null;
-    setTimeout(createMainClientAndConnect, 5 * 1000);
+    setTimeout(createMainClientAndConnect, 5 * 1000).unref();
   };
   subscriberClientPromise = createClientAndConnect(errorHandlerCreateClient);
   return subscriberClientPromise;

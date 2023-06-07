@@ -42,8 +42,8 @@ const _scheduleFunction = (fn) => {
 
   setTimeout(() => {
     fnWithRunningCheck();
-    setInterval(fnWithRunningCheck, configInstance.runInterval);
-  }, OFFSET_FIRST_RUN);
+    setInterval(fnWithRunningCheck, configInstance.runInterval).unref();
+  }, OFFSET_FIRST_RUN).unref();
 };
 
 const _multiTenancyRedis = async () => {
