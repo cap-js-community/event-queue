@@ -91,13 +91,31 @@ Use the tables provided by this library. For that add the following to `package.
 
 ### Bring your own persistence
 
-The table names can be specified during the initialization of the event-queue. It's important tha
+The table names can be specified during the initialization of the event queue. It's important that the provided tables
+have the same named fields and types as the default tables.
+
+Own tables can have additional fields but need to meet the minimal requirements. During initialization, the CDS CSN for
+the provided table names is checked to ensure they meet the requirements.
+If you want to skip this check, you can achieve it by using skipCsnCheck (refer to the "Initialize Event Queue
+Configuration" section).
+
+```json
+{
+  "cds": {
+    "eventQueue": {
+      "plugin": true,
+      "configFilePath": "./srv/eventQueueConfig.yml",
+      "tableNameEventQueue": "sap.custom.EventQueue",
+      "tableNameEventLock": "sap.custom.EventLock"
+    }
+  }
+}
+```
 
 ## Configure your events
 
 Events are configured in a configuration yml file. In this file all relevant information about how events should be
-processed
-can be maintained.
+processed can be maintained.
 
 ```yaml
 events:
