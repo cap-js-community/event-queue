@@ -30,43 +30,20 @@ async function executeInNewTransaction(
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
   try {
-    if (cds.db.kind === "hana") {
-      await cds.tx(
-        {
-          id: context.id,
-          tenant: context.tenant,
-          locale: context.locale,
-          user: context.user,
-          headers: context.headers,
-          http: context.http,
-        },
-        async (tx) => {
-          tx.context._ = context._ ?? {};
-          return await fn(tx, ...parameters);
-        }
-      );
-    } else {
-      const contextTx = cds.tx(context);
-      const contextTxState = contextTx.ready;
-      if (
-        !contextTxState ||
-        ["committed", "rolled back"].includes(contextTxState)
-      ) {
-        await cds.tx(
-          {
-            id: context.id,
-            tenant: context.tenant,
-            locale: context.locale,
-            user: context.user,
-            headers: context.headers,
-            http: context.http,
-          },
-          async (tx) => fn(tx, ...parameters)
-        );
-      } else {
-        await fn(contextTx, ...parameters);
+    await cds.tx(
+      {
+        id: context.id,
+        tenant: context.tenant,
+        locale: context.locale,
+        user: context.user,
+        headers: context.headers,
+        http: context.http,
+      },
+      async (tx) => {
+        tx.context._ = context._ ?? {};
+        return await fn(tx, ...parameters);
       }
-    }
+    );
   } catch (err) {
     if (!(err instanceof TriggerRollback)) {
       if (err instanceof VError) {
@@ -123,13 +100,9 @@ const getAllTenantIds = async () => {
   if (!config.getConfigInstance().isMultiTenancy) {
     return null;
   }
-  try {
-    const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
-    const response = await ssp.get("/tenant");
-    return response.map((tenant) => tenant.subscribedTenantId);
-  } catch (err) {
-    return null;
-  }
+  const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
+  const response = await ssp.get("/tenant");
+  return response.map((tenant) => tenant.subscribedTenantId);
 };
 
 module.exports = {

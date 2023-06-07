@@ -21,7 +21,10 @@ describe("initialize", () => {
 
   const configFilePath = path.join(__dirname, "asset", "configFaulty.yml");
   test("read yaml config file", async () => {
-    await eventQueue.initialize({ configFilePath, registerDbHandler: false });
+    await eventQueue.initialize({
+      configFilePath,
+      processEventsAfterPublish: false,
+    });
     const config = eventQueue.getConfigInstance().events;
     expect(config).toMatchSnapshot();
   });
@@ -29,7 +32,10 @@ describe("initialize", () => {
   test("not existing config file", async () => {
     const configFilePath = path.join(__dirname, "asset", "config.kk");
     await expect(
-      eventQueue.initialize({ configFilePath, registerDbHandler: false })
+      eventQueue.initialize({
+        configFilePath,
+        processEventsAfterPublish: false,
+      })
     ).rejects.toThrow();
   });
 
@@ -38,7 +44,10 @@ describe("initialize", () => {
       const singleTenantSpy = jest
         .spyOn(runner, "singleTenant")
         .mockReturnValueOnce();
-      await eventQueue.initialize({ configFilePath, registerDbHandler: false });
+      await eventQueue.initialize({
+        configFilePath,
+        processEventsAfterPublish: false,
+      });
       expect(singleTenantSpy).toHaveBeenCalledTimes(1);
     });
 
@@ -47,7 +56,10 @@ describe("initialize", () => {
       const multiTenancyDbSpy = jest
         .spyOn(runner, "multiTenancyDb")
         .mockReturnValueOnce();
-      await eventQueue.initialize({ configFilePath, registerDbHandler: false });
+      await eventQueue.initialize({
+        configFilePath,
+        processEventsAfterPublish: false,
+      });
       expect(multiTenancyDbSpy).toHaveBeenCalledTimes(1);
       cds.requires.multitenancy = null;
     });
@@ -58,11 +70,11 @@ describe("initialize", () => {
         .mockReturnValueOnce();
       const p1 = eventQueue.initialize({
         configFilePath,
-        registerDbHandler: false,
+        processEventsAfterPublish: false,
       });
       const p2 = eventQueue.initialize({
         configFilePath,
-        registerDbHandler: false,
+        processEventsAfterPublish: false,
       });
       await Promise.allSettled([p1, p2]);
       expect(singleTenant).toHaveBeenCalledTimes(1);
@@ -79,7 +91,7 @@ describe("initialize", () => {
         .mockReturnValueOnce();
       await eventQueue.initialize({
         configFilePath,
-        registerDbHandler: false,
+        processEventsAfterPublish: false,
       });
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(1);
       cds.requires.multitenancy = null;
@@ -92,7 +104,7 @@ describe("initialize", () => {
       const multiTenancyDbSpy = jest.spyOn(runner, "multiTenancyDb");
       await eventQueue.initialize({
         configFilePath,
-        registerDbHandler: false,
+        processEventsAfterPublish: false,
         registerAsEventProcessor: false,
       });
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(0);

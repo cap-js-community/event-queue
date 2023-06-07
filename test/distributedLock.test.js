@@ -1,6 +1,13 @@
 "use strict";
 
 const cds = require("@sap/cds/lib");
+
+const cdsHelper = require("../src/shared/cdsHelper");
+const executeInNewTransactionSpy = jest.spyOn(
+  cdsHelper,
+  "executeInNewTransaction"
+);
+
 const { acquireLock, releaseLock } = require("../src/shared/distributedLock");
 const path = require("path");
 const eventQueue = require("../src");
@@ -11,9 +18,25 @@ cds.test(project);
 describe("distributedLock", () => {
   let context, tx;
 
+  executeInNewTransactionSpy.mockImplementation(
+    async (context = {}, transactionTag, fn) => {
+      try {
+        return await fn(tx);
+      } catch (err) {
+        if (!(err instanceof cdsHelper.TriggerRollback)) {
+          throw err;
+        }
+      }
+    }
+  );
+
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
-    await eventQueue.initialize({ configFilePath, registerDbHandler: false });
+    await eventQueue.initialize({
+      configFilePath,
+      processEventsAfterPublish: false,
+      registerAsEventProcessor: false,
+    });
   });
 
   beforeEach(async () => {
