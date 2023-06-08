@@ -30,20 +30,43 @@ async function executeInNewTransaction(
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
   try {
-    await cds.tx(
-      {
-        id: context.id,
-        tenant: context.tenant,
-        locale: context.locale,
-        user: context.user,
-        headers: context.headers,
-        http: context.http,
-      },
-      async (tx) => {
-        tx.context._ = context._ ?? {};
-        return await fn(tx, ...parameters);
+    if (cds.db.kind === "hana") {
+      await cds.tx(
+        {
+          id: context.id,
+          tenant: context.tenant,
+          locale: context.locale,
+          user: context.user,
+          headers: context.headers,
+          http: context.http,
+        },
+        async (tx) => {
+          tx.context._ = context._ ?? {};
+          return await fn(tx, ...parameters);
+        }
+      );
+    } else {
+      const contextTx = cds.tx(context);
+      const contextTxState = contextTx.ready;
+      if (
+        !contextTxState ||
+        ["committed", "rolled back"].includes(contextTxState)
+      ) {
+        await cds.tx(
+          {
+            id: context.id,
+            tenant: context.tenant,
+            locale: context.locale,
+            user: context.user,
+            headers: context.headers,
+            http: context.http,
+          },
+          async (tx) => fn(tx, ...parameters)
+        );
+      } else {
+        await fn(contextTx, ...parameters);
       }
-    );
+    }
   } catch (err) {
     if (!(err instanceof TriggerRollback)) {
       if (err instanceof VError) {
