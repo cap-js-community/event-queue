@@ -182,36 +182,45 @@ const _calculateOffsetForFirstRun = async () => {
   let offsetDependingOnLastRun = OFFSET_FIRST_RUN;
   // NOTE: this is only supported with Redis, because this is a tenant agnostic information
   //       currently there is no proper place to store this information beside t0 schema
-  if (configInstance.redisEnabled) {
-    const dummyContext = new cds.EventContext({});
-    let lastRunTs = await distributedLock.checkLockExistsAndReturnValue(
-      dummyContext,
-      EVENT_QUEUE_RUN_TS,
-      { tenantScoped: false }
-    );
-    if (!lastRunTs) {
-      const ts = new Date().toISOString();
-      const couldSetValue = await distributedLock.setValueWithExpire(
+  try {
+    if (configInstance.redisEnabled) {
+      const dummyContext = new cds.EventContext({});
+      let lastRunTs = await distributedLock.checkLockExistsAndReturnValue(
         dummyContext,
         EVENT_QUEUE_RUN_TS,
-        ts,
-        {
-          tenantScoped: false,
-          expiryTime: configInstance.runInterval * 0.9,
-        }
+        { tenantScoped: false }
       );
-      if (couldSetValue) {
-        lastRunTs = ts;
-      } else {
-        lastRunTs = await distributedLock.checkLockExistsAndReturnValue(
+      if (!lastRunTs) {
+        const ts = new Date().toISOString();
+        const couldSetValue = await distributedLock.setValueWithExpire(
           dummyContext,
           EVENT_QUEUE_RUN_TS,
-          { tenantScoped: false }
+          ts,
+          {
+            tenantScoped: false,
+            expiryTime: configInstance.runInterval * 0.9,
+          }
         );
+        if (couldSetValue) {
+          lastRunTs = ts;
+        } else {
+          lastRunTs = await distributedLock.checkLockExistsAndReturnValue(
+            dummyContext,
+            EVENT_QUEUE_RUN_TS,
+            { tenantScoped: false }
+          );
+        }
       }
+      offsetDependingOnLastRun =
+        new Date(lastRunTs).getTime() + configInstance.runInterval - Date.now();
     }
-    offsetDependingOnLastRun =
-      new Date(lastRunTs).getTime() + configInstance.runInterval - Date.now();
+  } catch (err) {
+    cds
+      .log(COMPONENT_NAME)
+      .error(
+        "calculating offset for first run failed, falling back to default. Runs might be out-of-sync. Error:",
+        err
+      );
   }
   return offsetDependingOnLastRun;
 };
