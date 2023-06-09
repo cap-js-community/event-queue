@@ -197,7 +197,7 @@ describe("redisRunner", () => {
 
     it("should have default offset with no previous run", async () => {
       const result = await runner._._calculateOffsetForFirstRun();
-      expect(result).toEqual(10 * 1000);
+      expect(result).toEqual(5 * 60 * 1000);
     });
 
     it("acquireRunId should set ts", async () => {

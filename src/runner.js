@@ -44,6 +44,12 @@ const _scheduleFunction = async (fn) => {
 
   const offsetDependingOnLastRun = await _calculateOffsetForFirstRun();
 
+  cds.log(COMPONENT_NAME).info("first event-queue run scheduled", {
+    firstRunScheduledFor: new Date(
+      Date.now() + offsetDependingOnLastRun
+    ).toISOString(),
+  });
+
   setTimeout(() => {
     fnWithRunningCheck();
     setInterval(fnWithRunningCheck, configInstance.runInterval).unref();
@@ -178,15 +184,34 @@ const _calculateOffsetForFirstRun = async () => {
   //       currently there is no proper place to store this information beside t0 schema
   if (configInstance.redisEnabled) {
     const dummyContext = new cds.EventContext({});
-    const lastRunTs = await distributedLock.checkLockExistsAndReturnValue(
+    let lastRunTs = await distributedLock.checkLockExistsAndReturnValue(
       dummyContext,
       EVENT_QUEUE_RUN_TS,
       { tenantScoped: false }
     );
-    if (lastRunTs) {
-      offsetDependingOnLastRun =
-        new Date(lastRunTs).getTime() + configInstance.runInterval - Date.now();
+    if (!lastRunTs) {
+      const ts = new Date().toISOString();
+      const couldSetValue = await distributedLock.setValueWithExpire(
+        dummyContext,
+        EVENT_QUEUE_RUN_TS,
+        ts,
+        {
+          tenantScoped: false,
+          expiryTime: configInstance.runInterval * 0.9,
+        }
+      );
+      if (couldSetValue) {
+        lastRunTs = ts;
+      } else {
+        lastRunTs = await distributedLock.checkLockExistsAndReturnValue(
+          dummyContext,
+          EVENT_QUEUE_RUN_TS,
+          { tenantScoped: false }
+        );
+      }
     }
+    offsetDependingOnLastRun =
+      new Date(lastRunTs).getTime() + configInstance.runInterval - Date.now();
   }
   return offsetDependingOnLastRun;
 };
