@@ -54,30 +54,16 @@ https://cap.cloud.sap/docs/releases/march23#new-cds-plugin-technique
 
 ## Initialize event queue configuration
 
-| Property | Description |
-| ------------------------- |
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-| --- |
-| configFilePath | Filepath as a string for the event configuration file. The base path is the root directory of the
-project. |
-| registerAsEventProcessor | Allows enabling/disabling the registration of the app instance as an event processor. The
-interval is based on the `runInterval` parameter. Based on this interval, all events for all tenants will be processed.
-The default value is `true`. |
-| runInterval | The interval specified in seconds, indicating how often events are processed for all tenants.
-If `processEventsAfterPublish` is true, in most situations, only erroneous events are processed during this run. All
-other events are automatically processed after they have been published (see the parameter `processEventsAfterPublish`).
-|
-| processEventsAfterPublish | Allows enabling/disabling the automatic processing of events after they have been
-published. The behavior depends on whether a Redis service is bound to the app. With Redis, the processing will happen
-on any available app instance. If Redis is not bound, the processing will happen on the same instance where the event
-was published. | |
-| tableNameEventQueue | Allows 'Bring your own table'. This is the name of the event queue table. The required fields
-for this table can be found in the db-folder. |
-| tableNameEventLock | Allows 'Bring your own table'. This is the name of the event lock table. The required fields for
-this table can be found in the db-folder. |
-| skipCsnCheck | Specifies whether to skip the CSN check. This might be useful for testing purposes. |
-| parallelTenantProcessing | Specifies the limit as an integer on how many tenants are processed on a given app-instance
-in parallel. The default is 5. |
+| Property                  | Description                                                                                                                                                                                                                                                                                                                                   |
+|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| configFilePath            | Filepath as a string for the event configuration file. The base path is the root directory of the project.                                                                                                                                                                                                                                    |
+| registerAsEventProcessor  | Allows enabling/disabling the registration of the app instance as an event processor. The interval is based on the `runInterval` parameter. Based on this interval, all events for all tenants will be processed. The default value is `true`.                                                                                                |
+| runInterval               | The interval specified in seconds, indicating how often events are processed for all tenants. If `processEventsAfterPublish` is true, in most situations, only erroneous events are processed during this run. All other events are automatically processed after they have been published (see the parameter `processEventsAfterPublish`).   |
+| processEventsAfterPublish | Allows enabling/disabling the automatic processing of events after they have been published. The behavior depends on whether a Redis service is bound to the app. With Redis, the processing will happen on any available app instance. If Redis is not bound, the processing will happen on the same instance where the event was published. |
+| tableNameEventQueue       | Allows 'Bring your own table'. This is the name of the event queue table. The required fields for this table can be found in the db-folder.                                                                                                                                                                                                   |
+| tableNameEventLock        | Allows 'Bring your own table'. This is the name of the event lock table. The required fields for this table can be found in the db-folder.                                                                                                                                                                                                    |
+| skipCsnCheck              | Specifies whether to skip the CSN check. This might be useful for testing purposes.                                                                                                                                                                                                                                                           |
+| parallelTenantProcessing  | Specifies the limit as an integer on how many tenants are processed on a given app-instance in parallel. The default is 5.                                                                                                                                                                                                                    |
 
 ## Persistence
 
