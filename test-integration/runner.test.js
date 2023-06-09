@@ -96,7 +96,7 @@ describe("redisRunner", () => {
     await promisify(setTimeout)(500);
     await Promise.allSettled(workerPoolInstance.__runningPromises);
 
-    expect(setValueWithExpireSpy).toHaveBeenCalledTimes(2);
+    expect(setValueWithExpireSpy).toHaveBeenCalledTimes(3);
     expect(checkLockExistsAndReturnValueSpy).toHaveBeenCalledTimes(1);
     expect(acquireLockSpy).toHaveBeenCalledTimes(6);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
@@ -191,6 +191,7 @@ describe("redisRunner", () => {
 
   describe("_calculateOffsetForFirstRun", () => {
     beforeEach(() => {
+      configInstance.redisEnabled = true;
       mockRedis.clearState();
     });
 
