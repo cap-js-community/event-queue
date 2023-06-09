@@ -5,7 +5,8 @@ const { promisify } = require("util");
 const cds = require("@sap/cds");
 cds.test(__dirname + "/_env");
 
-jest.mock("../src/shared/redis", () => require("../test/mocks/redisMock"));
+const mockRedis = require("../test/mocks/redisMock");
+jest.mock("../src/shared/redis", () => mockRedis);
 const cdsHelper = require("../src/shared/cdsHelper");
 const { getWorkerPoolInstance } = require("../src/shared/WorkerQueue");
 const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
@@ -186,5 +187,72 @@ describe("redisRunner", () => {
     await Promise.allSettled(workerPoolInstance.__runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(12);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(6);
+  });
+
+  describe("_calculateOffsetForFirstRun", () => {
+    beforeEach(() => {
+      mockRedis.clearState();
+    });
+
+    it("should have default offset with no previous run", async () => {
+      const result = await runner._._calculateOffsetForFirstRun();
+      expect(result).toEqual(10 * 1000);
+    });
+
+    it("acquireRunId should set ts", async () => {
+      let runTs = await distributedLock.checkLockExistsAndReturnValue(
+        {},
+        runner._.EVENT_QUEUE_RUN_TS,
+        { tenantScoped: false }
+      );
+      expect(runTs).toBeNull();
+      await runner._._acquireRunId();
+      runTs = await distributedLock.checkLockExistsAndReturnValue(
+        {},
+        runner._.EVENT_QUEUE_RUN_TS,
+        { tenantScoped: false }
+      );
+      expect(runTs).toBeDefined();
+    });
+
+    it("should calculate correct offset", async () => {
+      await runner._._acquireRunId();
+      jest.useFakeTimers();
+      const systemTime = Date.now();
+      jest.setSystemTime(systemTime);
+      const runTs = await distributedLock.checkLockExistsAndReturnValue(
+        {},
+        runner._.EVENT_QUEUE_RUN_TS,
+        { tenantScoped: false }
+      );
+      const expectedTs =
+        new Date(runTs).getTime() + configInstance.runInterval - systemTime;
+      const result = await runner._._calculateOffsetForFirstRun();
+      expect(result).toEqual(expectedTs);
+      jest.useRealTimers();
+    });
+
+    it("should calculate correct offset - manuel set", async () => {
+      const ts = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+      await distributedLock.setValueWithExpire(
+        {},
+        runner._.EVENT_QUEUE_RUN_TS,
+        ts,
+        { tenantScoped: false }
+      );
+      jest.useFakeTimers();
+      const systemTime = Date.now();
+      jest.setSystemTime(systemTime);
+      const runTs = await distributedLock.checkLockExistsAndReturnValue(
+        {},
+        runner._.EVENT_QUEUE_RUN_TS,
+        { tenantScoped: false }
+      );
+      const expectedTs =
+        new Date(runTs).getTime() + configInstance.runInterval - systemTime;
+      const result = await runner._._calculateOffsetForFirstRun();
+      expect(result).toEqual(expectedTs);
+      jest.useRealTimers();
+    });
   });
 });

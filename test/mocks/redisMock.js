@@ -1,8 +1,8 @@
 "use strict";
 
-const state = {};
+let state = {};
 const _createMainClientAndConnect = async () => ({
-  get: async (key) => state[key],
+  get: async (key) => state[key] ?? null,
   set: async (key, value) => {
     if (state[key]) {
       return null;
@@ -19,4 +19,5 @@ const _createMainClientAndConnect = async () => ({
 module.exports = {
   createClientAndConnect: _createMainClientAndConnect,
   createMainClientAndConnect: _createMainClientAndConnect,
+  clearState: () => (state = {}),
 };

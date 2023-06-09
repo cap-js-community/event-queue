@@ -28,13 +28,20 @@ const setValueWithExpire = async (
   {
     tenantScoped = true,
     expiryTime = config.getConfigInstance().globalTxTimeout,
+    overrideValue = false,
   } = {}
 ) => {
   const fullKey = _generateKey(context, tenantScoped, key);
   if (config.getConfigInstance().redisEnabled) {
-    return await _acquireLockRedis(context, fullKey, expiryTime, value);
+    return await _acquireLockRedis(context, fullKey, expiryTime, {
+      value,
+      overrideValue,
+    });
   } else {
-    return await _acquireLockDB(context, fullKey, expiryTime, value);
+    return await _acquireLockDB(context, fullKey, expiryTime, {
+      value,
+      overrideValue,
+    });
   }
 };
 
@@ -64,12 +71,12 @@ const _acquireLockRedis = async (
   context,
   fullKey,
   expiryTime,
-  value = "true"
+  { value = "true", overrideValue = false } = {}
 ) => {
   const client = await redis.createMainClientAndConnect();
   const result = await client.set(fullKey, value, {
     PX: expiryTime,
-    NX: true,
+    ...(overrideValue ? null : { NX: true }),
   });
   return result === "OK";
 };
@@ -114,7 +121,12 @@ const _releaseLockDb = async (context, fullKey) => {
   );
 };
 
-const _acquireLockDB = async (context, fullKey, expiryTime, value = "true") => {
+const _acquireLockDB = async (
+  context,
+  fullKey,
+  expiryTime,
+  { value = "true", overrideValue = false } = {}
+) => {
   let result;
   const configInstance = getConfigInstance();
   await cdsHelper.executeInNewTransaction(
@@ -130,15 +142,21 @@ const _acquireLockDB = async (context, fullKey, expiryTime, value = "true") => {
         );
         result = true;
       } catch (err) {
-        const currentEntry = await tx.run(
-          SELECT.one
-            .from(configInstance.tableNameEventLock)
-            .forUpdate({ wait: config.getConfigInstance().forUpdateTimeout })
-            .where("code =", fullKey)
-        );
+        let currentEntry;
+
+        if (!overrideValue) {
+          currentEntry = await tx.run(
+            SELECT.one
+              .from(configInstance.tableNameEventLock)
+              .forUpdate({ wait: config.getConfigInstance().forUpdateTimeout })
+              .where("code =", fullKey)
+          );
+        }
         if (
-          currentEntry &&
-          new Date(currentEntry.createdAt).getTime() + expiryTime <= Date.now()
+          overrideValue ||
+          (currentEntry &&
+            new Date(currentEntry.createdAt).getTime() + expiryTime <=
+              Date.now())
         ) {
           await tx.run(
             UPDATE.entity(configInstance.tableNameEventLock)

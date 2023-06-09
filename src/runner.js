@@ -7,9 +7,11 @@ const cdsHelper = require("./shared/cdsHelper");
 const { eventQueueRunner } = require("./processEventQueue");
 const distributedLock = require("./shared/distributedLock");
 const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
+const { getConfigInstance } = require("./config");
 
 const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
+const EVENT_QUEUE_RUN_TS = "EVENT_QUEUE_RUN_TS";
 const OFFSET_FIRST_RUN = 10 * 1000;
 
 const singleTenant = () => _scheduleFunction(_executeRunForTenant);
@@ -18,7 +20,7 @@ const multiTenancyDb = () => _scheduleFunction(_multiTenancyDb);
 
 const multiTenancyRedis = () => _scheduleFunction(_multiTenancyRedis);
 
-const _scheduleFunction = (fn) => {
+const _scheduleFunction = async (fn) => {
   const configInstance = eventQueueConfig.getConfigInstance();
   const eventsForAutomaticRun = configInstance.getEventsForAutomaticRuns();
   if (!eventsForAutomaticRun.length) {
@@ -40,10 +42,12 @@ const _scheduleFunction = (fn) => {
     return fn();
   };
 
+  const offsetDependingOnLastRun = await _calculateOffsetForFirstRun();
+
   setTimeout(() => {
     fnWithRunningCheck();
     setInterval(fnWithRunningCheck, configInstance.runInterval).unref();
-  }, OFFSET_FIRST_RUN).unref();
+  }, offsetDependingOnLastRun).unref();
 };
 
 const _multiTenancyRedis = async () => {
@@ -51,7 +55,7 @@ const _multiTenancyRedis = async () => {
   const logger = cds.log(COMPONENT_NAME);
   logger.info("executing event queue run for multi instance and tenant");
   const tenantIds = await cdsHelper.getAllTenantIds();
-  const runId = await acquireRunId(emptyContext);
+  const runId = await _acquireRunId(emptyContext);
 
   if (!runId) {
     logger.error("could not acquire runId, skip processing events!");
@@ -79,7 +83,7 @@ const _multiTenancyDb = async () => {
   }
 };
 
-const _executeAllTenants = (tenantIds, acquireLockKey) => {
+const _executeAllTenants = (tenantIds, runId) => {
   const configInstance = eventQueueConfig.getConfigInstance();
   const workerQueueInstance = getWorkerPoolInstance();
   tenantIds.forEach((tenantId) => {
@@ -87,7 +91,7 @@ const _executeAllTenants = (tenantIds, acquireLockKey) => {
       const tenantContext = new cds.EventContext({ tenant: tenantId });
       const couldAcquireLock = await distributedLock.acquireLock(
         tenantContext,
-        acquireLockKey,
+        runId,
         {
           expiryTime: configInstance.runInterval * 0.9,
         }
@@ -95,12 +99,12 @@ const _executeAllTenants = (tenantIds, acquireLockKey) => {
       if (!couldAcquireLock) {
         return;
       }
-      await _executeRunForTenant(tenantId);
+      await _executeRunForTenant(tenantId, runId);
     });
   });
 };
 
-const _executeRunForTenant = async (tenantId) => {
+const _executeRunForTenant = async (tenantId, runId) => {
   const configInstance = eventQueueConfig.getConfigInstance();
   try {
     const eventsForAutomaticRun = configInstance.getEventsForAutomaticRuns();
@@ -114,6 +118,7 @@ const _executeRunForTenant = async (tenantId) => {
     cds.log(COMPONENT_NAME).info("executing eventQueue run", {
       tenantId,
       subdomain,
+      ...(runId ? { runId } : null),
     });
     await eventQueueRunner(context, eventsForAutomaticRun);
   } catch (err) {
@@ -129,7 +134,7 @@ const _executeRunForTenant = async (tenantId) => {
   }
 };
 
-const acquireRunId = async (context) => {
+const _acquireRunId = async (context) => {
   const configInstance = eventQueueConfig.getConfigInstance();
   let runId = uuid.v4();
   const couldSetValue = await distributedLock.setValueWithExpire(
@@ -142,7 +147,18 @@ const acquireRunId = async (context) => {
     }
   );
 
-  if (!couldSetValue) {
+  if (couldSetValue) {
+    await distributedLock.setValueWithExpire(
+      context,
+      EVENT_QUEUE_RUN_TS,
+      new Date().toISOString(),
+      {
+        tenantScoped: false,
+        expiryTime: configInstance.runInterval * 0.9,
+        overrideValue: true,
+      }
+    );
+  } else {
     runId = await distributedLock.checkLockExistsAndReturnValue(
       context,
       EVENT_QUEUE_RUN_ID,
@@ -155,6 +171,26 @@ const acquireRunId = async (context) => {
   return runId;
 };
 
+const _calculateOffsetForFirstRun = async () => {
+  const configInstance = getConfigInstance();
+  let offsetDependingOnLastRun = OFFSET_FIRST_RUN;
+  // NOTE: this is only supported with Redis, because this is a tenant agnostic information
+  //       currently there is no proper place to store this information beside t0 schema
+  if (configInstance.redisEnabled) {
+    const dummyContext = new cds.EventContext({});
+    const lastRunTs = await distributedLock.checkLockExistsAndReturnValue(
+      dummyContext,
+      EVENT_QUEUE_RUN_TS,
+      { tenantScoped: false }
+    );
+    if (lastRunTs) {
+      offsetDependingOnLastRun =
+        new Date(lastRunTs).getTime() + configInstance.runInterval - Date.now();
+    }
+  }
+  return offsetDependingOnLastRun;
+};
+
 module.exports = {
   singleTenant,
   multiTenancyDb,
@@ -162,5 +198,8 @@ module.exports = {
   _: {
     _multiTenancyRedis,
     _multiTenancyDb,
+    _calculateOffsetForFirstRun,
+    _acquireRunId,
+    EVENT_QUEUE_RUN_TS,
   },
 };
