@@ -56,6 +56,7 @@ const initialize = async ({
     cds.env.eventQueue?.tableNameEventQueue ?? tableNameEventQueue;
   tableNameEventLock =
     cds.env.eventQueue?.tableNameEventLock ?? tableNameEventLock;
+  skipCsnCheck = cds.env.eventQueue?.skipCsnCheck ?? skipCsnCheck;
 
   const logger = cds.log(COMPONENT);
   configInstance.fileContent = await readConfigFromFile(configFilePath);
@@ -66,7 +67,7 @@ const initialize = async ({
   configInstance.tableNameEventLock = tableNameEventLock;
 
   const dbService = await cds.connect.to("db");
-  !skipCsnCheck && (await csnCheck(dbService));
+  !skipCsnCheck && (await csnCheck());
   if (processEventsAfterPublish) {
     dbHandler.registerEventQueueDbHandler(dbService);
   }
@@ -118,16 +119,17 @@ const registerEventProcessors = (registerAsEventProcessor) => {
   }
 };
 
-const csnCheck = async (dbService) => {
+const csnCheck = async () => {
+  await (cds.model
+    ? Promise.resolve()
+    : new Promise((resolve) => cds.on("serving", resolve)));
   const configInstance = getConfigInstance();
-  const eventCsn =
-    dbService.model.definitions[configInstance.tableNameEventQueue];
+  const eventCsn = cds.model.definitions[configInstance.tableNameEventQueue];
   if (!eventCsn) {
     throw EventQueueError.missingTableInCsn(configInstance.tableNameEventQueue);
   }
 
-  const lockCsn =
-    dbService.model.definitions[configInstance.tableNameEventLock];
+  const lockCsn = cds.model.definitions[configInstance.tableNameEventLock];
   if (!lockCsn) {
     throw EventQueueError.missingTableInCsn(configInstance.tableNameEventLock);
   }
