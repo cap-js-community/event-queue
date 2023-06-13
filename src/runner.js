@@ -83,8 +83,7 @@ const _multiTenancyDb = async () => {
     cds
       .log(COMPONENT_NAME)
       .error(
-        "Couldn't fetch tenant ids for event queue processing! Next try after defined interval.",
-        { error: err }
+        `Couldn't fetch tenant ids for event queue processing! Next try after defined interval. Error: ${err}`
       );
   }
 };
