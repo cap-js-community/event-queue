@@ -257,7 +257,11 @@ class EventQueueProcessorBase {
    * @param {Object} queueEntry which has been selected from event queue table
    */
   modifyQueueEntry(queueEntry) {
-    queueEntry.payload = JSON.parse(queueEntry.payload);
+    try {
+      queueEntry.payload = JSON.parse(queueEntry.payload);
+    } catch {
+      return queueEntry.payload;
+    }
   }
 
   _determineAndAddEventStatusToMap(
@@ -599,7 +603,15 @@ class EventQueueProcessorBase {
               result.map(({ ID }) => ID)
             )
         );
-        result.forEach((entry) => (entry.lastAttemptTimestamp = isoTimestamp));
+        result.forEach((entry) => {
+          entry.lastAttemptTimestamp = isoTimestamp;
+          // NOTE: empty payloads are supported on DB-Level.
+          // Behaviour of event queue is: null as payload is treated as obsolete/done
+          // For supporting this convert null to empty string --> "" as payload will be processed normally
+          if (entry.payload === null) {
+            entry.payload = "";
+          }
+        });
       }
     );
     this.__queueEntries = result;

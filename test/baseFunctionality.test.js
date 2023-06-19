@@ -169,6 +169,57 @@ describe("baseFunctionality", () => {
       expect(loggerMock.calls().error).toMatchSnapshot();
       await testHelper.selectEventQueueAndExpectError(tx);
     });
+
+    test("undefined payload should be processed", async () => {
+      const eventQueueEntry = testHelper.getEventEntry();
+      eventQueueEntry.payload = undefined;
+      jest
+        .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
+        .mockImplementationOnce(async (queueEntry) => {
+          return queueEntry.payload;
+        });
+      await tx.run(
+        INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry)
+      );
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectDone(tx);
+    });
+
+    test("null as payload should be set to done", async () => {
+      const eventQueueEntry = testHelper.getEventEntry();
+      eventQueueEntry.payload = undefined;
+      jest
+        .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
+        .mockImplementationOnce(async () => {
+          return null;
+        });
+      await tx.run(
+        INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry)
+      );
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectDone(tx);
+    });
+
+    test("undefined as payload should be treated as error", async () => {
+      const eventQueueEntry = testHelper.getEventEntry();
+      eventQueueEntry.payload = undefined;
+      jest
+        .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
+        .mockImplementationOnce(async () => {
+          return undefined;
+        });
+      await tx.run(
+        INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry)
+      );
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      await testHelper.selectEventQueueAndExpectError(tx);
+    });
   });
 
   describe("insert events", () => {
