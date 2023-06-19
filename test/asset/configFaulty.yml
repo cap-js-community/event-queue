@@ -1,0 +1,11 @@
+events:
+  - type: Notifications
+    subType: Task
+    impl: ./srv/notification/EventQueueNotificationProcessor
+    load: 40
+    parallelEventProcessing: 5
+  - type: BusinessLogs
+    subType: CommunicationSystem
+    impl: ./srv/businessLogs/EventQueueBusinessLogProcessor
+    load: 10
+    parallelEventProcessing: 1

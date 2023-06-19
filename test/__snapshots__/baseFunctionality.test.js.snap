@@ -1,0 +1,77 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`baseFunctionality error handling handle checkEventAndGeneratePayload fails 1`] = `
+[
+  [
+    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: syntax error",
+    {
+      "eventSubType": "Task",
+      "eventType": "Notifications",
+      "queueEntriesIds": [
+        "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality error handling handle clusterQueueEntries fails 1`] = `
+[
+  [
+    "Error during clustering of events - setting all queue entries to error. Error: Error: syntax error",
+    {
+      "eventSubType": "Task",
+      "eventType": "Notifications",
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality error handling handle getQueueEntriesAndSetToInProgress fails 1`] = `
+[
+  [
+    "Processing event queue failed with unexpected error",
+    {
+      "error": [Error: db error],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality error handling handle handleDistributedLock fails 1`] = `
+[
+  [
+    "Processing event queue failed with unexpected error",
+    {
+      "error": [Error: lock require failed],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality error handling handle modifyQueueEntry fails 1`] = `
+[
+  [
+    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: syntax error",
+    {
+      "eventSubType": "Task",
+      "eventType": "Notifications",
+      "queueEntriesIds": [
+        "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality error handling missing event implementation 1`] = `
+[
+  [
+    "No Implementation found in the provided configuration file.",
+    {
+      "eventSubType": "NOT FOUND",
+      "eventType": "404",
+    },
+  ],
+]
+`;

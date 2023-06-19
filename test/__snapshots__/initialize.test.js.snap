@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`initialize read yaml config file 1`] = `
+[
+  {
+    "impl": "./srv/notification/EventQueueNotificationProcessor",
+    "load": 40,
+    "parallelEventProcessing": 5,
+    "subType": "Task",
+    "type": "Notifications",
+  },
+  {
+    "impl": "./srv/businessLogs/EventQueueBusinessLogProcessor",
+    "load": 10,
+    "parallelEventProcessing": 1,
+    "subType": "CommunicationSystem",
+    "type": "BusinessLogs",
+  },
+]
+`;
