@@ -73,10 +73,14 @@ const initialize = async ({
   !skipCsnCheck && (await csnCheck());
   if (processEventsAfterPublish) {
     // TODO: remove this as soon as CDS fixes the current plugin model issues --> cds 7
-    cds.db.model.definitions[BASE_TABLES.EVENT] =
-      cds.model.definitions[BASE_TABLES.EVENT];
-    cds.db.model.definitions[BASE_TABLES.LOCK] =
-      cds.model.definitions[BASE_TABLES.LOCK];
+    if (BASE_TABLES.EVENT === configInstance.tableNameEventQueue) {
+      cds.db.model.definitions[BASE_TABLES.EVENT] =
+        cds.model.definitions[BASE_TABLES.EVENT];
+    }
+    if (BASE_TABLES.LOCK === configInstance.tableNameEventLock) {
+      cds.db.model.definitions[BASE_TABLES.LOCK] =
+        cds.model.definitions[BASE_TABLES.LOCK];
+    }
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
