@@ -1,4 +1,4 @@
-# @cap-community/event-queue
+# @cap-js-community/event-queue
 
 The Event-Queue is a framework built on top of CAP Node.js, designed specifically for efficient and
 streamlined asynchronous event processing. With a focus on load balancing, this package ensures optimal
