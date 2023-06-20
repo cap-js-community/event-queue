@@ -12,8 +12,9 @@
   "scripts": {
     "test:unit": "jest --testPathIgnorePatterns=\"/test-integration/\"",
     "test:integration": "jest --testPathIgnorePatterns=\"/test/\" --runInBand --forceExit",
-    "test:ci": "npm run test:unit && npm run test:integration",
+    "test:ci": "npm run test:prepare && npm run test:unit && npm run test:integration",
     "test:all:coverage": "jest --runInBand --forceExit --collect-coverage",
+    "test:prepare": "npm run build:ci --prefix=./test-integration/_env",
     "lint": "npm run eslint && npm run prettier",
     "lint:ci": "npm run eslint:ci && npm run prettier:ci",
     "eslint": "eslint --fix .",
@@ -23,8 +24,7 @@
     "prepareRelease": "npm prune --production",
     "docs": "cd docs && bundle exec jekyll serve",
     "docs:install": "cd docs && npx shx rm -rf vendor Gemfile.lock && bundle install",
-    "upgrade-lock": "npx shx rm -rf package-lock.json node_modules && npm i --package-lock",
-    "test:build": "cds-indexer && npm run build --prefix=./test-integration/_env"
+    "upgrade-lock": "npx shx rm -rf package-lock.json node_modules && npm i --package-lock"
   },
   "engines": {
     "node": ">=16"
