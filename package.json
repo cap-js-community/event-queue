@@ -1,5 +1,5 @@
 {
-  "name": "@sap/cds-event-queue",
+  "name": "@cap-js-community/event-queue",
   "version": "0.1.43",
   "description": "event queue for cds",
   "main": "src/index.js",
@@ -27,7 +27,7 @@
     "test:build": "cds-indexer && npm run build --prefix=./test-integration/_env"
   },
   "engines": {
-    "node": ">=8"
+    "node": ">=16"
   },
   "dependencies": {
     "uuid": "9.0.0",
@@ -42,7 +42,6 @@
     "sqlite3": "5.1.6",
     "express": "^4.18.2",
     "@sap/cds": "^6.8.1",
-    "@sap/cds-indexer": "1.0.14",
     "eslint": "^8.39.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-jest": "^27.2.1",
@@ -57,5 +56,5 @@
     }
   },
   "author": "Maximilian Gruenfelder <maximilian.gruenfelder@sap.com>",
-  "license": "ISC"
+  "license": "Apache-2.0"
 }
