@@ -19,9 +19,7 @@ const readFileAsync = promisify(fs.readFile);
 
 const VERROR_CLUSTER_NAME = "EventQueueInitialization";
 const COMPONENT = "eventQueue/initialize";
-const BASE_TABLES = {
-  EVENT: "sap.eventqueue.Event",
-  LOCK: "sap.eventqueue.Lock",
+const BASE_TABLES = { EVENT: "sap.eventqueue.Event", LOCK: "sap.eventqueue.Lock",
 };
 
 const initialize = async ({
