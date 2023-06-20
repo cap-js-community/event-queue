@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      max-parallel: 2
+      max-parallel: 1
       matrix:
-        node-version: [16]
+        node-version: [16, 18]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     name: test - node.js ${{ matrix.node-version }}
