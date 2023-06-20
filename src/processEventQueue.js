@@ -157,9 +157,14 @@ const processEventQueue = async (
   } catch (err) {
     cds
       .log(COMPONENT_NAME)
-      .error("Processing event queue failed with unexpected error", {
-        error: err,
-      });
+      .error(
+        "Processing event queue failed with unexpected error. Error:",
+        err,
+        {
+          eventType,
+          eventSubType,
+        }
+      );
   } finally {
     await baseInstance?.handleReleaseLock();
   }
