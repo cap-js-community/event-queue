@@ -11,4 +11,3 @@ updates:
       timezone: "Europe/Berlin"
     allow:
       - dependency-type: production
-
