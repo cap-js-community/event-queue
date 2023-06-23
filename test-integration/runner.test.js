@@ -128,9 +128,9 @@ describe("redisRunner", () => {
   it("db", async () => {
     configInstance.redisEnabled = false;
     const originalCdsTx = cds.tx;
-    jest.spyOn(cds, "tx").mockImplementation((context, fn) => {
+    jest.spyOn(cds, "tx").mockImplementation(async function (context, fn) {
       context.tenant = null;
-      return originalCdsTx(context, fn);
+      return originalCdsTx.call(this, context, fn);
     });
     const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
     getAllTenantIdsSpy
@@ -187,6 +187,7 @@ describe("redisRunner", () => {
     await Promise.allSettled(workerPoolInstance.__runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(12);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(6);
+    jest.spyOn(cds, "tx").mockRestore();
   });
 
   describe("_calculateOffsetForFirstRun", () => {

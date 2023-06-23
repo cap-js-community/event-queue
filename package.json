@@ -41,7 +41,7 @@
     "eslint-plugin-node": "11.1.0",
     "sqlite3": "5.1.6",
     "express": "^4.18.2",
-    "@sap/cds": "^6.8.1",
+    "@sap/cds": "7.0.0",
     "@sap/cds-indexer": "1.0.14",
     "eslint": "^8.39.0",
     "eslint-config-prettier": "^8.8.0",
