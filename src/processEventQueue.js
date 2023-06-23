@@ -153,14 +153,15 @@ const processEventQueue = async (
         iterationCounter,
         startTime
       );
-      //
-      await executeInNewTransaction(
-        context,
-        `eventQueue-deleteFinishedEvents-${eventType}##${eventSubType}`,
-        async (tx) => {
-          await eventTypeInstance.deleteFinishedEvents(tx);
-        }
-      );
+      if (!shouldContinue) {
+        await executeInNewTransaction(
+          context,
+          `eventQueue-deleteFinishedEvents-${eventType}##${eventSubType}`,
+          async (tx) => {
+            await eventTypeInstance.deleteFinishedEvents(tx);
+          }
+        );
+      }
     }
   } catch (err) {
     cds
