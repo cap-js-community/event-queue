@@ -423,7 +423,7 @@ class EventQueueProcessorBase {
     }
     const deleteCount = await tx.run(
       DELETE.from(this.__eventQueueConfig.tableNameEventQueue).where(
-        "eventType =",
+        "type =",
         this.eventType,
         "AND subType=",
         this.eventSubType,
