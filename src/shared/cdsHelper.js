@@ -125,7 +125,7 @@ const getAllTenantIds = async () => {
   }
   const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
   const response = await ssp.get("/tenant");
-  return response.map((tenant) => tenant.subscribedTenantId);
+  return response.map((tenant) => tenant.subscribedTenantId ?? tenant.tenant);
 };
 
 module.exports = {
