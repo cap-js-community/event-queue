@@ -179,6 +179,7 @@ const _acquireRunId = async (context) => {
 const _calculateOffsetForFirstRun = async () => {
   const configInstance = getConfigInstance();
   let offsetDependingOnLastRun = OFFSET_FIRST_RUN;
+  const now = Date.now();
   // NOTE: this is only supported with Redis, because this is a tenant agnostic information
   //       currently there is no proper place to store this information beside t0 schema
   try {
@@ -190,7 +191,7 @@ const _calculateOffsetForFirstRun = async () => {
         { tenantScoped: false }
       );
       if (!lastRunTs) {
-        const ts = new Date().toISOString();
+        const ts = new Date(now).toISOString();
         const couldSetValue = await distributedLock.setValueWithExpire(
           dummyContext,
           EVENT_QUEUE_RUN_TS,
@@ -211,7 +212,7 @@ const _calculateOffsetForFirstRun = async () => {
         }
       }
       offsetDependingOnLastRun =
-        new Date(lastRunTs).getTime() + configInstance.runInterval - Date.now();
+        new Date(lastRunTs).getTime() + configInstance.runInterval - now;
     }
   } catch (err) {
     LOGGER.error(
