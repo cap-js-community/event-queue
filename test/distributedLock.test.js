@@ -64,7 +64,7 @@ describe("distributedLock", () => {
     const afterRelease = await tx.run(
       SELECT.one.from("sap.eventqueue.Lock").where("code LIKE '%key%'")
     );
-    expect(afterRelease).toEqual(null);
+    expect(afterRelease).toEqual(undefined);
   });
 
   it("acquire should return false if already exists", async () => {

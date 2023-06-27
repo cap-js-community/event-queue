@@ -45,10 +45,8 @@ class WorkerQueue {
         cds
           .log(COMPONENT_NAME)
           .error(
-            "Error happened in WorkQueue. Errors should be caught before!",
-            {
-              error: err,
-            }
+            "Error happened in WorkQueue. Errors should be caught before! Error:",
+            err
           );
         reject(err);
       });
