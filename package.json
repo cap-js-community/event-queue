@@ -12,7 +12,8 @@
   "scripts": {
     "test:unit": "jest --testPathIgnorePatterns=\"/test-integration/\"",
     "test:integration": "jest --testPathIgnorePatterns=\"/test/\" --runInBand --forceExit",
-    "test:ci": "npm run test:prepare && npm run test:unit && npm run test:integration",
+    "test:all": "npm run test:unit && npm run test:integration",
+    "test:ci": "npm run test:prepare && npm run test:all",
     "test:all:coverage": "jest --runInBand --forceExit --collect-coverage",
     "test:prepare": "npm run build:ci --prefix=./test-integration/_env",
     "lint": "npm run eslint && npm run prettier",
@@ -41,7 +42,7 @@
     "hdb": "0.19.5",
     "eslint-plugin-node": "11.1.0",
     "sqlite3": "5.1.6",
-    "express": "^4.18.2",
+    "express": "4.18.2",
     "@sap/cds": "7.0.0",
     "eslint": "^8.39.0",
     "eslint-config-prettier": "^8.8.0",
