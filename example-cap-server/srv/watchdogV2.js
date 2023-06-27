@@ -26,7 +26,11 @@ const cleanStack = (stack) => {
 const init = (asyncId, type) => {
   const e = {};
   Error.captureStackTrace(e);
-  cache[asyncId] = { type, stack: e.stack, createdAt: new Date().toISOString() };
+  cache[asyncId] = {
+    type,
+    stack: e.stack,
+    createdAt: new Date().toISOString(),
+  };
 };
 
 const before = (asyncId) => {

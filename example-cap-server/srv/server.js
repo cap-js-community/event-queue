@@ -7,7 +7,7 @@ cds.on("listening", () => {
   cds.db.model = cds.model;
   register();
   subscribeTenants();
-})
+});
 
 async function subscribeTenants() {
   cds.log("/server").info("Setup of tenants started - Some more patience...");

@@ -7,7 +7,7 @@ const sendMail = async (context) => {
   await eventQueue.publishEvent(cds.tx(context), {
     type: "Notification",
     subType: "Mail",
-    payload: JSON.stringify(context.data)
+    payload: JSON.stringify(context.data),
   });
 };
 
