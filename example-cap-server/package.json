@@ -1,0 +1,45 @@
+{
+  "private": true,
+  "name": "example-cap-server",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node ./node_modules/@sap/cds/bin/cds-serve"
+  },
+  "dependencies": {
+    "@sap/cds": "^7.0.0",
+    "@sap/cds-mtxs": "1.9.0",
+    "@cap-js/sqlite": "0.2.0",
+    "@sap/cds-event-queue": "0.1.47",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.39.0",
+    "eslint-config-prettier": "^8.8.0",
+    "prettier": "^2.8.8",
+    "sqlite3": "5.1.6"
+  },
+  "cds": {
+    "eventQueue": {
+      "plugin": true,
+      "configFilePath": "./srv/eventConfig.yml"
+    },
+    "requires": {
+      "cds-event-queue": {
+        "model": "@sap/cds-event-queue"
+      },
+      "multitenancy": true,
+      "cds.xt.ModelProviderService": true,
+      "cds.xt.SaasProvisioningService": true,
+      "cds.xt.DeploymentService": true,
+      "cds.xt.ExtensibilityService": false,
+      "db": {
+        "[development]": {
+          "kind": "sqlite",
+          "credentials": {
+            "database": ":memory:"
+          }
+        }
+      }
+    }
+  }
+}

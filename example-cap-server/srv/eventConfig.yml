@@ -1,0 +1,6 @@
+events:
+  - type: Notification
+    subType: Mail
+    impl: ./srv/EventQueueMail
+    load: 40
+    parallelEventProcessing: 5

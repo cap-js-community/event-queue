@@ -1,0 +1,9 @@
+POST http://localhost:4004/rest/mail/send
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+{
+  "to": "recipient@example.com",
+  "subject": "Hello",
+  "body": "This is a test email"
+}
