@@ -14,6 +14,8 @@ const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
 const EVENT_QUEUE_RUN_TS = "EVENT_QUEUE_RUN_TS";
 const OFFSET_FIRST_RUN = 10 * 1000;
 
+const LOGGER = cds.log(COMPONENT_NAME);
+
 const singleTenant = () => _scheduleFunction(_executeRunForTenant);
 
 const multiTenancyDb = () => _scheduleFunction(_multiTenancyDb);
@@ -24,19 +26,17 @@ const _scheduleFunction = async (fn) => {
   const configInstance = eventQueueConfig.getConfigInstance();
   const eventsForAutomaticRun = configInstance.getEventsForAutomaticRuns();
   if (!eventsForAutomaticRun.length) {
-    cds
-      .log(COMPONENT_NAME)
-      .warn(
-        "no events for automatic run are configured - skipping runner registration"
-      );
+    LOGGER.warn(
+      "no events for automatic run are configured - skipping runner registration"
+    );
     return;
   }
 
   const fnWithRunningCheck = () => {
     if (configInstance.isRunnerDeactivated) {
-      cds
-        .log(COMPONENT_NAME)
-        .info("runner is deactivated via config variable. Skipping this run.");
+      LOGGER.info(
+        "runner is deactivated via config variable. Skipping this run."
+      );
       return;
     }
     return fn();
@@ -44,7 +44,7 @@ const _scheduleFunction = async (fn) => {
 
   const offsetDependingOnLastRun = await _calculateOffsetForFirstRun();
 
-  cds.log(COMPONENT_NAME).info("first event-queue run scheduled", {
+  LOGGER.info("first event-queue run scheduled", {
     firstRunScheduledFor: new Date(
       Date.now() + offsetDependingOnLastRun
     ).toISOString(),
@@ -58,13 +58,12 @@ const _scheduleFunction = async (fn) => {
 
 const _multiTenancyRedis = async () => {
   const emptyContext = new cds.EventContext({});
-  const logger = cds.log(COMPONENT_NAME);
-  logger.info("executing event queue run for multi instance and tenant");
+  LOGGER.info("executing event queue run for multi instance and tenant");
   const tenantIds = await cdsHelper.getAllTenantIds();
   const runId = await _acquireRunId(emptyContext);
 
   if (!runId) {
-    logger.error("could not acquire runId, skip processing events!");
+    LOGGER.error("could not acquire runId, skip processing events!");
     return;
   }
 
@@ -73,18 +72,15 @@ const _multiTenancyRedis = async () => {
 
 const _multiTenancyDb = async () => {
   try {
-    const logger = cds.log(COMPONENT_NAME);
-    logger.info(
+    LOGGER.info(
       "executing event queue run for single instance and multi tenant"
     );
     const tenantIds = await cdsHelper.getAllTenantIds();
     _executeAllTenants(tenantIds, EVENT_QUEUE_RUN_ID);
   } catch (err) {
-    cds
-      .log(COMPONENT_NAME)
-      .error(
-        `Couldn't fetch tenant ids for event queue processing! Next try after defined interval. Error: ${err}`
-      );
+    LOGGER.error(
+      `Couldn't fetch tenant ids for event queue processing! Next try after defined interval. Error: ${err}`
+    );
   }
 };
 
@@ -93,18 +89,24 @@ const _executeAllTenants = (tenantIds, runId) => {
   const workerQueueInstance = getWorkerPoolInstance();
   tenantIds.forEach((tenantId) => {
     workerQueueInstance.addToQueue(async () => {
-      const tenantContext = new cds.EventContext({ tenant: tenantId });
-      const couldAcquireLock = await distributedLock.acquireLock(
-        tenantContext,
-        runId,
-        {
-          expiryTime: configInstance.runInterval * 0.9,
+      try {
+        const tenantContext = new cds.EventContext({ tenant: tenantId });
+        const couldAcquireLock = await distributedLock.acquireLock(
+          tenantContext,
+          runId,
+          {
+            expiryTime: configInstance.runInterval * 0.9,
+          }
+        );
+        if (!couldAcquireLock) {
+          return;
         }
-      );
-      if (!couldAcquireLock) {
-        return;
+        await _executeRunForTenant(tenantId, runId);
+      } catch (err) {
+        LOGGER.error("executing event-queue run for tenant failed", {
+          tenantId,
+        });
       }
-      await _executeRunForTenant(tenantId, runId);
     });
   });
 };
@@ -120,22 +122,20 @@ const _executeRunForTenant = async (tenantId, runId) => {
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     });
     cds.context = context;
-    cds.log(COMPONENT_NAME).info("executing eventQueue run", {
+    LOGGER.info("executing eventQueue run", {
       tenantId,
       subdomain,
       ...(runId ? { runId } : null),
     });
     await eventQueueRunner(context, eventsForAutomaticRun);
   } catch (err) {
-    cds
-      .log(COMPONENT_NAME)
-      .error(
-        `Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`,
-        {
-          tenantId,
-          redisEnabled: configInstance.redisEnabled,
-        }
-      );
+    LOGGER.error(
+      `Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`,
+      {
+        tenantId,
+        redisEnabled: configInstance.redisEnabled,
+      }
+    );
   }
 };
 
@@ -215,12 +215,10 @@ const _calculateOffsetForFirstRun = async () => {
         new Date(lastRunTs).getTime() + configInstance.runInterval - now;
     }
   } catch (err) {
-    cds
-      .log(COMPONENT_NAME)
-      .error(
-        "calculating offset for first run failed, falling back to default. Runs might be out-of-sync. Error:",
-        err
-      );
+    LOGGER.error(
+      "calculating offset for first run failed, falling back to default. Runs might be out-of-sync. Error:",
+      err
+    );
   }
   return offsetDependingOnLastRun;
 };

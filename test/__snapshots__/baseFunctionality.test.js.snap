@@ -30,9 +30,11 @@ exports[`baseFunctionality error handling handle clusterQueueEntries fails 1`] =
 exports[`baseFunctionality error handling handle getQueueEntriesAndSetToInProgress fails 1`] = `
 [
   [
-    "Processing event queue failed with unexpected error",
+    "Processing event queue failed with unexpected error. Error:",
+    [Error: db error],
     {
-      "error": [Error: db error],
+      "eventSubType": "Task",
+      "eventType": "Notifications",
     },
   ],
 ]
@@ -41,9 +43,11 @@ exports[`baseFunctionality error handling handle getQueueEntriesAndSetToInProgre
 exports[`baseFunctionality error handling handle handleDistributedLock fails 1`] = `
 [
   [
-    "Processing event queue failed with unexpected error",
+    "Processing event queue failed with unexpected error. Error:",
+    [Error: lock require failed],
     {
-      "error": [Error: lock require failed],
+      "eventSubType": "Task",
+      "eventType": "Notifications",
     },
   ],
 ]
