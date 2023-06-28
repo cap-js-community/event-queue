@@ -5,11 +5,11 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/cap-js-community/event-queue)](https://api.reuse.software/info/github.com/cap-js-community/event-queue)
 [![CI Main](https://github.com/cap-js-community/event-queue/actions/workflows/ci-main.yml/badge.svg)](https://github.com/cap-js-community/event-queue/commits/main)
 
-The Event-Queue is a framework built on top of CAP Node.js, designed specifically for efficient and
-streamlined asynchronous event processing. With a focus on load balancing, this package ensures optimal
-event distribution across all available application instances. By providing managed transactions similar to CAP
-handlers,
-the Event-Queue framework simplifies event processing, enhancing the overall performance of your application.
+The Event-Queue is a framework built on top of CAP Node.js, specifically designed to enable efficient and streamlined
+asynchronous event processing in a multi-tenancy environment. With a strong emphasis on load balancing, this package
+ensures optimal distribution of workload across all available application instances. By offering managed tenant-specific
+transactions, similar to CAP handlers, the Event-Queue framework simplifies event and asynchronous processing, thereby
+enhancing the overall performance of your application.
 
 ## Getting started
 
@@ -24,9 +24,9 @@ const cds = require("@sap/cds");
 const eventQueue = require("@sap/cds-event-queue");
 
 cds.on("bootstrap", () => {
-  eventQueue.initialize({
-    configFilePath: "./srv/eventConfig.yml",
-  });
+    eventQueue.initialize({
+        configFilePath: "./srv/eventConfig.yml",
+    });
 });
 
 module.exports = cds.server;
