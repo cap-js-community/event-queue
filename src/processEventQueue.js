@@ -135,7 +135,12 @@ const processEventQueue = async (
             } catch (err) {
               eventTypeInstance.handleErrorDuringClustering(err);
             }
-            if (eventTypeInstance.shouldTriggerRollback) {
+            if (
+              eventTypeInstance.shouldTriggerRollback ||
+              Object.entries(eventTypeInstance.eventProcessingMap).some(
+                ([key]) => eventTypeInstance.shouldRollbackTransaction(key)
+              )
+            ) {
               throw new TriggerRollback();
             }
           }
@@ -211,7 +216,10 @@ const processEventMap = async (eventTypeInstance) => {
               queueEntries,
               payload
             );
-            if (eventTypeInstance.statusMapContainsError(statusMap)) {
+            if (
+              eventTypeInstance.statusMapContainsError(statusMap) ||
+              eventTypeInstance.shouldRollbackTransaction(key)
+            ) {
               throw new TriggerRollback();
             }
           }
