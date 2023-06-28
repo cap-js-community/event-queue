@@ -1,5 +1,29 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`integration-main commitOnEventLevel=false + first processed register tx rollback 1`] = `
+{
+  "BEGIN": 9,
+  "COMMIT": 6,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 8,
+  "ROLLBACK": 2,
+  "UPDATE": 4,
+}
+`;
+
+exports[`integration-main commitOnEventLevel=true + both processed register tx rollback - both should be roll back 1`] = `
+{
+  "BEGIN": 11,
+  "COMMIT": 7,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 8,
+  "ROLLBACK": 3,
+  "UPDATE": 5,
+}
+`;
+
 exports[`integration-main empty queue - nothing to do 1`] = `
 {
   "BEGIN": 3,
