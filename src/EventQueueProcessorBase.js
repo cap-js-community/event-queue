@@ -174,7 +174,7 @@ class EventQueueProcessorBase {
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
     });
-    this._determineAndAddEventStatusToMap(
+    this.#determineAndAddEventStatusToMap(
       queueEntry.ID,
       EventProcessingStatus.Done
     );
@@ -190,12 +190,12 @@ class EventQueueProcessorBase {
   clusterQueueEntries() {
     Object.entries(this.__queueEntriesWithPayloadMap).forEach(
       ([key, { queueEntry, payload }]) => {
-        this._addEntryToProcessingMap(key, queueEntry, payload);
+        this.#addEntryToProcessingMap(key, queueEntry, payload);
       }
     );
   }
 
-  _addEntryToProcessingMap(key, queueEntry, payload) {
+  #addEntryToProcessingMap(key, queueEntry, payload) {
     this.logger.debug("add entry to processing map", {
       key,
       queueEntry,
@@ -229,11 +229,11 @@ class EventQueueProcessorBase {
     const statusMap = this.__commitOnEventLevel ? {} : this.__statusMap;
     try {
       queueEntryProcessingStatusTuple.forEach(([id, processingStatus]) =>
-        this._determineAndAddEventStatusToMap(id, processingStatus, statusMap)
+        this.#determineAndAddEventStatusToMap(id, processingStatus, statusMap)
       );
     } catch (error) {
       queueEntries.forEach((queueEntry) =>
-        this._determineAndAddEventStatusToMap(
+        this.#determineAndAddEventStatusToMap(
           queueEntry.ID,
           EventProcessingStatus.Error,
           statusMap
@@ -264,7 +264,7 @@ class EventQueueProcessorBase {
     }
   }
 
-  _determineAndAddEventStatusToMap(
+  #determineAndAddEventStatusToMap(
     id,
     processingStatus,
     statusMap = this.__statusMap
@@ -297,7 +297,7 @@ class EventQueueProcessorBase {
       }
     );
     queueEntries.forEach((queueEntry) =>
-      this._determineAndAddEventStatusToMap(
+      this.#determineAndAddEventStatusToMap(
         queueEntry.ID,
         EventProcessingStatus.Error
       )
@@ -323,11 +323,11 @@ class EventQueueProcessorBase {
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
     });
-    this._ensureOnlySelectedQueueEntries(statusMap);
+    this.#ensureOnlySelectedQueueEntries(statusMap);
     if (!skipChecks) {
-      this._ensureEveryQueueEntryHasStatus();
+      this.#ensureEveryQueueEntryHasStatus();
     }
-    this._ensureEveryStatusIsAllowed(statusMap);
+    this.#ensureEveryStatusIsAllowed(statusMap);
 
     const { success, failed, exceeded, invalidAttempts } = Object.entries(
       statusMap
@@ -407,7 +407,7 @@ class EventQueueProcessorBase {
     });
   }
 
-  _ensureEveryQueueEntryHasStatus() {
+  #ensureEveryQueueEntryHasStatus() {
     this.__queueEntries.forEach((queueEntry) => {
       if (
         queueEntry.ID in this.__statusMap ||
@@ -423,14 +423,14 @@ class EventQueueProcessorBase {
           queueEntry,
         }
       );
-      this._determineAndAddEventStatusToMap(
+      this.#determineAndAddEventStatusToMap(
         queueEntry.ID,
         EventProcessingStatus.Error
       );
     });
   }
 
-  _ensureEveryStatusIsAllowed(statusMap) {
+  #ensureEveryStatusIsAllowed(statusMap) {
     Object.entries(statusMap).forEach(([queueEntryId, status]) => {
       if (
         [
@@ -456,7 +456,7 @@ class EventQueueProcessorBase {
     });
   }
 
-  _ensureOnlySelectedQueueEntries(statusMap) {
+  #ensureOnlySelectedQueueEntries(statusMap) {
     Object.keys(statusMap).forEach((queueEntryId) => {
       if (this.__queueEntriesMap[queueEntryId]) {
         return;
@@ -483,7 +483,7 @@ class EventQueueProcessorBase {
       }
     );
     this.__queueEntries.forEach((queueEntry) => {
-      this._determineAndAddEventStatusToMap(
+      this.#determineAndAddEventStatusToMap(
         queueEntry.ID,
         EventProcessingStatus.Error
       );
@@ -499,7 +499,7 @@ class EventQueueProcessorBase {
         eventSubType: this.__eventSubType,
       }
     );
-    this._determineAndAddEventStatusToMap(
+    this.#determineAndAddEventStatusToMap(
       queueEntry.ID,
       EventProcessingStatus.Error
     );
@@ -573,7 +573,7 @@ class EventQueueProcessorBase {
         }
 
         const { exceededTries, openEvents } =
-          this._filterExceededEvents(entries);
+          this.#filterExceededEvents(entries);
         if (exceededTries.length) {
           this.__eventsWithExceededTries = exceededTries;
         }
@@ -619,7 +619,7 @@ class EventQueueProcessorBase {
     return result;
   }
 
-  _filterExceededEvents(events) {
+  #filterExceededEvents(events) {
     return events.reduce(
       (result, event) => {
         if (event.attempts === this.__retryAttempts) {
