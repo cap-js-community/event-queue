@@ -19,6 +19,7 @@ describe("distributedLock", () => {
   let context, tx;
 
   executeInNewTransactionSpy.mockImplementation(
+    // eslint-disable-next-line no-unused-vars
     async (context = {}, transactionTag, fn) => {
       try {
         return await fn(tx);
@@ -81,13 +82,8 @@ describe("distributedLock", () => {
       lockAcquiredPromise,
       lockAcquiredSecondPromise,
     ]);
-    if (lockAcquired) {
-      expect(lockAcquired).toEqual(true);
-      expect(lockAcquiredSecond).toEqual(false);
-    } else {
-      expect(lockAcquired).toEqual(false);
-      expect(lockAcquiredSecond).toEqual(true);
-    }
+
+    expect(lockAcquiredSecond).toEqual(!lockAcquired);
   });
 
   it("lock should acquire after 30 min", async () => {
