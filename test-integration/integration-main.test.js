@@ -175,10 +175,12 @@ describe("integration-main", () => {
     );
     dbCounts = {};
     const event = eventQueue.getConfigInstance().events[0];
+    event.commitOnEventLevel = false;
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectDone(tx, 2);
     expect(dbCounts).toMatchSnapshot();
+    event.commitOnEventLevel = true;
   });
 
   it("returning exceeded status should be allowed", async () => {
