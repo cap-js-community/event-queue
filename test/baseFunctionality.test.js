@@ -22,6 +22,7 @@ describe("baseFunctionality", () => {
   let context, tx, loggerMock;
 
   executeInNewTransactionSpy.mockImplementation(
+    // eslint-disable-next-line no-unused-vars
     async (context = {}, transactionTag, fn) => {
       try {
         return await fn(tx);
@@ -253,6 +254,7 @@ describe("baseFunctionality", () => {
           }),
         });
       } catch (err) {
+        // eslint-disable-next-line jest/no-conditional-expect
         expect(err.toString()).toMatchInlineSnapshot(
           `"UNKNOWN_EVENT_TYPE: The event type and subType configuration is not configured! Maintain the combination in the config file."`
         );

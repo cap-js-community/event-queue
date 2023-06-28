@@ -126,7 +126,7 @@ events:
 ## Event Configurations
 
 | Property                | Description                                                                                                                                                                                                                               |
-|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | retryAttempts           | For infinite retries, maintain -1 as 'retryAttempts'. Default retry attempts is 3.                                                                                                                                                        |
 | parallelEventProcessing | How many events of the same type and subType are parallel processed after clustering. Default value is 1 and limit is 10.                                                                                                                 |
 | eventOutdatedCheck      | Checks if the db record for the event has been modified since the selection and right before the processing of the event. Default is true.                                                                                                |
