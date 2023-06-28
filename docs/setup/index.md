@@ -23,7 +23,7 @@ nav_order: 2
 
 ```js
 const cds = require("@sap/cds");
-const eventQueue = require("@sap/cds-event-queue");
+const eventQueue = require("@cap-js-community/event-queue");
 
 cds.on("bootstrap", () => {
   eventQueue.initialize({

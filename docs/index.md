@@ -29,6 +29,7 @@ npm install --save-dev @cap-js-community/event-queue
 |:--------------------------------------|:-------------------------------------------------------|
 | [Getting started](setup)              | Integrate the event-queue into your project            |
 | [Configure Event](configure-event)    | Maintain Event Configuration                           |
+| [Implement an Event](configure-event) | How to implement an Event                              |
 | [Concurrency Control](setup)          | Configure and concepts on Concurrency Control          |
 | [Transaction Handling](setup)         | Managed transaction with event-queue                   |
 | [Load-balancing app-instances](setup) | How load is distributed on the available app instances |
