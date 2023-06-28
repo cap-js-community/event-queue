@@ -48,12 +48,13 @@ class EventQueueProcessorBase {
     this.__selectNextChunk = !!this.__config.checkForNextChunk;
     this.__keepalivePromises = {};
     this.__outdatedCheckEnabled = this.__config.eventOutdatedCheck ?? true;
-    this.__commitOnEventLevel = this.__config.commitOnEventLevel ?? false;
+    this.__commitOnEventLevel = this.__config.commitOnEventLevel ?? true;
     this.__eventsWithExceededTries = [];
     this.__emptyChunkSelected = false;
     this.__lockAcquired = false;
     this.__txUsageAllowed = true;
     this.__txMap = {};
+    this.__txRollback = {};
     this.__eventQueueConfig = eventQueueConfig.getConfigInstance();
   }
 
@@ -903,6 +904,14 @@ class EventQueueProcessorBase {
 
   getTxForEventProcessing(key) {
     return this.__txMap[key];
+  }
+
+  setShouldRollbackTransaction(key) {
+    this.__txRollback[key] = true;
+  }
+
+  shouldRollbackTransaction(key) {
+    return this.__txRollback[key];
   }
 
   setTxForEventProcessing(key, tx) {

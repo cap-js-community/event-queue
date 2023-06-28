@@ -25,6 +25,7 @@ events:
     parallelEventProcessing: 5
     runAutomatically: true
     processAfterCommit: true
+    commitOnEventLevel: false
 
   - type: Fiori
     subType: Task
@@ -33,6 +34,7 @@ events:
     parallelEventProcessing: 5
     runAutomatically: true
     processAfterCommit: true
+    commitOnEventLevel: false
 
   - type: Test
     subType: NoProcessAfterCommit
@@ -41,3 +43,4 @@ events:
     parallelEventProcessing: 5
     runAutomatically: true
     processAfterCommit: false
+    commitOnEventLevel: false

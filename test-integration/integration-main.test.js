@@ -175,10 +175,12 @@ describe("integration-main", () => {
     );
     dbCounts = {};
     const event = eventQueue.getConfigInstance().events[0];
+    event.commitOnEventLevel = false;
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectDone(tx, 2);
     expect(dbCounts).toMatchSnapshot();
+    event.commitOnEventLevel = true;
   });
 
   it("returning exceeded status should be allowed", async () => {
@@ -222,7 +224,139 @@ describe("integration-main", () => {
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectOpen(tx, 1);
     expect(dbCounts).toMatchSnapshot();
+  });
+
+  it("commitOnEventLevel=false + first processed register tx rollback", async () => {
+    const event = eventQueue.getConfigInstance().events[0];
+    await cds.tx({}, async (tx2) => {
+      await testHelper.insertEventEntry(tx2, { numberOfEntries: 2 });
+    });
     dbCounts = {};
+    jest
+      .spyOn(EventQueueTest.prototype, "processEvent")
+      .mockImplementationOnce(async function (
+        processContext,
+        key,
+        queueEntries
+      ) {
+        this.setShouldRollbackTransaction(key);
+        await this.getTxForEventProcessing(key).run(
+          SELECT.from("sap.eventqueue.Event")
+        );
+        return queueEntries.map((queueEntry) => [
+          queueEntry.ID,
+          EventProcessingStatus.Done,
+        ]);
+      })
+      .mockImplementationOnce(async function (
+        processContext,
+        key,
+        queueEntries
+      ) {
+        await this.getTxForEventProcessing(key).run(
+          SELECT.from("sap.eventqueue.Event")
+        );
+        return queueEntries.map((queueEntry) => [
+          queueEntry.ID,
+          EventProcessingStatus.Done,
+        ]);
+      });
+    event.commitOnEventLevel = false;
+    event.parallelEventProcessing = 1;
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectDone(tx, 2);
+    expect(dbCounts).toMatchSnapshot();
+    event.commitOnEventLevel = false;
+  });
+
+  it("commitOnEventLevel=true + first processed register tx rollback - one should be roll back", async () => {
+    const event = eventQueue.getConfigInstance().events[0];
+    await cds.tx({}, async (tx2) => {
+      await testHelper.insertEventEntry(tx2, { numberOfEntries: 2 });
+    });
+    dbCounts = {};
+    jest
+      .spyOn(EventQueueTest.prototype, "processEvent")
+      .mockImplementationOnce(async function (
+        processContext,
+        key,
+        queueEntries
+      ) {
+        this.setShouldRollbackTransaction(key);
+        await this.getTxForEventProcessing(key).run(
+          SELECT.from("sap.eventqueue.Event")
+        );
+        return queueEntries.map((queueEntry) => [
+          queueEntry.ID,
+          EventProcessingStatus.Done,
+        ]);
+      })
+      .mockImplementationOnce(async function (
+        processContext,
+        key,
+        queueEntries
+      ) {
+        await this.getTxForEventProcessing(key).run(
+          SELECT.from("sap.eventqueue.Event")
+        );
+        return queueEntries.map((queueEntry) => [
+          queueEntry.ID,
+          EventProcessingStatus.Done,
+        ]);
+      });
+    event.commitOnEventLevel = true;
+    event.parallelEventProcessing = 1;
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectDone(tx, 2);
+    expect(dbCounts).toMatchSnapshot();
+    event.commitOnEventLevel = false;
+  });
+
+  it("commitOnEventLevel=true + both processed register tx rollback - both should be roll back", async () => {
+    const event = eventQueue.getConfigInstance().events[0];
+    await cds.tx({}, async (tx2) => {
+      await testHelper.insertEventEntry(tx2, { numberOfEntries: 2 });
+    });
+    dbCounts = {};
+    jest
+      .spyOn(EventQueueTest.prototype, "processEvent")
+      .mockImplementationOnce(async function (
+        processContext,
+        key,
+        queueEntries
+      ) {
+        this.setShouldRollbackTransaction(key);
+        await this.getTxForEventProcessing(key).run(
+          SELECT.from("sap.eventqueue.Event")
+        );
+        return queueEntries.map((queueEntry) => [
+          queueEntry.ID,
+          EventProcessingStatus.Done,
+        ]);
+      })
+      .mockImplementationOnce(async function (
+        processContext,
+        key,
+        queueEntries
+      ) {
+        this.setShouldRollbackTransaction(key);
+        await this.getTxForEventProcessing(key).run(
+          SELECT.from("sap.eventqueue.Event")
+        );
+        return queueEntries.map((queueEntry) => [
+          queueEntry.ID,
+          EventProcessingStatus.Done,
+        ]);
+      });
+    event.commitOnEventLevel = true;
+    event.parallelEventProcessing = 1;
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectDone(tx, 2);
+    expect(dbCounts).toMatchSnapshot();
+    event.commitOnEventLevel = false;
   });
 
   describe("end-to-end", () => {
