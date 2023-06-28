@@ -3,7 +3,7 @@
   "name": "example-cap-server",
   "version": "1.0.0",
   "scripts": {
-    "start": "node ./node_modules/@sap/cds/bin/cds-serve"
+    "start": "cds-serve"
   },
   "dependencies": {
     "@sap/cds": "^7.0.0",

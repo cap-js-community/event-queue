@@ -3,7 +3,7 @@
 const cds = require("@sap/cds");
 const eventQueue = require("@sap/cds-event-queue");
 
-const sendMail = async (context) => {
+const send = async (context) => {
   await eventQueue.publishEvent(cds.tx(context), {
     type: "Notification",
     subType: "Mail",
@@ -12,6 +12,6 @@ const sendMail = async (context) => {
 };
 
 module.exports = async (srv) => {
-  const { send } = srv.operations("MailService");
-  srv.on(send, sendMail);
+  const { sendMail } = srv.operations("MailService");
+  srv.on(sendMail, send);
 };

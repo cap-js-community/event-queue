@@ -1,16 +1,20 @@
 "use strict";
 
 const cds = require("@sap/cds");
-const { register } = require("./watchdogV2");
+
+const LOGGER = cds.log("/server");
+
+cds.on("loaded", () => {
+  // FIXME: https://github.tools.sap/cap/issues/issues/13936
+  cds.db.model = cds.model;
+});
 
 cds.on("listening", () => {
-  cds.db.model = cds.model;
-  register();
-  subscribeTenants();
+  subscribeTenants().catch(LOGGER);
 });
 
 async function subscribeTenants() {
-  cds.log("/server").info("Setup of tenants started - Some more patience...");
+  LOGGER.info("Setup of tenants started - Some more patience...");
   const ds = await cds.connect.to("cds.xt.DeploymentService");
   const tenants = ["t1", "t2"];
   for (const tenant of tenants) {
@@ -21,9 +25,8 @@ async function subscribeTenants() {
     }
     await ds.subscribe(tenant);
   }
-  cds
-    .log("/server")
-    .info("Setup of tenants finished - You can start testing now!");
+
+  LOGGER.info("Setup of tenants finished - You can start testing now!");
 }
 
 module.exports = cds.server;

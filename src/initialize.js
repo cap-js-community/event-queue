@@ -67,9 +67,19 @@ const initialize = async ({
   configInstance.tableNameEventLock = tableNameEventLock;
 
   const dbService = await cds.connect.to("db");
+  // TODO: remove this as soon as CDS fixes the current plugin model issues --> cds 7
   await (cds.model
     ? Promise.resolve()
-    : new Promise((resolve) => cds.on("serving", resolve)));
+    : new Promise((resolve) => {
+        cds.on("loaded", () => {
+          const checkModel = () => !!cds.model;
+          if (checkModel()) {
+            resolve();
+          } else {
+            setTimeout(checkModel, 10);
+          }
+        });
+      }));
   !skipCsnCheck && (await csnCheck());
   if (processEventsAfterPublish) {
     // TODO: remove this as soon as CDS fixes the current plugin model issues --> cds 7
