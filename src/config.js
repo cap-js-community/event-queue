@@ -30,15 +30,6 @@ class Config {
     return this.__eventMap[[type, subType].join("##")];
   }
 
-  getEventsForAutomaticRuns() {
-    if (!this.__eventsForAutomaticRun) {
-      this.__eventsForAutomaticRun = this.__config.events.filter(
-        (event) => event.runAutomatically !== false
-      );
-    }
-    return this.__eventsForAutomaticRun;
-  }
-
   hasEventAfterCommitFlag(type, subType) {
     return (
       this.__eventMap[[type, subType].join("##")]?.processAfterCommit ?? true

@@ -23,7 +23,6 @@ events:
     impl: ./test/asset/EventQueueTest
     load: 40
     parallelEventProcessing: 5
-    runAutomatically: true
     processAfterCommit: true
 
   - type: Fiori
@@ -31,7 +30,6 @@ events:
     impl: ./test/asset/EventQueueTest
     load: 40
     parallelEventProcessing: 5
-    runAutomatically: true
     processAfterCommit: true
 
   - type: Test
@@ -39,5 +37,4 @@ events:
     impl: ./test/asset/EventQueueTest
     load: 40
     parallelEventProcessing: 5
-    runAutomatically: true
     processAfterCommit: false

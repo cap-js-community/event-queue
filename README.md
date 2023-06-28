@@ -126,9 +126,8 @@ events:
 ## Event Configurations
 
 | Property                | Description                                                                                                                                                                                                                               |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | retryAttempts           | For infinite retries, maintain -1 as 'retryAttempts'. Default retry attempts is 3.                                                                                                                                                        |
-| runAutomatically        | If true, the event will automatically process based on the run interval. Load the load passed to the funnel - value needs to be between 1 - 100. This property is only allowed if runOnEventQueueTickHandler is true.                     |
 | parallelEventProcessing | How many events of the same type and subType are parallel processed after clustering. Default value is 1 and limit is 10.                                                                                                                 |
 | eventOutdatedCheck      | Checks if the db record for the event has been modified since the selection and right before the processing of the event. Default is true.                                                                                                |
 | commitOnEventLevel      | After processing an event, the associated transaction is committed and the associated status is committed with the same transaction. This should be used if events should be processed atomically. Default is false.                      |
