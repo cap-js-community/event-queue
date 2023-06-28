@@ -1,9 +1,9 @@
 # @cap-js-community/event-queue
 
-[![npm version](https://img.shields.io/npm/v/@cap-js-community/mtx-tool)](https://www.npmjs.com/package/@cap-js-community/event-queue)
-[![monthly downloads](https://img.shields.io/npm/dm/@cap-js-community/mtx-tool)](https://www.npmjs.com/package/@cap-js-community/event-queue)
-[![REUSE status](https://api.reuse.software/badge/github.com/cap-js-community/mtx-tool)](https://api.reuse.software/info/github.com/cap-js-community/event-queue)
-[![CI Main](https://github.com/cap-js-community/mtx-tool/actions/workflows/ci-main.yml/badge.svg)](https://github.com/cap-js-community/event-queue/commits/main)
+[![npm version](https://img.shields.io/npm/v/@cap-js-community/event-queue)](https://www.npmjs.com/package/@cap-js-community/event-queue)
+[![monthly downloads](https://img.shields.io/npm/dm/@cap-js-community/event-queue)](https://www.npmjs.com/package/@cap-js-community/event-queue)
+[![REUSE status](https://api.reuse.software/badge/github.com/cap-js-community/event-queue)](https://api.reuse.software/info/github.com/cap-js-community/event-queue)
+[![CI Main](https://github.com/cap-js-community/event-queue/actions/workflows/ci-main.yml/badge.svg)](https://github.com/cap-js-community/event-queue/commits/main)
 
 The Event-Queue is a framework built on top of CAP Node.js, designed specifically for efficient and
 streamlined asynchronous event processing. With a focus on load balancing, this package ensures optimal
