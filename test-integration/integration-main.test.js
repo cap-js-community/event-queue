@@ -71,6 +71,7 @@ describe("integration-main", () => {
   it("empty queue - nothing to do", async () => {
     const event = eventQueue.getConfigInstance().events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
+    await testHelper.selectEventQueueAndExpectDone(tx, 0);
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(dbCounts).toMatchSnapshot();
   });
