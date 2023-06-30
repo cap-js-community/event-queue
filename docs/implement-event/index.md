@@ -68,7 +68,9 @@ module.exports = EventQueueMinimalistic;
 
 ## Managed Transactions and CDS Context
 
-tt
+During event processing, the library takes care of transaction handling. To better understand in which cases
+transactions are committed or rolled back, please refer to the dedicated chapter
+on [transaction handling](/event-queue/transaction-handling).
 
 ## Advanced implementation
 
