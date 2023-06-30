@@ -38,11 +38,11 @@ exports[`integration-main commitOnEventLevel=true + first processed register tx 
 
 exports[`integration-main empty queue - nothing to do 1`] = `
 {
-  "BEGIN": 3,
+  "BEGIN": 4,
   "COMMIT": 3,
   "CREATE": 1,
   "DELETE": 1,
-  "READ": 1,
+  "READ": 2,
 }
 `;
 
