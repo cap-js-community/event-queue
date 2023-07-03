@@ -26,13 +26,13 @@ const BASE_TABLES = {
 
 const initialize = async ({
   configFilePath,
-  registerAsEventProcessor = true,
-  processEventsAfterPublish = true,
-  runInterval = 5 * 60 * 1000,
-  parallelTenantProcessing = 5,
-  tableNameEventQueue = BASE_TABLES.EVENT,
-  tableNameEventLock = BASE_TABLES.LOCK,
-  skipCsnCheck = false,
+  registerAsEventProcessor,
+  processEventsAfterPublish,
+  runInterval,
+  parallelTenantProcessing,
+  tableNameEventQueue,
+  tableNameEventLock,
+  skipCsnCheck,
 } = {}) => {
   // TODO: initialize check:
   // - content of yaml check
@@ -44,34 +44,29 @@ const initialize = async ({
   }
   configInstance.initialized = true;
 
-  configFilePath = cds.env.eventQueue?.configFilePath ?? configFilePath;
-  registerAsEventProcessor =
-    cds.env.eventQueue?.registerAsEventProcessor ?? registerAsEventProcessor;
-  processEventsAfterPublish =
-    cds.env.eventQueue?.processEventsAfterPublish ?? processEventsAfterPublish;
-  runInterval = cds.env.eventQueue?.runInterval ?? runInterval;
-  parallelTenantProcessing =
-    cds.env.eventQueue?.parallelTenantProcessing ?? parallelTenantProcessing;
-  tableNameEventQueue =
-    cds.env.eventQueue?.tableNameEventQueue ?? tableNameEventQueue;
-  tableNameEventLock =
-    cds.env.eventQueue?.tableNameEventLock ?? tableNameEventLock;
-  skipCsnCheck = cds.env.eventQueue?.skipCsnCheck ?? skipCsnCheck;
+  mixConfigVarsWithEnv(
+    configFilePath,
+    registerAsEventProcessor,
+    processEventsAfterPublish,
+    runInterval,
+    parallelTenantProcessing,
+    tableNameEventQueue,
+    tableNameEventLock,
+    skipCsnCheck
+  );
 
   const logger = cds.log(COMPONENT);
-  configInstance.fileContent = await readConfigFromFile(configFilePath);
-  configInstance.runInterval = runInterval;
+  configInstance.fileContent = await readConfigFromFile(
+    configInstance.configFilePath
+  );
   configInstance.calculateIsRedisEnabled();
-  configInstance.parallelTenantProcessing = parallelTenantProcessing;
-  configInstance.tableNameEventQueue = tableNameEventQueue;
-  configInstance.tableNameEventLock = tableNameEventLock;
 
   const dbService = await cds.connect.to("db");
   await (cds.model
     ? Promise.resolve()
     : new Promise((resolve) => cds.on("serving", resolve)));
-  !skipCsnCheck && (await csnCheck());
-  if (processEventsAfterPublish) {
+  !configInstance.skipCsnCheck && (await csnCheck());
+  if (configInstance.processEventsAfterPublish) {
     // TODO: remove this as soon as CDS fixes the current plugin model issues --> cds 7
     if (BASE_TABLES.EVENT === configInstance.tableNameEventQueue) {
       cds.db.model.definitions[BASE_TABLES.EVENT] =
@@ -84,13 +79,13 @@ const initialize = async ({
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
-  registerEventProcessors(registerAsEventProcessor);
+  registerEventProcessors();
   logger.info("event queue initialized", {
-    registerAsEventProcessor,
+    registerAsEventProcessor: configInstance.registerAsEventProcessor,
     multiTenancyEnabled: configInstance.isMultiTenancy,
     redisEnabled: configInstance.redisEnabled,
-    runInterval,
-    parallelTenantProcessing,
+    runInterval: configInstance.runInterval,
+    parallelTenantProcessing: configInstance.parallelTenantProcessing,
   });
 };
 
@@ -114,7 +109,7 @@ const readConfigFromFile = async (configFilepath) => {
 const registerEventProcessors = (registerAsEventProcessor) => {
   const configInstance = getConfigInstance();
 
-  if (!registerAsEventProcessor) {
+  if (!configInstance.registerAsEventProcessor) {
     return;
   }
 
@@ -174,6 +169,46 @@ const checkCustomTable = (baseCsn, customCsn) => {
       throw EventQueueError.typeMismatchInTable(customCsn.name, columnName);
     }
   }
+};
+
+const mixConfigVarsWithEnv = (
+  configFilePath,
+  registerAsEventProcessor,
+  processEventsAfterPublish,
+  runInterval,
+  parallelTenantProcessing,
+  tableNameEventQueue,
+  tableNameEventLock,
+  skipCsnCheck
+) => {
+  const configInstance = getConfigInstance();
+
+  configInstance.configFilePath =
+    configFilePath ?? cds.env.eventQueue?.configFilePath;
+  configInstance.registerAsEventProcessor =
+    registerAsEventProcessor ??
+    cds.env.eventQueue?.registerAsEventProcessor ??
+    true;
+  configInstance.processEventsAfterPublish =
+    processEventsAfterPublish ??
+    cds.env.eventQueue?.processEventsAfterPublish ??
+    true;
+  configInstance.runInterval =
+    runInterval ?? cds.env.eventQueue?.runInterval ?? 5 * 60 * 1000;
+  configInstance.parallelTenantProcessing =
+    parallelTenantProcessing ??
+    cds.env.eventQueue?.parallelTenantProcessing ??
+    5;
+  configInstance.tableNameEventQueue =
+    tableNameEventQueue ??
+    cds.env.eventQueue?.tableNameEventQueue ??
+    BASE_TABLES.EVENT;
+  configInstance.tableNameEventLock =
+    tableNameEventLock ??
+    cds.env.eventQueue?.tableNameEventLock ??
+    BASE_TABLES.LOCK;
+  configInstance.skipCsnCheck =
+    skipCsnCheck ?? cds.env.eventQueue?.skipCsnCheck ?? false;
 };
 
 module.exports = {
