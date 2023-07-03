@@ -14,7 +14,7 @@ nav_order: 6
 <!-- prettier-ignore -->
 
 - TOC
-  {: toc}
+{: toc}
 
 ## Overview
 One of the main pillars of this library is safe transaction handling of events in combination with business processes.

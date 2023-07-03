@@ -5,16 +5,13 @@ nav_order: 4
 ---
 
 <!-- prettier-ignore-start -->
-
 # Implement Event
-
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
-
 - TOC
-  {: toc}
+{: toc}
 
 ## Overview
 

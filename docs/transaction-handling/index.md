@@ -14,14 +14,15 @@ nav_order: 5
 <!-- prettier-ignore -->
 
 - TOC
-  {: toc}
+{: toc}
 
 ## Overview
 
 One of the fundamental pillars of this library is the secure handling of transactions in conjunction with business
 processes. All transactions related to event processing are fully managed and should not be committed or rolled back by
 the event implementation. The circumstances under which transactions are committed or rolled back are described in the
-following section.
+following section. Transactions are always CDS transactions associated with a CDS context. For more general information
+about CAP transaction handling, please refer to the [documentation](https://cap.cloud.sap/docs/node.js/cds-tx).
 
 ## Transaction Handling
 
