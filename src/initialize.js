@@ -106,7 +106,7 @@ const readConfigFromFile = async (configFilepath) => {
   );
 };
 
-const registerEventProcessors = (registerAsEventProcessor) => {
+const registerEventProcessors = () => {
   const configInstance = getConfigInstance();
 
   if (!configInstance.registerAsEventProcessor) {
