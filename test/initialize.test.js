@@ -13,8 +13,9 @@ const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
 describe("initialize", () => {
+  let configInstance;
   beforeEach(() => {
-    const configInstance = eventQueue.getConfigInstance();
+    configInstance = eventQueue.getConfigInstance();
     configInstance.initialized = false;
     jest.clearAllMocks();
   });
@@ -110,6 +111,25 @@ describe("initialize", () => {
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(0);
       expect(singleTenantSpy).toHaveBeenCalledTimes(0);
       expect(multiTenancyDbSpy).toHaveBeenCalledTimes(0);
+    });
+
+    test("should mix init vars with env correctly", async () => {
+      cds.env.eventQueue = {};
+      cds.env.eventQueue.registerAsEventProcessor = true;
+      await eventQueue.initialize({
+        configFilePath,
+        registerAsEventProcessor: false,
+        parallelTenantProcessing: 3,
+      });
+      expect(configInstance.registerAsEventProcessor).toEqual(false);
+      expect(configInstance.processEventsAfterPublish).toEqual(true);
+      expect(configInstance.runInterval).toEqual(5 * 60 * 1000);
+      expect(configInstance.parallelTenantProcessing).toEqual(3);
+      expect(configInstance.tableNameEventQueue).toEqual(
+        "sap.eventqueue.Event"
+      );
+      expect(configInstance.tableNameEventLock).toEqual("sap.eventqueue.Lock");
+      expect(configInstance.skipCsnCheck).toEqual(false);
     });
   });
 });

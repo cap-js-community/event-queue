@@ -95,7 +95,7 @@ const _executeAllTenants = (tenantIds, runId) => {
           tenantContext,
           runId,
           {
-            expiryTime: configInstance.runInterval * 0.9,
+            expiryTime: configInstance.runInterval * 0.95,
           }
         );
         if (!couldAcquireLock) {
@@ -148,7 +148,7 @@ const _acquireRunId = async (context) => {
     runId,
     {
       tenantScoped: false,
-      expiryTime: configInstance.runInterval * 0.9,
+      expiryTime: configInstance.runInterval * 0.95,
     }
   );
 
@@ -159,7 +159,7 @@ const _acquireRunId = async (context) => {
       new Date().toISOString(),
       {
         tenantScoped: false,
-        expiryTime: configInstance.runInterval * 0.9,
+        expiryTime: configInstance.runInterval,
         overrideValue: true,
       }
     );
@@ -198,7 +198,7 @@ const _calculateOffsetForFirstRun = async () => {
           ts,
           {
             tenantScoped: false,
-            expiryTime: configInstance.runInterval * 0.9,
+            expiryTime: configInstance.runInterval,
           }
         );
         if (couldSetValue) {
