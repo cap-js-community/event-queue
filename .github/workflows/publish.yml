@@ -19,8 +19,10 @@ jobs:
           cache: "npm"
           registry-url: https://registry.npmjs.org/
       - run: npm ci --package-lock
-      - run: npm run test:ci
       - run: npm run lint:ci
+      - run: npm run test:ci
+        env:
+          HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
