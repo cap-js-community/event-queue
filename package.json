@@ -1,6 +1,6 @@
 {
   "name": "@cap-js-community/event-queue",
-  "version": "0.1.43",
+  "version": "0.1.49",
   "description": "event queue for cds",
   "main": "src/index.js",
   "files": [
