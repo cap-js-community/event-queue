@@ -1,10 +1,15 @@
 # @cap-js-community/event-queue
 
-The Event-Queue is a framework built on top of CAP Node.js, designed specifically for efficient and
-streamlined asynchronous event processing. With a focus on load balancing, this package ensures optimal
-event distribution across all available application instances. By providing managed transactions similar to CAP
-handlers,
-the Event-Queue framework simplifies event processing, enhancing the overall performance of your application.
+[![npm version](https://img.shields.io/npm/v/@cap-js-community/event-queue)](https://www.npmjs.com/package/@cap-js-community/event-queue)
+[![monthly downloads](https://img.shields.io/npm/dm/@cap-js-community/event-queue)](https://www.npmjs.com/package/@cap-js-community/event-queue)
+[![REUSE status](https://api.reuse.software/badge/github.com/cap-js-community/event-queue)](https://api.reuse.software/info/github.com/cap-js-community/event-queue)
+[![CI Main](https://github.com/cap-js-community/event-queue/actions/workflows/ci-main.yml/badge.svg)](https://github.com/cap-js-community/event-queue/commits/main)
+
+The Event-Queue is a framework built on top of CAP Node.js, specifically designed to enable efficient and streamlined
+asynchronous event processing in a multi-tenancy environment. With a strong emphasis on load balancing, this package
+ensures optimal distribution of workload across all available application instances. By offering managed tenant-specific
+transactions, similar to CAP handlers, the Event-Queue framework simplifies event and asynchronous processing, thereby
+enhancing the overall performance of your application.
 
 ## Getting started
 
