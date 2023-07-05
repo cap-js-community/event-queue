@@ -21,7 +21,7 @@ enhancing the overall performance of your application.
 
 ```js
 const cds = require("@sap/cds");
-const eventQueue = require("@sap/cds-event-queue");
+const eventQueue = require("@cap-js-community/event-queue");
 
 cds.on("bootstrap", () => {
   eventQueue.initialize({
@@ -86,7 +86,7 @@ Use the tables provided by this library. For that add the following to `package.
   "cds": {
     "requires": {
       "cds-event-queue": {
-        "model": "@sap/cds-event-queue"
+        "model": "@cap-js-community/event-queue"
       }
     }
   }
