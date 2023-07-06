@@ -1,10 +1,12 @@
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
 # This workflow will publish any new release to the npmjs registry
 
 name: Publish
 
+# https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#release
 on:
   release:
-    types: [created]
+    types: [released]
 
 jobs:
   publish:
@@ -17,10 +19,10 @@ jobs:
           cache: "npm"
           registry-url: https://registry.npmjs.org/
       - run: npm ci --package-lock
-      - run: npm test
+      - run: npm run lint:ci
+      - run: npm run test:ci
         env:
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
-      - run: npm run lint:ci
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}

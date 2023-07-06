@@ -1,5 +1,5 @@
 {
-  "name": "@sap/cds-event-queue-test-integration-db",
+  "name": "@cap-js-community/event-queue-test-integration-db",
   "version": "1.0.0",
   "dependencies": {
     "@sap/hdi-deploy": "4.5.3"

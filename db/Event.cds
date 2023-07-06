@@ -11,7 +11,6 @@ type Status: Integer enum {
     Exceeded = 4;
 }
 
-@cds.persistence.journal
 entity Event: cuid {
     type: String not null;
     subType: String not null;

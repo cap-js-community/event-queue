@@ -58,7 +58,7 @@ describe("workerQueue", () => {
         result["fn"] = { called: true, done: false };
         setTimeout(() => {
           result["fn"].done = true;
-          reject();
+          reject(new Error());
         }, 100);
       });
     });
