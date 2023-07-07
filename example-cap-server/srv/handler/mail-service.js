@@ -1,7 +1,7 @@
 "use strict";
 
 const cds = require("@sap/cds");
-const eventQueue = require("@sap/cds-event-queue");
+const eventQueue = require("@cap-js-community/event-queue");
 
 const send = async (context) => {
   await eventQueue.publishEvent(cds.tx(context), {

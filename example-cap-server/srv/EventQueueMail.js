@@ -1,6 +1,6 @@
 "use strict";
 
-const eventQueue = require("@sap/cds-event-queue");
+const eventQueue = require("@cap-js-community/event-queue");
 
 class EventQueueMail extends eventQueue.EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {

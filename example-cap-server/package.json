@@ -6,10 +6,10 @@
     "start": "node --preserve-symlinks ./node_modules/.bin/cds-serve"
   },
   "dependencies": {
-    "@sap/cds": "^7.0.0",
+    "@sap/cds": "7.0.2",
     "@sap/cds-mtxs": "1.9.0",
     "@cap-js/sqlite": "0.2.0",
-    "@sap/cds-event-queue": "file:..",
+    "@cap-js-community/event-queue": "file:..",
     "express": "^4.18.2"
   },
   "devDependencies": {
@@ -24,8 +24,8 @@
       "configFilePath": "./srv/eventConfig.yml"
     },
     "requires": {
-      "cds-event-queue": {
-        "model": "@sap/cds-event-queue"
+      "event-queue": {
+        "model": "@cap-js-community/event-queue"
       },
       "multitenancy": true,
       "cds.xt.ModelProviderService": true,

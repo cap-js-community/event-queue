@@ -4,9 +4,11 @@ const cds = require("@sap/cds");
 
 const LOGGER = cds.log("/server");
 
-cds.on("loaded", () => {
+cds.on("loaded", (csn) => {
   // FIXME: https://github.tools.sap/cap/issues/issues/13936
-  cds.db.model = cds.model;
+  if (csn.definitions["sap.eventqueue.Event"]) {
+    cds.db.model = csn;
+  }
 });
 
 cds.on("listening", () => {
