@@ -18,6 +18,11 @@ const DEFAULT_PARALLEL_EVENT_PROCESSING = 1;
 const LIMIT_PARALLEL_EVENT_PROCESSING = 10;
 const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 
+const TRANSACTION_MODES = {
+  http: "HTTP",
+  singleEvent: "SINGLE_EVENT",
+};
+
 class EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -48,7 +53,8 @@ class EventQueueProcessorBase {
     this.__selectNextChunk = !!this.__config.checkForNextChunk;
     this.__keepalivePromises = {};
     this.__outdatedCheckEnabled = this.__config.eventOutdatedCheck ?? true;
-    this.__commitOnEventLevel = this.__config.commitOnEventLevel ?? true;
+    this.__commitOnEventLevel =
+      this.__config.transactionMode === TRANSACTION_MODES.singleEvent ?? true;
     this.__eventsWithExceededTries = [];
     this.__emptyChunkSelected = false;
     this.__lockAcquired = false;

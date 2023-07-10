@@ -5,7 +5,7 @@ events:
     load: 40
     parallelEventProcessing: 5
     processAfterCommit: true
-    commitOnEventLevel: false
+    transactionMode: http
 
   - type: Fiori
     subType: Task
@@ -13,7 +13,7 @@ events:
     load: 40
     parallelEventProcessing: 5
     processAfterCommit: true
-    commitOnEventLevel: false
+    transactionMode: http
 
   - type: Test
     subType: NoProcessAfterCommit
@@ -21,4 +21,4 @@ events:
     load: 40
     parallelEventProcessing: 5
     processAfterCommit: false
-    commitOnEventLevel: false
+    transactionMode: http

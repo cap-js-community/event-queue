@@ -62,11 +62,20 @@ const selectEventQueueAndExpectExceeded = async (tx, expectedLength = 1) =>
     expectedLength
   );
 
+const selectEventQueueAndReturn = async (tx, expectedLength = 1) => {
+  const events = await tx.run(
+    SELECT.from("sap.eventqueue.Event").columns("status", "attempts")
+  );
+  expect(events).toHaveLength(expectedLength);
+  return events;
+};
+
 module.exports = {
   selectEventQueueAndExpectDone,
   selectEventQueueAndExpectOpen,
   selectEventQueueAndExpectError,
   selectEventQueueAndExpectExceeded,
+  selectEventQueueAndReturn,
   insertEventEntry,
   getEventEntry,
 };

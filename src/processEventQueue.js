@@ -135,14 +135,6 @@ const processEventQueue = async (
             } catch (err) {
               eventTypeInstance.handleErrorDuringClustering(err);
             }
-            if (
-              eventTypeInstance.shouldTriggerRollback ||
-              Object.entries(eventTypeInstance.eventProcessingMap).some(
-                ([key]) => eventTypeInstance.shouldRollbackTransaction(key)
-              )
-            ) {
-              throw new TriggerRollback();
-            }
           }
         );
       }
