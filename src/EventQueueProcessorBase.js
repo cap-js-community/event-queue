@@ -825,13 +825,6 @@ class EventQueueProcessorBase {
     this.__processTx = null;
   }
 
-  get shouldTriggerRollback() {
-    return (
-      this.statusMapContainsError(this.__statusMap) ||
-      this.statusMapContainsError(this.__commitedStatusMap)
-    );
-  }
-
   get logger() {
     return this.__logger ?? this.__baseLogger;
   }
