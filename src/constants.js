@@ -8,4 +8,8 @@ module.exports = {
     Error: 3,
     Exceeded: 4,
   },
+  TransactionMode: {
+    http: "http",
+    singleEvent: "singleEvent",
+  },
 };

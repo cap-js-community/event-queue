@@ -192,13 +192,13 @@ exports[`integration-main transactionMode=HTTP one with error + one without erro
 
 exports[`integration-main transactionMode=SINGLE_EVENT both processed register tx rollback - both should be roll back 1`] = `
 {
-  "BEGIN": 9,
+  "BEGIN": 11,
   "COMMIT": 7,
   "CREATE": 1,
   "DELETE": 1,
   "READ": 8,
-  "ROLLBACK": 1,
-  "UPDATE": 4,
+  "ROLLBACK": 3,
+  "UPDATE": 5,
 }
 `;
 

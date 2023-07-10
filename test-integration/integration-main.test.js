@@ -176,12 +176,12 @@ describe("integration-main", () => {
     );
     dbCounts = {};
     const event = eventQueue.getConfigInstance().events[0];
-    event.commitOnEventLevel = false;
+    event.transactionMode = eventQueue.TransactionMode.http;
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectDone(tx, 2);
     expect(dbCounts).toMatchSnapshot();
-    event.commitOnEventLevel = true;
+    event.transactionMode = eventQueue.TransactionMode.singleEvent;
   });
 
   it("returning exceeded status should be allowed", async () => {
@@ -263,13 +263,13 @@ describe("integration-main", () => {
             EventProcessingStatus.Done,
           ]);
         });
-      event.commitOnEventLevel = false;
+      event.transactionMode = eventQueue.TransactionMode.http;
       event.parallelEventProcessing = 1;
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx, 2);
       expect(dbCounts).toMatchSnapshot();
-      event.commitOnEventLevel = false;
+      event.transactionMode = eventQueue.TransactionMode.singleEvent;
     });
 
     it("first processed register tx rollback - one should be roll back", async () => {
@@ -307,13 +307,13 @@ describe("integration-main", () => {
             EventProcessingStatus.Done,
           ]);
         });
-      event.commitOnEventLevel = true;
+      event.transactionMode = eventQueue.TransactionMode.http;
       event.parallelEventProcessing = 1;
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx, 2);
       expect(dbCounts).toMatchSnapshot();
-      event.commitOnEventLevel = false;
+      event.transactionMode = eventQueue.TransactionMode.singleEvent;
     });
 
     it("both processed register tx rollback - both should be roll back", async () => {
@@ -352,13 +352,13 @@ describe("integration-main", () => {
             EventProcessingStatus.Done,
           ]);
         });
-      event.commitOnEventLevel = true;
+      event.transactionMode = eventQueue.TransactionMode.singleEvent;
       event.parallelEventProcessing = 1;
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx, 2);
       expect(dbCounts).toMatchSnapshot();
-      event.commitOnEventLevel = false;
+      event.transactionMode = eventQueue.TransactionMode.http;
     });
   });
 

@@ -3,7 +3,7 @@
 const cds = require("@sap/cds");
 
 const { executeInNewTransaction } = require("./shared/cdsHelper");
-const { EventProcessingStatus } = require("./constants");
+const { EventProcessingStatus, TransactionMode } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
 const { arrayToFlatMap } = require("./shared/common");
@@ -17,11 +17,6 @@ const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_PARALLEL_EVENT_PROCESSING = 1;
 const LIMIT_PARALLEL_EVENT_PROCESSING = 10;
 const SELECT_LIMIT_EVENTS_PER_TICK = 100;
-
-const TRANSACTION_MODES = {
-  http: "HTTP",
-  singleEvent: "SINGLE_EVENT",
-};
 
 class EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
@@ -54,7 +49,7 @@ class EventQueueProcessorBase {
     this.__keepalivePromises = {};
     this.__outdatedCheckEnabled = this.__config.eventOutdatedCheck ?? true;
     this.__commitOnEventLevel =
-      this.__config.transactionMode === TRANSACTION_MODES.singleEvent ?? true;
+      this.__config.transactionMode === TransactionMode.singleEvent ?? true;
     this.__eventsWithExceededTries = [];
     this.__emptyChunkSelected = false;
     this.__lockAcquired = false;
