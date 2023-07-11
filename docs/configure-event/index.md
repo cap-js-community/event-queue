@@ -20,7 +20,7 @@ The configuration YAML file is where all the required information regarding even
 ## Parameters
 
 | Property                | Description                                                                                                                                                                                                             | Default Value |
-|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | impl                    | impl                                                                                                                                                                                                                    | -             |
 | type                    | type                                                                                                                                                                                                                    | -             |
 | subType                 | subType                                                                                                                                                                                                                 | -             |
@@ -33,7 +33,9 @@ The configuration YAML file is where all the required information regarding even
 | checkForNextChunk       | Determines if after processing a chunk (the size depends on the value of selectMaxChunkSize), a next chunk is being processed if there are more open events and the processing time has not already exceeded 5 minutes. | false         |
 
 ## Example
+
 // TODO: add explanation
+
 ```yaml
 events:
   - type: Notification

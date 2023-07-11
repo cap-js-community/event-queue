@@ -12,7 +12,6 @@ nav_order: 5
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
-
 - TOC
 {: toc}
 
@@ -43,7 +42,7 @@ available.
 ### Cases in Which Transactions are Rolled Back
 
 - If an exception is raised by user code and not handled
-    - The event queue attempts to catch all exceptions and sets the event entry to an error state if this happens
+  - The event queue attempts to catch all exceptions and sets the event entry to an error state if this happens
 - The event processor (`processEvent`) sets the status of an event to error. Please refer to the dedicated chapter for
   status handling of events.
 

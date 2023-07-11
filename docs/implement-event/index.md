@@ -23,8 +23,8 @@ EventQueueProcessorBase.
 The most minimalist Event Implementation only redefines the `processEvent` method. This method receives as arguments the
 following:
 
-| Argument       | Purpose                                                                                     | 
-|:---------------|:--------------------------------------------------------------------------------------------|
+| Argument       | Purpose                                                                                     |
+| :------------- | :------------------------------------------------------------------------------------------ |
 | processContext | cds event context - this context is associated with a managed transaction.                  |
 | key            | key to identify the event-queue db entry                                                    |
 | queueEntries   | Array of event-queue entries. If no clustering has been implemented the length is always 1. |
@@ -42,22 +42,25 @@ for each queueEntry. Each queueEntry may have a different status.
 ```js
 "use strict";
 
-const {EventQueueBaseClass, EventProcessingStatus} = require("@cap-js-community/event-queue");
+const {
+  EventQueueBaseClass,
+  EventProcessingStatus,
+} = require("@cap-js-community/event-queue");
 
 class EventQueueMinimalistic extends EventQueueBaseClass {
-    constructor(context, eventType, eventSubType, config) {
-        super(context, eventType, eventSubType, config);
-    }
+  constructor(context, eventType, eventSubType, config) {
+    super(context, eventType, eventSubType, config);
+  }
 
-    async processEvent(processContext, key, eventEntries, payload) {
-        let eventStatus = EventProcessingStatus.Done;
-        try {
-            await doHeavyProcessingStuff(queueEntries, payload);
-        } catch {
-            eventStatus = EventProcessingStatus.Error;
-        }
-        return eventEntries.map((eventEntry) => [eventEntry.ID, eventStatus]);
+  async processEvent(processContext, key, eventEntries, payload) {
+    let eventStatus = EventProcessingStatus.Done;
+    try {
+      await doHeavyProcessingStuff(queueEntries, payload);
+    } catch {
+      eventStatus = EventProcessingStatus.Error;
     }
+    return eventEntries.map((eventEntry) => [eventEntry.ID, eventStatus]);
+  }
 }
 
 module.exports = EventQueueMinimalistic;
@@ -85,25 +88,28 @@ Mass-enabled data reading is possible in the "beforeProcessingEvents" function.
 ```js
 "use strict";
 
-const {EventQueueBaseClass} = require("@cap-js-community/event-queue");
+const { EventQueueBaseClass } = require("@cap-js-community/event-queue");
 
 class EventQueueAdvanced extends EventQueueBaseClass {
-    constructor(context, eventType, eventSubType, config) {
-        super(context, eventType, eventSubType, config);
-    }
+  constructor(context, eventType, eventSubType, config) {
+    super(context, eventType, eventSubType, config);
+  }
 
-    async checkEventAndGeneratePayload(queueEntry) {
-        const eventStillValid = await checkEventIsStillValid(this.tx, queueEntry.payload);
-        if (!eventStillValid) {
-            this.logger.info("Event not valid anymore, skipping processing", {
-                eventType: this.__eventType,
-                eventSubType: this.__eventSubType,
-                queueEntryId: queueEntry.ID,
-            });
-            return null;
-        }
-        return queueEntry;
+  async checkEventAndGeneratePayload(queueEntry) {
+    const eventStillValid = await checkEventIsStillValid(
+      this.tx,
+      queueEntry.payload
+    );
+    if (!eventStillValid) {
+      this.logger.info("Event not valid anymore, skipping processing", {
+        eventType: this.__eventType,
+        eventSubType: this.__eventSubType,
+        queueEntryId: queueEntry.ID,
+      });
+      return null;
     }
+    return queueEntry;
+  }
 }
 
 module.exports = EventQueueAdvanced;

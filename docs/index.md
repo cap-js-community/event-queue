@@ -25,8 +25,8 @@ npm install --save-dev @cap-js-community/event-queue
 
 ## Content
 
-| Area                                         | Purpose                                                | 
-|:---------------------------------------------|:-------------------------------------------------------|
+| Area                                         | Purpose                                                |
+| :------------------------------------------- | :----------------------------------------------------- |
 | [Getting started](setup)                     | Integrate the event-queue into your project            |
 | [Configure Event](configure-event)           | Maintain Event Configuration                           |
 | [Implement an Event](implement-event)        | How to implement an Event                              |
