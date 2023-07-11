@@ -24,9 +24,9 @@ const cds = require("@sap/cds");
 const eventQueue = require("@cap-js-community/event-queue");
 
 cds.on("bootstrap", () => {
-  eventQueue.initialize({
-    configFilePath: "./srv/eventConfig.yml",
-  });
+    eventQueue.initialize({
+        configFilePath: "./srv/eventConfig.yml",
+    });
 });
 
 module.exports = cds.server;
