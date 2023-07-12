@@ -165,19 +165,90 @@ exports[`integration-main should do nothing if lock for event combination cannot
 }
 `;
 
-exports[`integration-main transactionMode=HTTP one with error + one without error --> tx no rollback because mode HTTP 1`] = `
+exports[`integration-main transactionMode=alwaysCommit one green with register rollback in processEvent --> tx rollback even mode alwaysCommit 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 2,
+  "DELETE": 1,
+  "READ": 3,
+  "ROLLBACK": 2,
+  "UPDATE": 3,
+}
+`;
+
+exports[`integration-main transactionMode=alwaysCommit one green with register rollback in processEvent --> tx rollback even mode alwaysCommit 2`] = `
+[
+  {
+    "attempts": 1,
+    "status": 2,
+  },
+]
+`;
+
+exports[`integration-main transactionMode=alwaysCommit one with error + one without error --> tx no rollback because mode alwaysCommit 1`] = `
+{
+  "BEGIN": 8,
+  "COMMIT": 7,
+  "CREATE": 2,
+  "DELETE": 1,
+  "READ": 6,
+  "ROLLBACK": 1,
+  "UPDATE": 5,
+}
+`;
+
+exports[`integration-main transactionMode=alwaysCommit one with error + one without error --> tx no rollback because mode alwaysCommit 2`] = `
+[
+  {
+    "attempts": 0,
+    "status": 0,
+  },
+  {
+    "attempts": 1,
+    "status": 2,
+  },
+  {
+    "attempts": 1,
+    "status": 3,
+  },
+]
+`;
+
+exports[`integration-main transactionMode=alwaysRollback one green --> tx rollback even all green 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 2,
+  "DELETE": 1,
+  "READ": 3,
+  "ROLLBACK": 2,
+  "UPDATE": 3,
+}
+`;
+
+exports[`integration-main transactionMode=alwaysRollback one green --> tx rollback even all green 2`] = `
+[
+  {
+    "attempts": 1,
+    "status": 2,
+  },
+]
+`;
+
+exports[`integration-main transactionMode=alwaysRollback one with error + one without error --> tx rollback because mode alwaysRollback 1`] = `
 {
   "BEGIN": 8,
   "COMMIT": 6,
-  "CREATE": 1,
+  "CREATE": 2,
   "DELETE": 1,
-  "READ": 7,
+  "READ": 6,
   "ROLLBACK": 2,
   "UPDATE": 5,
 }
 `;
 
-exports[`integration-main transactionMode=HTTP one with error + one without error --> tx no rollback because mode HTTP 2`] = `
+exports[`integration-main transactionMode=alwaysRollback one with error + one without error --> tx rollback because mode alwaysRollback 2`] = `
 [
   {
     "attempts": 1,
@@ -190,39 +261,44 @@ exports[`integration-main transactionMode=HTTP one with error + one without erro
 ]
 `;
 
-exports[`integration-main transactionMode=SINGLE_EVENT both processed register tx rollback - both should be roll back 1`] = `
+exports[`integration-main transactionMode=isolated both processed register tx rollback - both should be roll back 1`] = `
 {
   "BEGIN": 11,
   "COMMIT": 7,
-  "CREATE": 1,
+  "CREATE": 3,
   "DELETE": 1,
-  "READ": 8,
+  "READ": 6,
   "ROLLBACK": 3,
   "UPDATE": 5,
 }
 `;
 
-exports[`integration-main transactionMode=SINGLE_EVENT first processed register tx rollback - one should be roll back 1`] = `
-{
-  "BEGIN": 9,
-  "COMMIT": 6,
-  "CREATE": 1,
-  "DELETE": 1,
-  "READ": 8,
-  "ROLLBACK": 2,
-  "UPDATE": 4,
-}
+exports[`integration-main transactionMode=isolated first processed register tx rollback - only first should be rolled back 1`] = `
+[
+  {
+    "attempts": 1,
+    "status": 2,
+  },
+  {
+    "attempts": 0,
+    "status": 0,
+  },
+  {
+    "attempts": 1,
+    "status": 2,
+  },
+]
 `;
 
-exports[`integration-main transactionMode=SINGLE_EVENT first processed register tx rollback 1`] = `
+exports[`integration-main transactionMode=isolated first processed register tx rollback - only first should be rolled back 2`] = `
 {
-  "BEGIN": 9,
-  "COMMIT": 6,
-  "CREATE": 1,
+  "BEGIN": 11,
+  "COMMIT": 8,
+  "CREATE": 3,
   "DELETE": 1,
-  "READ": 8,
+  "READ": 6,
   "ROLLBACK": 2,
-  "UPDATE": 4,
+  "UPDATE": 5,
 }
 `;
 

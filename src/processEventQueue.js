@@ -137,7 +137,11 @@ const processEventQueue = async (
               eventTypeInstance.handleErrorDuringClustering(err);
             }
             if (
-              eventTypeInstance.transactionMode !== TransactionMode.alwaysCommit
+              eventTypeInstance.transactionMode !==
+                TransactionMode.alwaysCommit ||
+              Object.entries(eventTypeInstance.eventProcessingMap).some(
+                ([key]) => eventTypeInstance.shouldRollbackTransaction(key)
+              )
             ) {
               throw new TriggerRollback();
             }

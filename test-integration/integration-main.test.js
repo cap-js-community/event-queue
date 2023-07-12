@@ -117,6 +117,9 @@ describe("integration-main", () => {
       });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(1);
+    expect(
+      loggerMock.calls().error[0][0].includes("error during processing")
+    ).toBeTruthy();
     await testHelper.selectEventQueueAndExpectError(tx);
     expect(dbCounts).toMatchSnapshot();
   });
@@ -132,6 +135,9 @@ describe("integration-main", () => {
       });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(1);
+    expect(
+      loggerMock.calls().error[0][0].includes("error during processing")
+    ).toBeTruthy();
     expect(loggerMock.calls().error).toMatchSnapshot();
     await testHelper.selectEventQueueAndExpectError(tx);
     expect(dbCounts).toMatchSnapshot();
@@ -172,16 +178,21 @@ describe("integration-main", () => {
 
   it("two entries with no commit on event level", async () => {
     await cds.tx({}, (tx2) =>
-      testHelper.insertEventEntry(tx2, { numberOfEntries: 2 })
+      testHelper.insertEventEntry(tx2, {
+        numberOfEntries: 2,
+        type: "TransactionMode",
+        subType: "alwaysRollback",
+      })
     );
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
-    event.transactionMode = eventQueue.TransactionMode.http;
-    await eventQueue.processEventQueue(context, event.type, event.subType);
+    await eventQueue.processEventQueue(
+      context,
+      "TransactionMode",
+      "alwaysRollback"
+    );
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectDone(tx, 2);
     expect(dbCounts).toMatchSnapshot();
-    event.transactionMode = eventQueue.TransactionMode.isolated;
   });
 
   it("returning exceeded status should be allowed", async () => {
@@ -227,12 +238,15 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
-  describe("transactionMode=SINGLE_EVENT", () => {
-    it("first processed register tx rollback", async () => {
-      const event = eventQueue.getConfigInstance().events[0];
-      await cds.tx({}, async (tx2) => {
-        await testHelper.insertEventEntry(tx2, { numberOfEntries: 2 });
-      });
+  describe("transactionMode=isolated", () => {
+    it("first processed register tx rollback - only first should be rolled back", async () => {
+      await cds.tx({}, (tx2) =>
+        testHelper.insertEventEntry(tx2, {
+          numberOfEntries: 2,
+          type: "TransactionMode",
+          subType: "isolated",
+        })
+      );
       dbCounts = {};
       jest
         .spyOn(EventQueueTest.prototype, "processEvent")
@@ -242,9 +256,12 @@ describe("integration-main", () => {
           queueEntries
         ) {
           this.setShouldRollbackTransaction(key);
-          await this.getTxForEventProcessing(key).run(
-            SELECT.from("sap.eventqueue.Event")
-          );
+          await testHelper.insertEventEntry(cds.tx(processContext), {
+            numberOfEntries: 1,
+            type: "TransactionMode",
+            subType: "alwaysRollback",
+            randomGuid: true,
+          });
           return queueEntries.map((queueEntry) => [
             queueEntry.ID,
             EventProcessingStatus.Done,
@@ -255,72 +272,36 @@ describe("integration-main", () => {
           key,
           queueEntries
         ) {
-          await this.getTxForEventProcessing(key).run(
-            SELECT.from("sap.eventqueue.Event")
-          );
+          await testHelper.insertEventEntry(cds.tx(processContext), {
+            numberOfEntries: 1,
+            type: "TransactionMode",
+            subType: "alwaysRollback",
+            randomGuid: true,
+          });
           return queueEntries.map((queueEntry) => [
             queueEntry.ID,
             EventProcessingStatus.Done,
           ]);
         });
-      event.transactionMode = eventQueue.TransactionMode.http;
-      event.parallelEventProcessing = 1;
-      await eventQueue.processEventQueue(context, event.type, event.subType);
+      await eventQueue.processEventQueue(
+        context,
+        "TransactionMode",
+        "isolated"
+      );
       expect(loggerMock.callsLengths().error).toEqual(0);
-      await testHelper.selectEventQueueAndExpectDone(tx, 2);
+      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      expect(events).toMatchSnapshot();
       expect(dbCounts).toMatchSnapshot();
-      event.transactionMode = eventQueue.TransactionMode.isolated;
-    });
-
-    it("first processed register tx rollback - one should be roll back", async () => {
-      const event = eventQueue.getConfigInstance().events[0];
-      await cds.tx({}, async (tx2) => {
-        await testHelper.insertEventEntry(tx2, { numberOfEntries: 2 });
-      });
-      dbCounts = {};
-      jest
-        .spyOn(EventQueueTest.prototype, "processEvent")
-        .mockImplementationOnce(async function (
-          processContext,
-          key,
-          queueEntries
-        ) {
-          this.setShouldRollbackTransaction(key);
-          await this.getTxForEventProcessing(key).run(
-            SELECT.from("sap.eventqueue.Event")
-          );
-          return queueEntries.map((queueEntry) => [
-            queueEntry.ID,
-            EventProcessingStatus.Done,
-          ]);
-        })
-        .mockImplementationOnce(async function (
-          processContext,
-          key,
-          queueEntries
-        ) {
-          await this.getTxForEventProcessing(key).run(
-            SELECT.from("sap.eventqueue.Event")
-          );
-          return queueEntries.map((queueEntry) => [
-            queueEntry.ID,
-            EventProcessingStatus.Done,
-          ]);
-        });
-      event.transactionMode = eventQueue.TransactionMode.http;
-      event.parallelEventProcessing = 1;
-      await eventQueue.processEventQueue(context, event.type, event.subType);
-      expect(loggerMock.callsLengths().error).toEqual(0);
-      await testHelper.selectEventQueueAndExpectDone(tx, 2);
-      expect(dbCounts).toMatchSnapshot();
-      event.transactionMode = eventQueue.TransactionMode.isolated;
     });
 
     it("both processed register tx rollback - both should be roll back", async () => {
-      const event = eventQueue.getConfigInstance().events[0];
-      await cds.tx({}, async (tx2) => {
-        await testHelper.insertEventEntry(tx2, { numberOfEntries: 2 });
-      });
+      await cds.tx({}, (tx2) =>
+        testHelper.insertEventEntry(tx2, {
+          numberOfEntries: 2,
+          type: "TransactionMode",
+          subType: "isolated",
+        })
+      );
       dbCounts = {};
       jest
         .spyOn(EventQueueTest.prototype, "processEvent")
@@ -330,9 +311,12 @@ describe("integration-main", () => {
           queueEntries
         ) {
           this.setShouldRollbackTransaction(key);
-          await this.getTxForEventProcessing(key).run(
-            SELECT.from("sap.eventqueue.Event")
-          );
+          await testHelper.insertEventEntry(cds.tx(processContext), {
+            numberOfEntries: 1,
+            type: "TransactionMode",
+            subType: "alwaysRollback",
+            randomGuid: true,
+          });
           return queueEntries.map((queueEntry) => [
             queueEntry.ID,
             EventProcessingStatus.Done,
@@ -344,41 +328,172 @@ describe("integration-main", () => {
           queueEntries
         ) {
           this.setShouldRollbackTransaction(key);
-          await this.getTxForEventProcessing(key).run(
-            SELECT.from("sap.eventqueue.Event")
-          );
+          await testHelper.insertEventEntry(cds.tx(processContext), {
+            numberOfEntries: 1,
+            type: "TransactionMode",
+            subType: "alwaysRollback",
+            randomGuid: true,
+          });
           return queueEntries.map((queueEntry) => [
             queueEntry.ID,
             EventProcessingStatus.Done,
           ]);
         });
-      event.transactionMode = eventQueue.TransactionMode.isolated;
-      event.parallelEventProcessing = 1;
-      await eventQueue.processEventQueue(context, event.type, event.subType);
+      await eventQueue.processEventQueue(
+        context,
+        "TransactionMode",
+        "isolated"
+      );
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx, 2);
       expect(dbCounts).toMatchSnapshot();
-      event.transactionMode = eventQueue.TransactionMode.http;
     });
   });
 
-  describe("transactionMode=HTTP", () => {
-    it("one with error + one without error --> tx no rollback because mode HTTP", async () => {
+  describe("transactionMode=alwaysCommit", () => {
+    it("one with error + one without error --> tx no rollback because mode alwaysCommit", async () => {
       await cds.tx({}, (tx2) =>
-        testHelper.insertEventEntry(tx2, { numberOfEntries: 2 })
+        testHelper.insertEventEntry(tx2, {
+          numberOfEntries: 2,
+          type: "TransactionMode",
+          subType: "alwaysCommit",
+        })
       );
       dbCounts = {};
-      const event = eventQueue.getConfigInstance().events[0];
       jest
         .spyOn(EventQueueTest.prototype, "processEvent")
         .mockImplementationOnce(async (processContext) => {
-          await cds.tx(processContext).run(SELECT.from("sap.eventqueue.Lock"));
+          await testHelper.insertEventEntry(cds.tx(processContext), {
+            numberOfEntries: 1,
+            type: "TransactionMode",
+            subType: "alwaysRollback",
+            randomGuid: true,
+          });
           throw new Error("error during processing");
         });
-      await eventQueue.processEventQueue(context, event.type, event.subType);
+      await eventQueue.processEventQueue(
+        context,
+        "TransactionMode",
+        "alwaysCommit"
+      );
       expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(
+        loggerMock.calls().error[0][0].includes("error during processing")
+      ).toBeTruthy();
+      expect(dbCounts).toMatchSnapshot();
+      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      expect(events).toMatchSnapshot();
+    });
+
+    it("one green with register rollback in processEvent --> tx rollback even mode alwaysCommit", async () => {
+      await cds.tx({}, (tx2) =>
+        testHelper.insertEventEntry(tx2, {
+          numberOfEntries: 1,
+          type: "TransactionMode",
+          subType: "alwaysCommit",
+        })
+      );
+      dbCounts = {};
+      jest
+        .spyOn(EventQueueTest.prototype, "processEvent")
+        .mockImplementationOnce(async function (
+          processContext,
+          key,
+          queueEntries
+        ) {
+          await testHelper.insertEventEntry(cds.tx(processContext), {
+            numberOfEntries: 1,
+            type: "TransactionMode",
+            subType: "alwaysRollback",
+            randomGuid: true,
+          });
+          this.setShouldRollbackTransaction(key);
+          return queueEntries.map((queueEntry) => [
+            queueEntry.ID,
+            EventProcessingStatus.Done,
+          ]);
+        });
+      await eventQueue.processEventQueue(
+        context,
+        "TransactionMode",
+        "alwaysCommit"
+      );
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(dbCounts).toMatchSnapshot();
+      const events = await testHelper.selectEventQueueAndReturn(tx, 1);
+      expect(events).toMatchSnapshot();
+    });
+  });
+
+  describe("transactionMode=alwaysRollback", () => {
+    it("one with error + one without error --> tx rollback because mode alwaysRollback", async () => {
+      await cds.tx({}, (tx2) =>
+        testHelper.insertEventEntry(tx2, {
+          numberOfEntries: 2,
+          type: "TransactionMode",
+          subType: "alwaysRollback",
+        })
+      );
+      dbCounts = {};
+      jest
+        .spyOn(EventQueueTest.prototype, "processEvent")
+        .mockImplementationOnce(async (processContext) => {
+          await testHelper.insertEventEntry(cds.tx(processContext), {
+            numberOfEntries: 1,
+            type: "TransactionMode",
+            subType: "alwaysRollback",
+            randomGuid: true,
+          });
+          throw new Error("error during processing");
+        });
+      await eventQueue.processEventQueue(
+        context,
+        "TransactionMode",
+        "alwaysRollback"
+      );
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(
+        loggerMock.calls().error[0][0].includes("error during processing")
+      ).toBeTruthy();
+      expect(
+        loggerMock.calls().error[0][0].includes("error during processing")
+      ).toBeTruthy();
       expect(dbCounts).toMatchSnapshot();
       const result = await testHelper.selectEventQueueAndReturn(tx, 2);
+      expect(result).toMatchSnapshot();
+    });
+
+    it("one green --> tx rollback even all green", async () => {
+      await cds.tx({}, (tx2) =>
+        testHelper.insertEventEntry(tx2, {
+          numberOfEntries: 1,
+          type: "TransactionMode",
+          subType: "alwaysRollback",
+        })
+      );
+      dbCounts = {};
+      jest
+        .spyOn(EventQueueTest.prototype, "processEvent")
+        .mockImplementationOnce(async (processContext, key, queueEntries) => {
+          await testHelper.insertEventEntry(cds.tx(processContext), {
+            numberOfEntries: 1,
+            type: "TransactionMode",
+            subType: "alwaysRollback",
+            randomGuid: true,
+          });
+          return queueEntries.map((queueEntry) => [
+            queueEntry.ID,
+            EventProcessingStatus.Done,
+          ]);
+        });
+      await eventQueue.processEventQueue(
+        context,
+        "TransactionMode",
+        "alwaysRollback"
+      );
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(dbCounts).toMatchSnapshot();
+      const result = await testHelper.selectEventQueueAndReturn(tx, 1);
       expect(result).toMatchSnapshot();
     });
   });

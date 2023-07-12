@@ -22,3 +22,27 @@ events:
     parallelEventProcessing: 5
     processAfterCommit: false
     transactionMode: alwaysRollback
+
+  - type: TransactionMode
+    subType: alwaysCommit
+    impl: ./test/asset/EventQueueTest
+    load: 40
+    parallelEventProcessing: 1
+    processAfterCommit: true
+    transactionMode: alwaysCommit
+
+  - type: TransactionMode
+    subType: alwaysRollback
+    impl: ./test/asset/EventQueueTest
+    load: 40
+    parallelEventProcessing: 1
+    processAfterCommit: true
+    transactionMode: alwaysRollback
+
+  - type: TransactionMode
+    subType: isolated
+    impl: ./test/asset/EventQueueTest
+    load: 40
+    parallelEventProcessing: 1
+    processAfterCommit: true
+    transactionMode: isolated
