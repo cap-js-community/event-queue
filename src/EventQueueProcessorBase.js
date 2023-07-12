@@ -3,7 +3,7 @@
 const cds = require("@sap/cds");
 
 const { executeInNewTransaction } = require("./shared/cdsHelper");
-const { EventProcessingStatus } = require("./constants");
+const { EventProcessingStatus, TransactionMode } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
 const { arrayToFlatMap } = require("./shared/common");
@@ -48,7 +48,8 @@ class EventQueueProcessorBase {
     this.__selectNextChunk = !!this.__config.checkForNextChunk;
     this.__keepalivePromises = {};
     this.__outdatedCheckEnabled = this.__config.eventOutdatedCheck ?? true;
-    this.__commitOnEventLevel = this.__config.commitOnEventLevel ?? true;
+    this.__transactionMode =
+      this.__config.transactionMode ?? TransactionMode.isolated;
     this.__eventsWithExceededTries = [];
     this.__emptyChunkSelected = false;
     this.__lockAcquired = false;
@@ -212,8 +213,8 @@ class EventQueueProcessorBase {
 
   /**
    * This function sets the status of multiple events to a given status. If the structure of queueEntryProcessingStatusTuple
-   * is not as expected all events will be set to error. The function respects the config commitOnEventLevel. If
-   * commitOnEventLevel is true the status will be written to a dedicated map and returned afterwards to handle concurrent
+   * is not as expected all events will be set to error. The function respects the config transactionMode. If
+   * transactionMode is isolated the status will be written to a dedicated map and returned afterwards to handle concurrent
    * event processing.
    * @param {Array} queueEntries which has been selected from event queue table and been modified by modifyQueueEntry
    * @param {Array<Object>} queueEntryProcessingStatusTuple Array of tuple <queueEntryId, processingStatus>
@@ -227,7 +228,7 @@ class EventQueueProcessorBase {
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
     });
-    const statusMap = this.__commitOnEventLevel ? {} : this.__statusMap;
+    const statusMap = this.commitOnEventLevel ? {} : this.__statusMap;
     try {
       queueEntryProcessingStatusTuple.forEach(([id, processingStatus]) =>
         this._determineAndAddEventStatusToMap(id, processingStatus, statusMap)
@@ -819,13 +820,6 @@ class EventQueueProcessorBase {
     this.__processTx = null;
   }
 
-  get shouldTriggerRollback() {
-    return (
-      this.statusMapContainsError(this.__statusMap) ||
-      this.statusMapContainsError(this.__commitedStatusMap)
-    );
-  }
-
   get logger() {
     return this.__logger ?? this.__baseLogger;
   }
@@ -875,7 +869,11 @@ class EventQueueProcessorBase {
   }
 
   get commitOnEventLevel() {
-    return this.__commitOnEventLevel;
+    return this.__transactionMode === TransactionMode.isolated;
+  }
+
+  get transactionMode() {
+    return this.__transactionMode;
   }
 
   get eventType() {

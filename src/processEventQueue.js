@@ -5,6 +5,7 @@ const pathLib = require("path");
 const cds = require("@sap/cds");
 
 const { getConfigInstance } = require("./config");
+const { TransactionMode } = require("./constants");
 const { limiter, Funnel } = require("./shared/common");
 
 const EventQueueBase = require("./EventQueueProcessorBase");
@@ -136,7 +137,8 @@ const processEventQueue = async (
               eventTypeInstance.handleErrorDuringClustering(err);
             }
             if (
-              eventTypeInstance.shouldTriggerRollback ||
+              eventTypeInstance.transactionMode !==
+                TransactionMode.alwaysCommit ||
               Object.entries(eventTypeInstance.eventProcessingMap).some(
                 ([key]) => eventTypeInstance.shouldRollbackTransaction(key)
               )
