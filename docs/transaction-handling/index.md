@@ -12,8 +12,9 @@ nav_order: 5
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
+
 - TOC
-{: toc}
+  {: toc}
 
 ## Overview
 
@@ -26,10 +27,9 @@ about CAP transaction handling, please refer to the [documentation](https://cap.
 ## Transaction Handling
 
 The handling of a transaction for an event is determined by the event configuration, particularly the
-parameter `commitOnEventLevel`. When this parameter is enabled, a new transaction is initiated with each call
-of `processEvent` and committed or rolled back based on various factors, which are described later. However,
-if `commitOnEventLevel` is false, the whole selected chunk (the size depends on the event configuration) uses the same
-transaction.
+parameter `transactionMode`. This parameter influences heavily if transactions passed to the `processEvent` method is
+committed or rolled back after processing. Other factors which are described later are also influencing if transaction
+is committed or rolled back.
 
 The event queue provides two types of transactions: transactions made for database read access and transactions made for
 read/write access. This is realized in such a way that every read transaction is rolled back at the end of processing,
@@ -39,19 +39,36 @@ The transactions available in the pre-processing steps are always read transacti
 everything considered before the `processEvent` method. However, the `processEvent` always has a read/write transaction
 available.
 
-### Cases in Which Transactions are Rolled Back
+### Transaction Modes
 
-- If an exception is raised by user code and not handled
-  - The event queue attempts to catch all exceptions and sets the event entry to an error state if this happens
-- The event processor (`processEvent`) sets the status of an event to error. Please refer to the dedicated chapter for
-  status handling of events.
+There are three available transaction modes. The first two should be used when it's not possible to establish a proper
+transactional bracket between the transaction passed to the `processEvent` function and the data processed within this
+function. For instance, within `processEvent`, a third-party service, such as an Email Service or Fiori Notification
+Service, might be used. These services have their own transactional handling. This implies that the rollback of the
+event-queue transaction won't retract previously sent emails or Fiori notifications. In such cases, the transaction
+passed to `processEvent` can always be committed or rolled back without affecting the outcome. However, if business data
+is processed and altered with the transaction passed to `processEvent`, the transaction mode `isolated` should be used.
 
-In both scenarios, the transaction associated with processing the event will be rolled back. This means that all changes
-made within the transaction passed to `processEvent` will be reverted, and the event will be reprocessed based on the
-configured `retryAttempts` parameter. It is recommended to stick to the transactions managed by the library to avoid
-inconsistencies, as transactional safety cannot be ensured anymore.
+- alwaysCommit
+    - The transaction passed to `processEvent` is always committed, even if an unsuccessful event status is returned.
+    - TODO: explain new function setShouldRollbackTransaction()
+- alwaysRollback
+    - The transaction passed to `processEvent` is always rolled back, regardless of the event status returned
+- isolated
+    - Whether the transaction is committed or rolled back depends on the event status returned from the `processEvent`
+      function.
+        - Status `Done` will result in a commit.
+        - Status `Open`,`Error`, `Exceeded` will result in a rollback. For more information about the status handling of
+          events, refer to the corresponding [wiki page](/event-queue/status-handling).
 
-### Cases in Which Transactions are Committed
+### Exception Handling
 
-As described in the introduction, only the transaction passed to `processEvent` is eligible for committing data. Whether
-the transaction is committed or not depends on the returned status of the method `processEvent`.
+- When an exception is raised by user code and not handled:
+    - The event queue tries to catch all exceptions, and if this occurs, it sets the event entry to an error state.
+- The event processor (`processEvent`) changes the status of an event to 'error'. For more details on status handling of
+  events, please refer to the dedicated [wiki page](/event-queue/status-handling).
+
+In both situations, the transaction associated with the event processing is rolled back. This means that all changes
+made within the transaction passed to `processEvent` will be undone, and the event will be reprocessed based on
+the `retryAttempts` parameter configured. For the sake of consistency, it is recommended to adhere to the transactions
+managed by the library, as transactional safety cannot be guaranteed otherwise.

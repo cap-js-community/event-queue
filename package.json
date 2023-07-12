@@ -10,8 +10,8 @@
     "index.cds"
   ],
   "scripts": {
-    "test:unit": "jest --testPathIgnorePatterns=\"/test-integration/\"",
-    "test:integration": "jest --testPathIgnorePatterns=\"/test/\" --runInBand --forceExit",
+    "test:unit": "jest test",
+    "test:integration": "jest test-integration --runInBand --forceExit",
     "test:all": "npm run test:unit && npm run test:integration",
     "test:ci": "npm run test:prepare && npm run test:all",
     "test:all:coverage": "jest --runInBand --forceExit --collect-coverage",
