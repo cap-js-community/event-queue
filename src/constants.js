@@ -9,7 +9,8 @@ module.exports = {
     Exceeded: 4,
   },
   TransactionMode: {
-    http: "http",
-    singleEvent: "singleEvent",
+    isolated: "isolated",
+    alwaysCommit: "alwaysCommit",
+    alwaysRollback: "alwaysRollback",
   },
 };

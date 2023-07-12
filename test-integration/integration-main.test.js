@@ -181,7 +181,7 @@ describe("integration-main", () => {
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectDone(tx, 2);
     expect(dbCounts).toMatchSnapshot();
-    event.transactionMode = eventQueue.TransactionMode.singleEvent;
+    event.transactionMode = eventQueue.TransactionMode.isolated;
   });
 
   it("returning exceeded status should be allowed", async () => {
@@ -269,7 +269,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx, 2);
       expect(dbCounts).toMatchSnapshot();
-      event.transactionMode = eventQueue.TransactionMode.singleEvent;
+      event.transactionMode = eventQueue.TransactionMode.isolated;
     });
 
     it("first processed register tx rollback - one should be roll back", async () => {
@@ -313,7 +313,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx, 2);
       expect(dbCounts).toMatchSnapshot();
-      event.transactionMode = eventQueue.TransactionMode.singleEvent;
+      event.transactionMode = eventQueue.TransactionMode.isolated;
     });
 
     it("both processed register tx rollback - both should be roll back", async () => {
@@ -352,7 +352,7 @@ describe("integration-main", () => {
             EventProcessingStatus.Done,
           ]);
         });
-      event.transactionMode = eventQueue.TransactionMode.singleEvent;
+      event.transactionMode = eventQueue.TransactionMode.isolated;
       event.parallelEventProcessing = 1;
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);

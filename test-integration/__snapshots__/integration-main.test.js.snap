@@ -13,11 +13,11 @@ exports[`integration-main empty queue - nothing to do 1`] = `
 exports[`integration-main end-to-end insert entry, entry should be automatically processed 1`] = `
 {
   "BEGIN": 9,
-  "COMMIT": 7,
+  "COMMIT": 6,
   "CREATE": 2,
   "DELETE": 1,
   "READ": 5,
-  "ROLLBACK": 1,
+  "ROLLBACK": 2,
   "UPDATE": 3,
 }
 `;
@@ -101,11 +101,11 @@ exports[`integration-main if modifyQueueEntry methods throws an error --> entry 
 exports[`integration-main if process event returns an error --> tx should be rolled backed 1`] = `
 {
   "BEGIN": 8,
-  "COMMIT": 6,
+  "COMMIT": 5,
   "CREATE": 1,
   "DELETE": 1,
   "READ": 5,
-  "ROLLBACK": 1,
+  "ROLLBACK": 2,
   "UPDATE": 3,
 }
 `;
@@ -113,11 +113,11 @@ exports[`integration-main if process event returns an error --> tx should be rol
 exports[`integration-main if process event throws an error --> tx should be rolled backed 1`] = `
 {
   "BEGIN": 8,
-  "COMMIT": 6,
+  "COMMIT": 5,
   "CREATE": 1,
   "DELETE": 1,
   "READ": 5,
-  "ROLLBACK": 1,
+  "ROLLBACK": 2,
   "UPDATE": 3,
 }
 `;
@@ -125,11 +125,11 @@ exports[`integration-main if process event throws an error --> tx should be roll
 exports[`integration-main insert one entry and process 1`] = `
 {
   "BEGIN": 8,
-  "COMMIT": 6,
+  "COMMIT": 5,
   "CREATE": 1,
   "DELETE": 1,
   "READ": 5,
-  "ROLLBACK": 1,
+  "ROLLBACK": 2,
   "UPDATE": 3,
 }
 `;
@@ -168,11 +168,11 @@ exports[`integration-main should do nothing if lock for event combination cannot
 exports[`integration-main transactionMode=HTTP one with error + one without error --> tx no rollback because mode HTTP 1`] = `
 {
   "BEGIN": 8,
-  "COMMIT": 7,
+  "COMMIT": 6,
   "CREATE": 1,
   "DELETE": 1,
   "READ": 7,
-  "ROLLBACK": 1,
+  "ROLLBACK": 2,
   "UPDATE": 5,
 }
 `;
@@ -205,11 +205,11 @@ exports[`integration-main transactionMode=SINGLE_EVENT both processed register t
 exports[`integration-main transactionMode=SINGLE_EVENT first processed register tx rollback - one should be roll back 1`] = `
 {
   "BEGIN": 9,
-  "COMMIT": 7,
+  "COMMIT": 6,
   "CREATE": 1,
   "DELETE": 1,
   "READ": 8,
-  "ROLLBACK": 1,
+  "ROLLBACK": 2,
   "UPDATE": 4,
 }
 `;
@@ -217,11 +217,11 @@ exports[`integration-main transactionMode=SINGLE_EVENT first processed register 
 exports[`integration-main transactionMode=SINGLE_EVENT first processed register tx rollback 1`] = `
 {
   "BEGIN": 9,
-  "COMMIT": 7,
+  "COMMIT": 6,
   "CREATE": 1,
   "DELETE": 1,
   "READ": 8,
-  "ROLLBACK": 1,
+  "ROLLBACK": 2,
   "UPDATE": 4,
 }
 `;
@@ -229,11 +229,11 @@ exports[`integration-main transactionMode=SINGLE_EVENT first processed register 
 exports[`integration-main two entries with no commit on event level 1`] = `
 {
   "BEGIN": 9,
-  "COMMIT": 7,
+  "COMMIT": 6,
   "CREATE": 1,
   "DELETE": 1,
   "READ": 8,
-  "ROLLBACK": 1,
+  "ROLLBACK": 2,
   "UPDATE": 4,
 }
 `;
