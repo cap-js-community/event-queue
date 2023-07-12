@@ -12,7 +12,6 @@ nav_order: 5
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
-
 - TOC
   {: toc}
 
@@ -50,21 +49,21 @@ passed to `processEvent` can always be committed or rolled back without affectin
 is processed and altered with the transaction passed to `processEvent`, the transaction mode `isolated` should be used.
 
 - alwaysCommit
-    - The transaction passed to `processEvent` is always committed, even if an unsuccessful event status is returned.
-    - TODO: explain new function setShouldRollbackTransaction()
+  - The transaction passed to `processEvent` is always committed, even if an unsuccessful event status is returned.
+  - TODO: explain new function setShouldRollbackTransaction()
 - alwaysRollback
-    - The transaction passed to `processEvent` is always rolled back, regardless of the event status returned
+  - The transaction passed to `processEvent` is always rolled back, regardless of the event status returned
 - isolated
-    - Whether the transaction is committed or rolled back depends on the event status returned from the `processEvent`
-      function.
-        - Status `Done` will result in a commit.
-        - Status `Open`,`Error`, `Exceeded` will result in a rollback. For more information about the status handling of
-          events, refer to the corresponding [wiki page](/event-queue/status-handling).
+  - Whether the transaction is committed or rolled back depends on the event status returned from the `processEvent`
+    function.
+    - Status `Done` will result in a commit.
+    - Status `Open`,`Error`, `Exceeded` will result in a rollback. For more information about the status handling of
+      events, refer to the corresponding [wiki page](/event-queue/status-handling).
 
 ### Exception Handling
 
 - When an exception is raised by user code and not handled:
-    - The event queue tries to catch all exceptions, and if this occurs, it sets the event entry to an error state.
+  - The event queue tries to catch all exceptions, and if this occurs, it sets the event entry to an error state.
 - The event processor (`processEvent`) changes the status of an event to 'error'. For more details on status handling of
   events, please refer to the dedicated [wiki page](/event-queue/status-handling).
 
