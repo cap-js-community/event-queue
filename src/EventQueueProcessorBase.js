@@ -192,12 +192,19 @@ class EventQueueProcessorBase {
   clusterQueueEntries() {
     Object.entries(this.__queueEntriesWithPayloadMap).forEach(
       ([key, { queueEntry, payload }]) => {
-        this.#addEntryToProcessingMap(key, queueEntry, payload);
+        this.addEntryToProcessingMap(key, queueEntry, payload);
       }
     );
   }
 
-  #addEntryToProcessingMap(key, queueEntry, payload) {
+  /**
+   * This function allows to add entries to the process map. This function is needed if the function clusterQueueEntries
+   * is redefined. For each entry in the processing map the processEvent function will be called once.
+   * @param {String} key key for event
+   * @param {Object} queueEntry queueEntry which should be clustered with this key
+   * @param {Object} payload payload which should be clustered with this key
+   */
+  addEntryToProcessingMap(key, queueEntry, payload) {
     this.logger.debug("add entry to processing map", {
       key,
       queueEntry,
