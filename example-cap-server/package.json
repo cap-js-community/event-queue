@@ -24,9 +24,6 @@
       "configFilePath": "./srv/eventConfig.yml"
     },
     "requires": {
-      "event-queue": {
-        "model": "@cap-js-community/event-queue"
-      },
       "multitenancy": true,
       "cds.xt.ModelProviderService": true,
       "cds.xt.SaasProvisioningService": true,
