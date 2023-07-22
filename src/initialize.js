@@ -67,15 +67,6 @@ const initialize = async ({
     : new Promise((resolve) => cds.on("serving", resolve)));
   !configInstance.skipCsnCheck && (await csnCheck());
   if (configInstance.processEventsAfterPublish) {
-    // TODO: remove this as soon as CDS fixes the current plugin model issues --> cds 7
-    if (BASE_TABLES.EVENT === configInstance.tableNameEventQueue) {
-      cds.db.model.definitions[BASE_TABLES.EVENT] =
-        cds.model.definitions[BASE_TABLES.EVENT];
-    }
-    if (BASE_TABLES.LOCK === configInstance.tableNameEventLock) {
-      cds.db.model.definitions[BASE_TABLES.LOCK] =
-        cds.model.definitions[BASE_TABLES.LOCK];
-    }
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
