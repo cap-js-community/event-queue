@@ -8,4 +8,9 @@ module.exports = {
     Error: 3,
     Exceeded: 4,
   },
+  TransactionMode: {
+    isolated: "isolated",
+    alwaysCommit: "alwaysCommit",
+    alwaysRollback: "alwaysRollback",
+  },
 };

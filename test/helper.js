@@ -22,21 +22,31 @@ const getEventEntry = () => {
   };
 };
 
-const insertEventEntry = async (tx, { entries, numberOfEntries = 1 } = {}) => {
+const insertEventEntry = async (
+  tx,
+  {
+    entries,
+    numberOfEntries = 1,
+    type = "Notifications",
+    subType = "Task",
+    randomGuid = false,
+  } = {}
+) => {
   if (!entries || entries?.length === 0) {
-    const event = eventQueue.getConfigInstance().events[0];
     entries = [
       {
-        ID: "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf",
         ...getEventEntry(),
+        ...(randomGuid ? {} : { ID: "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf" }),
+        type,
+        subType,
       },
     ];
     Array(numberOfEntries - 1)
       .fill({})
       .forEach(() => {
         entries.push({
-          type: event.type,
-          subType: event.subType,
+          type,
+          subType,
           payload: JSON.stringify({
             testPayload: 123,
           }),
@@ -62,11 +72,20 @@ const selectEventQueueAndExpectExceeded = async (tx, expectedLength = 1) =>
     expectedLength
   );
 
+const selectEventQueueAndReturn = async (tx, expectedLength = 1) => {
+  const events = await tx.run(
+    SELECT.from("sap.eventqueue.Event").columns("status", "attempts")
+  );
+  expect(events).toHaveLength(expectedLength);
+  return events;
+};
+
 module.exports = {
   selectEventQueueAndExpectDone,
   selectEventQueueAndExpectOpen,
   selectEventQueueAndExpectError,
   selectEventQueueAndExpectExceeded,
+  selectEventQueueAndReturn,
   insertEventEntry,
   getEventEntry,
 };
