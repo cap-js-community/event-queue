@@ -50,8 +50,12 @@
     "jest": "^29.5.0",
     "prettier": "^2.8.8"
   },
-  "event-queue": {
-    "model": "@cap-js-community/event-queue"
+  "cds": {
+    "requires": {
+      "event-queue": {
+        "model": "@cap-js-community/event-queue"
+      }
+    }
   },
   "author": "Maximilian Gruenfelder <maximilian.gruenfelder@sap.com>",
   "license": "Apache-2.0"
