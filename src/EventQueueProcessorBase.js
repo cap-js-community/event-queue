@@ -18,6 +18,7 @@ const DEFAULT_PARALLEL_EVENT_PROCESSING = 1;
 const LIMIT_PARALLEL_EVENT_PROCESSING = 10;
 const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const DEFAULT_DELETE_FINISHED_EVENTS_AFTER = 0;
+const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 
 class EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
@@ -438,7 +439,7 @@ class EventQueueProcessorBase {
         this.eventSubType,
         "AND lastAttemptTimestamp <=",
         new Date(
-          Date.now() - this.__deleteFinishedEventsAfter * 24 * 60 * 60 * 1000
+          Date.now() - this.__deleteFinishedEventsAfter * DAYS_TO_MS
         ).toISOString()
       )
     );
