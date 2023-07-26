@@ -42,9 +42,7 @@ describe("initialize", () => {
 
   describe("runner mode registration", () => {
     test("single tenant", async () => {
-      const singleTenantSpy = jest
-        .spyOn(runner, "singleTenant")
-        .mockReturnValueOnce();
+      const singleTenantSpy = jest.spyOn(runner, "singleTenant").mockReturnValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -54,9 +52,7 @@ describe("initialize", () => {
 
     test("multi tenancy with db", async () => {
       cds.requires.multitenancy = {};
-      const multiTenancyDbSpy = jest
-        .spyOn(runner, "multiTenancyDb")
-        .mockReturnValueOnce();
+      const multiTenancyDbSpy = jest.spyOn(runner, "multiTenancyDb").mockReturnValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -66,9 +62,7 @@ describe("initialize", () => {
     });
 
     test("calling initialize twice should only processed once", async () => {
-      const singleTenant = jest
-        .spyOn(runner, "singleTenant")
-        .mockReturnValueOnce();
+      const singleTenant = jest.spyOn(runner, "singleTenant").mockReturnValueOnce();
       const p1 = eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -87,9 +81,7 @@ describe("initialize", () => {
         "redis-cache": [{ credentials: { hostname: "123" } }],
       };
       eventQueue.getConfigInstance().isOnCF = true;
-      const multiTenancyRedisSpy = jest
-        .spyOn(runner, "multiTenancyRedis")
-        .mockReturnValueOnce();
+      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockReturnValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -125,9 +117,7 @@ describe("initialize", () => {
       expect(configInstance.processEventsAfterPublish).toEqual(true);
       expect(configInstance.runInterval).toEqual(5 * 60 * 1000);
       expect(configInstance.parallelTenantProcessing).toEqual(3);
-      expect(configInstance.tableNameEventQueue).toEqual(
-        "sap.eventqueue.Event"
-      );
+      expect(configInstance.tableNameEventQueue).toEqual("sap.eventqueue.Event");
       expect(configInstance.tableNameEventLock).toEqual("sap.eventqueue.Lock");
       expect(configInstance.skipCsnCheck).toEqual(false);
     });

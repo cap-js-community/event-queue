@@ -13,14 +13,12 @@ const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
 jest.spyOn(cdsHelper, "getSubdomainForTenantId").mockResolvedValue("dummy");
 const processEventQueue = require("../src/processEventQueue");
 
-const eventQueueRunnerSpy = jest
-  .spyOn(processEventQueue, "eventQueueRunner")
-  .mockImplementation(
-    async () =>
-      new Promise((resolve) => {
-        setTimeout(resolve, 10);
-      })
-  );
+const eventQueueRunnerSpy = jest.spyOn(processEventQueue, "eventQueueRunner").mockImplementation(
+  async () =>
+    new Promise((resolve) => {
+      setTimeout(resolve, 10);
+    })
+);
 
 const distributedLock = require("../src/shared/distributedLock");
 const eventQueue = require("../src");
@@ -37,13 +35,7 @@ describe("redisRunner", () => {
   let context, tx, configInstance;
 
   beforeAll(async () => {
-    const configFilePath = path.join(
-      __dirname,
-      "..",
-      "./test",
-      "asset",
-      "config.yml"
-    );
+    const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
     await eventQueue.initialize({
       configFilePath,
       processEventsAfterPublish: false,
@@ -74,15 +66,9 @@ describe("redisRunner", () => {
   });
 
   it("redis", async () => {
-    const setValueWithExpireSpy = jest.spyOn(
-      distributedLock,
-      "setValueWithExpire"
-    );
+    const setValueWithExpireSpy = jest.spyOn(distributedLock, "setValueWithExpire");
     const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
-    const checkLockExistsAndReturnValueSpy = jest.spyOn(
-      distributedLock,
-      "checkLockExistsAndReturnValue"
-    );
+    const checkLockExistsAndReturnValueSpy = jest.spyOn(distributedLock, "checkLockExistsAndReturnValue");
     getAllTenantIdsSpy
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
@@ -202,18 +188,14 @@ describe("redisRunner", () => {
     });
 
     it("acquireRunId should set ts", async () => {
-      let runTs = await distributedLock.checkLockExistsAndReturnValue(
-        {},
-        runner._.EVENT_QUEUE_RUN_TS,
-        { tenantScoped: false }
-      );
+      let runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner._.EVENT_QUEUE_RUN_TS, {
+        tenantScoped: false,
+      });
       expect(runTs).toBeNull();
       await runner._._acquireRunId();
-      runTs = await distributedLock.checkLockExistsAndReturnValue(
-        {},
-        runner._.EVENT_QUEUE_RUN_TS,
-        { tenantScoped: false }
-      );
+      runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner._.EVENT_QUEUE_RUN_TS, {
+        tenantScoped: false,
+      });
       expect(runTs).toBeDefined();
     });
 
@@ -222,13 +204,10 @@ describe("redisRunner", () => {
       jest.useFakeTimers();
       const systemTime = Date.now();
       jest.setSystemTime(systemTime);
-      const runTs = await distributedLock.checkLockExistsAndReturnValue(
-        {},
-        runner._.EVENT_QUEUE_RUN_TS,
-        { tenantScoped: false }
-      );
-      const expectedTs =
-        new Date(runTs).getTime() + configInstance.runInterval - systemTime;
+      const runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner._.EVENT_QUEUE_RUN_TS, {
+        tenantScoped: false,
+      });
+      const expectedTs = new Date(runTs).getTime() + configInstance.runInterval - systemTime;
       const result = await runner._._calculateOffsetForFirstRun();
       expect(result).toEqual(expectedTs);
       jest.useRealTimers();
@@ -236,22 +215,14 @@ describe("redisRunner", () => {
 
     it("should calculate correct offset - manuel set", async () => {
       const ts = new Date(Date.now() - 3 * 60 * 1000).toISOString();
-      await distributedLock.setValueWithExpire(
-        {},
-        runner._.EVENT_QUEUE_RUN_TS,
-        ts,
-        { tenantScoped: false }
-      );
+      await distributedLock.setValueWithExpire({}, runner._.EVENT_QUEUE_RUN_TS, ts, { tenantScoped: false });
       jest.useFakeTimers();
       const systemTime = Date.now();
       jest.setSystemTime(systemTime);
-      const runTs = await distributedLock.checkLockExistsAndReturnValue(
-        {},
-        runner._.EVENT_QUEUE_RUN_TS,
-        { tenantScoped: false }
-      );
-      const expectedTs =
-        new Date(runTs).getTime() + configInstance.runInterval - systemTime;
+      const runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner._.EVENT_QUEUE_RUN_TS, {
+        tenantScoped: false,
+      });
+      const expectedTs = new Date(runTs).getTime() + configInstance.runInterval - systemTime;
       const result = await runner._._calculateOffsetForFirstRun();
       expect(result).toEqual(expectedTs);
       jest.useRealTimers();

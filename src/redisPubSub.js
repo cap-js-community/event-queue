@@ -22,15 +22,11 @@ const initEventQueueRedisSubscribe = () => {
 
 const subscribeRedisClient = () => {
   const errorHandlerCreateClient = (err) => {
-    cds
-      .log(COMPONENT_NAME)
-      .error("error from redis client for pub/sub failed", err);
+    cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
     subscriberClientPromise = null;
     setTimeout(subscribeRedisClient, 5 * 1000).unref();
   };
-  subscriberClientPromise = redis.createClientAndConnect(
-    errorHandlerCreateClient
-  );
+  subscriberClientPromise = redis.createClientAndConnect(errorHandlerCreateClient);
   subscriberClientPromise
     .then((client) => {
       cds.log(COMPONENT_NAME).info("subscribe redis client connected");
@@ -39,10 +35,7 @@ const subscribeRedisClient = () => {
     .catch((err) => {
       cds
         .log(COMPONENT_NAME)
-        .error(
-          "error from redis client for pub/sub failed during startup - trying to reconnect",
-          err
-        );
+        .error("error from redis client for pub/sub failed during startup - trying to reconnect", err);
     });
 };
 
@@ -68,9 +61,7 @@ const messageHandlerProcessEvents = async (messageData) => {
     type,
     subType,
   });
-  getWorkerPoolInstance().addToQueue(async () =>
-    processEventQueue(context, type, subType)
-  );
+  getWorkerPoolInstance().addToQueue(async () => processEventQueue(context, type, subType));
 };
 
 const publishEvent = async (tenantId, type, subType) => {
@@ -89,9 +80,7 @@ const publishEvent = async (tenantId, type, subType) => {
   };
   try {
     if (!publishClient) {
-      publishClient = await redis.createClientAndConnect(
-        errorHandlerCreateClient
-      );
+      publishClient = await redis.createClientAndConnect(errorHandlerCreateClient);
       logger.info("publish redis client connected");
     }
 
@@ -108,10 +97,7 @@ const publishEvent = async (tenantId, type, subType) => {
       type,
       subType,
     });
-    await publishClient.publish(
-      MESSAGE_CHANNEL,
-      JSON.stringify({ tenantId, type, subType })
-    );
+    await publishClient.publish(MESSAGE_CHANNEL, JSON.stringify({ tenantId, type, subType }));
   } catch (err) {
     logger.error(`publish event failed with error: ${err.toString()}`, {
       tenantId,

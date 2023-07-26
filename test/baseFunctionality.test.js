@@ -5,10 +5,7 @@ const path = require("path");
 const cds = require("@sap/cds/lib");
 
 const cdsHelper = require("../src/shared/cdsHelper");
-const executeInNewTransactionSpy = jest.spyOn(
-  cdsHelper,
-  "executeInNewTransaction"
-);
+const executeInNewTransactionSpy = jest.spyOn(cdsHelper, "executeInNewTransaction");
 
 const eventQueue = require("../src");
 const testHelper = require("./helper");
@@ -77,12 +74,7 @@ describe("baseFunctionality", () => {
 
   test("should do nothing if no lock is available", async () => {
     await testHelper.insertEventEntry(tx);
-    jest
-      .spyOn(
-        eventQueue.EventQueueProcessorBase.prototype,
-        "handleDistributedLock"
-      )
-      .mockResolvedValueOnce(false);
+    jest.spyOn(eventQueue.EventQueueProcessorBase.prototype, "handleDistributedLock").mockResolvedValueOnce(false);
     const event = eventQueue.getConfigInstance().events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
@@ -101,10 +93,7 @@ describe("baseFunctionality", () => {
     test("handle handleDistributedLock fails", async () => {
       await testHelper.insertEventEntry(tx);
       jest
-        .spyOn(
-          eventQueue.EventQueueProcessorBase.prototype,
-          "handleDistributedLock"
-        )
+        .spyOn(eventQueue.EventQueueProcessorBase.prototype, "handleDistributedLock")
         .mockRejectedValueOnce(new Error("lock require failed"));
       const event = eventQueue.getConfigInstance().events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
@@ -116,10 +105,7 @@ describe("baseFunctionality", () => {
     test("handle getQueueEntriesAndSetToInProgress fails", async () => {
       await testHelper.insertEventEntry(tx);
       jest
-        .spyOn(
-          eventQueue.EventQueueProcessorBase.prototype,
-          "getQueueEntriesAndSetToInProgress"
-        )
+        .spyOn(eventQueue.EventQueueProcessorBase.prototype, "getQueueEntriesAndSetToInProgress")
         .mockRejectedValueOnce(new Error("db error"));
       const event = eventQueue.getConfigInstance().events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
@@ -130,11 +116,9 @@ describe("baseFunctionality", () => {
 
     test("handle modifyQueueEntry fails", async () => {
       await testHelper.insertEventEntry(tx);
-      jest
-        .spyOn(eventQueue.EventQueueProcessorBase.prototype, "modifyQueueEntry")
-        .mockImplementationOnce(() => {
-          throw new Error("syntax error");
-        });
+      jest.spyOn(eventQueue.EventQueueProcessorBase.prototype, "modifyQueueEntry").mockImplementationOnce(() => {
+        throw new Error("syntax error");
+      });
       const event = eventQueue.getConfigInstance().events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
@@ -156,14 +140,9 @@ describe("baseFunctionality", () => {
 
     test("handle clusterQueueEntries fails", async () => {
       await testHelper.insertEventEntry(tx);
-      jest
-        .spyOn(
-          eventQueue.EventQueueProcessorBase.prototype,
-          "clusterQueueEntries"
-        )
-        .mockImplementationOnce(() => {
-          throw new Error("syntax error");
-        });
+      jest.spyOn(eventQueue.EventQueueProcessorBase.prototype, "clusterQueueEntries").mockImplementationOnce(() => {
+        throw new Error("syntax error");
+      });
       const event = eventQueue.getConfigInstance().events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
@@ -179,9 +158,7 @@ describe("baseFunctionality", () => {
         .mockImplementationOnce(async (queueEntry) => {
           return queueEntry.payload;
         });
-      await tx.run(
-        INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry)
-      );
+      await tx.run(INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry));
       const event = eventQueue.getConfigInstance().events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -191,14 +168,10 @@ describe("baseFunctionality", () => {
     test("null as payload should be set to done", async () => {
       const eventQueueEntry = testHelper.getEventEntry();
       eventQueueEntry.payload = undefined;
-      jest
-        .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
-        .mockImplementationOnce(async () => {
-          return null;
-        });
-      await tx.run(
-        INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry)
-      );
+      jest.spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload").mockImplementationOnce(async () => {
+        return null;
+      });
+      await tx.run(INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry));
       const event = eventQueue.getConfigInstance().events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -208,14 +181,10 @@ describe("baseFunctionality", () => {
     test("undefined as payload should be treated as error", async () => {
       const eventQueueEntry = testHelper.getEventEntry();
       eventQueueEntry.payload = undefined;
-      jest
-        .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
-        .mockImplementationOnce(async () => {
-          return undefined;
-        });
-      await tx.run(
-        INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry)
-      );
+      jest.spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload").mockImplementationOnce(async () => {
+        return undefined;
+      });
+      await tx.run(INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry));
       const event = eventQueue.getConfigInstance().events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);

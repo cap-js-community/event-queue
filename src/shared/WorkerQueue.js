@@ -32,31 +32,20 @@ class WorkerQueue {
     this.__runningPromises.push(promise);
     promise
       .finally(() => {
-        this.__runningPromises.splice(
-          this.__runningPromises.indexOf(promise),
-          1
-        );
+        this.__runningPromises.splice(this.__runningPromises.indexOf(promise), 1);
         this._checkForNext();
       })
       .then((...results) => {
         resolve(...results);
       })
       .catch((err) => {
-        cds
-          .log(COMPONENT_NAME)
-          .error(
-            "Error happened in WorkQueue. Errors should be caught before! Error:",
-            err
-          );
+        cds.log(COMPONENT_NAME).error("Error happened in WorkQueue. Errors should be caught before! Error:", err);
         reject(err);
       });
   }
 
   _checkForNext() {
-    if (
-      !this.__queue.length ||
-      this.__runningPromises.length >= this.__concurrencyLimit
-    ) {
+    if (!this.__queue.length || this.__runningPromises.length >= this.__concurrencyLimit) {
       return;
     }
     const [cb, resolve, reject] = this.__queue.shift();

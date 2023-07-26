@@ -3,10 +3,7 @@
 const cds = require("@sap/cds/lib");
 
 const cdsHelper = require("../src/shared/cdsHelper");
-const executeInNewTransactionSpy = jest.spyOn(
-  cdsHelper,
-  "executeInNewTransaction"
-);
+const executeInNewTransactionSpy = jest.spyOn(cdsHelper, "executeInNewTransaction");
 
 const { acquireLock, releaseLock } = require("../src/shared/distributedLock");
 const path = require("path");
@@ -55,16 +52,12 @@ describe("distributedLock", () => {
   it("straight forward - acquire and release", async () => {
     const lockAcquired = await acquireLock(context, "key");
     expect(lockAcquired).toEqual(true);
-    const afterAcquire = await tx.run(
-      SELECT.one.from("sap.eventqueue.Lock").where("code LIKE '%key%'")
-    );
+    const afterAcquire = await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code LIKE '%key%'"));
     expect(afterAcquire).toBeDefined();
 
     await releaseLock(context, "key");
 
-    const afterRelease = await tx.run(
-      SELECT.one.from("sap.eventqueue.Lock").where("code LIKE '%key%'")
-    );
+    const afterRelease = await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code LIKE '%key%'"));
     expect(afterRelease).toEqual(undefined);
   });
 
@@ -78,10 +71,7 @@ describe("distributedLock", () => {
   it("two concurrent acquire", async () => {
     const lockAcquiredPromise = acquireLock(context, "key");
     const lockAcquiredSecondPromise = acquireLock(context, "key");
-    const [lockAcquired, lockAcquiredSecond] = await Promise.all([
-      lockAcquiredPromise,
-      lockAcquiredSecondPromise,
-    ]);
+    const [lockAcquired, lockAcquiredSecond] = await Promise.all([lockAcquiredPromise, lockAcquiredSecondPromise]);
 
     expect(lockAcquiredSecond).toEqual(!lockAcquired);
   });

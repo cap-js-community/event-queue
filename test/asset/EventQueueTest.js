@@ -10,13 +10,8 @@ class EventQueueTest extends EventQueueBaseClass {
 
   // eslint-disable-next-line no-unused-vars
   async processEvent(processContext, key, queueEntries, payload) {
-    await this.getTxForEventProcessing(key).run(
-      SELECT.from("sap.eventqueue.Event")
-    );
-    return queueEntries.map((queueEntry) => [
-      queueEntry.ID,
-      EventProcessingStatus.Done,
-    ]);
+    await this.getTxForEventProcessing(key).run(SELECT.from("sap.eventqueue.Event"));
+    return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
   }
 
   async checkEventAndGeneratePayload(queueEntry) {

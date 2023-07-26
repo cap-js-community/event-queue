@@ -56,10 +56,7 @@ class Funnel {
     }
 
     // map function call to promise
-    const p =
-      f.constructor.name === "AsyncFunction"
-        ? f(...args)
-        : Promise.resolve().then(() => f(...args));
+    const p = f.constructor.name === "AsyncFunction" ? f(...args) : Promise.resolve().then(() => f(...args));
 
     // create promise for book keeping
     const workload = p.finally(() => {
@@ -100,9 +97,7 @@ const limiter = async (limit, payloads, iterator) => {
     returnPromises.push(p);
 
     if (limit <= payloads.length) {
-      const e = p
-        .catch(() => {})
-        .finally(() => runningPromises.splice(runningPromises.indexOf(e), 1));
+      const e = p.catch(() => {}).finally(() => runningPromises.splice(runningPromises.indexOf(e), 1));
       runningPromises.push(e);
       if (limit <= runningPromises.length) {
         await Promise.race(runningPromises);
