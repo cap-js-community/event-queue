@@ -156,6 +156,16 @@ exports[`integration-main returning exceeded status should be allowed 2`] = `
 }
 `;
 
+exports[`integration-main should delete event entries after 30 days 1`] = `
+{
+  "BEGIN": 5,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 2,
+  "READ": 2,
+}
+`;
+
 exports[`integration-main should do nothing if lock for event combination cannot be acquired 1`] = `
 {
   "BEGIN": 2,
