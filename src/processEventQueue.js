@@ -115,9 +115,7 @@ const processEventQueue = async (
           `eventQueue-handleExceededEvents-${eventType}##${eventSubType}`,
           async (tx) => {
             eventTypeInstance.processEventContext = tx.context;
-            await eventTypeInstance.handleExceededEvents(
-              eventTypeInstance.exceededEvents
-            );
+            await eventTypeInstance.handleExceededEvents();
           }
         ));
       if (!eventTypeInstance) {

@@ -2,7 +2,10 @@
 
 const cds = require("@sap/cds");
 
-const { executeInNewTransaction } = require("./shared/cdsHelper");
+const {
+  executeInNewTransaction,
+  TriggerRollback,
+} = require("./shared/cdsHelper");
 const { EventProcessingStatus, TransactionMode } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
@@ -19,8 +22,12 @@ const LIMIT_PARALLEL_EVENT_PROCESSING = 10;
 const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const DEFAULT_DELETE_FINISHED_EVENTS_AFTER = 0;
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
+const TRIES_FOR_EXCEEDED_EVENTS = 3;
 
 class EventQueueProcessorBase {
+  #eventsWithExceededTries = [];
+  #exceededTriesExceeded = [];
+
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
     this.__baseContext = context;
@@ -61,7 +68,6 @@ class EventQueueProcessorBase {
     } else {
       this.__deleteFinishedEventsAfter = DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
     }
-    this.__eventsWithExceededTries = [];
     this.__emptyChunkSelected = false;
     this.__lockAcquired = false;
     this.__txUsageAllowed = true;
@@ -236,9 +242,14 @@ class EventQueueProcessorBase {
    * event processing.
    * @param {Array} queueEntries which has been selected from event queue table and been modified by modifyQueueEntry
    * @param {Array<Object>} queueEntryProcessingStatusTuple Array of tuple <queueEntryId, processingStatus>
+   * @param {boolean} returnMap Allows the function to allow the result as map
    * @return {Object} statusMap Map which contains all events for which a status has been set so far
    */
-  setEventStatus(queueEntries, queueEntryProcessingStatusTuple) {
+  setEventStatus(
+    queueEntries,
+    queueEntryProcessingStatusTuple,
+    returnMap = false
+  ) {
     this.logger.debug("setting event status for entries", {
       queueEntryProcessingStatusTuple: JSON.stringify(
         queueEntryProcessingStatusTuple
@@ -246,7 +257,8 @@ class EventQueueProcessorBase {
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
     });
-    const statusMap = this.commitOnEventLevel ? {} : this.__statusMap;
+    const statusMap =
+      this.commitOnEventLevel || returnMap ? {} : this.__statusMap;
     try {
       queueEntryProcessingStatusTuple.forEach(([id, processingStatus]) =>
         this.#determineAndAddEventStatusToMap(id, processingStatus, statusMap)
@@ -616,11 +628,15 @@ class EventQueueProcessorBase {
           return;
         }
 
-        const { exceededTries, openEvents } =
+        const { exceededTries, openEvents, exceededTriesExceeded } =
           this.#filterExceededEvents(entries);
         if (exceededTries.length) {
-          this.__eventsWithExceededTries = exceededTries;
+          this.#eventsWithExceededTries = exceededTries;
         }
+        if (exceededTriesExceeded.length) {
+          this.#exceededTriesExceeded = exceededTriesExceeded;
+        }
+
         result = openEvents;
 
         if (!result.length) {
@@ -644,18 +660,24 @@ class EventQueueProcessorBase {
             })
             .where(
               "ID IN",
-              result.map(({ ID }) => ID)
+              result
+                .concat(exceededTries)
+                .concat(exceededTriesExceeded)
+                .map(({ ID }) => ID)
             )
         );
-        result.forEach((entry) => {
-          entry.lastAttemptTimestamp = isoTimestamp;
-          // NOTE: empty payloads are supported on DB-Level.
-          // Behaviour of event queue is: null as payload is treated as obsolete/done
-          // For supporting this convert null to empty string --> "" as payload will be processed normally
-          if (entry.payload === null) {
-            entry.payload = "";
-          }
-        });
+        result
+          .concat(exceededTries)
+          .concat(exceededTriesExceeded)
+          .forEach((entry) => {
+            entry.lastAttemptTimestamp = isoTimestamp;
+            // NOTE: empty payloads are supported on DB-Level.
+            // Behaviour of event queue is: null as payload is treated as obsolete/done
+            // For supporting this convert null to empty string --> "" as payload will be processed normally
+            if (entry.payload === null) {
+              entry.payload = "";
+            }
+          });
       }
     );
     this.__queueEntries = result;
@@ -668,36 +690,86 @@ class EventQueueProcessorBase {
       (result, event) => {
         if (event.attempts === this.__retryAttempts) {
           result.exceededTries.push(event);
+        } else if (
+          event.attempts ===
+          this.__retryAttempts + TRIES_FOR_EXCEEDED_EVENTS
+        ) {
+          result.exceededTriesExceeded.push(event);
         } else {
           result.openEvents.push(event);
         }
         return result;
       },
-      { exceededTries: [], openEvents: [] }
+      { exceededTries: [], openEvents: [], exceededTriesExceeded: [] }
     );
   }
 
-  async handleExceededEvents(exceededEvents) {
-    await this.tx.run(
-      UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
-        .with({
-          status: EventProcessingStatus.Exceeded,
-        })
-        .where(
-          "ID IN",
-          exceededEvents.map(({ ID }) => ID)
-        )
+  async handleExceededEvents() {
+    await this.#handleExceededTriesExceeded();
+    try {
+      await this.hookForExceededEvents(
+        this.#eventsWithExceededTries.map((a) => ({ ...a }))
+      );
+      this.logger.warn(
+        "The retry attempts for the following events are exceeded",
+        {
+          eventType: this.__eventType,
+          eventSubType: this.__eventSubType,
+          retryAttempts: this.__retryAttempts,
+          queueEntriesIds: this.#eventsWithExceededTries.map(({ ID }) => ID),
+        }
+      );
+      await this.#persistEventQueueStatusForExceeded(
+        this.tx,
+        this.#eventsWithExceededTries,
+        EventProcessingStatus.Exceeded
+      );
+    } catch (err) {
+      this.logger.error(
+        `Caught error during hook for exceeded events - setting queue entry to error. Please catch your promises/exceptions. Error: ${err}`,
+        {
+          eventType: this.__eventType,
+          eventSubType: this.__eventSubType,
+          queueEntriesIds: this.#eventsWithExceededTries.map(({ ID }) => ID),
+        }
+      );
+      await executeInNewTransaction(
+        this.processEventContext,
+        "error-hookForExceededEvents",
+        async (tx) => {
+          this.#persistEventQueueStatusForExceeded(
+            tx,
+            EventProcessingStatus.Error
+          );
+        }
+      );
+      throw TriggerRollback();
+    }
+  }
+
+  async #handleExceededTriesExceeded() {
+    if (this.#exceededTriesExceeded.length) {
+      await executeInNewTransaction(
+        this.processEventContext,
+        "exceededTriesExceeded",
+        async (tx) => {
+          this.#persistEventQueueStatusForExceeded(
+            tx,
+            this.#exceededTriesExceeded,
+            EventProcessingStatus.Error
+          );
+        }
+      );
+    }
+  }
+
+  async #persistEventQueueStatusForExceeded(tx, events, status) {
+    const statusMap = this.setEventStatus(
+      events,
+      events.map((e) => [e.ID, status]),
+      true
     );
-    this.logger.error(
-      "The retry attempts for the following events are exceeded",
-      {
-        eventType: this.__eventType,
-        eventSubType: this.__eventSubType,
-        retryAttempts: this.__retryAttempts,
-        queueEntriesIds: exceededEvents.map(({ ID }) => ID),
-      }
-    );
-    await this.hookForExceededEvents(exceededEvents);
+    await this.persistEventStatus(tx, { statusMap, skipChecks: true });
   }
 
   /**
@@ -927,7 +999,7 @@ class EventQueueProcessorBase {
   }
 
   get exceededEvents() {
-    return this.__eventsWithExceededTries;
+    return this.#eventsWithExceededTries;
   }
 
   get emptyChunkSelected() {
