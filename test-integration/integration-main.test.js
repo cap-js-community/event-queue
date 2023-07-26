@@ -538,6 +538,13 @@ describe("integration-main", () => {
       await testHelper.selectEventQueueAndExpectDone(tx);
     });
   });
+
+  describe("hookForExceededEvents", () => {
+    it("if event retries is exceeded hookForExceededEvents should be set and correct event status", async () => {
+      //TODO
+      expect(1).toEqual(1);
+    });
+  });
 });
 
 const waitEntryIsDone = async () => {
