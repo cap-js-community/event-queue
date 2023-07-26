@@ -56,15 +56,11 @@ const initialize = async ({
   );
 
   const logger = cds.log(COMPONENT);
-  configInstance.fileContent = await readConfigFromFile(
-    configInstance.configFilePath
-  );
+  configInstance.fileContent = await readConfigFromFile(configInstance.configFilePath);
   configInstance.calculateIsRedisEnabled();
 
   const dbService = await cds.connect.to("db");
-  await (cds.model
-    ? Promise.resolve()
-    : new Promise((resolve) => cds.on("serving", resolve)));
+  await (cds.model ? Promise.resolve() : new Promise((resolve) => cds.on("serving", resolve)));
   !configInstance.skipCsnCheck && (await csnCheck());
   if (configInstance.processEventsAfterPublish) {
     dbHandler.registerEventQueueDbHandler(dbService);
@@ -152,8 +148,7 @@ const checkCustomTable = (baseCsn, customCsn) => {
 
     if (
       customCsn.elements[columnName].type !== "cds.Association" &&
-      customCsn.elements[columnName].type !==
-        baseCsn.elements[columnName].type &&
+      customCsn.elements[columnName].type !== baseCsn.elements[columnName].type &&
       columnName === "status" &&
       customCsn.elements[columnName].type !== "cds.Integer"
     ) {
@@ -174,32 +169,18 @@ const mixConfigVarsWithEnv = (
 ) => {
   const configInstance = getConfigInstance();
 
-  configInstance.configFilePath =
-    configFilePath ?? cds.env.eventQueue?.configFilePath;
+  configInstance.configFilePath = configFilePath ?? cds.env.eventQueue?.configFilePath;
   configInstance.registerAsEventProcessor =
-    registerAsEventProcessor ??
-    cds.env.eventQueue?.registerAsEventProcessor ??
-    true;
+    registerAsEventProcessor ?? cds.env.eventQueue?.registerAsEventProcessor ?? true;
   configInstance.processEventsAfterPublish =
-    processEventsAfterPublish ??
-    cds.env.eventQueue?.processEventsAfterPublish ??
-    true;
-  configInstance.runInterval =
-    runInterval ?? cds.env.eventQueue?.runInterval ?? 5 * 60 * 1000;
+    processEventsAfterPublish ?? cds.env.eventQueue?.processEventsAfterPublish ?? true;
+  configInstance.runInterval = runInterval ?? cds.env.eventQueue?.runInterval ?? 5 * 60 * 1000;
   configInstance.parallelTenantProcessing =
-    parallelTenantProcessing ??
-    cds.env.eventQueue?.parallelTenantProcessing ??
-    5;
+    parallelTenantProcessing ?? cds.env.eventQueue?.parallelTenantProcessing ?? 5;
   configInstance.tableNameEventQueue =
-    tableNameEventQueue ??
-    cds.env.eventQueue?.tableNameEventQueue ??
-    BASE_TABLES.EVENT;
-  configInstance.tableNameEventLock =
-    tableNameEventLock ??
-    cds.env.eventQueue?.tableNameEventLock ??
-    BASE_TABLES.LOCK;
-  configInstance.skipCsnCheck =
-    skipCsnCheck ?? cds.env.eventQueue?.skipCsnCheck ?? false;
+    tableNameEventQueue ?? cds.env.eventQueue?.tableNameEventQueue ?? BASE_TABLES.EVENT;
+  configInstance.tableNameEventLock = tableNameEventLock ?? cds.env.eventQueue?.tableNameEventLock ?? BASE_TABLES.LOCK;
+  configInstance.skipCsnCheck = skipCsnCheck ?? cds.env.eventQueue?.skipCsnCheck ?? false;
 };
 
 module.exports = {

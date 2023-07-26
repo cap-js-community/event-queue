@@ -24,13 +24,7 @@ const getEventEntry = () => {
 
 const insertEventEntry = async (
   tx,
-  {
-    entries,
-    numberOfEntries = 1,
-    type = "Notifications",
-    subType = "Task",
-    randomGuid = false,
-  } = {}
+  { entries, numberOfEntries = 1, type = "Notifications", subType = "Task", randomGuid = false } = {}
 ) => {
   if (!entries || entries?.length === 0) {
     entries = [
@@ -66,16 +60,10 @@ const selectEventQueueAndExpectError = async (tx, expectedLength = 1) =>
   _selectEventQueueAndExpect(tx, EventProcessingStatus.Error, expectedLength);
 
 const selectEventQueueAndExpectExceeded = async (tx, expectedLength = 1) =>
-  _selectEventQueueAndExpect(
-    tx,
-    EventProcessingStatus.Exceeded,
-    expectedLength
-  );
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Exceeded, expectedLength);
 
 const selectEventQueueAndReturn = async (tx, expectedLength = 1) => {
-  const events = await tx.run(
-    SELECT.from("sap.eventqueue.Event").columns("status", "attempts")
-  );
+  const events = await tx.run(SELECT.from("sap.eventqueue.Event").columns("status", "attempts"));
   expect(events).toHaveLength(expectedLength);
   return events;
 };

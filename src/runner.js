@@ -26,17 +26,13 @@ const _scheduleFunction = async (fn) => {
   const configInstance = eventQueueConfig.getConfigInstance();
   const eventsForAutomaticRun = configInstance.events;
   if (!eventsForAutomaticRun.length) {
-    LOGGER.warn(
-      "no events for automatic run are configured - skipping runner registration"
-    );
+    LOGGER.warn("no events for automatic run are configured - skipping runner registration");
     return;
   }
 
   const fnWithRunningCheck = () => {
     if (configInstance.isRunnerDeactivated) {
-      LOGGER.info(
-        "runner is deactivated via config variable. Skipping this run."
-      );
+      LOGGER.info("runner is deactivated via config variable. Skipping this run.");
       return;
     }
     return fn();
@@ -45,9 +41,7 @@ const _scheduleFunction = async (fn) => {
   const offsetDependingOnLastRun = await _calculateOffsetForFirstRun();
 
   LOGGER.info("first event-queue run scheduled", {
-    firstRunScheduledFor: new Date(
-      Date.now() + offsetDependingOnLastRun
-    ).toISOString(),
+    firstRunScheduledFor: new Date(Date.now() + offsetDependingOnLastRun).toISOString(),
   });
 
   setTimeout(() => {
@@ -72,9 +66,7 @@ const _multiTenancyRedis = async () => {
 
 const _multiTenancyDb = async () => {
   try {
-    LOGGER.info(
-      "executing event queue run for single instance and multi tenant"
-    );
+    LOGGER.info("executing event queue run for single instance and multi tenant");
     const tenantIds = await cdsHelper.getAllTenantIds();
     _executeAllTenants(tenantIds, EVENT_QUEUE_RUN_ID);
   } catch (err) {
@@ -91,13 +83,9 @@ const _executeAllTenants = (tenantIds, runId) => {
     workerQueueInstance.addToQueue(async () => {
       try {
         const tenantContext = new cds.EventContext({ tenant: tenantId });
-        const couldAcquireLock = await distributedLock.acquireLock(
-          tenantContext,
-          runId,
-          {
-            expiryTime: configInstance.runInterval * 0.95,
-          }
-        );
+        const couldAcquireLock = await distributedLock.acquireLock(tenantContext, runId, {
+          expiryTime: configInstance.runInterval * 0.95,
+        });
         if (!couldAcquireLock) {
           return;
         }
@@ -129,48 +117,31 @@ const _executeRunForTenant = async (tenantId, runId) => {
     });
     await eventQueueRunner(context, eventsForAutomaticRun);
   } catch (err) {
-    LOGGER.error(
-      `Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`,
-      {
-        tenantId,
-        redisEnabled: configInstance.redisEnabled,
-      }
-    );
+    LOGGER.error(`Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`, {
+      tenantId,
+      redisEnabled: configInstance.redisEnabled,
+    });
   }
 };
 
 const _acquireRunId = async (context) => {
   const configInstance = eventQueueConfig.getConfigInstance();
   let runId = uuid.v4();
-  const couldSetValue = await distributedLock.setValueWithExpire(
-    context,
-    EVENT_QUEUE_RUN_ID,
-    runId,
-    {
-      tenantScoped: false,
-      expiryTime: configInstance.runInterval * 0.95,
-    }
-  );
+  const couldSetValue = await distributedLock.setValueWithExpire(context, EVENT_QUEUE_RUN_ID, runId, {
+    tenantScoped: false,
+    expiryTime: configInstance.runInterval * 0.95,
+  });
 
   if (couldSetValue) {
-    await distributedLock.setValueWithExpire(
-      context,
-      EVENT_QUEUE_RUN_TS,
-      new Date().toISOString(),
-      {
-        tenantScoped: false,
-        expiryTime: configInstance.runInterval,
-        overrideValue: true,
-      }
-    );
+    await distributedLock.setValueWithExpire(context, EVENT_QUEUE_RUN_TS, new Date().toISOString(), {
+      tenantScoped: false,
+      expiryTime: configInstance.runInterval,
+      overrideValue: true,
+    });
   } else {
-    runId = await distributedLock.checkLockExistsAndReturnValue(
-      context,
-      EVENT_QUEUE_RUN_ID,
-      {
-        tenantScoped: false,
-      }
-    );
+    runId = await distributedLock.checkLockExistsAndReturnValue(context, EVENT_QUEUE_RUN_ID, {
+      tenantScoped: false,
+    });
   }
 
   return runId;
@@ -185,34 +156,24 @@ const _calculateOffsetForFirstRun = async () => {
   try {
     if (configInstance.redisEnabled) {
       const dummyContext = new cds.EventContext({});
-      let lastRunTs = await distributedLock.checkLockExistsAndReturnValue(
-        dummyContext,
-        EVENT_QUEUE_RUN_TS,
-        { tenantScoped: false }
-      );
+      let lastRunTs = await distributedLock.checkLockExistsAndReturnValue(dummyContext, EVENT_QUEUE_RUN_TS, {
+        tenantScoped: false,
+      });
       if (!lastRunTs) {
         const ts = new Date(now).toISOString();
-        const couldSetValue = await distributedLock.setValueWithExpire(
-          dummyContext,
-          EVENT_QUEUE_RUN_TS,
-          ts,
-          {
-            tenantScoped: false,
-            expiryTime: configInstance.runInterval,
-          }
-        );
+        const couldSetValue = await distributedLock.setValueWithExpire(dummyContext, EVENT_QUEUE_RUN_TS, ts, {
+          tenantScoped: false,
+          expiryTime: configInstance.runInterval,
+        });
         if (couldSetValue) {
           lastRunTs = ts;
         } else {
-          lastRunTs = await distributedLock.checkLockExistsAndReturnValue(
-            dummyContext,
-            EVENT_QUEUE_RUN_TS,
-            { tenantScoped: false }
-          );
+          lastRunTs = await distributedLock.checkLockExistsAndReturnValue(dummyContext, EVENT_QUEUE_RUN_TS, {
+            tenantScoped: false,
+          });
         }
       }
-      offsetDependingOnLastRun =
-        new Date(lastRunTs).getTime() + configInstance.runInterval - now;
+      offsetDependingOnLastRun = new Date(lastRunTs).getTime() + configInstance.runInterval - now;
     }
   } catch (err) {
     LOGGER.error(

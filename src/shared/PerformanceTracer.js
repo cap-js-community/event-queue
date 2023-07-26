@@ -36,9 +36,7 @@ class PerformanceTracer {
     //determine, if an options object was provided as first argument
     if (
       typeof args?.[0] === "object" &&
-      (args[0].quantity >= 0 ||
-        args[0].threshold > 0 ||
-        args[0].additionalQuantityThreshold > 0)
+      (args[0].quantity >= 0 || args[0].threshold > 0 || args[0].additionalQuantityThreshold > 0)
     ) {
       options = args.shift();
     }

@@ -42,10 +42,7 @@ for each queueEntry. Each queueEntry may have a different status.
 ```js
 "use strict";
 
-const {
-  EventQueueBaseClass,
-  EventProcessingStatus,
-} = require("@cap-js-community/event-queue");
+const { EventQueueBaseClass, EventProcessingStatus } = require("@cap-js-community/event-queue");
 
 class EventQueueMinimalistic extends EventQueueBaseClass {
   constructor(context, eventType, eventSubType, config) {
@@ -96,10 +93,7 @@ class EventQueueAdvanced extends EventQueueBaseClass {
   }
 
   async checkEventAndGeneratePayload(queueEntry) {
-    const eventStillValid = await checkEventIsStillValid(
-      this.tx,
-      queueEntry.payload
-    );
+    const eventStillValid = await checkEventIsStillValid(this.tx, queueEntry.payload);
     if (!eventStillValid) {
       this.logger.info("Event not valid anymore, skipping processing", {
         eventType: this.__eventType,

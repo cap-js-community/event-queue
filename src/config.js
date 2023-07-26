@@ -34,9 +34,7 @@ class Config {
   }
 
   hasEventAfterCommitFlag(type, subType) {
-    return (
-      this.__eventMap[[type, subType].join("##")]?.processAfterCommit ?? true
-    );
+    return this.__eventMap[[type, subType].join("##")]?.processAfterCommit ?? true;
   }
 
   _checkRedisIsBound() {
