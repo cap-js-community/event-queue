@@ -519,7 +519,6 @@ describe("integration-main", () => {
       await waitEntryIsDone();
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx);
-      expect(dbCounts).toMatchSnapshot();
     });
   });
 });

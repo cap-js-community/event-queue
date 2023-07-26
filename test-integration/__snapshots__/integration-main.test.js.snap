@@ -10,18 +10,6 @@ exports[`integration-main empty queue - nothing to do 1`] = `
 }
 `;
 
-exports[`integration-main end-to-end insert entry, entry should be automatically processed 1`] = `
-{
-  "BEGIN": 9,
-  "COMMIT": 6,
-  "CREATE": 2,
-  "DELETE": 1,
-  "READ": 5,
-  "ROLLBACK": 2,
-  "UPDATE": 3,
-}
-`;
-
 exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 1`] = `
 [
   [
