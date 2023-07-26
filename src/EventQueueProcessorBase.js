@@ -739,7 +739,7 @@ class EventQueueProcessorBase {
         async (tx) => {
           this.#persistEventQueueStatusForExceeded(
             tx,
-            EventProcessingStatus.Error
+            EventProcessingStatus.Exceeded
           );
         }
       );
