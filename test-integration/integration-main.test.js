@@ -238,6 +238,23 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
+  it("should delete event entries after 30 days", async () => {
+    await cds.tx({}, async (tx2) => {
+      const event = testHelper.getEventEntry();
+      event.lastAttemptTimestamp = new Date(
+        Date.now() - 31 * 24 * 60 * 60 * 1000
+      ).toISOString();
+      event.status = 2;
+      await eventQueue.publishEvent(tx2, event);
+    });
+    dbCounts = {};
+    const event = eventQueue.getConfigInstance().events[0];
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectDone(tx, 0);
+    expect(dbCounts).toMatchSnapshot();
+  });
+
   describe("transactionMode=isolated", () => {
     it("first processed register tx rollback - only first should be rolled back", async () => {
       await cds.tx({}, (tx2) =>

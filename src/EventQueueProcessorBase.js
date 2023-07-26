@@ -17,6 +17,8 @@ const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_PARALLEL_EVENT_PROCESSING = 1;
 const LIMIT_PARALLEL_EVENT_PROCESSING = 10;
 const SELECT_LIMIT_EVENTS_PER_TICK = 100;
+const DEFAULT_DELETE_FINISHED_EVENTS_AFTER = 0;
+const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 
 class EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
@@ -50,6 +52,15 @@ class EventQueueProcessorBase {
     this.__outdatedCheckEnabled = this.__config.eventOutdatedCheck ?? true;
     this.__transactionMode =
       this.__config.transactionMode ?? TransactionMode.isolated;
+    if (this.__config.deleteFinishedEventsAfterDays) {
+      this.__deleteFinishedEventsAfter =
+        Number.isInteger(this.__config.deleteFinishedEventsAfterDays) &&
+        this.__config.deleteFinishedEventsAfterDays > 0
+          ? this.__config.deleteFinishedEventsAfterDays
+          : DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
+    } else {
+      this.__deleteFinishedEventsAfter = DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
+    }
     this.__eventsWithExceededTries = [];
     this.__emptyChunkSelected = false;
     this.__lockAcquired = false;
@@ -413,6 +424,30 @@ class EventQueueProcessorBase {
     this.logger.debug("exiting persistEventStatus", {
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
+    });
+  }
+
+  async deleteFinishedEvents(tx) {
+    if (!this.__deleteFinishedEventsAfter) {
+      return;
+    }
+    const deleteCount = await tx.run(
+      DELETE.from(this.__eventQueueConfig.tableNameEventQueue).where(
+        "type =",
+        this.eventType,
+        "AND subType=",
+        this.eventSubType,
+        "AND lastAttemptTimestamp <=",
+        new Date(
+          Date.now() - this.__deleteFinishedEventsAfter * DAYS_TO_MS
+        ).toISOString()
+      )
+    );
+    this.logger.debug("Deleted finished events", {
+      eventType: this.eventType,
+      eventSubType: this.eventSubType,
+      deleteFinishedEventsAfter: this.__deleteFinishedEventsAfter,
+      deleteCount,
     });
   }
 
