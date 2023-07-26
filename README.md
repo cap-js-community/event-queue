@@ -1,10 +1,15 @@
 # @cap-js-community/event-queue
 
-The Event-Queue is a framework built on top of CAP Node.js, designed specifically for efficient and
-streamlined asynchronous event processing. With a focus on load balancing, this package ensures optimal
-event distribution across all available application instances. By providing managed transactions similar to CAP
-handlers,
-the Event-Queue framework simplifies event processing, enhancing the overall performance of your application.
+[![npm version](https://img.shields.io/npm/v/@cap-js-community/event-queue)](https://www.npmjs.com/package/@cap-js-community/event-queue)
+[![monthly downloads](https://img.shields.io/npm/dm/@cap-js-community/event-queue)](https://www.npmjs.com/package/@cap-js-community/event-queue)
+[![REUSE status](https://api.reuse.software/badge/github.com/cap-js-community/event-queue)](https://api.reuse.software/info/github.com/cap-js-community/event-queue)
+[![CI Main](https://github.com/cap-js-community/event-queue/actions/workflows/ci-main.yml/badge.svg)](https://github.com/cap-js-community/event-queue/commits/main)
+
+The Event-Queue is a framework built on top of CAP Node.js, specifically designed to enable efficient and streamlined
+asynchronous event processing in a multi-tenancy environment. With a strong emphasis on load balancing, this package
+ensures optimal distribution of workload across all available application instances. By offering managed tenant-specific
+transactions, similar to CAP handlers, the Event-Queue framework simplifies event and asynchronous processing, thereby
+enhancing the overall performance of your application.
 
 ## Getting started
 
@@ -16,7 +21,7 @@ the Event-Queue framework simplifies event processing, enhancing the overall per
 
 ```js
 const cds = require("@sap/cds");
-const eventQueue = require("@sap/cds-event-queue");
+const eventQueue = require("@cap-js-community/event-queue");
 
 cds.on("bootstrap", () => {
   eventQueue.initialize({
@@ -81,7 +86,7 @@ Use the tables provided by this library. For that add the following to `package.
   "cds": {
     "requires": {
       "cds-event-queue": {
-        "model": "@sap/cds-event-queue"
+        "model": "@cap-js-community/event-queue"
       }
     }
   }
@@ -128,7 +133,6 @@ events:
 | Property                | Description                                                                                                                                                                                                                               |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | retryAttempts           | For infinite retries, maintain -1 as 'retryAttempts'. Default retry attempts is 3.                                                                                                                                                        |
-| runAutomatically        | If true, the event will automatically process based on the run interval. Load the load passed to the funnel - value needs to be between 1 - 100. This property is only allowed if runOnEventQueueTickHandler is true.                     |
 | parallelEventProcessing | How many events of the same type and subType are parallel processed after clustering. Default value is 1 and limit is 10.                                                                                                                 |
 | eventOutdatedCheck      | Checks if the db record for the event has been modified since the selection and right before the processing of the event. Default is true.                                                                                                |
 | commitOnEventLevel      | After processing an event, the associated transaction is committed and the associated status is committed with the same transaction. This should be used if events should be processed atomically. Default is false.                      |
@@ -150,7 +154,7 @@ times.
 
 ## Licensing
 
-Copyright (20xx-)20xx SAP SE or an SAP affiliate company and <your-project> contributors. Please see
+Copyright 2023 SAP SE or an SAP affiliate company and `@cap-js-community/event-queue contributors`. Please see
 our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and
 their licensing/copyright information is
 available [via the REUSE tool](https://api.reuse.software/info/github.com/cap-js-community/<your-project>).

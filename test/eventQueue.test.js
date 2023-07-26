@@ -1,3 +1,5 @@
+"use strict";
+
 const EventQueueError = require("../src/EventQueueError");
 
 describe("EventQueueError", () => {

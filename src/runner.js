@@ -24,7 +24,7 @@ const multiTenancyRedis = () => _scheduleFunction(_multiTenancyRedis);
 
 const _scheduleFunction = async (fn) => {
   const configInstance = eventQueueConfig.getConfigInstance();
-  const eventsForAutomaticRun = configInstance.getEventsForAutomaticRuns();
+  const eventsForAutomaticRun = configInstance.events;
   if (!eventsForAutomaticRun.length) {
     LOGGER.warn(
       "no events for automatic run are configured - skipping runner registration"
@@ -95,7 +95,7 @@ const _executeAllTenants = (tenantIds, runId) => {
           tenantContext,
           runId,
           {
-            expiryTime: configInstance.runInterval * 0.9,
+            expiryTime: configInstance.runInterval * 0.95,
           }
         );
         if (!couldAcquireLock) {
@@ -114,7 +114,7 @@ const _executeAllTenants = (tenantIds, runId) => {
 const _executeRunForTenant = async (tenantId, runId) => {
   const configInstance = eventQueueConfig.getConfigInstance();
   try {
-    const eventsForAutomaticRun = configInstance.getEventsForAutomaticRuns();
+    const eventsForAutomaticRun = configInstance.events;
     const subdomain = await cdsHelper.getSubdomainForTenantId(tenantId);
     const context = new cds.EventContext({
       tenant: tenantId,
@@ -148,7 +148,7 @@ const _acquireRunId = async (context) => {
     runId,
     {
       tenantScoped: false,
-      expiryTime: configInstance.runInterval * 0.9,
+      expiryTime: configInstance.runInterval * 0.95,
     }
   );
 
@@ -159,7 +159,7 @@ const _acquireRunId = async (context) => {
       new Date().toISOString(),
       {
         tenantScoped: false,
-        expiryTime: configInstance.runInterval * 0.9,
+        expiryTime: configInstance.runInterval,
         overrideValue: true,
       }
     );
@@ -198,7 +198,7 @@ const _calculateOffsetForFirstRun = async () => {
           ts,
           {
             tenantScoped: false,
-            expiryTime: configInstance.runInterval * 0.9,
+            expiryTime: configInstance.runInterval,
           }
         );
         if (couldSetValue) {

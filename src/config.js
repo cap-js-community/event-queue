@@ -18,25 +18,19 @@ class Config {
     this.__redisEnabled = null;
     this.__isOnCF = env.isOnCF;
     this.__initialized = false;
-    this.__parallelTenantProcessing = 1;
+    this.__parallelTenantProcessing = null;
     this.__tableNameEventQueue = null;
     this.__tableNameEventLock = null;
     this.__vcapServices = this._parseVcapServices();
     this.__isRunnerDeactivated = false;
     this.__eventsForAutomaticRun = null;
+    this.__configFilePath = null;
+    this.__processEventsAfterPublish = null;
+    this.__skipCsnCheck = null;
   }
 
   getEventConfig(type, subType) {
     return this.__eventMap[[type, subType].join("##")];
-  }
-
-  getEventsForAutomaticRuns() {
-    if (!this.__eventsForAutomaticRun) {
-      this.__eventsForAutomaticRun = this.__config.events.filter(
-        (event) => event.runAutomatically !== false
-      );
-    }
-    return this.__eventsForAutomaticRun;
   }
 
   hasEventAfterCommitFlag(type, subType) {
@@ -159,6 +153,30 @@ class Config {
 
   set tableNameEventLock(value) {
     this.__tableNameEventLock = value;
+  }
+
+  set configFilePath(value) {
+    this.__configFilePath = value;
+  }
+
+  get configFilePath() {
+    return this.__configFilePath;
+  }
+
+  set processEventsAfterPublish(value) {
+    this.__processEventsAfterPublish = value;
+  }
+
+  get processEventsAfterPublish() {
+    return this.__processEventsAfterPublish;
+  }
+
+  set skipCsnCheck(value) {
+    this.__skipCsnCheck = value;
+  }
+
+  get skipCsnCheck() {
+    return this.__skipCsnCheck;
   }
 
   get isMultiTenancy() {

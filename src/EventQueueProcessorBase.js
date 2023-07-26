@@ -3,7 +3,7 @@
 const cds = require("@sap/cds");
 
 const { executeInNewTransaction } = require("./shared/cdsHelper");
-const { EventProcessingStatus } = require("./constants");
+const { EventProcessingStatus, TransactionMode } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
 const { arrayToFlatMap } = require("./shared/common");
@@ -49,7 +49,8 @@ class EventQueueProcessorBase {
     this.__selectNextChunk = !!this.__config.checkForNextChunk;
     this.__keepalivePromises = {};
     this.__outdatedCheckEnabled = this.__config.eventOutdatedCheck ?? true;
-    this.__commitOnEventLevel = this.__config.commitOnEventLevel ?? false;
+    this.__transactionMode =
+      this.__config.transactionMode ?? TransactionMode.isolated;
     if (this.__config.deleteFinishedEventsAfterDays) {
       this.__deleteFinishedEventsAfter =
         Number.isInteger(this.__config.deleteFinishedEventsAfterDays) &&
@@ -64,6 +65,7 @@ class EventQueueProcessorBase {
     this.__lockAcquired = false;
     this.__txUsageAllowed = true;
     this.__txMap = {};
+    this.__txRollback = {};
     this.__eventQueueConfig = eventQueueConfig.getConfigInstance();
   }
 
@@ -184,7 +186,7 @@ class EventQueueProcessorBase {
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
     });
-    this._determineAndAddEventStatusToMap(
+    this.#determineAndAddEventStatusToMap(
       queueEntry.ID,
       EventProcessingStatus.Done
     );
@@ -200,12 +202,19 @@ class EventQueueProcessorBase {
   clusterQueueEntries() {
     Object.entries(this.__queueEntriesWithPayloadMap).forEach(
       ([key, { queueEntry, payload }]) => {
-        this._addEntryToProcessingMap(key, queueEntry, payload);
+        this.addEntryToProcessingMap(key, queueEntry, payload);
       }
     );
   }
 
-  _addEntryToProcessingMap(key, queueEntry, payload) {
+  /**
+   * This function allows to add entries to the process map. This function is needed if the function clusterQueueEntries
+   * is redefined. For each entry in the processing map the processEvent function will be called once.
+   * @param {String} key key for event
+   * @param {Object} queueEntry queueEntry which should be clustered with this key
+   * @param {Object} payload payload which should be clustered with this key
+   */
+  addEntryToProcessingMap(key, queueEntry, payload) {
     this.logger.debug("add entry to processing map", {
       key,
       queueEntry,
@@ -221,8 +230,8 @@ class EventQueueProcessorBase {
 
   /**
    * This function sets the status of multiple events to a given status. If the structure of queueEntryProcessingStatusTuple
-   * is not as expected all events will be set to error. The function respects the config commitOnEventLevel. If
-   * commitOnEventLevel is true the status will be written to a dedicated map and returned afterwards to handle concurrent
+   * is not as expected all events will be set to error. The function respects the config transactionMode. If
+   * transactionMode is isolated the status will be written to a dedicated map and returned afterwards to handle concurrent
    * event processing.
    * @param {Array} queueEntries which has been selected from event queue table and been modified by modifyQueueEntry
    * @param {Array<Object>} queueEntryProcessingStatusTuple Array of tuple <queueEntryId, processingStatus>
@@ -236,14 +245,14 @@ class EventQueueProcessorBase {
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
     });
-    const statusMap = this.__commitOnEventLevel ? {} : this.__statusMap;
+    const statusMap = this.commitOnEventLevel ? {} : this.__statusMap;
     try {
       queueEntryProcessingStatusTuple.forEach(([id, processingStatus]) =>
-        this._determineAndAddEventStatusToMap(id, processingStatus, statusMap)
+        this.#determineAndAddEventStatusToMap(id, processingStatus, statusMap)
       );
     } catch (error) {
       queueEntries.forEach((queueEntry) =>
-        this._determineAndAddEventStatusToMap(
+        this.#determineAndAddEventStatusToMap(
           queueEntry.ID,
           EventProcessingStatus.Error,
           statusMap
@@ -274,7 +283,7 @@ class EventQueueProcessorBase {
     }
   }
 
-  _determineAndAddEventStatusToMap(
+  #determineAndAddEventStatusToMap(
     id,
     processingStatus,
     statusMap = this.__statusMap
@@ -307,7 +316,7 @@ class EventQueueProcessorBase {
       }
     );
     queueEntries.forEach((queueEntry) =>
-      this._determineAndAddEventStatusToMap(
+      this.#determineAndAddEventStatusToMap(
         queueEntry.ID,
         EventProcessingStatus.Error
       )
@@ -333,11 +342,11 @@ class EventQueueProcessorBase {
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
     });
-    this._ensureOnlySelectedQueueEntries(statusMap);
+    this.#ensureOnlySelectedQueueEntries(statusMap);
     if (!skipChecks) {
-      this._ensureEveryQueueEntryHasStatus();
+      this.#ensureEveryQueueEntryHasStatus();
     }
-    this._ensureEveryStatusIsAllowed(statusMap);
+    this.#ensureEveryStatusIsAllowed(statusMap);
 
     const { success, failed, exceeded, invalidAttempts } = Object.entries(
       statusMap
@@ -441,7 +450,7 @@ class EventQueueProcessorBase {
     });
   }
 
-  _ensureEveryQueueEntryHasStatus() {
+  #ensureEveryQueueEntryHasStatus() {
     this.__queueEntries.forEach((queueEntry) => {
       if (
         queueEntry.ID in this.__statusMap ||
@@ -457,14 +466,14 @@ class EventQueueProcessorBase {
           queueEntry,
         }
       );
-      this._determineAndAddEventStatusToMap(
+      this.#determineAndAddEventStatusToMap(
         queueEntry.ID,
         EventProcessingStatus.Error
       );
     });
   }
 
-  _ensureEveryStatusIsAllowed(statusMap) {
+  #ensureEveryStatusIsAllowed(statusMap) {
     Object.entries(statusMap).forEach(([queueEntryId, status]) => {
       if (
         [
@@ -490,7 +499,7 @@ class EventQueueProcessorBase {
     });
   }
 
-  _ensureOnlySelectedQueueEntries(statusMap) {
+  #ensureOnlySelectedQueueEntries(statusMap) {
     Object.keys(statusMap).forEach((queueEntryId) => {
       if (this.__queueEntriesMap[queueEntryId]) {
         return;
@@ -517,7 +526,7 @@ class EventQueueProcessorBase {
       }
     );
     this.__queueEntries.forEach((queueEntry) => {
-      this._determineAndAddEventStatusToMap(
+      this.#determineAndAddEventStatusToMap(
         queueEntry.ID,
         EventProcessingStatus.Error
       );
@@ -533,7 +542,7 @@ class EventQueueProcessorBase {
         eventSubType: this.__eventSubType,
       }
     );
-    this._determineAndAddEventStatusToMap(
+    this.#determineAndAddEventStatusToMap(
       queueEntry.ID,
       EventProcessingStatus.Error
     );
@@ -607,7 +616,7 @@ class EventQueueProcessorBase {
         }
 
         const { exceededTries, openEvents } =
-          this._filterExceededEvents(entries);
+          this.#filterExceededEvents(entries);
         if (exceededTries.length) {
           this.__eventsWithExceededTries = exceededTries;
         }
@@ -653,7 +662,7 @@ class EventQueueProcessorBase {
     return result;
   }
 
-  _filterExceededEvents(events) {
+  #filterExceededEvents(events) {
     return events.reduce(
       (result, event) => {
         if (event.attempts === this.__retryAttempts) {
@@ -852,13 +861,6 @@ class EventQueueProcessorBase {
     this.__processTx = null;
   }
 
-  get shouldTriggerRollback() {
-    return (
-      this.statusMapContainsError(this.__statusMap) ||
-      this.statusMapContainsError(this.__commitedStatusMap)
-    );
-  }
-
   get logger() {
     return this.__logger ?? this.__baseLogger;
   }
@@ -908,7 +910,11 @@ class EventQueueProcessorBase {
   }
 
   get commitOnEventLevel() {
-    return this.__commitOnEventLevel;
+    return this.__transactionMode === TransactionMode.isolated;
+  }
+
+  get transactionMode() {
+    return this.__transactionMode;
   }
 
   get eventType() {
@@ -937,6 +943,14 @@ class EventQueueProcessorBase {
 
   getTxForEventProcessing(key) {
     return this.__txMap[key];
+  }
+
+  setShouldRollbackTransaction(key) {
+    this.__txRollback[key] = true;
+  }
+
+  shouldRollbackTransaction(key) {
+    return this.__txRollback[key];
   }
 
   setTxForEventProcessing(key, tx) {

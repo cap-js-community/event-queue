@@ -5,6 +5,7 @@ const pathLib = require("path");
 const cds = require("@sap/cds");
 
 const { getConfigInstance } = require("./config");
+const { TransactionMode } = require("./constants");
 const { limiter, Funnel } = require("./shared/common");
 
 const EventQueueBase = require("./EventQueueProcessorBase");
@@ -135,7 +136,13 @@ const processEventQueue = async (
             } catch (err) {
               eventTypeInstance.handleErrorDuringClustering(err);
             }
-            if (eventTypeInstance.shouldTriggerRollback) {
+            if (
+              eventTypeInstance.transactionMode !==
+                TransactionMode.alwaysCommit ||
+              Object.entries(eventTypeInstance.eventProcessingMap).some(
+                ([key]) => eventTypeInstance.shouldRollbackTransaction(key)
+              )
+            ) {
               throw new TriggerRollback();
             }
           }
@@ -220,7 +227,10 @@ const processEventMap = async (eventTypeInstance) => {
               queueEntries,
               payload
             );
-            if (eventTypeInstance.statusMapContainsError(statusMap)) {
+            if (
+              eventTypeInstance.statusMapContainsError(statusMap) ||
+              eventTypeInstance.shouldRollbackTransaction(key)
+            ) {
               throw new TriggerRollback();
             }
           }

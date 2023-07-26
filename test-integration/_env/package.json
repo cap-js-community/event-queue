@@ -1,5 +1,5 @@
 {
-  "name": "@sap/cds-event-queue-test-integration",
+  "name": "@cap-js-community/event-queue-test-integration",
   "version": "1.0.0",
   "private": true,
   "scripts": {
