@@ -6,6 +6,7 @@ events:
     parallelEventProcessing: 5
     processAfterCommit: true
     transactionMode: alwaysRollback
+    deleteFinishedEventsAfterDays: 30
 
   - type: Fiori
     subType: Task
