@@ -1,10 +1,7 @@
 "use strict";
 
 const distributedLock = require("../src/shared/distributedLock");
-const checkLockExistsSpy = jest.spyOn(
-  distributedLock,
-  "checkLockExistsAndReturnValue"
-);
+const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExistsAndReturnValue");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);

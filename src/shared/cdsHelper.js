@@ -20,13 +20,7 @@ const COMPONENT_NAME = "eventQueue/cdsHelper";
  * @param info {object} Additional information object attached to logging
  * @returns {Promise<boolean>} Promise resolving to true if everything worked fine / false if an error occurred
  */
-async function executeInNewTransaction(
-  context = {},
-  transactionTag,
-  fn,
-  args,
-  { info = {} } = {}
-) {
+async function executeInNewTransaction(context = {}, transactionTag, fn, args, { info = {} } = {}) {
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
   try {
@@ -48,10 +42,7 @@ async function executeInNewTransaction(
     } else {
       const contextTx = cds.tx(context);
       const contextTxState = contextTx.ready;
-      if (
-        !contextTxState ||
-        ["committed", "rolled back"].includes(contextTxState)
-      ) {
+      if (!contextTxState || ["committed", "rolled back"].includes(contextTxState)) {
         await cds.tx(
           {
             id: context.id,

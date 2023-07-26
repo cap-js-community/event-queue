@@ -14,10 +14,7 @@ const registerEventQueueDbHandler = (dbService) => {
     const eventCombinations = Object.keys(
       data.reduce((result, event) => {
         const key = [event.type, event.subType].join("##");
-        if (
-          !configInstance.hasEventAfterCommitFlag(event.type, event.subType) ||
-          eventQueuePublishEvents[key]
-        ) {
+        if (!configInstance.hasEventAfterCommitFlag(event.type, event.subType) || eventQueuePublishEvents[key]) {
           return result;
         }
         eventQueuePublishEvents[key] = true;

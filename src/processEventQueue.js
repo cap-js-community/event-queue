@@ -9,10 +9,7 @@ const { TransactionMode } = require("./constants");
 const { limiter, Funnel } = require("./shared/common");
 
 const EventQueueBase = require("./EventQueueProcessorBase");
-const {
-  executeInNewTransaction,
-  TriggerRollback,
-} = require("./shared/cdsHelper");
+const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
 
 const COMPONENT_NAME = "eventQueue/processEventQueue";
 const MAX_EXECUTION_TIME = 5 * 60 * 1000;
@@ -22,47 +19,24 @@ const eventQueueRunner = async (context, events) => {
   const funnel = new Funnel();
   await Promise.allSettled(
     events.map((event) =>
-      funnel.run(event.load, async () =>
-        processEventQueue(context, event.type, event.subType, startTime)
-      )
+      funnel.run(event.load, async () => processEventQueue(context, event.type, event.subType, startTime))
     )
   );
 };
 
-const processEventQueue = async (
-  context,
-  eventType,
-  eventSubType,
-  startTime = new Date()
-) => {
+const processEventQueue = async (context, eventType, eventSubType, startTime = new Date()) => {
   let iterationCounter = 0;
   let shouldContinue = true;
   let baseInstance;
   try {
     let eventTypeInstance;
-    const eventConfig = getConfigInstance().getEventConfig(
-      eventType,
-      eventSubType
-    );
+    const eventConfig = getConfigInstance().getEventConfig(eventType, eventSubType);
     const [err, EventTypeClass] = resilientRequire(eventConfig?.impl);
-    if (
-      !eventConfig ||
-      err ||
-      !(typeof EventTypeClass.constructor === "function")
-    ) {
-      await EventQueueBase.handleMissingTypeImplementation(
-        context,
-        eventType,
-        eventSubType
-      );
+    if (!eventConfig || err || !(typeof EventTypeClass.constructor === "function")) {
+      await EventQueueBase.handleMissingTypeImplementation(context, eventType, eventSubType);
       return;
     }
-    baseInstance = new EventTypeClass(
-      context,
-      eventType,
-      eventSubType,
-      eventConfig
-    );
+    baseInstance = new EventTypeClass(context, eventType, eventSubType, eventConfig);
     const continueProcessing = await baseInstance.handleDistributedLock();
     if (!continueProcessing) {
       return;
@@ -70,45 +44,29 @@ const processEventQueue = async (
     eventConfig.startTime = startTime;
     while (shouldContinue) {
       iterationCounter++;
-      await executeInNewTransaction(
-        context,
-        `eventQueue-pre-processing-${eventType}##${eventSubType}`,
-        async (tx) => {
-          eventTypeInstance = new EventTypeClass(
-            tx.context,
-            eventType,
-            eventSubType,
-            eventConfig
-          );
-          const queueEntries =
-            await eventTypeInstance.getQueueEntriesAndSetToInProgress();
-          eventTypeInstance.startPerformanceTracerPreprocessing();
-          for (const queueEntry of queueEntries) {
-            try {
-              eventTypeInstance.modifyQueueEntry(queueEntry);
-              const payload =
-                await eventTypeInstance.checkEventAndGeneratePayload(
-                  queueEntry
-                );
-              if (payload === null) {
-                eventTypeInstance.setStatusToDone(queueEntry);
-                continue;
-              }
-              if (payload === undefined) {
-                eventTypeInstance.handleInvalidPayloadReturned(queueEntry);
-                continue;
-              }
-              eventTypeInstance.addEventWithPayloadForProcessing(
-                queueEntry,
-                payload
-              );
-            } catch (err) {
-              eventTypeInstance.handleErrorDuringProcessing(err, queueEntry);
+      await executeInNewTransaction(context, `eventQueue-pre-processing-${eventType}##${eventSubType}`, async (tx) => {
+        eventTypeInstance = new EventTypeClass(tx.context, eventType, eventSubType, eventConfig);
+        const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
+        eventTypeInstance.startPerformanceTracerPreprocessing();
+        for (const queueEntry of queueEntries) {
+          try {
+            eventTypeInstance.modifyQueueEntry(queueEntry);
+            const payload = await eventTypeInstance.checkEventAndGeneratePayload(queueEntry);
+            if (payload === null) {
+              eventTypeInstance.setStatusToDone(queueEntry);
+              continue;
             }
+            if (payload === undefined) {
+              eventTypeInstance.handleInvalidPayloadReturned(queueEntry);
+              continue;
+            }
+            eventTypeInstance.addEventWithPayloadForProcessing(queueEntry, payload);
+          } catch (err) {
+            eventTypeInstance.handleErrorDuringProcessing(err, queueEntry);
           }
-          throw new TriggerRollback();
         }
-      );
+        throw new TriggerRollback();
+      });
       eventTypeInstance.exceededEvents.length &&
         (await executeInNewTransaction(
           context,
@@ -123,41 +81,28 @@ const processEventQueue = async (
       }
       eventTypeInstance.endPerformanceTracerPreprocessing();
       if (Object.keys(eventTypeInstance.queueEntriesWithPayloadMap).length) {
-        await executeInNewTransaction(
-          context,
-          `eventQueue-processing-${eventType}##${eventSubType}`,
-          async (tx) => {
-            eventTypeInstance.processEventContext = tx.context;
-            try {
-              eventTypeInstance.clusterQueueEntries();
-              await processEventMap(eventTypeInstance);
-            } catch (err) {
-              eventTypeInstance.handleErrorDuringClustering(err);
-            }
-            if (
-              eventTypeInstance.transactionMode !==
-                TransactionMode.alwaysCommit ||
-              Object.entries(eventTypeInstance.eventProcessingMap).some(
-                ([key]) => eventTypeInstance.shouldRollbackTransaction(key)
-              )
-            ) {
-              throw new TriggerRollback();
-            }
+        await executeInNewTransaction(context, `eventQueue-processing-${eventType}##${eventSubType}`, async (tx) => {
+          eventTypeInstance.processEventContext = tx.context;
+          try {
+            eventTypeInstance.clusterQueueEntries();
+            await processEventMap(eventTypeInstance);
+          } catch (err) {
+            eventTypeInstance.handleErrorDuringClustering(err);
           }
-        );
+          if (
+            eventTypeInstance.transactionMode !== TransactionMode.alwaysCommit ||
+            Object.entries(eventTypeInstance.eventProcessingMap).some(([key]) =>
+              eventTypeInstance.shouldRollbackTransaction(key)
+            )
+          ) {
+            throw new TriggerRollback();
+          }
+        });
       }
-      await executeInNewTransaction(
-        context,
-        `eventQueue-persistStatus-${eventType}##${eventSubType}`,
-        async (tx) => {
-          await eventTypeInstance.persistEventStatus(tx);
-        }
-      );
-      shouldContinue = reevaluateShouldContinue(
-        eventTypeInstance,
-        iterationCounter,
-        startTime
-      );
+      await executeInNewTransaction(context, `eventQueue-persistStatus-${eventType}##${eventSubType}`, async (tx) => {
+        await eventTypeInstance.persistEventStatus(tx);
+      });
+      shouldContinue = reevaluateShouldContinue(eventTypeInstance, iterationCounter, startTime);
       if (!shouldContinue) {
         await executeInNewTransaction(
           context,
@@ -169,26 +114,16 @@ const processEventQueue = async (
       }
     }
   } catch (err) {
-    cds
-      .log(COMPONENT_NAME)
-      .error(
-        "Processing event queue failed with unexpected error. Error:",
-        err,
-        {
-          eventType,
-          eventSubType,
-        }
-      );
+    cds.log(COMPONENT_NAME).error("Processing event queue failed with unexpected error. Error:", err, {
+      eventType,
+      eventSubType,
+    });
   } finally {
     await baseInstance?.handleReleaseLock();
   }
 };
 
-const reevaluateShouldContinue = (
-  eventTypeInstance,
-  iterationCounter,
-  startTime
-) => {
+const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime) => {
   if (!eventTypeInstance.getSelectNextChunk()) {
     return false; // no select next chunk configured for this event
   }
@@ -218,13 +153,7 @@ const processEventMap = async (eventTypeInstance) => {
           eventTypeInstance.baseContext,
           `eventQueue-processEvent-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
           async (tx) => {
-            statusMap = await _processEvent(
-              eventTypeInstance,
-              tx.context,
-              key,
-              queueEntries,
-              payload
-            );
+            statusMap = await _processEvent(eventTypeInstance, tx.context, key, queueEntries, payload);
             if (
               eventTypeInstance.statusMapContainsError(statusMap) ||
               eventTypeInstance.shouldRollbackTransaction(key)
@@ -245,13 +174,7 @@ const processEventMap = async (eventTypeInstance) => {
           }
         );
       } else {
-        await _processEvent(
-          eventTypeInstance,
-          eventTypeInstance.context,
-          key,
-          queueEntries,
-          payload
-        );
+        await _processEvent(eventTypeInstance, eventTypeInstance.context, key, queueEntries, payload);
       }
     }
   ).finally(() => {
@@ -263,28 +186,15 @@ const processEventMap = async (eventTypeInstance) => {
   eventTypeInstance.endPerformanceTracerEvents();
 };
 
-const _processEvent = async (
-  eventTypeInstance,
-  processContext,
-  key,
-  queueEntries,
-  payload
-) => {
+const _processEvent = async (eventTypeInstance, processContext, key, queueEntries, payload) => {
   try {
     eventTypeInstance.logStartMessage(queueEntries);
-    const eventOutdated = await eventTypeInstance.isOutdatedAndKeepalive(
-      queueEntries
-    );
+    const eventOutdated = await eventTypeInstance.isOutdatedAndKeepalive(queueEntries);
     if (eventOutdated) {
       return;
     }
     eventTypeInstance.setTxForEventProcessing(key, cds.tx(processContext));
-    const statusTuple = await eventTypeInstance.processEvent(
-      processContext,
-      key,
-      queueEntries,
-      payload
-    );
+    const statusTuple = await eventTypeInstance.processEvent(processContext, key, queueEntries, payload);
     return eventTypeInstance.setEventStatus(queueEntries, statusTuple);
   } catch (err) {
     return eventTypeInstance.handleErrorDuringProcessing(err, queueEntries);

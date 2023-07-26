@@ -22,13 +22,7 @@ describe("integration-main", () => {
   let loggerMock;
 
   beforeAll(async () => {
-    const configFilePath = path.join(
-      __dirname,
-      "..",
-      "./test",
-      "asset",
-      "config.yml"
-    );
+    const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
     await eventQueue.initialize({
       configFilePath,
       processEventsAfterPublish: false,
@@ -94,10 +88,7 @@ describe("integration-main", () => {
       .spyOn(EventQueueTest.prototype, "processEvent")
       .mockImplementationOnce(async (processContext, key, queueEntries) => {
         await cds.tx(processContext).run(SELECT.from("sap.eventqueue.Lock"));
-        return queueEntries.map((queueEntry) => [
-          queueEntry.ID,
-          EventProcessingStatus.Error,
-        ]);
+        return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Error]);
       });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
@@ -109,17 +100,13 @@ describe("integration-main", () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
     const event = eventQueue.getConfigInstance().events[0];
-    jest
-      .spyOn(EventQueueTest.prototype, "processEvent")
-      .mockImplementationOnce(async (processContext) => {
-        await cds.tx(processContext).run(SELECT.from("sap.eventqueue.Lock"));
-        throw new Error("error during processing");
-      });
+    jest.spyOn(EventQueueTest.prototype, "processEvent").mockImplementationOnce(async (processContext) => {
+      await cds.tx(processContext).run(SELECT.from("sap.eventqueue.Lock"));
+      throw new Error("error during processing");
+    });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(1);
-    expect(
-      loggerMock.calls().error[0][0].includes("error during processing")
-    ).toBeTruthy();
+    expect(loggerMock.calls().error[0][0].includes("error during processing")).toBeTruthy();
     await testHelper.selectEventQueueAndExpectError(tx);
     expect(dbCounts).toMatchSnapshot();
   });
@@ -128,16 +115,12 @@ describe("integration-main", () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
     const event = eventQueue.getConfigInstance().events[0];
-    jest
-      .spyOn(EventQueueTest.prototype, "clusterQueueEntries")
-      .mockImplementationOnce(() => {
-        throw new Error("error during processing");
-      });
+    jest.spyOn(EventQueueTest.prototype, "clusterQueueEntries").mockImplementationOnce(() => {
+      throw new Error("error during processing");
+    });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(1);
-    expect(
-      loggerMock.calls().error[0][0].includes("error during processing")
-    ).toBeTruthy();
+    expect(loggerMock.calls().error[0][0].includes("error during processing")).toBeTruthy();
     expect(loggerMock.calls().error).toMatchSnapshot();
     await testHelper.selectEventQueueAndExpectError(tx);
     expect(dbCounts).toMatchSnapshot();
@@ -147,11 +130,9 @@ describe("integration-main", () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
     const event = eventQueue.getConfigInstance().events[0];
-    jest
-      .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
-      .mockImplementationOnce(() => {
-        throw new Error("error during processing");
-      });
+    jest.spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload").mockImplementationOnce(() => {
+      throw new Error("error during processing");
+    });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(1);
     expect(loggerMock.calls().error).toMatchSnapshot();
@@ -163,11 +144,9 @@ describe("integration-main", () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
     const event = eventQueue.getConfigInstance().events[0];
-    jest
-      .spyOn(EventQueueTest.prototype, "modifyQueueEntry")
-      .mockImplementationOnce(() => {
-        throw new Error("error during processing");
-      });
+    jest.spyOn(EventQueueTest.prototype, "modifyQueueEntry").mockImplementationOnce(() => {
+      throw new Error("error during processing");
+    });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(1);
     // TODO: should not be an unexpected error
@@ -185,11 +164,7 @@ describe("integration-main", () => {
       })
     );
     dbCounts = {};
-    await eventQueue.processEventQueue(
-      context,
-      "TransactionMode",
-      "alwaysRollback"
-    );
+    await eventQueue.processEventQueue(context, "TransactionMode", "alwaysRollback");
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectDone(tx, 2);
     expect(dbCounts).toMatchSnapshot();
@@ -200,10 +175,7 @@ describe("integration-main", () => {
     const processSpy = jest
       .spyOn(EventQueueTest.prototype, "processEvent")
       .mockImplementationOnce((processContext, key, queueEntries) => {
-        return queueEntries.map((queueEntry) => [
-          queueEntry.ID,
-          EventProcessingStatus.Exceeded,
-        ]);
+        return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Exceeded]);
       });
     dbCounts = {};
     const event = eventQueue.getConfigInstance().events[0];
@@ -226,10 +198,7 @@ describe("integration-main", () => {
     const event = eventQueue.getConfigInstance().events[0];
     await cds.tx({}, async (tx2) => {
       await testHelper.insertEventEntry(tx2);
-      await distributedLock.acquireLock(
-        tx2.context,
-        [event.type, event.subType].join("##")
-      );
+      await distributedLock.acquireLock(tx2.context, [event.type, event.subType].join("##"));
     });
     dbCounts = {};
     await eventQueue.processEventQueue(context, event.type, event.subType);
@@ -241,9 +210,7 @@ describe("integration-main", () => {
   it("should delete event entries after 30 days", async () => {
     await cds.tx({}, async (tx2) => {
       const event = testHelper.getEventEntry();
-      event.lastAttemptTimestamp = new Date(
-        Date.now() - 31 * 24 * 60 * 60 * 1000
-      ).toISOString();
+      event.lastAttemptTimestamp = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
       event.status = 2;
       await eventQueue.publishEvent(tx2, event);
     });
@@ -267,11 +234,7 @@ describe("integration-main", () => {
       dbCounts = {};
       jest
         .spyOn(EventQueueTest.prototype, "processEvent")
-        .mockImplementationOnce(async function (
-          processContext,
-          key,
-          queueEntries
-        ) {
+        .mockImplementationOnce(async function (processContext, key, queueEntries) {
           this.setShouldRollbackTransaction(key);
           await testHelper.insertEventEntry(cds.tx(processContext), {
             numberOfEntries: 1,
@@ -279,32 +242,18 @@ describe("integration-main", () => {
             subType: "alwaysRollback",
             randomGuid: true,
           });
-          return queueEntries.map((queueEntry) => [
-            queueEntry.ID,
-            EventProcessingStatus.Done,
-          ]);
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
         })
-        .mockImplementationOnce(async function (
-          processContext,
-          key,
-          queueEntries
-        ) {
+        .mockImplementationOnce(async function (processContext, key, queueEntries) {
           await testHelper.insertEventEntry(cds.tx(processContext), {
             numberOfEntries: 1,
             type: "TransactionMode",
             subType: "alwaysRollback",
             randomGuid: true,
           });
-          return queueEntries.map((queueEntry) => [
-            queueEntry.ID,
-            EventProcessingStatus.Done,
-          ]);
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
         });
-      await eventQueue.processEventQueue(
-        context,
-        "TransactionMode",
-        "isolated"
-      );
+      await eventQueue.processEventQueue(context, "TransactionMode", "isolated");
       expect(loggerMock.callsLengths().error).toEqual(0);
       const events = await testHelper.selectEventQueueAndReturn(tx, 3);
       expect(events).toMatchSnapshot();
@@ -322,11 +271,7 @@ describe("integration-main", () => {
       dbCounts = {};
       jest
         .spyOn(EventQueueTest.prototype, "processEvent")
-        .mockImplementationOnce(async function (
-          processContext,
-          key,
-          queueEntries
-        ) {
+        .mockImplementationOnce(async function (processContext, key, queueEntries) {
           this.setShouldRollbackTransaction(key);
           await testHelper.insertEventEntry(cds.tx(processContext), {
             numberOfEntries: 1,
@@ -334,16 +279,9 @@ describe("integration-main", () => {
             subType: "alwaysRollback",
             randomGuid: true,
           });
-          return queueEntries.map((queueEntry) => [
-            queueEntry.ID,
-            EventProcessingStatus.Done,
-          ]);
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
         })
-        .mockImplementationOnce(async function (
-          processContext,
-          key,
-          queueEntries
-        ) {
+        .mockImplementationOnce(async function (processContext, key, queueEntries) {
           this.setShouldRollbackTransaction(key);
           await testHelper.insertEventEntry(cds.tx(processContext), {
             numberOfEntries: 1,
@@ -351,16 +289,9 @@ describe("integration-main", () => {
             subType: "alwaysRollback",
             randomGuid: true,
           });
-          return queueEntries.map((queueEntry) => [
-            queueEntry.ID,
-            EventProcessingStatus.Done,
-          ]);
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
         });
-      await eventQueue.processEventQueue(
-        context,
-        "TransactionMode",
-        "isolated"
-      );
+      await eventQueue.processEventQueue(context, "TransactionMode", "isolated");
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx, 2);
       expect(dbCounts).toMatchSnapshot();
@@ -377,26 +308,18 @@ describe("integration-main", () => {
         })
       );
       dbCounts = {};
-      jest
-        .spyOn(EventQueueTest.prototype, "processEvent")
-        .mockImplementationOnce(async (processContext) => {
-          await testHelper.insertEventEntry(cds.tx(processContext), {
-            numberOfEntries: 1,
-            type: "TransactionMode",
-            subType: "alwaysRollback",
-            randomGuid: true,
-          });
-          throw new Error("error during processing");
+      jest.spyOn(EventQueueTest.prototype, "processEvent").mockImplementationOnce(async (processContext) => {
+        await testHelper.insertEventEntry(cds.tx(processContext), {
+          numberOfEntries: 1,
+          type: "TransactionMode",
+          subType: "alwaysRollback",
+          randomGuid: true,
         });
-      await eventQueue.processEventQueue(
-        context,
-        "TransactionMode",
-        "alwaysCommit"
-      );
+        throw new Error("error during processing");
+      });
+      await eventQueue.processEventQueue(context, "TransactionMode", "alwaysCommit");
       expect(loggerMock.callsLengths().error).toEqual(1);
-      expect(
-        loggerMock.calls().error[0][0].includes("error during processing")
-      ).toBeTruthy();
+      expect(loggerMock.calls().error[0][0].includes("error during processing")).toBeTruthy();
       expect(dbCounts).toMatchSnapshot();
       const events = await testHelper.selectEventQueueAndReturn(tx, 3);
       expect(events).toMatchSnapshot();
@@ -413,11 +336,7 @@ describe("integration-main", () => {
       dbCounts = {};
       jest
         .spyOn(EventQueueTest.prototype, "processEvent")
-        .mockImplementationOnce(async function (
-          processContext,
-          key,
-          queueEntries
-        ) {
+        .mockImplementationOnce(async function (processContext, key, queueEntries) {
           await testHelper.insertEventEntry(cds.tx(processContext), {
             numberOfEntries: 1,
             type: "TransactionMode",
@@ -425,16 +344,9 @@ describe("integration-main", () => {
             randomGuid: true,
           });
           this.setShouldRollbackTransaction(key);
-          return queueEntries.map((queueEntry) => [
-            queueEntry.ID,
-            EventProcessingStatus.Done,
-          ]);
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
         });
-      await eventQueue.processEventQueue(
-        context,
-        "TransactionMode",
-        "alwaysCommit"
-      );
+      await eventQueue.processEventQueue(context, "TransactionMode", "alwaysCommit");
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(dbCounts).toMatchSnapshot();
       const events = await testHelper.selectEventQueueAndReturn(tx, 1);
@@ -452,29 +364,19 @@ describe("integration-main", () => {
         })
       );
       dbCounts = {};
-      jest
-        .spyOn(EventQueueTest.prototype, "processEvent")
-        .mockImplementationOnce(async (processContext) => {
-          await testHelper.insertEventEntry(cds.tx(processContext), {
-            numberOfEntries: 1,
-            type: "TransactionMode",
-            subType: "alwaysRollback",
-            randomGuid: true,
-          });
-          throw new Error("error during processing");
+      jest.spyOn(EventQueueTest.prototype, "processEvent").mockImplementationOnce(async (processContext) => {
+        await testHelper.insertEventEntry(cds.tx(processContext), {
+          numberOfEntries: 1,
+          type: "TransactionMode",
+          subType: "alwaysRollback",
+          randomGuid: true,
         });
-      await eventQueue.processEventQueue(
-        context,
-        "TransactionMode",
-        "alwaysRollback"
-      );
+        throw new Error("error during processing");
+      });
+      await eventQueue.processEventQueue(context, "TransactionMode", "alwaysRollback");
       expect(loggerMock.callsLengths().error).toEqual(1);
-      expect(
-        loggerMock.calls().error[0][0].includes("error during processing")
-      ).toBeTruthy();
-      expect(
-        loggerMock.calls().error[0][0].includes("error during processing")
-      ).toBeTruthy();
+      expect(loggerMock.calls().error[0][0].includes("error during processing")).toBeTruthy();
+      expect(loggerMock.calls().error[0][0].includes("error during processing")).toBeTruthy();
       expect(dbCounts).toMatchSnapshot();
       const result = await testHelper.selectEventQueueAndReturn(tx, 2);
       expect(result).toMatchSnapshot();
@@ -498,16 +400,9 @@ describe("integration-main", () => {
             subType: "alwaysRollback",
             randomGuid: true,
           });
-          return queueEntries.map((queueEntry) => [
-            queueEntry.ID,
-            EventProcessingStatus.Done,
-          ]);
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
         });
-      await eventQueue.processEventQueue(
-        context,
-        "TransactionMode",
-        "alwaysRollback"
-      );
+      await eventQueue.processEventQueue(context, "TransactionMode", "alwaysRollback");
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(dbCounts).toMatchSnapshot();
       const result = await testHelper.selectEventQueueAndReturn(tx, 1);
@@ -518,13 +413,7 @@ describe("integration-main", () => {
   describe("end-to-end", () => {
     beforeAll(async () => {
       eventQueue.getConfigInstance().initialized = false;
-      const configFilePath = path.join(
-        __dirname,
-        "..",
-        "./test",
-        "asset",
-        "config.yml"
-      );
+      const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: true,
@@ -550,9 +439,7 @@ describe("integration-main", () => {
 const waitEntryIsDone = async () => {
   let startTime = Date.now();
   while (true) {
-    const row = await cds.tx({}, (tx2) =>
-      tx2.run(SELECT.one.from("sap.eventqueue.Event"))
-    );
+    const row = await cds.tx({}, (tx2) => tx2.run(SELECT.one.from("sap.eventqueue.Event")));
     dbCounts["BEGIN"]--;
     dbCounts["COMMIT"]--;
     dbCounts["READ"]--;
