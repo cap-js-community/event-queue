@@ -542,7 +542,6 @@ class EventQueueProcessorBase {
 
       if (!result.length) {
         this.__emptyChunkSelected = true;
-        return;
       }
 
       this.logger.info("Selected event queue entries for processing", {
@@ -619,9 +618,9 @@ class EventQueueProcessorBase {
           queueEntriesIds: this.#eventsWithExceededTries.map(({ ID }) => ID),
         }
       );
-      await executeInNewTransaction(this.processEventContext, "error-hookForExceededEvents", async (tx) => {
-        this.#persistEventQueueStatusForExceeded(tx, this.#eventsWithExceededTries, EventProcessingStatus.Error);
-      });
+      await executeInNewTransaction(this.processEventContext, "error-hookForExceededEvents", async (tx) =>
+        this.#persistEventQueueStatusForExceeded(tx, this.#eventsWithExceededTries, EventProcessingStatus.Error)
+      );
       throw new TriggerRollback();
     }
   }

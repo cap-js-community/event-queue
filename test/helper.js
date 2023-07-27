@@ -3,11 +3,12 @@
 const { EventProcessingStatus } = require("../src/constants");
 const eventQueue = require("../src");
 
-const _selectEventQueueAndExpect = async (tx, status, expectedLength = 1) => {
+const _selectEventQueueAndExpect = async (tx, status, expectedLength = 1, attempts) => {
   const events = await tx.run(SELECT.from("sap.eventqueue.Event"));
   expect(events).toHaveLength(expectedLength);
   for (const event of events) {
     expect(event.status).toEqual(status);
+    attempts && expect(event.attempts).toEqual(attempts);
   }
 };
 
@@ -56,8 +57,8 @@ const selectEventQueueAndExpectDone = async (tx, expectedLength = 1) =>
 const selectEventQueueAndExpectOpen = async (tx, expectedLength = 1) =>
   _selectEventQueueAndExpect(tx, EventProcessingStatus.Open, expectedLength);
 
-const selectEventQueueAndExpectError = async (tx, expectedLength = 1) =>
-  _selectEventQueueAndExpect(tx, EventProcessingStatus.Error, expectedLength);
+const selectEventQueueAndExpectError = async (tx, expectedLength = 1, attempts = 1) =>
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Error, expectedLength, attempts);
 
 const selectEventQueueAndExpectExceeded = async (tx, expectedLength = 1) =>
   _selectEventQueueAndExpect(tx, EventProcessingStatus.Exceeded, expectedLength);

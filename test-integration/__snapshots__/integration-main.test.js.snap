@@ -10,14 +10,26 @@ exports[`integration-main empty queue - nothing to do 1`] = `
 }
 `;
 
+exports[`integration-main hookForExceededEvents hookForExceededEvents throws - rollback + counter increase 1`] = `
+{
+  "BEGIN": 8,
+  "COMMIT": 6,
+  "CREATE": 3,
+  "DELETE": 2,
+  "READ": 3,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
 exports[`integration-main hookForExceededEvents if event retries is exceeded hookForExceededEvents should be called and correct event status 1`] = `
 {
   "BEGIN": 7,
   "COMMIT": 6,
   "CREATE": 3,
   "DELETE": 2,
-  "READ": 2,
-  "UPDATE": 1,
+  "READ": 3,
+  "UPDATE": 2,
 }
 `;
 

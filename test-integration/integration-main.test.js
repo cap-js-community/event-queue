@@ -412,11 +412,11 @@ describe("integration-main", () => {
 
   describe("hookForExceededEvents", () => {
     it("if event retries is exceeded hookForExceededEvents should be called and correct event status", async () => {
-      const key = cds.utils.uuid();
+      const code = cds.utils.uuid();
       jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents").mockImplementationOnce(async function () {
         await this.tx.run(
           INSERT.into("sap.eventqueue.Lock").entries({
-            code: key,
+            code: code,
           })
         );
       });
@@ -432,6 +432,43 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(loggerMock.callsLengths().warn).toEqual(1);
       await testHelper.selectEventQueueAndExpectExceeded(tx);
+      const lock = await tx.run(
+        SELECT.one.from("sap.eventqueue.Lock").where({
+          code: code,
+        })
+      );
+      expect(lock.code).toEqual(code);
+      expect(dbCounts).toMatchSnapshot();
+    });
+
+    it("hookForExceededEvents throws - rollback + counter increase", async () => {
+      const code = cds.utils.uuid();
+      jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents").mockImplementationOnce(async function () {
+        await this.tx.run(
+          INSERT.into("sap.eventqueue.Lock").entries({
+            code: code,
+          })
+        );
+        throw new Error("sad chocolate");
+      });
+      await cds.tx({}, async (tx2) => {
+        const event = testHelper.getEventEntry();
+        event.status = eventQueue.EventProcessingStatus.Error;
+        event.lastAttemptTimestamp = new Date().toISOString();
+        event.attempts = 3;
+        await eventQueue.publishEvent(tx2, event);
+      });
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.callsLengths().warn).toEqual(0);
+      await testHelper.selectEventQueueAndExpectError(tx, 1, 4);
+      const lock = await tx.run(
+        SELECT.one.from("sap.eventqueue.Lock").where({
+          code: code,
+        })
+      );
+      expect(lock).toEqual(null);
       expect(dbCounts).toMatchSnapshot();
     });
   });
