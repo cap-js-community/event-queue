@@ -3,11 +3,11 @@
 const uuid = require("uuid");
 
 const eventQueueConfig = require("./config");
-const cdsHelper = require("./shared/cdsHelper");
 const { eventQueueRunner } = require("./processEventQueue");
-const distributedLock = require("./shared/distributedLock");
 const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
-const { getConfigInstance } = require("./config");
+const cdsHelper = require("./shared/cdsHelper");
+const distributedLock = require("./shared/distributedLock");
+const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 
 const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
@@ -46,7 +46,8 @@ const _scheduleFunction = async (fn) => {
 
   setTimeout(() => {
     fnWithRunningCheck();
-    setInterval(fnWithRunningCheck, configInstance.runInterval).unref();
+    const intervalRunner = new SetIntervalDriftSafe(configInstance.runInterval);
+    intervalRunner.run(fnWithRunningCheck);
   }, offsetDependingOnLastRun).unref();
 };
 
@@ -148,7 +149,7 @@ const _acquireRunId = async (context) => {
 };
 
 const _calculateOffsetForFirstRun = async () => {
-  const configInstance = getConfigInstance();
+  const configInstance = eventQueueConfig.getConfigInstance();
   let offsetDependingOnLastRun = OFFSET_FIRST_RUN;
   const now = Date.now();
   // NOTE: this is only supported with Redis, because this is a tenant agnostic information

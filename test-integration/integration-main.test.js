@@ -443,7 +443,7 @@ const waitEntryIsDone = async () => {
     dbCounts["BEGIN"]--;
     dbCounts["COMMIT"]--;
     dbCounts["READ"]--;
-    if (row.status === EventProcessingStatus.Done) {
+    if (row?.status === EventProcessingStatus.Done) {
       break;
     }
     if (Date.now() - startTime > 10 * 1000) {
