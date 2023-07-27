@@ -432,12 +432,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(loggerMock.callsLengths().warn).toEqual(1);
       await testHelper.selectEventQueueAndExpectExceeded(tx);
-      const lock = await tx.run(
-        SELECT.one.from("sap.eventqueue.Lock").where({
-          code: code,
-        })
-      );
-      expect(lock.code).toEqual(code);
+      await expectLockValue(tx, code);
       expect(dbCounts).toMatchSnapshot();
     });
 
@@ -463,13 +458,141 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.callsLengths().warn).toEqual(0);
       await testHelper.selectEventQueueAndExpectError(tx, 1, 4);
-      const lock = await tx.run(
-        SELECT.one.from("sap.eventqueue.Lock").where({
-          code: code,
-        })
-      );
-      expect(lock).toEqual(null);
+      await expectLockValue(tx, undefined);
       expect(dbCounts).toMatchSnapshot();
+    });
+
+    it("hookForExceededEvents throws - rollback + second one succeeds", async () => {
+      const code = cds.utils.uuid();
+      jest
+        .spyOn(EventQueueTest.prototype, "hookForExceededEvents")
+        .mockImplementationOnce(async function () {
+          await this.tx.run(
+            INSERT.into("sap.eventqueue.Lock").entries({
+              code: code,
+            })
+          );
+          throw new Error("sad chocolate");
+        })
+        .mockImplementationOnce(async function () {
+          await this.tx.run(
+            INSERT.into("sap.eventqueue.Lock").entries({
+              code: code,
+            })
+          );
+        });
+      await cds.tx({}, async (tx2) => {
+        const event = testHelper.getEventEntry();
+        event.status = eventQueue.EventProcessingStatus.Error;
+        event.lastAttemptTimestamp = new Date().toISOString();
+        event.attempts = 3;
+        await eventQueue.publishEvent(tx2, event);
+      });
+
+      // First iteration with error
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.callsLengths().warn).toEqual(0);
+      await testHelper.selectEventQueueAndExpectError(tx, 1, 4);
+      await expectLockValue(tx, undefined);
+      loggerMock.clearCalls();
+
+      // Second iteration successful
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(loggerMock.callsLengths().warn).toEqual(1);
+      await testHelper.selectEventQueueAndExpectExceeded(tx, 1, 5);
+      await expectLockValue(tx, code);
+    });
+
+    it("hookForExceededEvents has 3 tries after that should be set to exceeded without invoking hook again", async () => {
+      const code = cds.utils.uuid();
+      async function mockFunction() {
+        await this.tx.run(
+          INSERT.into("sap.eventqueue.Lock").entries({
+            code: code,
+          })
+        );
+        throw new Error("sad chocolate");
+      }
+
+      jest
+        .spyOn(EventQueueTest.prototype, "hookForExceededEvents")
+        .mockImplementationOnce(mockFunction)
+        .mockImplementationOnce(mockFunction)
+        .mockImplementationOnce(mockFunction);
+
+      await cds.tx({}, async (tx2) => {
+        const event = testHelper.getEventEntry();
+        event.status = eventQueue.EventProcessingStatus.Error;
+        event.lastAttemptTimestamp = new Date().toISOString();
+        event.attempts = 3;
+        await eventQueue.publishEvent(tx2, event);
+      });
+
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.callsLengths().warn).toEqual(0);
+      await testHelper.selectEventQueueAndExpectError(tx, 1, 4);
+      await expectLockValue(tx, undefined);
+      loggerMock.clearCalls();
+
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.callsLengths().warn).toEqual(0);
+      await testHelper.selectEventQueueAndExpectError(tx, 1, 5);
+      await expectLockValue(tx, undefined);
+      loggerMock.clearCalls();
+
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.callsLengths().warn).toEqual(0);
+      await testHelper.selectEventQueueAndExpectError(tx, 1, 6);
+      await expectLockValue(tx, undefined);
+      loggerMock.clearCalls();
+
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.callsLengths().warn).toEqual(0);
+      await testHelper.selectEventQueueAndExpectExceeded(tx, 1, 7);
+      await expectLockValue(tx, undefined);
+      expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(3);
+    });
+
+    it("one which is exceeded and one for which the exceeded event has been exceeded", async () => {
+      const code = cds.utils.uuid();
+      async function mockFunction() {
+        await this.tx.run(
+          INSERT.into("sap.eventqueue.Lock").entries({
+            code: code,
+          })
+        );
+      }
+      jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents").mockImplementationOnce(mockFunction);
+
+      await cds.tx({}, async (tx2) => {
+        const event = testHelper.getEventEntry();
+        const event1 = testHelper.getEventEntry();
+        event.status = eventQueue.EventProcessingStatus.Error;
+        event1.status = eventQueue.EventProcessingStatus.Error;
+        event.lastAttemptTimestamp = new Date().toISOString();
+        event1.lastAttemptTimestamp = new Date().toISOString();
+        event.attempts = 3;
+        event1.attempts = 6;
+        await eventQueue.publishEvent(tx2, [event, event1]);
+      });
+
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(
+        await tx.run(SELECT.from("sap.eventqueue.Event").orderBy("status").columns("status", "attempts"))
+      ).toMatchSnapshot();
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.callsLengths().warn).toEqual(1);
+      await expectLockValue(tx, code);
+      expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -508,4 +631,13 @@ const waitEntryIsDone = async () => {
     await promisify(setTimeout)(50);
   }
   return false;
+};
+
+const expectLockValue = async (tx, value) => {
+  const lock = await tx.run(
+    SELECT.one.from("sap.eventqueue.Lock").where({
+      code: value,
+    })
+  );
+  expect(lock?.code).toEqual(value);
 };

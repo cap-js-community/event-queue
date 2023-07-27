@@ -33,6 +33,19 @@ exports[`integration-main hookForExceededEvents if event retries is exceeded hoo
 }
 `;
 
+exports[`integration-main hookForExceededEvents one which is exceeded and one for which the exceeded event has been exceeded 1`] = `
+[
+  {
+    "attempts": 7,
+    "status": 4,
+  },
+  {
+    "attempts": 4,
+    "status": 4,
+  },
+]
+`;
+
 exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 1`] = `
 [
   [

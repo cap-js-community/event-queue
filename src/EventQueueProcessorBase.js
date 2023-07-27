@@ -581,10 +581,10 @@ class EventQueueProcessorBase {
   #filterExceededEvents(events) {
     return events.reduce(
       (result, event) => {
-        if (event.attempts === this.__retryAttempts) {
-          result.exceededTries.push(event);
-        } else if (event.attempts === this.__retryAttempts + TRIES_FOR_EXCEEDED_EVENTS) {
+        if (event.attempts === this.__retryAttempts + TRIES_FOR_EXCEEDED_EVENTS) {
           result.exceededTriesExceeded.push(event);
+        } else if (event.attempts >= this.__retryAttempts) {
+          result.exceededTries.push(event);
         } else {
           result.openEvents.push(event);
         }
@@ -596,40 +596,57 @@ class EventQueueProcessorBase {
 
   async handleExceededEvents() {
     await this.#handleExceededTriesExceeded();
-    try {
-      await this.hookForExceededEvents(this.#eventsWithExceededTries.map((a) => ({ ...a })));
-      this.logger.warn("The retry attempts for the following events are exceeded", {
-        eventType: this.__eventType,
-        eventSubType: this.__eventSubType,
-        retryAttempts: this.__retryAttempts,
-        queueEntriesIds: this.#eventsWithExceededTries.map(({ ID }) => ID),
-      });
-      await this.#persistEventQueueStatusForExceeded(
-        this.tx,
-        this.#eventsWithExceededTries,
-        EventProcessingStatus.Exceeded
-      );
-    } catch (err) {
-      this.logger.error(
-        `Caught error during hook for exceeded events - setting queue entry to error. Please catch your promises/exceptions. Error: ${err}`,
-        {
-          eventType: this.__eventType,
-          eventSubType: this.__eventSubType,
-          queueEntriesIds: this.#eventsWithExceededTries.map(({ ID }) => ID),
+    if (!this.#eventsWithExceededTries.length) {
+      return;
+    }
+
+    for (const exceededEvent of this.#eventsWithExceededTries) {
+      await executeInNewTransaction(
+        this.context,
+        `eventQueue-handleExceededEvents-${this.eventType}##${this.eventSubType}`,
+        async (tx) => {
+          try {
+            this.processEventContext = tx.context;
+            await this.hookForExceededEvents({ ...exceededEvent });
+            this.logger.warn("The retry attempts for the following events are exceeded", {
+              eventType: this.__eventType,
+              eventSubType: this.__eventSubType,
+              retryAttempts: this.__retryAttempts,
+              queueEntriesId: exceededEvent.ID,
+              currentAttempt: exceededEvent.attempts,
+            });
+            await this.#persistEventQueueStatusForExceeded(this.tx, [exceededEvent], EventProcessingStatus.Exceeded);
+          } catch (err) {
+            this.logger.error(
+              `Caught error during hook for exceeded events - setting queue entry to error. Please catch your promises/exceptions. Error: ${err}`,
+              {
+                eventType: this.__eventType,
+                eventSubType: this.__eventSubType,
+                retryAttempts: this.__retryAttempts,
+                queueEntriesId: exceededEvent.ID,
+                currentAttempt: exceededEvent.attempts,
+              }
+            );
+            await executeInNewTransaction(this.context, "error-hookForExceededEvents", async (tx) =>
+              this.#persistEventQueueStatusForExceeded(tx, [exceededEvent], EventProcessingStatus.Error)
+            );
+            throw new TriggerRollback();
+          }
         }
       );
-      await executeInNewTransaction(this.processEventContext, "error-hookForExceededEvents", async (tx) =>
-        this.#persistEventQueueStatusForExceeded(tx, this.#eventsWithExceededTries, EventProcessingStatus.Error)
-      );
-      throw new TriggerRollback();
     }
   }
 
   async #handleExceededTriesExceeded() {
     if (this.#exceededTriesExceeded.length) {
-      await executeInNewTransaction(this.processEventContext, "exceededTriesExceeded", async (tx) =>
-        this.#persistEventQueueStatusForExceeded(tx, this.#exceededTriesExceeded, EventProcessingStatus.Exceeded)
-      );
+      this.logger.error("Event hook failure exceeded, status set to 'exceeded' without invoking hook again!", {
+        eventType: this.__eventType,
+        eventSubType: this.__eventSubType,
+        queueEntriesIds: this.#eventsWithExceededTries.map(({ ID }) => ID),
+      });
+      await executeInNewTransaction(this.context, "exceededTriesExceeded", async (tx) => {
+        await this.#persistEventQueueStatusForExceeded(tx, this.#exceededTriesExceeded, EventProcessingStatus.Exceeded);
+      });
     }
   }
 
@@ -646,10 +663,10 @@ class EventQueueProcessorBase {
    * This function enables the possibility to execute custom actions for events for which the retry attempts have been
    * exceeded. As always a valid transaction is available with this.tx. This transaction will be committed after the
    * execution of this function.
-   * @param {Object} exceededEvents exceeded event queue entries
+   * @param {Object} exceededEvent exceeded event queue entry
    */
   // eslint-disable-next-line no-unused-vars
-  async hookForExceededEvents(exceededEvents) {}
+  async hookForExceededEvents(exceededEvent) {}
 
   /**
    * This function serves the purpose of mass enabled preloading data for processing the events which are added with
@@ -834,10 +851,6 @@ class EventQueueProcessorBase {
 
   get eventSubType() {
     return this.__eventSubType;
-  }
-
-  get exceededEvents() {
-    return this.#eventsWithExceededTries;
   }
 
   get emptyChunkSelected() {

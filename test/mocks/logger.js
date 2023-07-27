@@ -21,6 +21,10 @@ logger.calls = () =>
     return result;
   }, {});
 
+logger.clearCalls = () => {
+  LOG_LEVELS.forEach((level) => logger[level].mockClear());
+};
+
 const performanceTracer = {
   start: jest.fn(),
   end: jest.fn(),
