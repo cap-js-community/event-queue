@@ -413,13 +413,16 @@ describe("integration-main", () => {
   describe("hookForExceededEvents", () => {
     it("if event retries is exceeded hookForExceededEvents should be called and correct event status", async () => {
       const code = cds.utils.uuid();
-      jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents").mockImplementationOnce(async function () {
-        await this.tx.run(
-          INSERT.into("sap.eventqueue.Lock").entries({
-            code: code,
-          })
-        );
-      });
+      jest
+        .spyOn(EventQueueTest.prototype, "hookForExceededEvents")
+        .mockImplementationOnce(async function (exceededEvent) {
+          expect(exceededEvent.payload.testPayload).toEqual(123);
+          await this.tx.run(
+            INSERT.into("sap.eventqueue.Lock").entries({
+              code: code,
+            })
+          );
+        });
       await cds.tx({}, async (tx2) => {
         const event = testHelper.getEventEntry();
         event.status = eventQueue.EventProcessingStatus.Error;
@@ -433,6 +436,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().warn).toEqual(1);
       await testHelper.selectEventQueueAndExpectExceeded(tx);
       await expectLockValue(tx, code);
+      expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(1);
       expect(dbCounts).toMatchSnapshot();
     });
 
@@ -459,6 +463,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().warn).toEqual(0);
       await testHelper.selectEventQueueAndExpectError(tx, 1, 4);
       await expectLockValue(tx, undefined);
+      expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(1);
       expect(dbCounts).toMatchSnapshot();
     });
 
@@ -496,6 +501,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().warn).toEqual(0);
       await testHelper.selectEventQueueAndExpectError(tx, 1, 4);
       await expectLockValue(tx, undefined);
+      expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(1);
       loggerMock.clearCalls();
 
       // Second iteration successful
@@ -504,6 +510,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().warn).toEqual(1);
       await testHelper.selectEventQueueAndExpectExceeded(tx, 1, 5);
       await expectLockValue(tx, code);
+      expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(2);
     });
 
     it("hookForExceededEvents has 3 tries after that should be set to exceeded without invoking hook again", async () => {

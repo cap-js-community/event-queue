@@ -263,7 +263,7 @@ class EventQueueProcessorBase {
     try {
       queueEntry.payload = JSON.parse(queueEntry.payload);
     } catch {
-      return queueEntry.payload;
+      /* empty */
     }
   }
 
@@ -607,6 +607,7 @@ class EventQueueProcessorBase {
         async (tx) => {
           try {
             this.processEventContext = tx.context;
+            this.modifyQueueEntry(exceededEvent);
             await this.hookForExceededEvents({ ...exceededEvent });
             this.logger.warn("The retry attempts for the following events are exceeded", {
               eventType: this.__eventType,
