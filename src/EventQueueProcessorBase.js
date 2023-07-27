@@ -24,6 +24,7 @@ const TRIES_FOR_EXCEEDED_EVENTS = 3;
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
   #exceededTriesExceeded = [];
+  #selectedEventMap = {};
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -65,6 +66,7 @@ class EventQueueProcessorBase {
     this.__txMap = {};
     this.__txRollback = {};
     this.__eventQueueConfig = eventQueueConfig.getConfigInstance();
+    this.__queueEntries = [];
   }
 
   /**
@@ -351,30 +353,24 @@ class EventQueueProcessorBase {
           .where("ID IN", invalidAttempts)
       );
     }
-    if (success.length) {
+    const ts = new Date().toISOString();
+    const updateTuples = [
+      [success, EventProcessingStatus.Done],
+      [failed, EventProcessingStatus.Error],
+      [exceeded, EventProcessingStatus.Exceeded],
+    ];
+
+    for (const [eventIds, status] of updateTuples) {
+      if (!eventIds.length) {
+        continue;
+      }
       await tx.run(
         UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
           .set({
-            status: EventProcessingStatus.Done,
-            lastAttemptTimestamp: new Date().toISOString(),
+            status: status,
+            lastAttemptTimestamp: ts,
           })
-          .where("ID IN", success)
-      );
-    }
-    if (failed.length) {
-      await tx.run(
-        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue).where("ID IN", failed).with({
-          status: EventProcessingStatus.Error,
-          lastAttemptTimestamp: new Date().toISOString(),
-        })
-      );
-    }
-    if (exceeded.length) {
-      await tx.run(
-        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue).where("ID IN", exceeded).with({
-          status: EventProcessingStatus.Exceeded,
-          lastAttemptTimestamp: new Date().toISOString(),
-        })
+          .where("ID IN", eventIds)
       );
     }
     this.logger.debug("exiting persistEventStatus", {
@@ -444,7 +440,7 @@ class EventQueueProcessorBase {
 
   #ensureOnlySelectedQueueEntries(statusMap) {
     Object.keys(statusMap).forEach((queueEntryId) => {
-      if (this.__queueEntriesMap[queueEntryId]) {
+      if (this.#selectedEventMap[queueEntryId]) {
         return;
       }
 
@@ -503,7 +499,7 @@ class EventQueueProcessorBase {
       const entries = await tx.run(
         SELECT.from(this.__eventQueueConfig.tableNameEventQueue)
           .forUpdate({ wait: this.__eventQueueConfig.forUpdateTimeout })
-          .limit(this.getSelectMaxChunkSize())
+          .limit(this.selectMaxChunkSize)
           .where(
             "type =",
             this.__eventType,
@@ -533,6 +529,7 @@ class EventQueueProcessorBase {
         return;
       }
 
+      this.#selectedEventMap = arrayToFlatMap(entries);
       const { exceededTries, openEvents, exceededTriesExceeded } = this.#filterExceededEvents(entries);
       if (exceededTries.length) {
         this.#eventsWithExceededTries = exceededTries;
@@ -564,27 +561,21 @@ class EventQueueProcessorBase {
           })
           .where(
             "ID IN",
-            result
-              .concat(exceededTries)
-              .concat(exceededTriesExceeded)
-              .map(({ ID }) => ID)
+            entries.map(({ ID }) => ID)
           )
       );
-      result
-        .concat(exceededTries)
-        .concat(exceededTriesExceeded)
-        .forEach((entry) => {
-          entry.lastAttemptTimestamp = isoTimestamp;
-          // NOTE: empty payloads are supported on DB-Level.
-          // Behaviour of event queue is: null as payload is treated as obsolete/done
-          // For supporting this convert null to empty string --> "" as payload will be processed normally
-          if (entry.payload === null) {
-            entry.payload = "";
-          }
-        });
+      entries.forEach((entry) => {
+        entry.lastAttemptTimestamp = isoTimestamp;
+        // NOTE: empty payloads are supported on DB-Level.
+        // Behaviour of event queue is: null as payload is treated as obsolete/done
+        // For supporting this convert null to empty string --> "" as payload will be processed normally
+        if (entry.payload === null) {
+          entry.payload = "";
+        }
+      });
+      this.__queueEntries = result;
+      this.__queueEntriesMap = arrayToFlatMap(result);
     });
-    this.__queueEntries = result;
-    this.__queueEntriesMap = arrayToFlatMap(result);
     return result;
   }
 
@@ -629,17 +620,17 @@ class EventQueueProcessorBase {
         }
       );
       await executeInNewTransaction(this.processEventContext, "error-hookForExceededEvents", async (tx) => {
-        this.#persistEventQueueStatusForExceeded(tx, EventProcessingStatus.Exceeded);
+        this.#persistEventQueueStatusForExceeded(tx, this.#eventsWithExceededTries, EventProcessingStatus.Error);
       });
-      throw TriggerRollback();
+      throw new TriggerRollback();
     }
   }
 
   async #handleExceededTriesExceeded() {
     if (this.#exceededTriesExceeded.length) {
-      await executeInNewTransaction(this.processEventContext, "exceededTriesExceeded", async (tx) => {
-        this.#persistEventQueueStatusForExceeded(tx, this.#exceededTriesExceeded, EventProcessingStatus.Error);
-      });
+      await executeInNewTransaction(this.processEventContext, "exceededTriesExceeded", async (tx) =>
+        this.#persistEventQueueStatusForExceeded(tx, this.#exceededTriesExceeded, EventProcessingStatus.Exceeded)
+      );
     }
   }
 
@@ -777,14 +768,6 @@ class EventQueueProcessorBase {
     return Object.values(statusMap).includes(EventProcessingStatus.Error);
   }
 
-  getSelectNextChunk() {
-    return this.__selectNextChunk;
-  }
-
-  getSelectMaxChunkSize() {
-    return this.__selectMaxChunkSize;
-  }
-
   clearEventProcessingContext() {
     this.__processContext = null;
     this.__processTx = null;
@@ -860,6 +843,14 @@ class EventQueueProcessorBase {
 
   get emptyChunkSelected() {
     return this.__emptyChunkSelected;
+  }
+
+  get selectNextChunk() {
+    return this.__selectNextChunk;
+  }
+
+  get selectMaxChunkSize() {
+    return this.__selectMaxChunkSize;
   }
 
   set txUsageAllowed(value) {

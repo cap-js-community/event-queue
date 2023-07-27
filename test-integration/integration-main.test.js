@@ -211,7 +211,7 @@ describe("integration-main", () => {
     await cds.tx({}, async (tx2) => {
       const event = testHelper.getEventEntry();
       event.lastAttemptTimestamp = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
-      event.status = 2;
+      event.status = eventQueue.EventProcessingStatus.Done;
       await eventQueue.publishEvent(tx2, event);
     });
     dbCounts = {};
@@ -410,6 +410,32 @@ describe("integration-main", () => {
     });
   });
 
+  describe("hookForExceededEvents", () => {
+    it("if event retries is exceeded hookForExceededEvents should be called and correct event status", async () => {
+      const key = cds.utils.uuid();
+      jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents").mockImplementationOnce(async function () {
+        await this.tx.run(
+          INSERT.into("sap.eventqueue.Lock").entries({
+            code: key,
+          })
+        );
+      });
+      await cds.tx({}, async (tx2) => {
+        const event = testHelper.getEventEntry();
+        event.status = eventQueue.EventProcessingStatus.Error;
+        event.lastAttemptTimestamp = new Date().toISOString();
+        event.attempts = 3;
+        await eventQueue.publishEvent(tx2, event);
+      });
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(loggerMock.callsLengths().warn).toEqual(1);
+      await testHelper.selectEventQueueAndExpectExceeded(tx);
+      expect(dbCounts).toMatchSnapshot();
+    });
+  });
+
   describe("end-to-end", () => {
     beforeAll(async () => {
       eventQueue.getConfigInstance().initialized = false;
@@ -425,13 +451,6 @@ describe("integration-main", () => {
       await waitEntryIsDone();
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx);
-    });
-  });
-
-  describe("hookForExceededEvents", () => {
-    it("if event retries is exceeded hookForExceededEvents should be set and correct event status", async () => {
-      //TODO
-      expect(1).toEqual(1);
     });
   });
 });

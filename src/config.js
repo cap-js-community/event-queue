@@ -23,7 +23,6 @@ class Config {
     this.__tableNameEventLock = null;
     this.__vcapServices = this._parseVcapServices();
     this.__isRunnerDeactivated = false;
-    this.__eventsForAutomaticRun = null;
     this.__configFilePath = null;
     this.__processEventsAfterPublish = null;
     this.__skipCsnCheck = null;

@@ -124,7 +124,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
 };
 
 const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime) => {
-  if (!eventTypeInstance.getSelectNextChunk()) {
+  if (!eventTypeInstance.selectNextChunk) {
     return false; // no select next chunk configured for this event
   }
   if (eventTypeInstance.emptyChunkSelected) {
