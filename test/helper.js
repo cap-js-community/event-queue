@@ -3,11 +3,12 @@
 const { EventProcessingStatus } = require("../src/constants");
 const eventQueue = require("../src");
 
-const _selectEventQueueAndExpect = async (tx, status, expectedLength = 1) => {
+const _selectEventQueueAndExpect = async (tx, status, expectedLength = 1, attempts) => {
   const events = await tx.run(SELECT.from("sap.eventqueue.Event"));
   expect(events).toHaveLength(expectedLength);
   for (const event of events) {
     expect(event.status).toEqual(status);
+    attempts && expect(event.attempts).toEqual(attempts);
   }
 };
 
@@ -50,17 +51,17 @@ const insertEventEntry = async (
   await tx.run(INSERT.into("sap.eventqueue.Event").entries(entries));
 };
 
-const selectEventQueueAndExpectDone = async (tx, expectedLength = 1) =>
-  _selectEventQueueAndExpect(tx, EventProcessingStatus.Done, expectedLength);
+const selectEventQueueAndExpectDone = async (tx, expectedLength = 1, attempts) =>
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Done, expectedLength, attempts);
 
-const selectEventQueueAndExpectOpen = async (tx, expectedLength = 1) =>
-  _selectEventQueueAndExpect(tx, EventProcessingStatus.Open, expectedLength);
+const selectEventQueueAndExpectOpen = async (tx, expectedLength = 1, attempts) =>
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Open, expectedLength, attempts);
 
-const selectEventQueueAndExpectError = async (tx, expectedLength = 1) =>
-  _selectEventQueueAndExpect(tx, EventProcessingStatus.Error, expectedLength);
+const selectEventQueueAndExpectError = async (tx, expectedLength = 1, attempts) =>
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Error, expectedLength, attempts);
 
-const selectEventQueueAndExpectExceeded = async (tx, expectedLength = 1) =>
-  _selectEventQueueAndExpect(tx, EventProcessingStatus.Exceeded, expectedLength);
+const selectEventQueueAndExpectExceeded = async (tx, expectedLength = 1, attempts) =>
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Exceeded, expectedLength, attempts);
 
 const selectEventQueueAndReturn = async (tx, expectedLength = 1) => {
   const events = await tx.run(SELECT.from("sap.eventqueue.Event").columns("status", "attempts"));

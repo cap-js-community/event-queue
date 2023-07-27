@@ -67,15 +67,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
         }
         throw new TriggerRollback();
       });
-      eventTypeInstance.exceededEvents.length &&
-        (await executeInNewTransaction(
-          context,
-          `eventQueue-handleExceededEvents-${eventType}##${eventSubType}`,
-          async (tx) => {
-            eventTypeInstance.processEventContext = tx.context;
-            await eventTypeInstance.handleExceededEvents(eventTypeInstance.exceededEvents);
-          }
-        ));
+      await eventTypeInstance.handleExceededEvents();
       if (!eventTypeInstance) {
         return;
       }
@@ -124,7 +116,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
 };
 
 const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime) => {
-  if (!eventTypeInstance.getSelectNextChunk()) {
+  if (!eventTypeInstance.selectNextChunk) {
     return false; // no select next chunk configured for this event
   }
   if (eventTypeInstance.emptyChunkSelected) {
