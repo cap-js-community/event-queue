@@ -702,7 +702,7 @@ class EventQueueProcessorBase {
     } else if (runningChecks.length) {
       await Promise.allSettled(runningChecks);
     }
-    const checkAndUpdatePromise = new Promise((resolve) => {
+    const checkAndUpdatePromise = new Promise((resolve, reject) => {
       executeInNewTransaction(this.__baseContext, "eventProcessing-isOutdatedAndKeepalive", async (tx) => {
         const queueEntriesFresh = await tx.run(
           SELECT.from(this.__eventQueueConfig.tableNameEventQueue)
@@ -747,7 +747,7 @@ class EventQueueProcessorBase {
           delete this.__keepalivePromises[queueEntryFresh.ID];
         });
         resolve(eventOutdated);
-      });
+      }).catch(reject);
     });
 
     queueEntries.forEach((queueEntry) => (this.__keepalivePromises[queueEntry.ID] = checkAndUpdatePromise));
