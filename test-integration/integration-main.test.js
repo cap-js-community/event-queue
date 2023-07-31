@@ -222,6 +222,26 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
+  it("lock wait timeout during keepAlive", async () => {
+    await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
+    dbCounts = {};
+    const event = eventQueue.getConfigInstance().events[0];
+
+    const db = await cds.connect.to("db");
+    db.prepend(() => {
+      db.on("READ", "*", async (context, next) => {
+        if (context.query.SELECT.forUpdate && context.query.SELECT.columns.length === 2) {
+          throw new Error("all bad");
+        }
+        return await next();
+      });
+    });
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(1);
+    await testHelper.selectEventQueueAndExpectError(tx);
+    expect(dbCounts).toMatchSnapshot();
+  });
+
   describe("transactionMode=isolated", () => {
     it("first processed register tx rollback - only first should be rolled back", async () => {
       await cds.tx({}, (tx2) =>
