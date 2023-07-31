@@ -17,7 +17,7 @@ nav_order: 6
 
 ## Overview
 
-This page describes the status handling of the event-queue. The status represents the current state of an event. 
+This page describes the status handling of the event-queue. The status represents the current state of an event.
 The available status values are listed in the table below.
 
 | EventProcessingStatus | Value | Description                                                |
