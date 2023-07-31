@@ -228,15 +228,17 @@ describe("integration-main", () => {
     const event = eventQueue.getConfigInstance().events[0];
 
     const db = await cds.connect.to("db");
+    let doCheck = true;
     db.prepend(() => {
       db.on("READ", "*", async (context, next) => {
-        if (context.query.SELECT.forUpdate && context.query.SELECT.columns.length === 2) {
+        if (doCheck && context.query.SELECT.forUpdate && context.query.SELECT.columns.length === 2) {
           throw new Error("all bad");
         }
         return await next();
       });
     });
     await eventQueue.processEventQueue(context, event.type, event.subType);
+    doCheck = false;
     expect(loggerMock.callsLengths().error).toEqual(1);
     await testHelper.selectEventQueueAndExpectError(tx);
     expect(dbCounts).toMatchSnapshot();
