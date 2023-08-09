@@ -28,6 +28,7 @@ const initialize = async ({
   configFilePath,
   registerAsEventProcessor,
   processEventsAfterPublish,
+  isRunnerDeactivated,
   runInterval,
   parallelTenantProcessing,
   tableNameEventQueue,
@@ -48,6 +49,7 @@ const initialize = async ({
     configFilePath,
     registerAsEventProcessor,
     processEventsAfterPublish,
+    isRunnerDeactivated,
     runInterval,
     parallelTenantProcessing,
     tableNameEventQueue,
@@ -162,6 +164,7 @@ const mixConfigVarsWithEnv = (
   configFilePath,
   registerAsEventProcessor,
   processEventsAfterPublish,
+  isRunnerDeactivated,
   runInterval,
   parallelTenantProcessing,
   tableNameEventQueue,
@@ -173,6 +176,7 @@ const mixConfigVarsWithEnv = (
   configInstance.configFilePath = configFilePath ?? cds.env.eventQueue?.configFilePath;
   configInstance.registerAsEventProcessor =
     registerAsEventProcessor ?? cds.env.eventQueue?.registerAsEventProcessor ?? true;
+  configInstance.isRunnerDeactivated = isRunnerDeactivated ?? cds.env.eventQueue?.isRunnerDeactivated ?? false;
   configInstance.processEventsAfterPublish =
     processEventsAfterPublish ?? cds.env.eventQueue?.processEventsAfterPublish ?? true;
   configInstance.runInterval = runInterval ?? cds.env.eventQueue?.runInterval ?? 5 * 60 * 1000;

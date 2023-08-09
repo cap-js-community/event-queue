@@ -70,13 +70,11 @@ const subscribeRedisChannel = (channel, subscribeCb) => {
   subscriberChannelClientPromise[channel] = createClientAndConnect(errorHandlerCreateClient);
   subscriberChannelClientPromise[channel]
     .then((client) => {
-      LOGGER.info(`subscribe redis client connected channel: ${channel}`);
+      LOGGER.info("subscribe redis client connected channel", { channel });
       client.subscribe(channel, subscribeCb);
     })
     .catch((err) => {
-      cds
-        .log(COMPONENT_NAME)
-        .error(`error from redis client for pub/sub failed during startup - trying to reconnect - ${channel} `, err);
+      LOGGER.error(`error from redis client for pub/sub failed during startup - trying to reconnect - ${channel}`, err);
     });
 };
 

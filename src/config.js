@@ -51,8 +51,10 @@ class Config {
     redis.subscribeRedisChannel(REDIS_CONFIG_CHANNEL, (messageData) => {
       try {
         const { key, value } = JSON.parse(messageData);
-        LOGGER.info("received config change", { key, value });
-        this[key] = value;
+        if (this[key] !== value) {
+          LOGGER.info("received config change", { key, value });
+          this[key] = value;
+        }
       } catch (err) {
         LOGGER.error("could not parse event config change", {
           messageData,
@@ -62,6 +64,10 @@ class Config {
   }
 
   publishConfigChange(key, value) {
+    if (!this.redisEnabled) {
+      LOGGER.info("redis not connected, config change won't be published", { key, value });
+      return;
+    }
     redis.publishMessage(REDIS_CONFIG_CHANNEL, JSON.stringify({ key, value })).catch((error) => {
       LOGGER.error(`publishing config change failed key: ${key}, value: ${value}`, error);
     });
