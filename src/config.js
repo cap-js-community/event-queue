@@ -51,6 +51,7 @@ class Config {
     redis.subscribeRedisChannel(REDIS_CONFIG_CHANNEL, (messageData) => {
       try {
         const { key, value } = JSON.parse(messageData);
+        LOGGER.info("received config change", { key, value });
         this[key] = value;
       } catch (err) {
         LOGGER.error("could not parse event config change", {

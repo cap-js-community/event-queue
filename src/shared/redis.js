@@ -70,7 +70,7 @@ const subscribeRedisChannel = (channel, subscribeCb) => {
   subscriberChannelClientPromise[channel] = createClientAndConnect(errorHandlerCreateClient);
   subscriberChannelClientPromise[channel]
     .then((client) => {
-      LOGGER.info("subscribe redis client connected");
+      LOGGER.info(`subscribe redis client connected channel: ${channel}`);
       client.subscribe(channel, subscribeCb);
     })
     .catch((err) => {
