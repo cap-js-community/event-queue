@@ -6,21 +6,23 @@ const config = require("../config");
 const EventQueueError = require("../EventQueueError");
 
 const COMPONENT_NAME = "eventQueue/shared/redis";
+const LOGGER = cds.log(COMPONENT_NAME);
 
-let subscriberClientPromise;
+let mainClientPromise;
+const subscriberChannelClientPromise = {};
 
 const createMainClientAndConnect = () => {
-  if (subscriberClientPromise) {
-    return subscriberClientPromise;
+  if (mainClientPromise) {
+    return mainClientPromise;
   }
 
   const errorHandlerCreateClient = (err) => {
-    cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
-    subscriberClientPromise = null;
+    LOGGER.error("error from redis client for pub/sub failed", err);
+    mainClientPromise = null;
     setTimeout(createMainClientAndConnect, 5 * 1000).unref();
   };
-  subscriberClientPromise = createClientAndConnect(errorHandlerCreateClient);
-  return subscriberClientPromise;
+  mainClientPromise = createClientAndConnect(errorHandlerCreateClient);
+  return mainClientPromise;
 };
 
 const _createClientBase = () => {
@@ -60,9 +62,35 @@ const createClientAndConnect = async (errorHandlerCreateClient) => {
   return client;
 };
 
+const subscribeRedisChannel = (channel, subscribeCb) => {
+  const errorHandlerCreateClient = (err) => {
+    LOGGER.error(`error from redis client for pub/sub failed for channel ${channel}`, err);
+    subscriberChannelClientPromise[channel] = null;
+    setTimeout(() => subscribeRedisChannel(channel, subscribeCb), 5 * 1000).unref();
+  };
+  subscriberChannelClientPromise[channel] = redis.createClientAndConnect(errorHandlerCreateClient);
+  subscriberChannelClientPromise[channel]
+    .then((client) => {
+      LOGGER.info("subscribe redis client connected");
+      client.subscribe(channel, subscribeCb);
+    })
+    .catch((err) => {
+      cds
+        .log(COMPONENT_NAME)
+        .error(`error from redis client for pub/sub failed during startup - trying to reconnect - ${channel} `, err);
+    });
+};
+
+const publishMessage = async (channel, message) => {
+  const client = await createMainClientAndConnect();
+  return await client.publish(channel, message);
+};
+
 const _localReconnectStrategy = () => EventQueueError.redisNoReconnect();
 
 module.exports = {
   createClientAndConnect,
   createMainClientAndConnect,
+  subscribeRedisChannel,
+  publishMessage,
 };
