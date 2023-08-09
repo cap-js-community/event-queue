@@ -57,7 +57,7 @@ const initialize = async ({
 
   const logger = cds.log(COMPONENT);
   configInstance.fileContent = await readConfigFromFile(configInstance.configFilePath);
-  configInstance.calculateIsRedisEnabled();
+  configInstance.checkRedisEnabled();
 
   const dbService = await cds.connect.to("db");
   await (cds.model ? Promise.resolve() : new Promise((resolve) => cds.on("serving", resolve)));

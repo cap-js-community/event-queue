@@ -52,7 +52,7 @@ class Config {
     }
   }
 
-  calculateIsRedisEnabled() {
+  checkRedisEnabled() {
     this.__redisEnabled = this._checkRedisIsBound() && this.__isOnCF;
   }
 
