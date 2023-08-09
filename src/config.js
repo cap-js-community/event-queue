@@ -25,7 +25,6 @@ class Config {
     this.__parallelTenantProcessing = null;
     this.__tableNameEventQueue = null;
     this.__tableNameEventLock = null;
-    this.__vcapServices = this._parseVcapServices();
     this.__isRunnerDeactivated = false;
     this.__configFilePath = null;
     this.__processEventsAfterPublish = null;
@@ -41,19 +40,7 @@ class Config {
   }
 
   _checkRedisIsBound() {
-    return !!this.getRedisCredentialsFromEnv();
-  }
-
-  getRedisCredentialsFromEnv() {
-    return this.__vcapServices["redis-cache"]?.[0]?.credentials;
-  }
-
-  _parseVcapServices() {
-    try {
-      return JSON.parse(process.env.VCAP_SERVICES);
-    } catch {
-      return {};
-    }
+    return !!env.getRedisCredentialsFromEnv();
   }
 
   checkRedisEnabled() {

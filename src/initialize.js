@@ -107,6 +107,7 @@ const registerEventProcessors = () => {
 
   if (configInstance.redisEnabled) {
     initEventQueueRedisSubscribe();
+    configInstance.attachConfigChangeHandler();
     runner.multiTenancyRedis();
   } else {
     runner.multiTenancyDb();

@@ -2,7 +2,7 @@
 
 const redis = require("redis");
 
-const config = require("../config");
+const env = require("./env");
 const EventQueueError = require("../EventQueueError");
 
 const COMPONENT_NAME = "eventQueue/shared/redis";
@@ -26,10 +26,9 @@ const createMainClientAndConnect = () => {
 };
 
 const _createClientBase = () => {
-  const configInstance = config.getConfigInstance();
-  if (configInstance.isOnCF) {
+  if (env.isOnCF) {
     try {
-      const credentials = configInstance.getRedisCredentialsFromEnv();
+      const credentials = env.getRedisCredentialsFromEnv();
       // NOTE: settings the user explicitly to empty resolves auth problems, see
       // https://github.com/go-redis/redis/issues/1343
       const url = credentials.uri.replace(/(?<=rediss:\/\/)[\w-]+?(?=:)/, "");
@@ -68,7 +67,7 @@ const subscribeRedisChannel = (channel, subscribeCb) => {
     subscriberChannelClientPromise[channel] = null;
     setTimeout(() => subscribeRedisChannel(channel, subscribeCb), 5 * 1000).unref();
   };
-  subscriberChannelClientPromise[channel] = redis.createClientAndConnect(errorHandlerCreateClient);
+  subscriberChannelClientPromise[channel] = createClientAndConnect(errorHandlerCreateClient);
   subscriberChannelClientPromise[channel]
     .then((client) => {
       LOGGER.info("subscribe redis client connected");
