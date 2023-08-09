@@ -35,7 +35,7 @@ class SetIntervalDriftSafe {
     setTimeout(() => {
       this.run(fn);
       fn();
-    }, this.#adjustedInterval);
+    }, this.#adjustedInterval).unref();
   }
 }
 
