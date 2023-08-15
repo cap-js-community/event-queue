@@ -2,7 +2,7 @@
 
 const cds = require("@sap/cds");
 
-const env = require("./shared/env");
+const { getEnvInstance: getEnvInstance } = require("./shared/env");
 const redis = require("./shared/redis");
 
 let instance;
@@ -20,7 +20,6 @@ class Config {
     this.__globalTxTimeout = GLOBAL_TX_TIMEOUT;
     this.__runInterval = null;
     this.__redisEnabled = null;
-    this.__isOnCF = env.isOnCF;
     this.__initialized = false;
     this.__parallelTenantProcessing = null;
     this.__tableNameEventQueue = null;
@@ -29,6 +28,7 @@ class Config {
     this.__configFilePath = null;
     this.__processEventsAfterPublish = null;
     this.__skipCsnCheck = null;
+    this.__env = getEnvInstance();
   }
 
   getEventConfig(type, subType) {
@@ -40,11 +40,11 @@ class Config {
   }
 
   _checkRedisIsBound() {
-    return !!env.getRedisCredentialsFromEnv();
+    return !!this.__env.getRedisCredentialsFromEnv();
   }
 
   checkRedisEnabled() {
-    this.__redisEnabled = this._checkRedisIsBound() && this.__isOnCF;
+    this.__redisEnabled = this._checkRedisIsBound() && this.__env.isOnCF;
   }
 
   attachConfigChangeHandler() {
@@ -127,14 +127,6 @@ class Config {
 
   set redisEnabled(value) {
     this.__redisEnabled = value;
-  }
-
-  get isOnCF() {
-    return this.__isOnCF;
-  }
-
-  set isOnCF(value) {
-    this.__isOnCF = value;
   }
 
   get initialized() {

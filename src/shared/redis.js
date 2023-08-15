@@ -2,7 +2,7 @@
 
 const redis = require("redis");
 
-const env = require("./env");
+const { getInstance: getEnvInstance } = require("./env");
 const EventQueueError = require("../EventQueueError");
 
 const COMPONENT_NAME = "eventQueue/shared/redis";
@@ -26,6 +26,7 @@ const createMainClientAndConnect = () => {
 };
 
 const _createClientBase = () => {
+  const env = getEnvInstance();
   if (env.isOnCF) {
     try {
       const credentials = env.getRedisCredentialsFromEnv();

@@ -1,26 +1,53 @@
 "use strict";
 
-const isLocal = process.env.USER !== "vcap";
-const isOnCF = !isLocal;
-let vcapServices;
+let instance;
 
-const _getVcapServices = () => {
-  if (!vcapServices) {
+class Env {
+  #isLocal;
+  #isOnCF;
+  #vcapServices;
+
+  constructor() {
+    this.#isLocal = process.env.USER !== "vcap";
+    this.#isOnCF = !this.#isLocal;
     try {
-      vcapServices = JSON.parse(process.env.VCAP_SERVICES);
+      this.#vcapServices = JSON.parse(process.env.VCAP_SERVICES);
     } catch {
-      vcapServices = {};
+      this.#vcapServices = {};
     }
   }
-  return vcapServices;
-};
 
-const getRedisCredentialsFromEnv = () => {
-  return _getVcapServices()["redis-cache"]?.[0]?.credentials;
-};
+  getRedisCredentialsFromEnv() {
+    return this.#vcapServices["redis-cache"]?.[0]?.credentials;
+  }
+
+  set isLocal(value) {
+    this.#isLocal = value;
+  }
+  get isLocal() {
+    return this.#isLocal;
+  }
+
+  set isOnCF(value) {
+    this.#isOnCF = value;
+  }
+  get isOnCF() {
+    return this.#isOnCF;
+  }
+
+  set vcapServices(value) {
+    this.#vcapServices = value;
+  }
+  get vcapServices() {
+    return this.#vcapServices;
+  }
+}
 
 module.exports = {
-  isOnCF,
-  isLocal,
-  getRedisCredentialsFromEnv,
+  getEnvInstance: () => {
+    if (!instance) {
+      instance = new Env();
+    }
+    return instance;
+  },
 };
