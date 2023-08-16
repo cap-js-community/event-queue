@@ -11,10 +11,10 @@ const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
 const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
 const COMPONENT_NAME = "eventQueue/config";
-const LOGGER = cds.log(COMPONENT_NAME);
 
 class Config {
   constructor() {
+    this.__logger = cds.log(COMPONENT_NAME);
     this.__config = null;
     this.__forUpdateTimeout = FOR_UPDATE_TIMEOUT;
     this.__globalTxTimeout = GLOBAL_TX_TIMEOUT;
@@ -52,11 +52,11 @@ class Config {
       try {
         const { key, value } = JSON.parse(messageData);
         if (this[key] !== value) {
-          LOGGER.info("received config change", { key, value });
+          this.__logger.info("received config change", { key, value });
           this[key] = value;
         }
       } catch (err) {
-        LOGGER.error("could not parse event config change", {
+        this.__logger.error("could not parse event config change", {
           messageData,
         });
       }
@@ -65,11 +65,11 @@ class Config {
 
   publishConfigChange(key, value) {
     if (!this.redisEnabled) {
-      LOGGER.info("redis not connected, config change won't be published", { key, value });
+      this.__logger.info("redis not connected, config change won't be published", { key, value });
       return;
     }
     redis.publishMessage(REDIS_CONFIG_CHANNEL, JSON.stringify({ key, value })).catch((error) => {
-      LOGGER.error(`publishing config change failed key: ${key}, value: ${value}`, error);
+      this.__logger.error(`publishing config change failed key: ${key}, value: ${value}`, error);
     });
   }
 

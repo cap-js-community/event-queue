@@ -9,7 +9,6 @@ const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "eventQueue/redisPubSub";
-const LOGGER = cds.log(COMPONENT_NAME);
 
 let subscriberClientPromise;
 
@@ -21,6 +20,7 @@ const initEventQueueRedisSubscribe = () => {
 };
 
 const messageHandlerProcessEvents = async (messageData) => {
+  const logger = cds.log(COMPONENT_NAME);
   try {
     const { tenantId, type, subType } = JSON.parse(messageData);
     const subdomain = await getSubdomainForTenantId(tenantId);
@@ -30,20 +30,21 @@ const messageHandlerProcessEvents = async (messageData) => {
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     });
     cds.context = context;
-    LOGGER.debug("received redis event", {
+    logger.debug("received redis event", {
       tenantId,
       type,
       subType,
     });
     getWorkerPoolInstance().addToQueue(async () => processEventQueue(context, type, subType));
   } catch (err) {
-    LOGGER.error("could not parse event information", {
+    logger.error("could not parse event information", {
       messageData,
     });
   }
 };
 
 const publishEvent = async (tenantId, type, subType) => {
+  const logger = cds.log(COMPONENT_NAME);
   const configInstance = config.getConfigInstance();
   if (!configInstance.redisEnabled) {
     await _handleEventInternally(tenantId, type, subType);
@@ -55,17 +56,17 @@ const publishEvent = async (tenantId, type, subType) => {
       [type, subType].join("##")
     );
     if (result) {
-      LOGGER.info("skip publish redis event as no lock is available");
+      logger.info("skip publish redis event as no lock is available");
       return;
     }
-    LOGGER.debug("publishing redis event", {
+    logger.debug("publishing redis event", {
       tenantId,
       type,
       subType,
     });
     await redis.publishMessage(EVENT_MESSAGE_CHANNEL, JSON.stringify({ tenantId, type, subType }));
   } catch (err) {
-    LOGGER.error(`publish event failed with error: ${err.toString()}`, {
+    logger.error(`publish event failed with error: ${err.toString()}`, {
       tenantId,
       type,
       subType,
@@ -74,7 +75,7 @@ const publishEvent = async (tenantId, type, subType) => {
 };
 
 const _handleEventInternally = async (tenantId, type, subType) => {
-  LOGGER.info("processEventQueue internally", {
+  cds.log(COMPONENT_NAME).info("processEventQueue internally", {
     tenantId,
     type,
     subType,

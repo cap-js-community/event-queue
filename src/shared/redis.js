@@ -6,7 +6,6 @@ const { getInstance: getEnvInstance } = require("./env");
 const EventQueueError = require("../EventQueueError");
 
 const COMPONENT_NAME = "eventQueue/shared/redis";
-const LOGGER = cds.log(COMPONENT_NAME);
 
 let mainClientPromise;
 const subscriberChannelClientPromise = {};
@@ -17,7 +16,7 @@ const createMainClientAndConnect = () => {
   }
 
   const errorHandlerCreateClient = (err) => {
-    LOGGER.error("error from redis client for pub/sub failed", err);
+    cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
     mainClientPromise = null;
     setTimeout(createMainClientAndConnect, 5 * 1000).unref();
   };
@@ -64,18 +63,20 @@ const createClientAndConnect = async (errorHandlerCreateClient) => {
 
 const subscribeRedisChannel = (channel, subscribeCb) => {
   const errorHandlerCreateClient = (err) => {
-    LOGGER.error(`error from redis client for pub/sub failed for channel ${channel}`, err);
+    cds.log(COMPONENT_NAME).error(`error from redis client for pub/sub failed for channel ${channel}`, err);
     subscriberChannelClientPromise[channel] = null;
     setTimeout(() => subscribeRedisChannel(channel, subscribeCb), 5 * 1000).unref();
   };
   subscriberChannelClientPromise[channel] = createClientAndConnect(errorHandlerCreateClient);
   subscriberChannelClientPromise[channel]
     .then((client) => {
-      LOGGER.info("subscribe redis client connected channel", { channel });
+      cds.log(COMPONENT_NAME).info("subscribe redis client connected channel", { channel });
       client.subscribe(channel, subscribeCb);
     })
     .catch((err) => {
-      LOGGER.error(`error from redis client for pub/sub failed during startup - trying to reconnect - ${channel}`, err);
+      cds
+        .log(COMPONENT_NAME)
+        .error(`error from redis client for pub/sub failed during startup - trying to reconnect - ${channel}`, err);
     });
 };
 
