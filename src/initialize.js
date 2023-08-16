@@ -28,6 +28,7 @@ const initialize = async ({
   configFilePath,
   registerAsEventProcessor,
   processEventsAfterPublish,
+  isRunnerDeactivated,
   runInterval,
   parallelTenantProcessing,
   tableNameEventQueue,
@@ -48,6 +49,7 @@ const initialize = async ({
     configFilePath,
     registerAsEventProcessor,
     processEventsAfterPublish,
+    isRunnerDeactivated,
     runInterval,
     parallelTenantProcessing,
     tableNameEventQueue,
@@ -57,7 +59,7 @@ const initialize = async ({
 
   const logger = cds.log(COMPONENT);
   configInstance.fileContent = await readConfigFromFile(configInstance.configFilePath);
-  configInstance.calculateIsRedisEnabled();
+  configInstance.checkRedisEnabled();
 
   const dbService = await cds.connect.to("db");
   await (cds.model ? Promise.resolve() : new Promise((resolve) => cds.on("serving", resolve)));
@@ -107,6 +109,7 @@ const registerEventProcessors = () => {
 
   if (configInstance.redisEnabled) {
     initEventQueueRedisSubscribe();
+    configInstance.attachConfigChangeHandler();
     runner.multiTenancyRedis();
   } else {
     runner.multiTenancyDb();
@@ -161,6 +164,7 @@ const mixConfigVarsWithEnv = (
   configFilePath,
   registerAsEventProcessor,
   processEventsAfterPublish,
+  isRunnerDeactivated,
   runInterval,
   parallelTenantProcessing,
   tableNameEventQueue,
@@ -172,6 +176,7 @@ const mixConfigVarsWithEnv = (
   configInstance.configFilePath = configFilePath ?? cds.env.eventQueue?.configFilePath;
   configInstance.registerAsEventProcessor =
     registerAsEventProcessor ?? cds.env.eventQueue?.registerAsEventProcessor ?? true;
+  configInstance.isRunnerDeactivated = isRunnerDeactivated ?? cds.env.eventQueue?.isRunnerDeactivated ?? false;
   configInstance.processEventsAfterPublish =
     processEventsAfterPublish ?? cds.env.eventQueue?.processEventsAfterPublish ?? true;
   configInstance.runInterval = runInterval ?? cds.env.eventQueue?.runInterval ?? 5 * 60 * 1000;

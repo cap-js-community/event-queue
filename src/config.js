@@ -2,30 +2,33 @@
 
 const cds = require("@sap/cds");
 
-const env = require("./shared/env");
+const { getEnvInstance: getEnvInstance } = require("./shared/env");
+const redis = require("./shared/redis");
 
 let instance;
 
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
+const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
+const COMPONENT_NAME = "eventQueue/config";
 
 class Config {
   constructor() {
+    this.__logger = cds.log(COMPONENT_NAME);
     this.__config = null;
     this.__forUpdateTimeout = FOR_UPDATE_TIMEOUT;
     this.__globalTxTimeout = GLOBAL_TX_TIMEOUT;
     this.__runInterval = null;
     this.__redisEnabled = null;
-    this.__isOnCF = env.isOnCF;
     this.__initialized = false;
     this.__parallelTenantProcessing = null;
     this.__tableNameEventQueue = null;
     this.__tableNameEventLock = null;
-    this.__vcapServices = this._parseVcapServices();
     this.__isRunnerDeactivated = false;
     this.__configFilePath = null;
     this.__processEventsAfterPublish = null;
     this.__skipCsnCheck = null;
+    this.__env = getEnvInstance();
   }
 
   getEventConfig(type, subType) {
@@ -37,23 +40,37 @@ class Config {
   }
 
   _checkRedisIsBound() {
-    return !!this.getRedisCredentialsFromEnv();
+    return !!this.__env.getRedisCredentialsFromEnv();
   }
 
-  getRedisCredentialsFromEnv() {
-    return this.__vcapServices["redis-cache"]?.[0]?.credentials;
+  checkRedisEnabled() {
+    this.__redisEnabled = this._checkRedisIsBound() && this.__env.isOnCF;
   }
 
-  _parseVcapServices() {
-    try {
-      return JSON.parse(process.env.VCAP_SERVICES);
-    } catch {
-      return {};
+  attachConfigChangeHandler() {
+    redis.subscribeRedisChannel(REDIS_CONFIG_CHANNEL, (messageData) => {
+      try {
+        const { key, value } = JSON.parse(messageData);
+        if (this[key] !== value) {
+          this.__logger.info("received config change", { key, value });
+          this[key] = value;
+        }
+      } catch (err) {
+        this.__logger.error("could not parse event config change", {
+          messageData,
+        });
+      }
+    });
+  }
+
+  publishConfigChange(key, value) {
+    if (!this.redisEnabled) {
+      this.__logger.info("redis not connected, config change won't be published", { key, value });
+      return;
     }
-  }
-
-  calculateIsRedisEnabled() {
-    this.__redisEnabled = this._checkRedisIsBound() && this.__isOnCF;
+    redis.publishMessage(REDIS_CONFIG_CHANNEL, JSON.stringify({ key, value })).catch((error) => {
+      this.__logger.error(`publishing config change failed key: ${key}, value: ${value}`, error);
+    });
   }
 
   get isRunnerDeactivated() {
@@ -110,14 +127,6 @@ class Config {
 
   set redisEnabled(value) {
     this.__redisEnabled = value;
-  }
-
-  get isOnCF() {
-    return this.__isOnCF;
-  }
-
-  set isOnCF(value) {
-    this.__isOnCF = value;
   }
 
   get initialized() {
