@@ -2,7 +2,7 @@
 
 const cds = require("@sap/cds");
 
-const { getEnvInstance: getEnvInstance } = require("./shared/env");
+const { getEnvInstance } = require("./shared/env");
 const redis = require("./shared/redis");
 
 let instance;

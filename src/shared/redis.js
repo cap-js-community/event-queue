@@ -2,7 +2,7 @@
 
 const redis = require("redis");
 
-const { getInstance: getEnvInstance } = require("./env");
+const { getEnvInstance } = require("./env");
 const EventQueueError = require("../EventQueueError");
 
 const COMPONENT_NAME = "eventQueue/shared/redis";

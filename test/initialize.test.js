@@ -9,7 +9,7 @@ cds.test(project);
 
 const redisPubSub = require("../src/redisPubSub");
 const eventQueue = require("../src");
-const { getEnvInstance: getEnvInstance } = require("../src/shared/env");
+const { getEnvInstance } = require("../src/shared/env");
 const runner = require("../src/runner");
 
 jest.spyOn(redisPubSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
