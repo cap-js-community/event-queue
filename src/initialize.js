@@ -28,6 +28,7 @@ const initialize = async ({
   configFilePath,
   registerAsEventProcessor,
   processEventsAfterPublish,
+  isRunnerDeactivated,
   runInterval,
   parallelTenantProcessing,
   tableNameEventQueue,
@@ -48,6 +49,7 @@ const initialize = async ({
     configFilePath,
     registerAsEventProcessor,
     processEventsAfterPublish,
+    isRunnerDeactivated,
     runInterval,
     parallelTenantProcessing,
     tableNameEventQueue,
@@ -56,16 +58,12 @@ const initialize = async ({
   );
 
   const logger = cds.log(COMPONENT);
-  configInstance.fileContent = await readConfigFromFile(
-    configInstance.configFilePath
-  );
-  configInstance.calculateIsRedisEnabled();
+  configInstance.fileContent = await readConfigFromFile(configInstance.configFilePath);
+  configInstance.checkRedisEnabled();
 
   const dbService = await cds.connect.to("db");
   // TODO: remove this as soon as CDS fixes the current plugin model issues --> cds 7
-  await (cds.model
-    ? Promise.resolve()
-    : new Promise((resolve) => {
+  await (cds.model ? Promise.resolve() : new Promise((resolve) => {
         cds.on("loaded", () => {
           const checkModel = () => !!cds.model;
           if (checkModel()) {
@@ -77,15 +75,6 @@ const initialize = async ({
       }));
   !configInstance.skipCsnCheck && (await csnCheck());
   if (configInstance.processEventsAfterPublish) {
-    // TODO: remove this as soon as CDS fixes the current plugin model issues --> cds 7
-    if (BASE_TABLES.EVENT === configInstance.tableNameEventQueue) {
-      cds.db.model.definitions[BASE_TABLES.EVENT] =
-        cds.model.definitions[BASE_TABLES.EVENT];
-    }
-    if (BASE_TABLES.LOCK === configInstance.tableNameEventLock) {
-      cds.db.model.definitions[BASE_TABLES.LOCK] =
-        cds.model.definitions[BASE_TABLES.LOCK];
-    }
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
@@ -130,6 +119,7 @@ const registerEventProcessors = () => {
 
   if (configInstance.redisEnabled) {
     initEventQueueRedisSubscribe();
+    configInstance.attachConfigChangeHandler();
     runner.multiTenancyRedis();
   } else {
     runner.multiTenancyDb();
@@ -171,8 +161,7 @@ const checkCustomTable = (baseCsn, customCsn) => {
 
     if (
       customCsn.elements[columnName].type !== "cds.Association" &&
-      customCsn.elements[columnName].type !==
-        baseCsn.elements[columnName].type &&
+      customCsn.elements[columnName].type !== baseCsn.elements[columnName].type &&
       columnName === "status" &&
       customCsn.elements[columnName].type !== "cds.Integer"
     ) {
@@ -185,6 +174,7 @@ const mixConfigVarsWithEnv = (
   configFilePath,
   registerAsEventProcessor,
   processEventsAfterPublish,
+  isRunnerDeactivated,
   runInterval,
   parallelTenantProcessing,
   tableNameEventQueue,
@@ -193,32 +183,19 @@ const mixConfigVarsWithEnv = (
 ) => {
   const configInstance = getConfigInstance();
 
-  configInstance.configFilePath =
-    configFilePath ?? cds.env.eventQueue?.configFilePath;
+  configInstance.configFilePath = configFilePath ?? cds.env.eventQueue?.configFilePath;
   configInstance.registerAsEventProcessor =
-    registerAsEventProcessor ??
-    cds.env.eventQueue?.registerAsEventProcessor ??
-    true;
+    registerAsEventProcessor ?? cds.env.eventQueue?.registerAsEventProcessor ?? true;
+  configInstance.isRunnerDeactivated = isRunnerDeactivated ?? cds.env.eventQueue?.isRunnerDeactivated ?? false;
   configInstance.processEventsAfterPublish =
-    processEventsAfterPublish ??
-    cds.env.eventQueue?.processEventsAfterPublish ??
-    true;
-  configInstance.runInterval =
-    runInterval ?? cds.env.eventQueue?.runInterval ?? 5 * 60 * 1000;
+    processEventsAfterPublish ?? cds.env.eventQueue?.processEventsAfterPublish ?? true;
+  configInstance.runInterval = runInterval ?? cds.env.eventQueue?.runInterval ?? 5 * 60 * 1000;
   configInstance.parallelTenantProcessing =
-    parallelTenantProcessing ??
-    cds.env.eventQueue?.parallelTenantProcessing ??
-    5;
+    parallelTenantProcessing ?? cds.env.eventQueue?.parallelTenantProcessing ?? 5;
   configInstance.tableNameEventQueue =
-    tableNameEventQueue ??
-    cds.env.eventQueue?.tableNameEventQueue ??
-    BASE_TABLES.EVENT;
-  configInstance.tableNameEventLock =
-    tableNameEventLock ??
-    cds.env.eventQueue?.tableNameEventLock ??
-    BASE_TABLES.LOCK;
-  configInstance.skipCsnCheck =
-    skipCsnCheck ?? cds.env.eventQueue?.skipCsnCheck ?? false;
+    tableNameEventQueue ?? cds.env.eventQueue?.tableNameEventQueue ?? BASE_TABLES.EVENT;
+  configInstance.tableNameEventLock = tableNameEventLock ?? cds.env.eventQueue?.tableNameEventLock ?? BASE_TABLES.LOCK;
+  configInstance.skipCsnCheck = skipCsnCheck ?? cds.env.eventQueue?.skipCsnCheck ?? false;
 };
 
 module.exports = {

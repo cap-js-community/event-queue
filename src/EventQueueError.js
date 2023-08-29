@@ -15,12 +15,10 @@ const ERROR_CODES = {
 
 const ERROR_CODES_META = {
   [ERROR_CODES.WRONG_TX_USAGE]: {
-    message:
-      "Usage of this.tx|this.context is not allowed if parallel event processing is enabled",
+    message: "Usage of this.tx|this.context is not allowed if parallel event processing is enabled",
   },
   [ERROR_CODES.UNKNOWN_EVENT_TYPE]: {
-    message:
-      "The event type and subType configuration is not configured! Maintain the combination in the config file.",
+    message: "The event type and subType configuration is not configured! Maintain the combination in the config file.",
   },
   [ERROR_CODES.NOT_INITIALIZED]: {
     message:
@@ -33,16 +31,13 @@ const ERROR_CODES_META = {
     message: "disabled reconnect, because we are not running on cloud foundry",
   },
   [ERROR_CODES.MISSING_TABLE_DEFINITION]: {
-    message:
-      "Could not find table in csn. Make sure the provided table name is correct and the table is known by CDS.",
+    message: "Could not find table in csn. Make sure the provided table name is correct and the table is known by CDS.",
   },
   [ERROR_CODES.MISSING_ELEMENT_IN_TABLE]: {
-    message:
-      "The provided table doesn't match the required structure. At least the following element is missing.",
+    message: "The provided table doesn't match the required structure. At least the following element is missing.",
   },
   [ERROR_CODES.TYPE_MISMATCH_TABLE]: {
-    message:
-      "At least one field in the provided table doesn't have the expected data type.",
+    message: "At least one field in the provided table doesn't have the expected data type.",
   },
 };
 

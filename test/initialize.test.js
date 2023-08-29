@@ -2,15 +2,17 @@
 
 const path = require("path");
 
-const redisPubSub = require("../src/redisPubSub");
-jest.spyOn(redisPubSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
-
-const eventQueue = require("../src");
-const runner = require("../src/runner");
 const cds = require("@sap/cds");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
+
+const redisPubSub = require("../src/redisPubSub");
+const eventQueue = require("../src");
+const { getEnvInstance } = require("../src/shared/env");
+const runner = require("../src/runner");
+
+jest.spyOn(redisPubSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
 
 describe("initialize", () => {
   let configInstance;
@@ -42,9 +44,7 @@ describe("initialize", () => {
 
   describe("runner mode registration", () => {
     test("single tenant", async () => {
-      const singleTenantSpy = jest
-        .spyOn(runner, "singleTenant")
-        .mockReturnValueOnce();
+      const singleTenantSpy = jest.spyOn(runner, "singleTenant").mockReturnValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -54,9 +54,7 @@ describe("initialize", () => {
 
     test("multi tenancy with db", async () => {
       cds.requires.multitenancy = {};
-      const multiTenancyDbSpy = jest
-        .spyOn(runner, "multiTenancyDb")
-        .mockReturnValueOnce();
+      const multiTenancyDbSpy = jest.spyOn(runner, "multiTenancyDb").mockReturnValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -66,9 +64,7 @@ describe("initialize", () => {
     });
 
     test("calling initialize twice should only processed once", async () => {
-      const singleTenant = jest
-        .spyOn(runner, "singleTenant")
-        .mockReturnValueOnce();
+      const singleTenant = jest.spyOn(runner, "singleTenant").mockReturnValueOnce();
       const p1 = eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -83,20 +79,19 @@ describe("initialize", () => {
 
     test("multi tenancy with redis", async () => {
       cds.requires.multitenancy = {};
-      eventQueue.getConfigInstance().__vcapServices = {
+      const env = getEnvInstance();
+      env.isOnCF = true;
+      env.vcapServices = {
         "redis-cache": [{ credentials: { hostname: "123" } }],
       };
-      eventQueue.getConfigInstance().isOnCF = true;
-      const multiTenancyRedisSpy = jest
-        .spyOn(runner, "multiTenancyRedis")
-        .mockReturnValueOnce();
+      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockReturnValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
       });
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(1);
+      env.isOnCF = false;
       cds.requires.multitenancy = null;
-      eventQueue.getConfigInstance().isOnCF = false;
     });
 
     test("mode none should not register any runner", async () => {
@@ -125,9 +120,7 @@ describe("initialize", () => {
       expect(configInstance.processEventsAfterPublish).toEqual(true);
       expect(configInstance.runInterval).toEqual(5 * 60 * 1000);
       expect(configInstance.parallelTenantProcessing).toEqual(3);
-      expect(configInstance.tableNameEventQueue).toEqual(
-        "sap.eventqueue.Event"
-      );
+      expect(configInstance.tableNameEventQueue).toEqual("sap.eventqueue.Event");
       expect(configInstance.tableNameEventLock).toEqual("sap.eventqueue.Lock");
       expect(configInstance.skipCsnCheck).toEqual(false);
     });

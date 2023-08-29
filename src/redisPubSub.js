@@ -7,94 +7,50 @@ const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
 const config = require("./config");
 const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
 
-const MESSAGE_CHANNEL = "cdsEventQueue";
+const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "eventQueue/redisPubSub";
 
-let publishClient;
 let subscriberClientPromise;
 
 const initEventQueueRedisSubscribe = () => {
   if (subscriberClientPromise || !config.getConfigInstance().redisEnabled) {
     return;
   }
-  subscribeRedisClient();
-};
-
-const subscribeRedisClient = () => {
-  const errorHandlerCreateClient = (err) => {
-    cds
-      .log(COMPONENT_NAME)
-      .error("error from redis client for pub/sub failed", err);
-    subscriberClientPromise = null;
-    setTimeout(subscribeRedisClient, 5 * 1000).unref();
-  };
-  subscriberClientPromise = redis.createClientAndConnect(
-    errorHandlerCreateClient
-  );
-  subscriberClientPromise
-    .then((client) => {
-      cds.log(COMPONENT_NAME).info("subscribe redis client connected");
-      client.subscribe(MESSAGE_CHANNEL, messageHandlerProcessEvents);
-    })
-    .catch((err) => {
-      cds
-        .log(COMPONENT_NAME)
-        .error(
-          "error from redis client for pub/sub failed during startup - trying to reconnect",
-          err
-        );
-    });
+  redis.subscribeRedisChannel(EVENT_MESSAGE_CHANNEL, messageHandlerProcessEvents);
 };
 
 const messageHandlerProcessEvents = async (messageData) => {
-  let tenantId, type, subType;
+  const logger = cds.log(COMPONENT_NAME);
   try {
-    ({ tenantId, type, subType } = JSON.parse(messageData));
+    const { tenantId, type, subType } = JSON.parse(messageData);
+    const subdomain = await getSubdomainForTenantId(tenantId);
+    const context = new cds.EventContext({
+      tenant: tenantId,
+      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
+      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+    });
+    cds.context = context;
+    logger.debug("received redis event", {
+      tenantId,
+      type,
+      subType,
+    });
+    getWorkerPoolInstance().addToQueue(async () => processEventQueue(context, type, subType));
   } catch (err) {
-    cds.log(COMPONENT_NAME).error("could not parse event information", {
+    logger.error("could not parse event information", {
       messageData,
     });
-    return;
   }
-  const subdomain = await getSubdomainForTenantId(tenantId);
-  const context = new cds.EventContext({
-    tenant: tenantId,
-    // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-    http: { req: { authInfo: { getSubdomain: () => subdomain } } },
-  });
-  cds.context = context;
-  cds.log(COMPONENT_NAME).debug("received redis event", {
-    tenantId,
-    type,
-    subType,
-  });
-  getWorkerPoolInstance().addToQueue(async () =>
-    processEventQueue(context, type, subType)
-  );
 };
 
 const publishEvent = async (tenantId, type, subType) => {
+  const logger = cds.log(COMPONENT_NAME);
   const configInstance = config.getConfigInstance();
   if (!configInstance.redisEnabled) {
     await _handleEventInternally(tenantId, type, subType);
     return;
   }
-
-  const logger = cds.log(COMPONENT_NAME);
-  const errorHandlerCreateClient = (err) => {
-    logger.error("error from redis client for pub/sub failed", {
-      err,
-    });
-    publishClient = null;
-  };
   try {
-    if (!publishClient) {
-      publishClient = await redis.createClientAndConnect(
-        errorHandlerCreateClient
-      );
-      logger.info("publish redis client connected");
-    }
-
     const result = await checkLockExistsAndReturnValue(
       new cds.EventContext({ tenant: tenantId }),
       [type, subType].join("##")
@@ -108,10 +64,7 @@ const publishEvent = async (tenantId, type, subType) => {
       type,
       subType,
     });
-    await publishClient.publish(
-      MESSAGE_CHANNEL,
-      JSON.stringify({ tenantId, type, subType })
-    );
+    await redis.publishMessage(EVENT_MESSAGE_CHANNEL, JSON.stringify({ tenantId, type, subType }));
   } catch (err) {
     logger.error(`publish event failed with error: ${err.toString()}`, {
       tenantId,
@@ -122,8 +75,7 @@ const publishEvent = async (tenantId, type, subType) => {
 };
 
 const _handleEventInternally = async (tenantId, type, subType) => {
-  const logger = cds.log(COMPONENT_NAME);
-  logger.info("processEventQueue internally", {
+  cds.log(COMPONENT_NAME).info("processEventQueue internally", {
     tenantId,
     type,
     subType,

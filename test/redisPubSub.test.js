@@ -1,10 +1,7 @@
 "use strict";
 
 const distributedLock = require("../src/shared/distributedLock");
-const checkLockExistsSpy = jest.spyOn(
-  distributedLock,
-  "checkLockExistsAndReturnValue"
-);
+const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExistsAndReturnValue");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
@@ -28,8 +25,16 @@ jest.mock("../src/shared/redis", () => {
         }),
       };
     }),
+    publishMessage: jest.fn().mockImplementation((...args) => {
+      if (mockThrowErrorPublish) {
+        throw new Error("publish failed");
+      }
+      mockRedisPublishCalls.push(args);
+    }),
   };
 });
+
+const redis = require("../src/shared/redis");
 
 describe("eventQueue Redis Events and DB Handlers", () => {
   let context;
@@ -38,6 +43,9 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
     const configInstance = eventQueue.getConfigInstance();
+    jest.spyOn(cds, "log").mockImplementation((layer) => {
+      return mockLogger(layer);
+    });
     await eventQueue.initialize({
       configFilePath,
       processEventsAfterPublish: true,
@@ -45,9 +53,6 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     configInstance.redisEnabled = true;
     eventQueue.registerEventQueueDbHandler(cds.db);
     loggerMock = mockLogger();
-    jest.spyOn(cds, "log").mockImplementation((layer) => {
-      return mockLogger(layer);
-    });
   });
 
   beforeEach(async () => {
@@ -55,6 +60,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     tx = cds.tx(context);
     await tx.run(DELETE.from("sap.eventqueue.Event"));
     mockRedisPublishCalls = [];
+    jest.clearAllMocks();
   });
 
   afterAll(() => cds.shutdown);
@@ -80,7 +86,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     expect(mockRedisPublishCalls).toHaveLength(1);
     expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
-        "cdsEventQueue",
+        "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"type":"Notifications","subType":"Task"}",
       ]
     `);
@@ -101,7 +107,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     expect(mockRedisPublishCalls).toHaveLength(1);
     expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
-        "cdsEventQueue",
+        "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"type":"Notifications","subType":"Task"}",
       ]
     `);
@@ -114,7 +120,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     expect(mockRedisPublishCalls).toHaveLength(1);
     expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
-        "cdsEventQueue",
+        "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"type":"Notifications","subType":"Task"}",
       ]
     `);
@@ -135,11 +141,11 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     expect(mockRedisPublishCalls).toMatchInlineSnapshot(`
       [
         [
-          "cdsEventQueue",
+          "EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"type":"Notifications","subType":"Task"}",
         ],
         [
-          "cdsEventQueue",
+          "EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"type":"Fiori","subType":"Task"}",
         ],
       ]
@@ -148,12 +154,12 @@ describe("eventQueue Redis Events and DB Handlers", () => {
 
   test("publish event throws an error", async () => {
     checkLockExistsSpy.mockResolvedValueOnce(false);
+    const publishMessageSpy = jest.spyOn(redis, "publishMessage");
     await insertEventEntry(tx);
     mockThrowErrorPublish = true;
     await tx.commit();
     expect(mockRedisPublishCalls).toHaveLength(0);
-    expect(loggerMock.callsLengths().error).toEqual(1);
-    expect(loggerMock.calls().error).toMatchSnapshot();
+    expect(publishMessageSpy).toHaveBeenCalledTimes(1);
     mockThrowErrorPublish = false;
   });
 });

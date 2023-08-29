@@ -15,9 +15,7 @@ const publishEvent = async (tx, events) => {
       throw EventQueueError.unknownEventType(type, subType);
     }
   }
-  return await tx.run(
-    INSERT.into(configInstance.tableNameEventQueue).entries(eventsForProcessing)
-  );
+  return await tx.run(INSERT.into(configInstance.tableNameEventQueue).entries(eventsForProcessing));
 };
 
 module.exports = {

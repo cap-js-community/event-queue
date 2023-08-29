@@ -2,7 +2,7 @@
 
 const cds = require("@sap/cds");
 
-const { executeInNewTransaction } = require("./shared/cdsHelper");
+const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
 const { EventProcessingStatus, TransactionMode } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
@@ -17,8 +17,15 @@ const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_PARALLEL_EVENT_PROCESSING = 1;
 const LIMIT_PARALLEL_EVENT_PROCESSING = 10;
 const SELECT_LIMIT_EVENTS_PER_TICK = 100;
+const DEFAULT_DELETE_FINISHED_EVENTS_AFTER = 0;
+const DAYS_TO_MS = 24 * 60 * 60 * 1000;
+const TRIES_FOR_EXCEEDED_EVENTS = 3;
 
 class EventQueueProcessorBase {
+  #eventsWithExceededTries = [];
+  #exceededTriesExceeded = [];
+  #selectedEventMap = {};
+
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
     this.__baseContext = context;
@@ -32,31 +39,34 @@ class EventQueueProcessorBase {
     this.__eventSubType = eventSubType;
     this.__queueEntriesWithPayloadMap = {};
     this.__config = config ?? {};
-    this.__parallelEventProcessing =
-      this.__config.parallelEventProcessing ??
-      DEFAULT_PARALLEL_EVENT_PROCESSING;
+    this.__parallelEventProcessing = this.__config.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
     // NOTE: keep the feature, this might be needed again
     this.__concurrentEventProcessing = false;
     this.__startTime = this.__config.startTime ?? new Date();
-    this.__retryAttempts =
-      this.__config.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
-    this.__selectMaxChunkSize =
-      this.__config.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
+    this.__retryAttempts = this.__config.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
+    this.__selectMaxChunkSize = this.__config.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
     this.__selectNextChunk = !!this.__config.checkForNextChunk;
     this.__keepalivePromises = {};
     this.__outdatedCheckEnabled = this.__config.eventOutdatedCheck ?? true;
-    this.__transactionMode =
-      this.__config.transactionMode ?? TransactionMode.isolated;
-    this.__eventsWithExceededTries = [];
+    this.__transactionMode = this.__config.transactionMode ?? TransactionMode.isolated;
+    if (this.__config.deleteFinishedEventsAfterDays) {
+      this.__deleteFinishedEventsAfter =
+        Number.isInteger(this.__config.deleteFinishedEventsAfterDays) && this.__config.deleteFinishedEventsAfterDays > 0
+          ? this.__config.deleteFinishedEventsAfterDays
+          : DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
+    } else {
+      this.__deleteFinishedEventsAfter = DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
+    }
     this.__emptyChunkSelected = false;
     this.__lockAcquired = false;
     this.__txUsageAllowed = true;
     this.__txMap = {};
     this.__txRollback = {};
     this.__eventQueueConfig = eventQueueConfig.getConfigInstance();
+    this.__queueEntries = [];
   }
 
   /**
@@ -78,17 +88,11 @@ class EventQueueProcessorBase {
   }
 
   startPerformanceTracerEvents() {
-    this.__performanceLoggerEvents = new PerformanceTracer(
-      this.logger,
-      "Processing events"
-    );
+    this.__performanceLoggerEvents = new PerformanceTracer(this.logger, "Processing events");
   }
 
   startPerformanceTracerPreprocessing() {
-    this.__performanceLoggerPreprocessing = new PerformanceTracer(
-      this.logger,
-      "Preprocessing events"
-    );
+    this.__performanceLoggerPreprocessing = new PerformanceTracer(this.logger, "Preprocessing events");
   }
 
   endPerformanceTracerEvents() {
@@ -176,10 +180,7 @@ class EventQueueProcessorBase {
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
     });
-    this.#determineAndAddEventStatusToMap(
-      queueEntry.ID,
-      EventProcessingStatus.Done
-    );
+    this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Done);
   }
 
   /**
@@ -190,11 +191,9 @@ class EventQueueProcessorBase {
    * In this case the events should be clustered together and only one mail should be sent.
    */
   clusterQueueEntries() {
-    Object.entries(this.__queueEntriesWithPayloadMap).forEach(
-      ([key, { queueEntry, payload }]) => {
-        this.addEntryToProcessingMap(key, queueEntry, payload);
-      }
-    );
+    Object.entries(this.__queueEntriesWithPayloadMap).forEach(([key, { queueEntry, payload }]) => {
+      this.addEntryToProcessingMap(key, queueEntry, payload);
+    });
   }
 
   /**
@@ -225,28 +224,23 @@ class EventQueueProcessorBase {
    * event processing.
    * @param {Array} queueEntries which has been selected from event queue table and been modified by modifyQueueEntry
    * @param {Array<Object>} queueEntryProcessingStatusTuple Array of tuple <queueEntryId, processingStatus>
+   * @param {boolean} returnMap Allows the function to allow the result as map
    * @return {Object} statusMap Map which contains all events for which a status has been set so far
    */
-  setEventStatus(queueEntries, queueEntryProcessingStatusTuple) {
+  setEventStatus(queueEntries, queueEntryProcessingStatusTuple, returnMap = false) {
     this.logger.debug("setting event status for entries", {
-      queueEntryProcessingStatusTuple: JSON.stringify(
-        queueEntryProcessingStatusTuple
-      ),
+      queueEntryProcessingStatusTuple: JSON.stringify(queueEntryProcessingStatusTuple),
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
     });
-    const statusMap = this.commitOnEventLevel ? {} : this.__statusMap;
+    const statusMap = this.commitOnEventLevel || returnMap ? {} : this.__statusMap;
     try {
       queueEntryProcessingStatusTuple.forEach(([id, processingStatus]) =>
         this.#determineAndAddEventStatusToMap(id, processingStatus, statusMap)
       );
     } catch (error) {
       queueEntries.forEach((queueEntry) =>
-        this.#determineAndAddEventStatusToMap(
-          queueEntry.ID,
-          EventProcessingStatus.Error,
-          statusMap
-        )
+        this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error, statusMap)
       );
       this.logger.error(
         `The supplied status tuple doesn't have the required structure. Setting all entries to error. Error: ${error.toString()}`,
@@ -269,24 +263,16 @@ class EventQueueProcessorBase {
     try {
       queueEntry.payload = JSON.parse(queueEntry.payload);
     } catch {
-      return queueEntry.payload;
+      /* empty */
     }
   }
 
-  #determineAndAddEventStatusToMap(
-    id,
-    processingStatus,
-    statusMap = this.__statusMap
-  ) {
+  #determineAndAddEventStatusToMap(id, processingStatus, statusMap = this.__statusMap) {
     if (!statusMap[id]) {
       statusMap[id] = processingStatus;
       return;
     }
-    if (
-      [EventProcessingStatus.Error, EventProcessingStatus.Exceeded].includes(
-        statusMap[id]
-      )
-    ) {
+    if ([EventProcessingStatus.Error, EventProcessingStatus.Exceeded].includes(statusMap[id])) {
       // NOTE: worst aggregation --> if already error|exceeded keep this state
       return;
     }
@@ -306,17 +292,9 @@ class EventQueueProcessorBase {
       }
     );
     queueEntries.forEach((queueEntry) =>
-      this.#determineAndAddEventStatusToMap(
-        queueEntry.ID,
-        EventProcessingStatus.Error
-      )
+      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error)
     );
-    return Object.fromEntries(
-      queueEntries.map((queueEntry) => [
-        queueEntry.ID,
-        EventProcessingStatus.Error,
-      ])
-    );
+    return Object.fromEntries(queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Error]));
   }
 
   /**
@@ -324,10 +302,7 @@ class EventQueueProcessorBase {
    * selected events a status has been submitted. Persisting the status of events is done in a dedicated database tx.
    * The function accepts no arguments as there are dedicated functions to set the status of events (e.g. setEventStatus)
    */
-  async persistEventStatus(
-    tx,
-    { skipChecks, statusMap = this.__statusMap } = {}
-  ) {
+  async persistEventStatus(tx, { skipChecks, statusMap = this.__statusMap } = {}) {
     this.logger.debug("entering persistEventStatus", {
       eventType: this.__eventType,
       eventSubType: this.__eventSubType,
@@ -338,9 +313,7 @@ class EventQueueProcessorBase {
     }
     this.#ensureEveryStatusIsAllowed(statusMap);
 
-    const { success, failed, exceeded, invalidAttempts } = Object.entries(
-      statusMap
-    ).reduce(
+    const { success, failed, exceeded, invalidAttempts } = Object.entries(statusMap).reduce(
       (result, [notificationEntityId, processingStatus]) => {
         this.__commitedStatusMap[notificationEntityId] = processingStatus;
         if (processingStatus === EventProcessingStatus.Open) {
@@ -380,34 +353,24 @@ class EventQueueProcessorBase {
           .where("ID IN", invalidAttempts)
       );
     }
-    if (success.length) {
+    const ts = new Date().toISOString();
+    const updateTuples = [
+      [success, EventProcessingStatus.Done],
+      [failed, EventProcessingStatus.Error],
+      [exceeded, EventProcessingStatus.Exceeded],
+    ];
+
+    for (const [eventIds, status] of updateTuples) {
+      if (!eventIds.length) {
+        continue;
+      }
       await tx.run(
         UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
           .set({
-            status: EventProcessingStatus.Done,
-            lastAttemptTimestamp: new Date().toISOString(),
+            status: status,
+            lastAttemptTimestamp: ts,
           })
-          .where("ID IN", success)
-      );
-    }
-    if (failed.length) {
-      await tx.run(
-        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
-          .where("ID IN", failed)
-          .with({
-            status: EventProcessingStatus.Error,
-            lastAttemptTimestamp: new Date().toISOString(),
-          })
-      );
-    }
-    if (exceeded.length) {
-      await tx.run(
-        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
-          .where("ID IN", exceeded)
-          .with({
-            status: EventProcessingStatus.Exceeded,
-            lastAttemptTimestamp: new Date().toISOString(),
-          })
+          .where("ID IN", eventIds)
       );
     }
     this.logger.debug("exiting persistEventStatus", {
@@ -416,26 +379,39 @@ class EventQueueProcessorBase {
     });
   }
 
+  async deleteFinishedEvents(tx) {
+    if (!this.__deleteFinishedEventsAfter) {
+      return;
+    }
+    const deleteCount = await tx.run(
+      DELETE.from(this.__eventQueueConfig.tableNameEventQueue).where(
+        "type =",
+        this.eventType,
+        "AND subType=",
+        this.eventSubType,
+        "AND lastAttemptTimestamp <=",
+        new Date(Date.now() - this.__deleteFinishedEventsAfter * DAYS_TO_MS).toISOString()
+      )
+    );
+    this.logger.debug("Deleted finished events", {
+      eventType: this.eventType,
+      eventSubType: this.eventSubType,
+      deleteFinishedEventsAfter: this.__deleteFinishedEventsAfter,
+      deleteCount,
+    });
+  }
+
   #ensureEveryQueueEntryHasStatus() {
     this.__queueEntries.forEach((queueEntry) => {
-      if (
-        queueEntry.ID in this.__statusMap ||
-        queueEntry.ID in this.__commitedStatusMap
-      ) {
+      if (queueEntry.ID in this.__statusMap || queueEntry.ID in this.__commitedStatusMap) {
         return;
       }
-      this.logger.error(
-        "Missing status for selected event entry. Setting status to error",
-        {
-          eventType: this.__eventType,
-          eventSubType: this.__eventSubType,
-          queueEntry,
-        }
-      );
-      this.#determineAndAddEventStatusToMap(
-        queueEntry.ID,
-        EventProcessingStatus.Error
-      );
+      this.logger.error("Missing status for selected event entry. Setting status to error", {
+        eventType: this.__eventType,
+        eventSubType: this.__eventSubType,
+        queueEntry,
+      });
+      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
     });
   }
 
@@ -452,22 +428,19 @@ class EventQueueProcessorBase {
         return;
       }
 
-      this.logger.error(
-        "Not allowed event status returned. Only Open, Done, Error is allowed!",
-        {
-          eventType: this.__eventType,
-          eventSubType: this.__eventSubType,
-          queueEntryId,
-          status: statusMap[queueEntryId],
-        }
-      );
+      this.logger.error("Not allowed event status returned. Only Open, Done, Error is allowed!", {
+        eventType: this.__eventType,
+        eventSubType: this.__eventSubType,
+        queueEntryId,
+        status: statusMap[queueEntryId],
+      });
       delete statusMap[queueEntryId];
     });
   }
 
   #ensureOnlySelectedQueueEntries(statusMap) {
     Object.keys(statusMap).forEach((queueEntryId) => {
-      if (this.__queueEntriesMap[queueEntryId]) {
+      if (this.#selectedEventMap[queueEntryId]) {
         return;
       }
 
@@ -484,18 +457,12 @@ class EventQueueProcessorBase {
   }
 
   handleErrorDuringClustering(error) {
-    this.logger.error(
-      `Error during clustering of events - setting all queue entries to error. Error: ${error}`,
-      {
-        eventType: this.__eventType,
-        eventSubType: this.__eventSubType,
-      }
-    );
+    this.logger.error(`Error during clustering of events - setting all queue entries to error. Error: ${error}`, {
+      eventType: this.__eventType,
+      eventSubType: this.__eventSubType,
+    });
     this.__queueEntries.forEach((queueEntry) => {
-      this.#determineAndAddEventStatusToMap(
-        queueEntry.ID,
-        EventProcessingStatus.Error
-      );
+      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
     });
   }
 
@@ -508,29 +475,15 @@ class EventQueueProcessorBase {
         eventSubType: this.__eventSubType,
       }
     );
-    this.#determineAndAddEventStatusToMap(
-      queueEntry.ID,
-      EventProcessingStatus.Error
-    );
+    this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
   }
 
-  static async handleMissingTypeImplementation(
-    context,
-    eventType,
-    eventSubType
-  ) {
-    const baseInstance = new EventQueueProcessorBase(
-      context,
+  static async handleMissingTypeImplementation(context, eventType, eventSubType) {
+    const baseInstance = new EventQueueProcessorBase(context, eventType, eventSubType);
+    baseInstance.logger.error("No Implementation found in the provided configuration file.", {
       eventType,
-      eventSubType
-    );
-    baseInstance.logger.error(
-      "No Implementation found in the provided configuration file.",
-      {
-        eventType,
-        eventSubType,
-      }
-    );
+      eventSubType,
+    });
   }
 
   /**
@@ -542,137 +495,179 @@ class EventQueueProcessorBase {
    */
   async getQueueEntriesAndSetToInProgress() {
     let result = [];
-    await executeInNewTransaction(
-      this.__baseContext,
-      "eventQueue-getQueueEntriesAndSetToInProgress",
-      async (tx) => {
-        const entries = await tx.run(
-          SELECT.from(this.__eventQueueConfig.tableNameEventQueue)
-            .forUpdate({ wait: this.__eventQueueConfig.forUpdateTimeout })
-            .limit(this.getSelectMaxChunkSize())
-            .where(
-              "type =",
-              this.__eventType,
-              "AND subType=",
-              this.__eventSubType,
-              "AND ( status =",
-              EventProcessingStatus.Open,
-              "OR ( status =",
-              EventProcessingStatus.Error,
-              "AND lastAttemptTimestamp <=",
-              this.__startTime.toISOString(),
-              ") OR ( status =",
-              EventProcessingStatus.InProgress,
-              "AND lastAttemptTimestamp <=",
-              new Date(
-                new Date().getTime() - this.__eventQueueConfig.globalTxTimeout
-              ).toISOString(),
-              ") )"
-            )
-            .orderBy("createdAt", "ID")
-        );
+    await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
+      const entries = await tx.run(
+        SELECT.from(this.__eventQueueConfig.tableNameEventQueue)
+          .forUpdate({ wait: this.__eventQueueConfig.forUpdateTimeout })
+          .limit(this.selectMaxChunkSize)
+          .where(
+            "type =",
+            this.__eventType,
+            "AND subType=",
+            this.__eventSubType,
+            "AND ( status =",
+            EventProcessingStatus.Open,
+            "OR ( status =",
+            EventProcessingStatus.Error,
+            "AND lastAttemptTimestamp <=",
+            this.__startTime.toISOString(),
+            ") OR ( status =",
+            EventProcessingStatus.InProgress,
+            "AND lastAttemptTimestamp <=",
+            new Date(new Date().getTime() - this.__eventQueueConfig.globalTxTimeout).toISOString(),
+            ") )"
+          )
+          .orderBy("createdAt", "ID")
+      );
 
-        if (!entries.length) {
-          this.logger.debug("no entries available for processing", {
-            eventType: this.__eventType,
-            eventSubType: this.__eventSubType,
-          });
-          this.__emptyChunkSelected = true;
-          return;
-        }
-
-        const { exceededTries, openEvents } =
-          this.#filterExceededEvents(entries);
-        if (exceededTries.length) {
-          this.__eventsWithExceededTries = exceededTries;
-        }
-        result = openEvents;
-
-        if (!result.length) {
-          this.__emptyChunkSelected = true;
-          return;
-        }
-
-        this.logger.info("Selected event queue entries for processing", {
-          queueEntriesCount: result.length,
+      if (!entries.length) {
+        this.logger.debug("no entries available for processing", {
           eventType: this.__eventType,
           eventSubType: this.__eventSubType,
         });
-
-        const isoTimestamp = new Date().toISOString();
-        await tx.run(
-          UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
-            .with({
-              status: EventProcessingStatus.InProgress,
-              lastAttemptTimestamp: isoTimestamp,
-              attempts: { "+=": 1 },
-            })
-            .where(
-              "ID IN",
-              result.map(({ ID }) => ID)
-            )
-        );
-        result.forEach((entry) => {
-          entry.lastAttemptTimestamp = isoTimestamp;
-          // NOTE: empty payloads are supported on DB-Level.
-          // Behaviour of event queue is: null as payload is treated as obsolete/done
-          // For supporting this convert null to empty string --> "" as payload will be processed normally
-          if (entry.payload === null) {
-            entry.payload = "";
-          }
-        });
+        this.__emptyChunkSelected = true;
+        return;
       }
-    );
-    this.__queueEntries = result;
-    this.__queueEntriesMap = arrayToFlatMap(result);
+
+      this.#selectedEventMap = arrayToFlatMap(entries);
+      const { exceededTries, openEvents, exceededTriesExceeded } = this.#filterExceededEvents(entries);
+      if (exceededTries.length) {
+        this.#eventsWithExceededTries = exceededTries;
+      }
+      if (exceededTriesExceeded.length) {
+        this.#exceededTriesExceeded = exceededTriesExceeded;
+      }
+
+      result = openEvents;
+
+      if (!result.length) {
+        this.__emptyChunkSelected = true;
+      }
+
+      this.logger.info("Selected event queue entries for processing", {
+        queueEntriesCount: result.length,
+        eventType: this.__eventType,
+        eventSubType: this.__eventSubType,
+      });
+
+      const isoTimestamp = new Date().toISOString();
+      await tx.run(
+        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
+          .with({
+            status: EventProcessingStatus.InProgress,
+            lastAttemptTimestamp: isoTimestamp,
+            attempts: { "+=": 1 },
+          })
+          .where(
+            "ID IN",
+            entries.map(({ ID }) => ID)
+          )
+      );
+      entries.forEach((entry) => {
+        entry.lastAttemptTimestamp = isoTimestamp;
+        // NOTE: empty payloads are supported on DB-Level.
+        // Behaviour of event queue is: null as payload is treated as obsolete/done
+        // For supporting this convert null to empty string --> "" as payload will be processed normally
+        if (entry.payload === null) {
+          entry.payload = "";
+        }
+      });
+      this.__queueEntries = result;
+      this.__queueEntriesMap = arrayToFlatMap(result);
+    });
     return result;
   }
 
   #filterExceededEvents(events) {
     return events.reduce(
       (result, event) => {
-        if (event.attempts === this.__retryAttempts) {
+        if (event.attempts === this.__retryAttempts + TRIES_FOR_EXCEEDED_EVENTS) {
+          result.exceededTriesExceeded.push(event);
+        } else if (event.attempts >= this.__retryAttempts) {
           result.exceededTries.push(event);
         } else {
           result.openEvents.push(event);
         }
         return result;
       },
-      { exceededTries: [], openEvents: [] }
+      { exceededTries: [], openEvents: [], exceededTriesExceeded: [] }
     );
   }
 
-  async handleExceededEvents(exceededEvents) {
-    await this.tx.run(
-      UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
-        .with({
-          status: EventProcessingStatus.Exceeded,
-        })
-        .where(
-          "ID IN",
-          exceededEvents.map(({ ID }) => ID)
-        )
-    );
-    this.logger.error(
-      "The retry attempts for the following events are exceeded",
-      {
+  async handleExceededEvents() {
+    await this.#handleExceededTriesExceeded();
+    if (!this.#eventsWithExceededTries.length) {
+      return;
+    }
+
+    for (const exceededEvent of this.#eventsWithExceededTries) {
+      await executeInNewTransaction(
+        this.context,
+        `eventQueue-handleExceededEvents-${this.eventType}##${this.eventSubType}`,
+        async (tx) => {
+          try {
+            this.processEventContext = tx.context;
+            this.modifyQueueEntry(exceededEvent);
+            await this.hookForExceededEvents({ ...exceededEvent });
+            this.logger.warn("The retry attempts for the following events are exceeded", {
+              eventType: this.__eventType,
+              eventSubType: this.__eventSubType,
+              retryAttempts: this.__retryAttempts,
+              queueEntriesId: exceededEvent.ID,
+              currentAttempt: exceededEvent.attempts,
+            });
+            await this.#persistEventQueueStatusForExceeded(this.tx, [exceededEvent], EventProcessingStatus.Exceeded);
+          } catch (err) {
+            this.logger.error(
+              `Caught error during hook for exceeded events - setting queue entry to error. Please catch your promises/exceptions. Error: ${err}`,
+              {
+                eventType: this.__eventType,
+                eventSubType: this.__eventSubType,
+                retryAttempts: this.__retryAttempts,
+                queueEntriesId: exceededEvent.ID,
+                currentAttempt: exceededEvent.attempts,
+              }
+            );
+            await executeInNewTransaction(this.context, "error-hookForExceededEvents", async (tx) =>
+              this.#persistEventQueueStatusForExceeded(tx, [exceededEvent], EventProcessingStatus.Error)
+            );
+            throw new TriggerRollback();
+          }
+        }
+      );
+    }
+  }
+
+  async #handleExceededTriesExceeded() {
+    if (this.#exceededTriesExceeded.length) {
+      this.logger.error("Event hook failure exceeded, status set to 'exceeded' without invoking hook again!", {
         eventType: this.__eventType,
         eventSubType: this.__eventSubType,
-        retryAttempts: this.__retryAttempts,
-        queueEntriesIds: exceededEvents.map(({ ID }) => ID),
-      }
+        queueEntriesIds: this.#eventsWithExceededTries.map(({ ID }) => ID),
+      });
+      await executeInNewTransaction(this.context, "exceededTriesExceeded", async (tx) => {
+        await this.#persistEventQueueStatusForExceeded(tx, this.#exceededTriesExceeded, EventProcessingStatus.Exceeded);
+      });
+    }
+  }
+
+  async #persistEventQueueStatusForExceeded(tx, events, status) {
+    const statusMap = this.setEventStatus(
+      events,
+      events.map((e) => [e.ID, status]),
+      true
     );
-    await this.hookForExceededEvents(exceededEvents);
+    await this.persistEventStatus(tx, { statusMap, skipChecks: true });
   }
 
   /**
    * This function enables the possibility to execute custom actions for events for which the retry attempts have been
    * exceeded. As always a valid transaction is available with this.tx. This transaction will be committed after the
    * execution of this function.
-   * @param {Object} exceededEvents exceeded event queue entries
+   * @param {Object} exceededEvent exceeded event queue entry
    */
   // eslint-disable-next-line no-unused-vars
-  async hookForExceededEvents(exceededEvents) {}
+  async hookForExceededEvents(exceededEvent) {}
 
   /**
    * This function serves the purpose of mass enabled preloading data for processing the events which are added with
@@ -695,9 +690,7 @@ class EventQueueProcessorBase {
       return false;
     }
     let eventOutdated;
-    const runningChecks = queueEntries
-      .map((queueEntry) => this.__keepalivePromises[queueEntry.ID])
-      .filter((p) => p);
+    const runningChecks = queueEntries.map((queueEntry) => this.__keepalivePromises[queueEntry.ID]).filter((p) => p);
     if (runningChecks.length === queueEntries.length) {
       const results = await Promise.allSettled(runningChecks);
       for (const { value } of results) {
@@ -709,71 +702,55 @@ class EventQueueProcessorBase {
     } else if (runningChecks.length) {
       await Promise.allSettled(runningChecks);
     }
-    const checkAndUpdatePromise = new Promise((resolve) => {
-      executeInNewTransaction(
-        this.__baseContext,
-        "eventProcessing-isOutdatedAndKeepalive",
-        async (tx) => {
-          const queueEntriesFresh = await tx.run(
-            SELECT.from(this.__eventQueueConfig.tableNameEventQueue)
-              .forUpdate({ wait: this.__eventQueueConfig.forUpdateTimeout })
+    const checkAndUpdatePromise = new Promise((resolve, reject) => {
+      executeInNewTransaction(this.__baseContext, "eventProcessing-isOutdatedAndKeepalive", async (tx) => {
+        const queueEntriesFresh = await tx.run(
+          SELECT.from(this.__eventQueueConfig.tableNameEventQueue)
+            .forUpdate({ wait: this.__eventQueueConfig.forUpdateTimeout })
+            .where(
+              "ID IN",
+              queueEntries.map(({ ID }) => ID)
+            )
+            .columns("ID", "lastAttemptTimestamp")
+        );
+        eventOutdated = queueEntriesFresh.some((queueEntryFresh) => {
+          const queueEntry = this.__queueEntriesMap[queueEntryFresh.ID];
+          return queueEntry?.lastAttemptTimestamp !== queueEntryFresh.lastAttemptTimestamp;
+        });
+        let newTs = new Date().toISOString();
+        if (!eventOutdated) {
+          await tx.run(
+            UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
+              .set("lastAttemptTimestamp =", newTs)
               .where(
                 "ID IN",
                 queueEntries.map(({ ID }) => ID)
               )
-              .columns("ID", "lastAttemptTimestamp")
           );
-          eventOutdated = queueEntriesFresh.some((queueEntryFresh) => {
-            const queueEntry = this.__queueEntriesMap[queueEntryFresh.ID];
-            return (
-              queueEntry?.lastAttemptTimestamp !==
-              queueEntryFresh.lastAttemptTimestamp
-            );
+        } else {
+          newTs = null;
+          this.logger.warn("event data has been modified. Processing skipped.", {
+            eventType: this.__eventType,
+            eventSubType: this.__eventSubType,
+            queueEntriesIds: queueEntries.map(({ ID }) => ID),
           });
-          let newTs = new Date().toISOString();
-          if (!eventOutdated) {
-            await tx.run(
-              UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
-                .set("lastAttemptTimestamp =", newTs)
-                .where(
-                  "ID IN",
-                  queueEntries.map(({ ID }) => ID)
-                )
-            );
-          } else {
-            newTs = null;
-            this.logger.warn(
-              "event data has been modified. Processing skipped.",
-              {
-                eventType: this.__eventType,
-                eventSubType: this.__eventSubType,
-                queueEntriesIds: queueEntries.map(({ ID }) => ID),
-              }
-            );
-            queueEntries.forEach(
-              ({ ID: queueEntryId }) =>
-                delete this.__queueEntriesMap[queueEntryId]
-            );
-          }
-          this.__queueEntries = Object.values(this.__queueEntriesMap);
-          queueEntriesFresh.forEach((queueEntryFresh) => {
-            if (this.__queueEntriesMap[queueEntryFresh.ID]) {
-              const queueEntry = this.__queueEntriesMap[queueEntryFresh.ID];
-              if (newTs) {
-                queueEntry.lastAttemptTimestamp = newTs;
-              }
-            }
-            delete this.__keepalivePromises[queueEntryFresh.ID];
-          });
-          resolve(eventOutdated);
+          queueEntries.forEach(({ ID: queueEntryId }) => delete this.__queueEntriesMap[queueEntryId]);
         }
-      );
+        this.__queueEntries = Object.values(this.__queueEntriesMap);
+        queueEntriesFresh.forEach((queueEntryFresh) => {
+          if (this.__queueEntriesMap[queueEntryFresh.ID]) {
+            const queueEntry = this.__queueEntriesMap[queueEntryFresh.ID];
+            if (newTs) {
+              queueEntry.lastAttemptTimestamp = newTs;
+            }
+          }
+          delete this.__keepalivePromises[queueEntryFresh.ID];
+        });
+        resolve(eventOutdated);
+      }).catch(reject);
     });
 
-    queueEntries.forEach(
-      (queueEntry) =>
-        (this.__keepalivePromises[queueEntry.ID] = checkAndUpdatePromise)
-    );
+    queueEntries.forEach((queueEntry) => (this.__keepalivePromises[queueEntry.ID] = checkAndUpdatePromise));
     return await checkAndUpdatePromise;
   }
 
@@ -798,28 +775,14 @@ class EventQueueProcessorBase {
       return;
     }
     try {
-      await distributedLock.releaseLock(
-        this.context,
-        [this.eventType, this.eventSubType].join("##")
-      );
+      await distributedLock.releaseLock(this.context, [this.eventType, this.eventSubType].join("##"));
     } catch (err) {
-      this.logger.error(
-        "Releasing distributed lock failed. Error:",
-        err.toString()
-      );
+      this.logger.error("Releasing distributed lock failed. Error:", err.toString());
     }
   }
 
   statusMapContainsError(statusMap) {
     return Object.values(statusMap).includes(EventProcessingStatus.Error);
-  }
-
-  getSelectNextChunk() {
-    return this.__selectNextChunk;
-  }
-
-  getSelectMaxChunkSize() {
-    return this.__selectMaxChunkSize;
   }
 
   clearEventProcessingContext() {
@@ -891,12 +854,16 @@ class EventQueueProcessorBase {
     return this.__eventSubType;
   }
 
-  get exceededEvents() {
-    return this.__eventsWithExceededTries;
-  }
-
   get emptyChunkSelected() {
     return this.__emptyChunkSelected;
+  }
+
+  get selectNextChunk() {
+    return this.__selectNextChunk;
+  }
+
+  get selectMaxChunkSize() {
+    return this.__selectMaxChunkSize;
   }
 
   set txUsageAllowed(value) {
