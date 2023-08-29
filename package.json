@@ -34,7 +34,7 @@
     "uuid": "9.0.0",
     "redis": "4.6.7",
     "verror": "1.10.1",
-    "yaml": "2.3.1"
+    "yaml": "2.3.2"
   },
   "devDependencies": {
     "@sap/eslint-plugin-cds": "2.6.3",
