@@ -25,6 +25,7 @@ class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
   #exceededTriesExceeded = [];
   #selectedEventMap = {};
+  #queueEntriesWithPayloadMap = {};
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -37,7 +38,6 @@ class EventQueueProcessorBase {
     this.__commitedStatusMap = {};
     this.__eventType = eventType;
     this.__eventSubType = eventSubType;
-    this.__queueEntriesWithPayloadMap = {};
     this.__config = config ?? {};
     this.__parallelEventProcessing = this.__config.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
@@ -164,7 +164,7 @@ class EventQueueProcessorBase {
       );
       return;
     }
-    this.__queueEntriesWithPayloadMap[queueEntry.ID] = {
+    this.#queueEntriesWithPayloadMap[queueEntry.ID] = {
       queueEntry,
       payload,
     };
@@ -190,8 +190,8 @@ class EventQueueProcessorBase {
    * This can be useful for e.g. multiple tasks have been scheduled and always the same user should be informed.
    * In this case the events should be clustered together and only one mail should be sent.
    */
-  clusterQueueEntries() {
-    Object.entries(this.__queueEntriesWithPayloadMap).forEach(([key, { queueEntry, payload }]) => {
+  clusterQueueEntries(queueEntriesWithPayloadMap) {
+    Object.entries(queueEntriesWithPayloadMap).forEach(([key, { queueEntry, payload }]) => {
       this.addEntryToProcessingMap(key, queueEntry, payload);
     });
   }
@@ -795,7 +795,7 @@ class EventQueueProcessorBase {
   }
 
   get queueEntriesWithPayloadMap() {
-    return this.__queueEntriesWithPayloadMap;
+    return this.#queueEntriesWithPayloadMap;
   }
 
   get eventProcessingMap() {

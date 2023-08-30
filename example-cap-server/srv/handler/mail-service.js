@@ -3,15 +3,24 @@
 const cds = require("@sap/cds");
 const eventQueue = require("@cap-js-community/event-queue");
 
-const send = async (context) => {
+const single = async (context) => {
   await eventQueue.publishEvent(cds.tx(context), {
-    type: "Notification",
-    subType: "Mail",
+    type: "Mail",
+    subType: "Single",
+    payload: JSON.stringify(context.data),
+  });
+};
+
+const cluster = async (context) => {
+  await eventQueue.publishEvent(cds.tx(context), {
+    type: "Mail",
+    subType: "Cluster",
     payload: JSON.stringify(context.data),
   });
 };
 
 module.exports = async (srv) => {
-  const { sendMail } = srv.operations("MailService");
-  srv.on(sendMail, send);
+  const { sendSingle, sendClustered } = srv.operations("MailService");
+  srv.on(sendSingle, single);
+  srv.on(sendClustered, cluster);
 };

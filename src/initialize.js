@@ -62,17 +62,7 @@ const initialize = async ({
   configInstance.checkRedisEnabled();
 
   const dbService = await cds.connect.to("db");
-  // TODO: remove this as soon as CDS fixes the current plugin model issues --> cds 7
-  await (cds.model ? Promise.resolve() : new Promise((resolve) => {
-        cds.on("loaded", () => {
-          const checkModel = () => !!cds.model;
-          if (checkModel()) {
-            resolve();
-          } else {
-            setTimeout(checkModel, 10);
-          }
-        });
-      }));
+  await (cds.model ? Promise.resolve() : new Promise((resolve) => cds.on("serving", resolve)));
   !configInstance.skipCsnCheck && (await csnCheck());
   if (configInstance.processEventsAfterPublish) {
     dbHandler.registerEventQueueDbHandler(dbService);

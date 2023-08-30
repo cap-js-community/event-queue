@@ -1,1 +1,1 @@
-using from './service/mail-service';
+using from './service';
