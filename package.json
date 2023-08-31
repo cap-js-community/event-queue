@@ -15,7 +15,9 @@
     "messaging",
     "async",
     "redis",
-    "loadbalancing"
+    "load-balancing",
+    "eventing",
+    "multi-tenancy"
   ],
   "scripts": {
     "test:unit": "jest --testPathIgnorePatterns=\"/test-integration/\"",
