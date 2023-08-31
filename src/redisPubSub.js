@@ -86,7 +86,7 @@ const _handleEventInternally = async (tenantId, type, subType) => {
     // NOTE: we need this because of logging otherwise logs would not contain the subdomain
     http: { req: { authInfo: { getSubdomain: () => subdomain } } },
   });
-  processEventQueue(context, type, subType);
+  getWorkerPoolInstance().addToQueue(async () => processEventQueue(context, type, subType));
 };
 
 module.exports = {
