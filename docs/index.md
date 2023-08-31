@@ -14,13 +14,8 @@ the Event-Queue framework simplifies event processing, enhancing the overall per
 
 ## Install or Upgrade
 
-tbd
-
 ```bash
-# globally
-npm install --global @cap-js-community/event-queue
-# project local
-npm install --save-dev @cap-js-community/event-queue
+npm install --save @cap-js-community/event-queue
 ```
 
 ## Content

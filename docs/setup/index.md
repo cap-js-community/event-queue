@@ -19,21 +19,6 @@ nav_order: 2
 - Initialize the event queue for example in the CAP server.js
 - Enhance or create `./srv/server.js`:
 
-### By Code
-
-```js
-const cds = require("@sap/cds");
-const eventQueue = require("@cap-js-community/event-queue");
-
-cds.on("bootstrap", () => {
-  eventQueue.initialize({
-    configFilePath: "./srv/eventConfig.yml",
-  });
-});
-
-module.exports = cds.server;
-```
-
 ### As cds-plugin
 
 Extend the cds section of your package.json. Reference to the cds-plugin section in the capire documentation about the
