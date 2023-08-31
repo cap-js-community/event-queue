@@ -21,8 +21,7 @@
   "cds": {
     "eventQueue": {
       "plugin": true,
-      "configFilePath": "./srv/eventConfig.yml",
-      "runInterval": 30000
+      "configFilePath": "./srv/eventConfig.yml"
     },
     "requires": {
       "multitenancy": true,
