@@ -15,7 +15,7 @@ nav_order: 2
 
 ## Getting started
 
-- Run `npm add @cap-community/event-queue` in `@sap/cds` project
+- Run `npm add @cap-js-community/event-queue` in `@sap/cds` project
 - Initialize the event queue for example in the CAP server.js
 - Enhance or create `./srv/server.js`:
 

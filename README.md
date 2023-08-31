@@ -13,7 +13,7 @@ enhancing the overall performance of your application.
 
 ## Getting started
 
-- Run `npm add @cap-community/event-queue` in `@sap/cds` project
+- Run `npm add @cap-js-community/event-queue` in `@sap/cds` project
 - Activate the cds-plugin in the cds section of the package.sjon
 
 ### As cds-plugin
