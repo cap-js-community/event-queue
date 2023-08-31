@@ -1,0 +1,48 @@
+### Simple send mail
+POST http://localhost:4004/rest/mail/sendSingle
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+{
+  "to": "recipient@example.com",
+  "subject": "Hello",
+  "body": "This is a test email"
+}
+
+### Cluster E-Mails READY_FOR_APPROVE_TASK
+POST http://localhost:4004/rest/mail/sendClustered
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+{
+  "to": "recipient@example.com",
+  "notificationCode": "READY_FOR_APPROVE_TASK"
+}
+
+### Cluster E-Mails TASK_REJECTED
+POST http://localhost:4004/rest/mail/sendClustered
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+{
+  "to": "recipient@example.com",
+  "notificationCode": "TASK_REJECTED"
+}
+
+### Crypto Hash Tenant T1 with Alice
+POST http://localhost:4004/rest/crypto/hash
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+{
+"duration": 5000
+}
+
+### Crypto Hash Tenant T2 with Bob
+POST http://localhost:4004/rest/crypto/hash
+Content-Type: application/json
+Authorization: Basic bob@builder.com bob
+
+{
+  "duration": 5000
+}
