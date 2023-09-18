@@ -21,7 +21,8 @@
   "cds": {
     "eventQueue": {
       "plugin": true,
-      "configFilePath": "./srv/eventConfig.yml"
+      "configFilePath": "./srv/eventConfig.yml",
+      "parallelTenantProcessing": 2
     },
     "requires": {
       "multitenancy": true,
