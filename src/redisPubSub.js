@@ -47,7 +47,9 @@ const publishEvent = async (tenantId, type, subType) => {
   const logger = cds.log(COMPONENT_NAME);
   const configInstance = config.getConfigInstance();
   if (!configInstance.redisEnabled) {
-    await _handleEventInternally(tenantId, type, subType);
+    if (configInstance.registerAsEventProcessor) {
+      await _handleEventInternally(tenantId, type, subType);
+    }
     return;
   }
   try {
