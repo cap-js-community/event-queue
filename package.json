@@ -47,8 +47,7 @@
     "yaml": "2.3.3"
   },
   "devDependencies": {
-    "@sap/eslint-plugin-cds": "2.6.4",
-    "@sap/cds-dk": "7.3.2",
+    "@sap/cds-dk": "7.3.1",
     "hdb": "0.19.6",
     "eslint-plugin-node": "11.1.0",
     "sqlite3": "5.1.6",
