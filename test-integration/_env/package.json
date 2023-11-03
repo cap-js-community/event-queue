@@ -4,13 +4,12 @@
   "private": true,
   "scripts": {
     "start": "cds-serve --production",
-    "hdi": "cf cs hana hdi-shared cds-community-test-hana-cloud -c '{\"database_id\": \"fa8a6cbe-1cdc-4dea-84cf-877c09b0f651\"}'",
-    "hdi:sk:create": "cf csk cds-community-test-hana-cloud cds-community-test-hana-cloud-key",
-    "hdi:sk:show": "cf service-key cds-community-test-hana-cloud cds-community-test-hana-cloud-key",
+    "hdi": "cf cs hana hdi-shared event-queue-integration",
+    "hdi:sk:create": "cf csk event-queue-integration event-queue-integration-sk",
+    "hdi:sk:show": "cf service-key event-queue-integration event-queue-integration-sk",
     "build": "cp ../../db/* ./db/ && cds-indexer && cds build --production && cp ./db/default-env.json ./gen/db",
     "build:ci": "cp ../../db/* ./db/ && cds build --production",
-    "deploy": "cd gen/db && npm i && npm start",
-    "test:deploy": "npm run build && npm run deploy"
+    "deploy": "cd gen/db && npm i && npm start"
   },
   "dependencies": {},
   "devDependencies": {},
