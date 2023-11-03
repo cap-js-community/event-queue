@@ -21,7 +21,7 @@ module.exports = {
     DROP: false,
   },
   plugins: ["jest", "node"],
-  extends: ["eslint:recommended", "plugin:jest/recommended", "plugin:@sap/cds/recommended", "prettier"],
+  extends: ["eslint:recommended", "plugin:jest/recommended", "prettier"],
   rules: {
     "no-unused-vars": [
       "error",
