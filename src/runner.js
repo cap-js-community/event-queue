@@ -1,6 +1,6 @@
 "use strict";
 
-const uuid = require("uuid");
+const { randomUUID } = require("crypto");
 
 const eventQueueConfig = require("./config");
 const { eventQueueRunner } = require("./processEventQueue");
@@ -130,7 +130,7 @@ const _executeRunForTenant = async (tenantId, runId) => {
 
 const _acquireRunId = async (context) => {
   const configInstance = eventQueueConfig.getConfigInstance();
-  let runId = uuid.v4();
+  let runId = randomUUID();
   const couldSetValue = await distributedLock.setValueWithExpire(context, EVENT_QUEUE_RUN_ID, runId, {
     tenantScoped: false,
     expiryTime: configInstance.runInterval * 0.95,
