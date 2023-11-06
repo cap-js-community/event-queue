@@ -94,6 +94,24 @@ describe("initialize", () => {
       cds.requires.multitenancy = null;
     });
 
+    test("multi tenancy with redis - option to disable redis", async () => {
+      cds.requires.multitenancy = {};
+      const env = getEnvInstance();
+      env.isOnCF = true;
+      env.vcapServices = {
+        "redis-cache": [{ credentials: { hostname: "123" } }],
+      };
+      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockReturnValueOnce();
+      await eventQueue.initialize({
+        configFilePath,
+        processEventsAfterPublish: false,
+        disableRedis: true,
+      });
+      expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(0);
+      env.isOnCF = false;
+      cds.requires.multitenancy = null;
+    });
+
     test("mode none should not register any runner", async () => {
       const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis");
       const singleTenantSpy = jest.spyOn(runner, "singleTenant");
