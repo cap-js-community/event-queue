@@ -5,7 +5,6 @@ const fs = require("fs");
 const path = require("path");
 
 const cds = require("@sap/cds");
-
 const yaml = require("yaml");
 const VError = require("verror");
 
@@ -23,6 +22,18 @@ const BASE_TABLES = {
   EVENT: "sap.eventqueue.Event",
   LOCK: "sap.eventqueue.Lock",
 };
+const CONFIG_VARS = [
+  ["configFilePath", null],
+  ["registerAsEventProcessor", true],
+  ["processEventsAfterPublish", true],
+  ["isRunnerDeactivated", false],
+  ["runInterval", 5 * 60 * 1000],
+  ["parallelTenantProcessing", 5],
+  ["tableNameEventQueue", BASE_TABLES.EVENT],
+  ["tableNameEventLock", BASE_TABLES.LOCK],
+  ["disableRedis", false],
+  ["skipCsnCheck", false],
+];
 
 const initialize = async ({
   configFilePath,
@@ -33,6 +44,7 @@ const initialize = async ({
   parallelTenantProcessing,
   tableNameEventQueue,
   tableNameEventLock,
+  disableRedis,
   skipCsnCheck,
 } = {}) => {
   // TODO: initialize check:
@@ -54,6 +66,7 @@ const initialize = async ({
     parallelTenantProcessing,
     tableNameEventQueue,
     tableNameEventLock,
+    disableRedis,
     skipCsnCheck
   );
 
@@ -160,32 +173,12 @@ const checkCustomTable = (baseCsn, customCsn) => {
   }
 };
 
-const mixConfigVarsWithEnv = (
-  configFilePath,
-  registerAsEventProcessor,
-  processEventsAfterPublish,
-  isRunnerDeactivated,
-  runInterval,
-  parallelTenantProcessing,
-  tableNameEventQueue,
-  tableNameEventLock,
-  skipCsnCheck
-) => {
+const mixConfigVarsWithEnv = (...args) => {
   const configInstance = getConfigInstance();
-
-  configInstance.configFilePath = configFilePath ?? cds.env.eventQueue?.configFilePath;
-  configInstance.registerAsEventProcessor =
-    registerAsEventProcessor ?? cds.env.eventQueue?.registerAsEventProcessor ?? true;
-  configInstance.isRunnerDeactivated = isRunnerDeactivated ?? cds.env.eventQueue?.isRunnerDeactivated ?? false;
-  configInstance.processEventsAfterPublish =
-    processEventsAfterPublish ?? cds.env.eventQueue?.processEventsAfterPublish ?? true;
-  configInstance.runInterval = runInterval ?? cds.env.eventQueue?.runInterval ?? 5 * 60 * 1000;
-  configInstance.parallelTenantProcessing =
-    parallelTenantProcessing ?? cds.env.eventQueue?.parallelTenantProcessing ?? 5;
-  configInstance.tableNameEventQueue =
-    tableNameEventQueue ?? cds.env.eventQueue?.tableNameEventQueue ?? BASE_TABLES.EVENT;
-  configInstance.tableNameEventLock = tableNameEventLock ?? cds.env.eventQueue?.tableNameEventLock ?? BASE_TABLES.LOCK;
-  configInstance.skipCsnCheck = skipCsnCheck ?? cds.env.eventQueue?.skipCsnCheck ?? false;
+  CONFIG_VARS.forEach(([configName, defaultValue], index) => {
+    const configValue = args[index];
+    configInstance[configName] = configValue ?? cds.env.eventQueue?.[configName] ?? defaultValue;
+  });
 };
 
 module.exports = {
