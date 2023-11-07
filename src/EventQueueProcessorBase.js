@@ -129,8 +129,8 @@ class EventQueueProcessorBase {
     // TODO: how to handle custom fields
     this.logger.info("Processing queue event", {
       numberQueueEntries: queueEntries.length,
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
     });
   }
 
@@ -159,8 +159,8 @@ class EventQueueProcessorBase {
       this.logger.error(
         "The supplied queueEntry has not been selected before and should not be processed. Entry will not be processed.",
         {
-          eventType: this.__eventType,
-          eventSubType: this.__eventSubType,
+          eventType: this.#eventType,
+          eventSubType: this.#eventSubType,
           queueEntryId: queueEntry.ID,
         }
       );
@@ -179,8 +179,8 @@ class EventQueueProcessorBase {
   setStatusToDone(queueEntry) {
     this.logger.debug("setting status for queueEntry to done", {
       id: queueEntry.ID,
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
     });
     this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Done);
   }
@@ -209,8 +209,8 @@ class EventQueueProcessorBase {
     this.logger.debug("add entry to processing map", {
       key,
       queueEntry,
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
     });
     this.__eventProcessingMap[key] = this.__eventProcessingMap[key] ?? {
       queueEntries: [],
@@ -232,8 +232,8 @@ class EventQueueProcessorBase {
   setEventStatus(queueEntries, queueEntryProcessingStatusTuple, returnMap = false) {
     this.logger.debug("setting event status for entries", {
       queueEntryProcessingStatusTuple: JSON.stringify(queueEntryProcessingStatusTuple),
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
     });
     const statusMap = this.commitOnEventLevel || returnMap ? {} : this.__statusMap;
     try {
@@ -247,8 +247,8 @@ class EventQueueProcessorBase {
       this.logger.error(
         `The supplied status tuple doesn't have the required structure. Setting all entries to error. Error: ${error.toString()}`,
         {
-          eventType: this.__eventType,
-          eventSubType: this.__eventSubType,
+          eventType: this.#eventType,
+          eventSubType: this.#eventSubType,
         }
       );
     }
@@ -288,8 +288,8 @@ class EventQueueProcessorBase {
     this.logger.error(
       `Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: ${error}`,
       {
-        eventType: this.__eventType,
-        eventSubType: this.__eventSubType,
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
         queueEntriesIds: queueEntries.map(({ ID }) => ID),
       }
     );
@@ -306,8 +306,8 @@ class EventQueueProcessorBase {
    */
   async persistEventStatus(tx, { skipChecks, statusMap = this.__statusMap } = {}) {
     this.logger.debug("entering persistEventStatus", {
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
     });
     this.#ensureOnlySelectedQueueEntries(statusMap);
     if (!skipChecks) {
@@ -337,8 +337,8 @@ class EventQueueProcessorBase {
       }
     );
     this.logger.debug("persistEventStatus for entries", {
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
       invalidAttempts,
       failed,
       exceeded,
@@ -376,8 +376,8 @@ class EventQueueProcessorBase {
       );
     }
     this.logger.debug("exiting persistEventStatus", {
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
     });
   }
 
@@ -409,8 +409,8 @@ class EventQueueProcessorBase {
         return;
       }
       this.logger.error("Missing status for selected event entry. Setting status to error", {
-        eventType: this.__eventType,
-        eventSubType: this.__eventSubType,
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
         queueEntry,
       });
       this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
@@ -431,8 +431,8 @@ class EventQueueProcessorBase {
       }
 
       this.logger.error("Not allowed event status returned. Only Open, Done, Error is allowed!", {
-        eventType: this.__eventType,
-        eventSubType: this.__eventSubType,
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
         queueEntryId,
         status: statusMap[queueEntryId],
       });
@@ -449,8 +449,8 @@ class EventQueueProcessorBase {
       this.logger.error(
         "Status reported for event queue entry which haven't be selected before. Removing the status.",
         {
-          eventType: this.__eventType,
-          eventSubType: this.__eventSubType,
+          eventType: this.#eventType,
+          eventSubType: this.#eventSubType,
           queueEntryId,
         }
       );
@@ -460,8 +460,8 @@ class EventQueueProcessorBase {
 
   handleErrorDuringClustering(error) {
     this.logger.error(`Error during clustering of events - setting all queue entries to error. Error: ${error}`, {
-      eventType: this.__eventType,
-      eventSubType: this.__eventSubType,
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
     });
     this.__queueEntries.forEach((queueEntry) => {
       this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
@@ -473,8 +473,8 @@ class EventQueueProcessorBase {
       "Undefined payload is not allowed. If status should be done, nulls needs to be returned" +
         " - setting queue entry to error",
       {
-        eventType: this.__eventType,
-        eventSubType: this.__eventSubType,
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
       }
     );
     this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
@@ -504,9 +504,9 @@ class EventQueueProcessorBase {
           .limit(this.selectMaxChunkSize)
           .where(
             "type =",
-            this.__eventType,
+            this.#eventType,
             "AND subType=",
-            this.__eventSubType,
+            this.#eventSubType,
             "AND   ( status =",
             EventProcessingStatus.Open,
             "OR ( status =",
@@ -524,8 +524,8 @@ class EventQueueProcessorBase {
 
       if (!entries.length) {
         this.logger.debug("no entries available for processing", {
-          eventType: this.__eventType,
-          eventSubType: this.__eventSubType,
+          eventType: this.#eventType,
+          eventSubType: this.#eventSubType,
         });
         this.__emptyChunkSelected = true;
         return;
@@ -548,8 +548,8 @@ class EventQueueProcessorBase {
 
       this.logger.info("Selected event queue entries for processing", {
         queueEntriesCount: result.length,
-        eventType: this.__eventType,
-        eventSubType: this.__eventSubType,
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
       });
 
       const isoTimestamp = new Date().toISOString();
@@ -612,8 +612,8 @@ class EventQueueProcessorBase {
             this.modifyQueueEntry(exceededEvent);
             await this.hookForExceededEvents({ ...exceededEvent });
             this.logger.warn("The retry attempts for the following events are exceeded", {
-              eventType: this.__eventType,
-              eventSubType: this.__eventSubType,
+              eventType: this.#eventType,
+              eventSubType: this.#eventSubType,
               retryAttempts: this.__retryAttempts,
               queueEntriesId: exceededEvent.ID,
               currentAttempt: exceededEvent.attempts,
@@ -623,8 +623,8 @@ class EventQueueProcessorBase {
             this.logger.error(
               `Caught error during hook for exceeded events - setting queue entry to error. Please catch your promises/exceptions. Error: ${err}`,
               {
-                eventType: this.__eventType,
-                eventSubType: this.__eventSubType,
+                eventType: this.#eventType,
+                eventSubType: this.#eventSubType,
                 retryAttempts: this.__retryAttempts,
                 queueEntriesId: exceededEvent.ID,
                 currentAttempt: exceededEvent.attempts,
@@ -643,8 +643,8 @@ class EventQueueProcessorBase {
   async #handleExceededTriesExceeded() {
     if (this.#exceededTriesExceeded.length) {
       this.logger.error("Event hook failure exceeded, status set to 'exceeded' without invoking hook again!", {
-        eventType: this.__eventType,
-        eventSubType: this.__eventSubType,
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
         queueEntriesIds: this.#eventsWithExceededTries.map(({ ID }) => ID),
       });
       await executeInNewTransaction(this.context, "exceededTriesExceeded", async (tx) => {
@@ -732,8 +732,8 @@ class EventQueueProcessorBase {
         } else {
           newTs = null;
           this.logger.warn("event data has been modified. Processing skipped.", {
-            eventType: this.__eventType,
-            eventSubType: this.__eventSubType,
+            eventType: this.#eventType,
+            eventSubType: this.#eventSubType,
             queueEntriesIds: queueEntries.map(({ ID }) => ID),
           });
           queueEntries.forEach(({ ID: queueEntryId }) => delete this.__queueEntriesMap[queueEntryId]);
@@ -849,11 +849,11 @@ class EventQueueProcessorBase {
   }
 
   get eventType() {
-    return this.__eventType;
+    return this.#eventType;
   }
 
   get eventSubType() {
-    return this.__eventSubType;
+    return this.#eventSubType;
   }
 
   get emptyChunkSelected() {
