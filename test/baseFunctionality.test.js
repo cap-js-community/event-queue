@@ -8,6 +8,7 @@ const cdsHelper = require("../src/shared/cdsHelper");
 const executeInNewTransactionSpy = jest.spyOn(cdsHelper, "executeInNewTransaction");
 
 const eventQueue = require("../src");
+const eventScheduler = require("../src/shared/EventScheduler");
 const testHelper = require("./helper");
 const EventQueueTest = require("./asset/EventQueueTest");
 const { Logger: mockLogger } = require("./mocks/logger");
@@ -70,6 +71,25 @@ describe("baseFunctionality", () => {
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectDone(tx);
+  });
+
+  test("insert one delayed entry - should not directly be processed", async () => {
+    await testHelper.insertEventEntry(tx, { delayedSeconds: 15 });
+    const event = eventQueue.getConfigInstance().events[0];
+    const eventSchedulerInstance = eventScheduler.getInstance();
+    const eventSchedulerSpy = jest.spyOn(eventSchedulerInstance, "scheduleEvent").mockReturnValue();
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectOpen(tx);
+    expect(eventSchedulerSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("insert one delayed entry after runInterval", async () => {
+    await testHelper.insertEventEntry(tx, { delayedSeconds: 500 });
+    const event = eventQueue.getConfigInstance().events[0];
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectOpen(tx);
   });
 
   test("should do nothing if no lock is available", async () => {

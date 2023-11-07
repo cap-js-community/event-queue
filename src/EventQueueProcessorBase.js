@@ -7,6 +7,7 @@ const { EventProcessingStatus, TransactionMode } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
 const { arrayToFlatMap } = require("./shared/common");
+const eventScheduler = require("./shared/EventScheduler");
 const eventQueueConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
 
@@ -20,6 +21,7 @@ const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const DEFAULT_DELETE_FINISHED_EVENTS_AFTER = 0;
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
+const EVENT_START_AFTER_HEADROOM = 5 * 1000;
 
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
@@ -28,6 +30,7 @@ class EventQueueProcessorBase {
   #queueEntriesWithPayloadMap = {};
   #eventType = null;
   #eventSubType = null;
+  #config = null;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -40,24 +43,25 @@ class EventQueueProcessorBase {
     this.__commitedStatusMap = {};
     this.#eventType = eventType;
     this.#eventSubType = eventSubType;
-    this.__config = config ?? {};
-    this.__parallelEventProcessing = this.__config.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
+    this.__eventConfig = config ?? {};
+    this.__parallelEventProcessing = this.__eventConfig.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
     // NOTE: keep the feature, this might be needed again
     this.__concurrentEventProcessing = false;
-    this.__startTime = this.__config.startTime ?? new Date();
-    this.__retryAttempts = this.__config.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
-    this.__selectMaxChunkSize = this.__config.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
-    this.__selectNextChunk = !!this.__config.checkForNextChunk;
+    this.__startTime = this.__eventConfig.startTime ?? new Date();
+    this.__retryAttempts = this.__eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
+    this.__selectMaxChunkSize = this.__eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
+    this.__selectNextChunk = !!this.__eventConfig.checkForNextChunk;
     this.__keepalivePromises = {};
-    this.__outdatedCheckEnabled = this.__config.eventOutdatedCheck ?? true;
-    this.__transactionMode = this.__config.transactionMode ?? TransactionMode.isolated;
-    if (this.__config.deleteFinishedEventsAfterDays) {
+    this.__outdatedCheckEnabled = this.__eventConfig.eventOutdatedCheck ?? true;
+    this.__transactionMode = this.__eventConfig.transactionMode ?? TransactionMode.isolated;
+    if (this.__eventConfig.deleteFinishedEventsAfterDays) {
       this.__deleteFinishedEventsAfter =
-        Number.isInteger(this.__config.deleteFinishedEventsAfterDays) && this.__config.deleteFinishedEventsAfterDays > 0
-          ? this.__config.deleteFinishedEventsAfterDays
+        Number.isInteger(this.__eventConfig.deleteFinishedEventsAfterDays) &&
+        this.__eventConfig.deleteFinishedEventsAfterDays > 0
+          ? this.__eventConfig.deleteFinishedEventsAfterDays
           : DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
     } else {
       this.__deleteFinishedEventsAfter = DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
@@ -67,7 +71,7 @@ class EventQueueProcessorBase {
     this.__txUsageAllowed = true;
     this.__txMap = {};
     this.__txRollback = {};
-    this.__eventQueueConfig = eventQueueConfig.getConfigInstance();
+    this.#config = eventQueueConfig.getConfigInstance();
     this.__queueEntries = [];
   }
 
@@ -346,7 +350,7 @@ class EventQueueProcessorBase {
     });
     if (invalidAttempts.length) {
       await tx.run(
-        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
+        UPDATE.entity(this.#config.tableNameEventQueue)
           .set({
             status: EventProcessingStatus.Open,
             lastAttemptTimestamp: new Date().toISOString(),
@@ -367,7 +371,7 @@ class EventQueueProcessorBase {
         continue;
       }
       await tx.run(
-        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
+        UPDATE.entity(this.#config.tableNameEventQueue)
           .set({
             status: status,
             lastAttemptTimestamp: ts,
@@ -386,7 +390,7 @@ class EventQueueProcessorBase {
       return;
     }
     const deleteCount = await tx.run(
-      DELETE.from(this.__eventQueueConfig.tableNameEventQueue).where(
+      DELETE.from(this.#config.tableNameEventQueue).where(
         "type =",
         this.#eventType,
         "AND subType=",
@@ -497,17 +501,20 @@ class EventQueueProcessorBase {
    */
   async getQueueEntriesAndSetToInProgress() {
     let result = [];
+    const refDateStartAfter = new Date(Date.now() + this.#config.runInterval);
     await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
       const entries = await tx.run(
-        SELECT.from(this.__eventQueueConfig.tableNameEventQueue)
-          .forUpdate({ wait: this.__eventQueueConfig.forUpdateTimeout })
+        SELECT.from(this.#config.tableNameEventQueue)
+          .forUpdate({ wait: this.#config.forUpdateTimeout })
           .limit(this.selectMaxChunkSize)
           .where(
             "type =",
             this.#eventType,
             "AND subType=",
             this.#eventSubType,
-            "AND   ( status =",
+            "AND ( startAfter IS NULL OR startAfter <=",
+            refDateStartAfter.toISOString(),
+            " ) AND ( status =",
             EventProcessingStatus.Open,
             "OR ( status =",
             EventProcessingStatus.Error,
@@ -516,7 +523,7 @@ class EventQueueProcessorBase {
             ") OR ( status =",
             EventProcessingStatus.InProgress,
             "AND lastAttemptTimestamp <=",
-            new Date(new Date().getTime() - this.__eventQueueConfig.globalTxTimeout).toISOString(),
+            new Date(new Date().getTime() - this.#config.globalTxTimeout).toISOString(),
             ") )"
           )
           .orderBy("createdAt", "ID")
@@ -531,14 +538,19 @@ class EventQueueProcessorBase {
         return;
       }
 
-      this.#selectedEventMap = arrayToFlatMap(entries);
-      const { exceededTries, openEvents, exceededTriesExceeded } = this.#filterExceededEvents(entries);
+      const { exceededTries, openEvents, exceededTriesExceeded, delayedEvents } = this.#clusterEvents(
+        entries,
+        refDateStartAfter
+      );
+      const eventsForProcessing = exceededTries.concat(openEvents).concat(exceededTriesExceeded);
+      this.#selectedEventMap = arrayToFlatMap(eventsForProcessing);
       if (exceededTries.length) {
         this.#eventsWithExceededTries = exceededTries;
       }
       if (exceededTriesExceeded.length) {
         this.#exceededTriesExceeded = exceededTriesExceeded;
       }
+      this.#handleDelayedEvents(delayedEvents);
 
       result = openEvents;
 
@@ -554,7 +566,7 @@ class EventQueueProcessorBase {
 
       const isoTimestamp = new Date().toISOString();
       await tx.run(
-        UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
+        UPDATE.entity(this.#config.tableNameEventQueue)
           .with({
             status: EventProcessingStatus.InProgress,
             lastAttemptTimestamp: isoTimestamp,
@@ -562,10 +574,10 @@ class EventQueueProcessorBase {
           })
           .where(
             "ID IN",
-            entries.map(({ ID }) => ID)
+            eventsForProcessing.map(({ ID }) => ID)
           )
       );
-      entries.forEach((entry) => {
+      eventsForProcessing.forEach((entry) => {
         entry.lastAttemptTimestamp = isoTimestamp;
         // NOTE: empty payloads are supported on DB-Level.
         // Behaviour of event queue is: null as payload is treated as obsolete/done
@@ -580,20 +592,43 @@ class EventQueueProcessorBase {
     return result;
   }
 
-  #filterExceededEvents(events) {
+  #handleDelayedEvents(delayedEvents) {
+    const eventSchedulerInstance = eventScheduler.getInstance();
+    for (const delayedEvent of delayedEvents) {
+      eventSchedulerInstance.scheduleEvent(
+        this.__context.tenant,
+        this.#eventType,
+        this.#eventSubType,
+        delayedEvent.startAfter
+      );
+    }
+  }
+
+  #clusterEvents(events, refDateStartAfter) {
+    const refDate = new Date(refDateStartAfter.getTime() - this.#config.runInterval + EVENT_START_AFTER_HEADROOM);
     return events.reduce(
       (result, event) => {
         if (event.attempts === this.__retryAttempts + TRIES_FOR_EXCEEDED_EVENTS) {
           result.exceededTriesExceeded.push(event);
         } else if (event.attempts >= this.__retryAttempts) {
           result.exceededTries.push(event);
+        } else if (this.#isDelayedEvent(event, refDate)) {
+          result.delayedEvents.push(event);
         } else {
           result.openEvents.push(event);
         }
         return result;
       },
-      { exceededTries: [], openEvents: [], exceededTriesExceeded: [] }
+      { exceededTries: [], openEvents: [], exceededTriesExceeded: [], delayedEvents: [] }
     );
+  }
+
+  #isDelayedEvent(event, refDate) {
+    if (!event.startAfter) {
+      return false;
+    }
+    event.startAfter = new Date(event.startAfter);
+    return !(refDate >= event.startAfter);
   }
 
   async handleExceededEvents() {
@@ -707,8 +742,8 @@ class EventQueueProcessorBase {
     const checkAndUpdatePromise = new Promise((resolve, reject) => {
       executeInNewTransaction(this.__baseContext, "eventProcessing-isOutdatedAndKeepalive", async (tx) => {
         const queueEntriesFresh = await tx.run(
-          SELECT.from(this.__eventQueueConfig.tableNameEventQueue)
-            .forUpdate({ wait: this.__eventQueueConfig.forUpdateTimeout })
+          SELECT.from(this.#config.tableNameEventQueue)
+            .forUpdate({ wait: this.#config.forUpdateTimeout })
             .where(
               "ID IN",
               queueEntries.map(({ ID }) => ID)
@@ -722,7 +757,7 @@ class EventQueueProcessorBase {
         let newTs = new Date().toISOString();
         if (!eventOutdated) {
           await tx.run(
-            UPDATE.entity(this.__eventQueueConfig.tableNameEventQueue)
+            UPDATE.entity(this.#config.tableNameEventQueue)
               .set("lastAttemptTimestamp =", newTs)
               .where(
                 "ID IN",
