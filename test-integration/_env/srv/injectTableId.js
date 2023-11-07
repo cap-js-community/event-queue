@@ -9,4 +9,5 @@
   }
   // eslint-disable-next-line no-console
   console.log("table id", tableId);
+  process.exit(1);
 })();
