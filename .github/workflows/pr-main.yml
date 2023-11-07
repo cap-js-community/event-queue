@@ -24,8 +24,6 @@ jobs:
         run: echo "::set-output name=id::$(uuidgen)"
       - name: check
         run: echo ${{steps.generateId.outputs.id}}
-      - name: injectIdToTables
-        run: npm run build:injectId --prefix=./test-integration/_env
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
@@ -34,6 +32,7 @@ jobs:
       - run: npm ci --package-lock
       - run: npm run test:ci
         env:
+          TABLE_GUID: ${{steps.generateId.outputs.id}}
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
 
   lint:

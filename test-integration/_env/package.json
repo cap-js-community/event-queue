@@ -7,7 +7,7 @@
     "hdi": "cf cs hana hdi-shared event-queue-integration",
     "hdi:sk:create": "cf csk event-queue-integration event-queue-integration-sk",
     "hdi:sk:show": "cf service-key event-queue-integration event-queue-integration-sk",
-    "build": "cp ../../db/* ./db/ && cds-indexer && cds build --production && cp ./db/default-env.json ./gen/db",
+    "build": "cp ../../db/* ./db/ && cds-indexer && cds build --production && cp ./db/default-env.json ./gen/db && npm run build:injectId",
     "build:injectId": "node srv/injectTableId.js",
     "build:ci": "cp ../../db/* ./db/ && cds build --production",
     "deploy": "cd gen/db && npm i && npm start"
