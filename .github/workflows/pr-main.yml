@@ -18,7 +18,7 @@ jobs:
 
     name: test - node.js ${{ matrix.node-version }}
     steps:
-      - name: 'generate unique id for tables'
+      - name: "generate unique id for tables"
         id: generateId
         # add a step output `steps.build_id.outputs.id` as the unique id
         run: echo "::set-output name=id::$(uuidgen)"
