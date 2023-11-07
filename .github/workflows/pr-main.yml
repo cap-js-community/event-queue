@@ -10,7 +10,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    needs: generateId
     strategy:
       max-parallel: 2
       matrix:
@@ -19,7 +18,7 @@ jobs:
 
     name: test - node.js ${{ matrix.node-version }}
     steps:
-      - name: 'Set build id'
+      - name: 'generate unique id for tables'
         id: generateId
         # add a step output `steps.build_id.outputs.id` as the unique id
         run: echo "::set-output name=id::$(uuidgen)"
