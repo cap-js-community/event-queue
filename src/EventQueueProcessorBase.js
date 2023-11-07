@@ -26,6 +26,8 @@ class EventQueueProcessorBase {
   #exceededTriesExceeded = [];
   #selectedEventMap = {};
   #queueEntriesWithPayloadMap = {};
+  #eventType = null;
+  #eventSubType = null;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -36,8 +38,8 @@ class EventQueueProcessorBase {
     this.__eventProcessingMap = {};
     this.__statusMap = {};
     this.__commitedStatusMap = {};
-    this.__eventType = eventType;
-    this.__eventSubType = eventSubType;
+    this.#eventType = eventType;
+    this.#eventSubType = eventSubType;
     this.__config = config ?? {};
     this.__parallelEventProcessing = this.__config.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
@@ -99,8 +101,8 @@ class EventQueueProcessorBase {
     this.__performanceLoggerEvents?.endPerformanceTrace(
       { threshold: 50 },
       {
-        eventType: this.eventType,
-        eventSubType: this.eventSubType,
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
       }
     );
   }
@@ -109,16 +111,16 @@ class EventQueueProcessorBase {
     this.__performanceLoggerPreprocessing?.endPerformanceTrace(
       { threshold: 50 },
       {
-        eventType: this.eventType,
-        eventSubType: this.eventSubType,
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
       }
     );
   }
 
   logTimeExceeded(iterationCounter) {
     this.logger.info("Exiting event queue processing as max time exceeded", {
-      eventType: this.eventType,
-      eventSubType: this.eventSubType,
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
       iterationCounter,
     });
   }
@@ -386,16 +388,16 @@ class EventQueueProcessorBase {
     const deleteCount = await tx.run(
       DELETE.from(this.__eventQueueConfig.tableNameEventQueue).where(
         "type =",
-        this.eventType,
+        this.#eventType,
         "AND subType=",
-        this.eventSubType,
+        this.#eventSubType,
         "AND lastAttemptTimestamp <=",
         new Date(Date.now() - this.__deleteFinishedEventsAfter * DAYS_TO_MS).toISOString()
       )
     );
     this.logger.debug("Deleted finished events", {
-      eventType: this.eventType,
-      eventSubType: this.eventSubType,
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
       deleteFinishedEventsAfter: this.__deleteFinishedEventsAfter,
       deleteCount,
     });
@@ -505,7 +507,7 @@ class EventQueueProcessorBase {
             this.__eventType,
             "AND subType=",
             this.__eventSubType,
-            "AND ( status =",
+            "AND   ( status =",
             EventProcessingStatus.Open,
             "OR ( status =",
             EventProcessingStatus.Error,
@@ -603,7 +605,7 @@ class EventQueueProcessorBase {
     for (const exceededEvent of this.#eventsWithExceededTries) {
       await executeInNewTransaction(
         this.context,
-        `eventQueue-handleExceededEvents-${this.eventType}##${this.eventSubType}`,
+        `eventQueue-handleExceededEvents-${this.#eventType}##${this.#eventSubType}`,
         async (tx) => {
           try {
             this.processEventContext = tx.context;
@@ -761,7 +763,7 @@ class EventQueueProcessorBase {
 
     const lockAcquired = await distributedLock.acquireLock(
       this.context,
-      [this.eventType, this.eventSubType].join("##")
+      [this.#eventType, this.#eventSubType].join("##")
     );
     if (!lockAcquired) {
       return false;
@@ -775,7 +777,7 @@ class EventQueueProcessorBase {
       return;
     }
     try {
-      await distributedLock.releaseLock(this.context, [this.eventType, this.eventSubType].join("##"));
+      await distributedLock.releaseLock(this.context, [this.#eventType, this.#eventSubType].join("##"));
     } catch (err) {
       this.logger.error("Releasing distributed lock failed. Error:", err.toString());
     }
@@ -822,14 +824,14 @@ class EventQueueProcessorBase {
 
   get tx() {
     if (!this.__txUsageAllowed && this.__parallelEventProcessing > 1) {
-      throw EventQueueError.wrongTxUsage(this.eventType, this.eventSubType);
+      throw EventQueueError.wrongTxUsage(this.#eventType, this.#eventSubType);
     }
     return this.__processTx ?? this.__tx;
   }
 
   get context() {
     if (!this.__txUsageAllowed && this.__parallelEventProcessing > 1) {
-      throw EventQueueError.wrongTxUsage(this.eventType, this.eventSubType);
+      throw EventQueueError.wrongTxUsage(this.#eventType, this.#eventSubType);
     }
     return this.__processContext ?? this.__context;
   }
