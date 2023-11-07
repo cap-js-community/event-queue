@@ -11,6 +11,7 @@ const ERROR_CODES = {
   MISSING_TABLE_DEFINITION: "MISSING_TABLE_DEFINITION",
   MISSING_ELEMENT_IN_TABLE: "MISSING_ELEMENT_IN_TABLE",
   TYPE_MISMATCH_TABLE: "TYPE_MISMATCH_TABLE",
+  NO_VALID_DATE: "NO_VALID_DATE",
 };
 
 const ERROR_CODES_META = {
@@ -38,6 +39,9 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.TYPE_MISMATCH_TABLE]: {
     message: "At least one field in the provided table doesn't have the expected data type.",
+  },
+  [ERROR_CODES.NO_VALID_DATE]: {
+    message: "One or more events contain a date in a malformed format.",
   },
 };
 
@@ -127,6 +131,17 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.TYPE_MISMATCH_TABLE,
         info: { tableName, elementName },
+      },
+      message
+    );
+  }
+
+  static malformedDate(date) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.NO_VALID_DATE];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.NO_VALID_DATE,
+        info: { date },
       },
       message
     );
