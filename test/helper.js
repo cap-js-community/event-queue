@@ -25,15 +25,24 @@ const getEventEntry = () => {
 
 const insertEventEntry = async (
   tx,
-  { entries, numberOfEntries = 1, type = "Notifications", subType = "Task", randomGuid = false } = {}
+  {
+    entries,
+    numberOfEntries = 1,
+    type = "Notifications",
+    subType = "Task",
+    randomGuid = false,
+    delayedSeconds = null,
+  } = {}
 ) => {
   if (!entries || entries?.length === 0) {
+    const startAfter = delayedSeconds ? new Date(Date.now() + delayedSeconds * 1000) : null;
     entries = [
       {
         ...getEventEntry(),
         ...(randomGuid ? {} : { ID: "dbaa22d5-41db-4ff3-bdd8-e0bb19b217cf" }),
         type,
         subType,
+        startAfter,
       },
     ];
     Array(numberOfEntries - 1)
@@ -45,6 +54,7 @@ const insertEventEntry = async (
           payload: JSON.stringify({
             testPayload: 123,
           }),
+          startAfter,
         });
       });
   }
