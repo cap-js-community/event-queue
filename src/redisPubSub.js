@@ -3,7 +3,7 @@
 const redis = require("./shared/redis");
 const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
 const config = require("./config");
-const { runEventCombinationForTenant } = require("./runner");
+const runEventCombinationForTenant = require("./runEventCombinationForTenant");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "eventQueue/redisPubSub";

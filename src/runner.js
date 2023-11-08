@@ -191,31 +191,10 @@ const _calculateOffsetForFirstRun = async () => {
   return offsetDependingOnLastRun;
 };
 
-const runEventCombinationForTenant = async (tenantId, type, subType) => {
-  try {
-    const subdomain = await getSubdomainForTenantId(tenantId);
-    const context = new cds.EventContext({
-      tenant: tenantId,
-      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
-    });
-    cds.context = context;
-    getWorkerPoolInstance().addToQueue(async () => processEventQueue(context, type, subType));
-  } catch (err) {
-    const logger = cds.log(COMPONENT_NAME);
-    logger.error("error executing event combination for tenant", err, {
-      tenantId,
-      type,
-      subType,
-    });
-  }
-};
-
 module.exports = {
   singleTenant,
   multiTenancyDb,
   multiTenancyRedis,
-  runEventCombinationForTenant,
   _: {
     _multiTenancyRedis,
     _multiTenancyDb,

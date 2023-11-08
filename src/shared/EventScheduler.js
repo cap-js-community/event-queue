@@ -2,7 +2,7 @@
 
 const cds = require("@sap/cds");
 
-const { runEventCombinationForTenant } = require("../runner");
+const runEventCombinationForTenant = require("../runEventCombinationForTenant");
 
 const COMPONENT_NAME = "eventQueue/shared/EventScheduler";
 
@@ -30,7 +30,7 @@ class EventScheduler {
           scheduledFor: roundUpDate.toISOString(),
         });
       });
-    }, secondsUntilNextTen * 1000);
+    }, secondsUntilNextTen * 1000).unref();
   }
 }
 
