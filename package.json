@@ -23,7 +23,6 @@
     "test:unit": "jest --testPathIgnorePatterns=\"/test-integration/\"",
     "test:integration": "jest --testPathIgnorePatterns=\"/test/\" --runInBand --forceExit",
     "test:all": "npm run test:unit && npm run test:integration",
-    "test:ci": "npm run test:prepare && npm run test:all",
     "test:all:coverage": "jest --runInBand --forceExit --collect-coverage",
     "test:prepare": "npm run build:ci --prefix=./test-integration/_env",
     "test:ci:deploySchema": "node test-integration/_env/srv/hana/deploy.js",
