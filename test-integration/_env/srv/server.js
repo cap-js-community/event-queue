@@ -3,6 +3,8 @@
 const cds = require("@sap/cds");
 const { generateCredentialsForCds } = require("./hana/helper");
 
+console.log(process.env.NODE_ENV);
+
 let credentials = JSON.parse(process.env.HANA_DB_CREDENTIALS || null);
 try {
   if (process.env.NODE_ENV === "githubAction-hana") {

@@ -22,8 +22,6 @@ jobs:
         id: generateId
         # add a step output `steps.build_id.outputs.id` as the unique id
         run: echo "::set-output name=id::$(uuidgen)"
-      - name: check
-        run: echo ${{steps.generateId.outputs.id}}
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
