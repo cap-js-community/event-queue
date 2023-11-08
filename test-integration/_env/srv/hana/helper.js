@@ -50,6 +50,7 @@ async function prepareUsers(client) {
   }
   logger.info(`Test users prepared`);
 }
+
 async function createPrepareUser(client) {
   await client.exec(
     `CREATE USER ${TEST_ADMIN.user} PASSWORD "${TEST_ADMIN.password}" NO FORCE_FIRST_PASSWORD_CHANGE SET USERGROUP DEFAULT;`
@@ -67,7 +68,10 @@ async function createTestUser(client) {
 
 async function getTestUsers(client) {
   return await client.exec(
-    `Select USER_NAME, USER_ID from SYS.USERS WHERE USER_DEACTIVATED='FALSE' AND USER_NAME LIKE 'AFC_%'`
+    `Select USER_NAME, USER_ID
+         from SYS.USERS
+         WHERE USER_DEACTIVATED = 'FALSE'
+           AND USER_NAME LIKE 'AFC_%'`
   );
 }
 
@@ -169,10 +173,9 @@ async function deleteExistingSchema() {
   const testAdmin = await createClient(Object.assign({}, TEST_ADMIN, DB_CONNECTION));
   const obsoleteSchemas = await testAdmin.exec(
     `SELECT SCHEMA_NAME, CREATE_TIME
-     FROM SYS.SCHEMAS
-     WHERE SCHEMA_NAME LIKE '${EVENT_QUEUE_PREFIX}%' AND CREATE_TIME <= '${new Date(
-       Date.now() - DELETE_SCHEMAS_AFTER
-     ).toISOString()}'`
+         FROM SYS.SCHEMAS
+         WHERE SCHEMA_NAME LIKE '${EVENT_QUEUE_PREFIX}%'
+           AND CREATE_TIME <= '${new Date(Date.now() - DELETE_SCHEMAS_AFTER).toISOString()}'`
   );
 
   obsoleteSchemas.length &&
