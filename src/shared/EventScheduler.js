@@ -20,6 +20,9 @@ class EventScheduler {
       return; // event combination already scheduled
     }
     this.#scheduledEvents[key] = true;
+    cds.log(COMPONENT_NAME).log("scheduling event queue run for delayed event", {
+      delaySeconds: (roundUpDate.getTime() - Date.now()) / 1000,
+    });
     setTimeout(() => {
       delete this.#scheduledEvents[key];
       runEventCombinationForTenant(tenantId, type, subType).catch((err) => {
@@ -30,7 +33,7 @@ class EventScheduler {
           scheduledFor: roundUpDate.toISOString(),
         });
       });
-    }, secondsUntilNextTen * 1000).unref();
+    }, roundUpDate.getTime() - Date.now()).unref();
   }
 }
 
