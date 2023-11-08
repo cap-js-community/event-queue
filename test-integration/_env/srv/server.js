@@ -10,7 +10,7 @@ try {
       cds.log("/server").error("missing schema guid");
       process.exit(-1);
     }
-    credentials = generateCredentialsForCds(process.env.SCHEMA_GUID);
+    credentials = generateCredentialsForCds(process.env.SCHEMA_GUID?.replace(/-/g, "_"));
   } else {
     credentials = require("../default-env").VCAP_SERVICES.hana[0].credentials;
   }
