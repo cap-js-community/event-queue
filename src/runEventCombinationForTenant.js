@@ -15,7 +15,7 @@ module.exports = async (tenantId, type, subType) => {
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     });
     cds.context = context;
-    getWorkerPoolInstance().addToQueue(async () => processEventQueue(context, type, subType));
+    getWorkerPoolInstance().addToQueue(async () => await processEventQueue(context, type, subType));
   } catch (err) {
     const logger = cds.log(COMPONENT_NAME);
     logger.error("error executing event combination for tenant", err, {

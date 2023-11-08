@@ -484,14 +484,6 @@ class EventQueueProcessorBase {
     this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
   }
 
-  static async handleMissingTypeImplementation(context, eventType, eventSubType) {
-    const baseInstance = new EventQueueProcessorBase(context, eventType, eventSubType);
-    baseInstance.logger.error("No Implementation found in the provided configuration file.", {
-      eventType,
-      eventSubType,
-    });
-  }
-
   /**
    * This function selects all relevant events based on the eventType and eventSubType supplied through the constructor
    * during initialization of the class.

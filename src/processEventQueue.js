@@ -8,7 +8,6 @@ const { getConfigInstance } = require("./config");
 const { TransactionMode } = require("./constants");
 const { limiter, Funnel } = require("./shared/common");
 
-const EventQueueBase = require("./EventQueueProcessorBase");
 const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
 
 const COMPONENT_NAME = "eventQueue/processEventQueue";
@@ -33,7 +32,10 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
     const eventConfig = getConfigInstance().getEventConfig(eventType, eventSubType);
     const [err, EventTypeClass] = resilientRequire(eventConfig?.impl);
     if (!eventConfig || err || !(typeof EventTypeClass.constructor === "function")) {
-      await EventQueueBase.handleMissingTypeImplementation(context, eventType, eventSubType);
+      cds.log(COMPONENT_NAME).error("No Implementation found in the provided configuration file.", {
+        eventType,
+        eventSubType,
+      });
       return;
     }
     baseInstance = new EventTypeClass(context, eventType, eventSubType, eventConfig);
