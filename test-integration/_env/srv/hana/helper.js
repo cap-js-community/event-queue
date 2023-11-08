@@ -170,7 +170,7 @@ async function deleteExistingSchema() {
     `SELECT SCHEMA_NAME, CREATE_TIME
      FROM SYS.SCHEMAS
      WHERE SCHEMA_NAME LIKE '${EVENT_QUEUE_PREFIX}%' AND CREATE_TIME <= '${new Date(
-       Date.now() - 60 * 60 * 1000
+       Date.now() - 60 * 1000
      ).toISOString()}'`
   );
 
