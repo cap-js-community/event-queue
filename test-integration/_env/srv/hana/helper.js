@@ -95,17 +95,7 @@ async function createTestSchema(customSchemaName) {
 async function prepareTestSchema(schemaGuid) {
   const schema = generateSchemaName(schemaGuid);
   await createTestSchema(schema);
-  return {
-    credentials: generateCredentialsForCds(schemaGuid),
-    deployed: schema.deployed,
-    delete: async () => {
-      if (!schema) {
-        const testAdmin = await createClient(Object.assign({}, TEST_ADMIN, DB_CONNECTION));
-        await deleteTestSchema(schema, testAdmin);
-        await testAdmin.disconnect();
-      }
-    },
-  };
+  return generateCredentialsForCds(schemaGuid);
 }
 
 const generateCredentialsForCds = (schemaGuid) => ({
@@ -130,43 +120,17 @@ const deployToHana = async (csn) => {
   const schema = await transaction.run('SELECT CURRENT_SCHEMA "current_schema" FROM DUMMY');
   logger.info("Deploy running on schema", { schema: schema[0].current_schema });
   try {
-    const creates = _getCreateTableSQL(csn);
+    const createTableSqls = cds.compile.to.sql(csn, { sqlDialect: "hana" });
     logger.info("Deploy Tables/Views");
-    for (const [, sql] of creates.entries()) {
+    for (const sql of createTableSqls) {
       await transaction.run(sql);
     }
     await transaction.commit();
     logger.info("Deploy completed", { seconds: (Date.now() - t0) / 1000 });
   } catch (error) {
-    transaction && (await transaction.rollback());
     logger.error("Deploy failed", error);
-    const testAdmin = await createClient(Object.assign({}, TEST_ADMIN, DB_CONNECTION));
-    await deleteTestSchema(schema[0].current_schema, testAdmin);
-    await testAdmin.disconnect();
     process.exit(1);
   }
-};
-
-const _getCreateTableSQL = (csn) => {
-  const entities = cds.compile.to.sql(csn, { sqlDialect: "hana" });
-  const entityDetails = {};
-  for (const sql of entities) {
-    const cutSql = sql.split("WITH ASSOCIATIONS (")[0];
-    const matches = [...(cutSql.match(/(FROM|JOIN)[ (]*([^( "]*)/g) || [])];
-    let dependencies = [];
-    matches.forEach((match) => {
-      dependencies.push(match.split(/(FROM|JOIN)[ (]*([^( "]*)/)[2]);
-    });
-    const name = sql.match(/CREATE (TABLE|VIEW)[ ](.*)[ ]([(]|AS)/)[2];
-    const type = sql.match(/CREATE (TABLE|VIEW)/)[1];
-    entityDetails[name] = {
-      name,
-      type,
-      sql,
-      dependencies,
-    };
-  }
-  return Object.values(entityDetails).map((entity) => entity.sql);
 };
 
 async function deleteExistingSchema() {
