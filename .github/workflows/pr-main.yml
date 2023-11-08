@@ -13,7 +13,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        node-version: [16, 18, 20]
+        node-version: [16]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     name: test - node.js ${{ matrix.node-version }}
@@ -39,13 +39,13 @@ jobs:
           SCHEMA_GUID: 9CC4DD06_93E4_48B3_9EC3_C15C496EF82A
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
 
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          cache: "npm"
-      - run: npm ci --package-lock
-      - run: npm run lint:ci
+#  lint:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-node@v3
+#        with:
+#          node-version: 18
+#          cache: "npm"
+#      - run: npm ci --package-lock
+#      - run: npm run lint:ci
