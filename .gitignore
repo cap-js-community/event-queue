@@ -88,7 +88,7 @@ app/**/.user.project.json
 .mtxcache.json
 
 # default env
-test-integration/_env/db/default-env.json
+default-env.json
 
 # appInfo
 appInfo.json

@@ -8,13 +8,7 @@ const cds = require("@sap/cds");
 const logger = cds.log("test/hana/deploy");
 
 const DB_CREDENTIALS = JSON.parse(process.env.HANA_DB_CREDENTIALS);
-const { SYSTEM_USER, TEST_ADMIN, TEST_WORKER } = DB_CREDENTIALS;
-const DB_CONNECTION = {
-  // fallback: new-canary-voter
-  host: "47f27079-bbf7-41b6-9b11-233e3f73784e.hna0.canary-eu10.hanacloud.ondemand.com",
-  port: 443,
-  useTLS: true,
-};
+const { SYSTEM_USER, TEST_ADMIN, TEST_WORKER, DB_CONNECTION } = DB_CREDENTIALS;
 const EVENT_QUEUE_PREFIX = "EVENT_QUEUE";
 
 const createClient = async (credentials) => {
@@ -99,7 +93,7 @@ async function prepareTestSchema(schemaGuid) {
   const schema = generateSchemaName(schemaGuid);
   await createTestSchema(schema);
   return {
-    credentials: generateCredentialsForCds(schema),
+    credentials: generateCredentialsForCds(schemaGuid),
     deployed: schema.deployed,
     delete: async () => {
       if (!schema) {
@@ -174,14 +168,19 @@ const _getCreateTableSQL = (csn) => {
 
 async function _deleteExistingSchema() {
   const testAdmin = await createClient(Object.assign({}, TEST_ADMIN, DB_CONNECTION));
-  const stableSchemaDB = await testAdmin.exec(
+  const obsoleteSchemas = await testAdmin.exec(
     `SELECT SCHEMA_NAME, CREATE_TIME
      FROM SYS.SCHEMAS
-     WHERE SCHEMA_NAME LIKE '${EVENT_QUEUE_PREFIX}%' AND CREATE_TIME <= ${new Date(
+     WHERE SCHEMA_NAME LIKE '${EVENT_QUEUE_PREFIX}%' AND CREATE_TIME <= '${new Date(
        Date.now() - 60 * 60 * 1000
-     ).toISOString()}`
+     ).toISOString()}'`
   );
-  for (const schemaName of stableSchemaDB) {
+
+  obsoleteSchemas.length &&
+    logger.info("deleting obsolete schemas...", {
+      count: obsoleteSchemas.length,
+    });
+  for (const { SCHEMA_NAME: schemaName } of obsoleteSchemas) {
     await deleteTestSchema(schemaName, testAdmin);
   }
   await testAdmin.disconnect();
