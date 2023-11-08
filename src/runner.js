@@ -3,12 +3,11 @@
 const { randomUUID } = require("crypto");
 
 const eventQueueConfig = require("./config");
-const { eventQueueRunner, processEventQueue } = require("./processEventQueue");
+const { eventQueueRunner } = require("./processEventQueue");
 const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
 const cdsHelper = require("./shared/cdsHelper");
 const distributedLock = require("./shared/distributedLock");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
-const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 
 const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
