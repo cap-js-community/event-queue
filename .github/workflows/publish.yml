@@ -19,7 +19,7 @@ jobs:
           cache: "npm"
           registry-url: https://registry.npmjs.org/
       - run: npm ci --package-lock
-      - name: "generate unique id for schema"
+      - name: "unique id for hana schema"
         id: generateId
         run: echo "id=$(uuidgen)" >> $GITHUB_OUTPUT
       - run: npm run lint:ci
