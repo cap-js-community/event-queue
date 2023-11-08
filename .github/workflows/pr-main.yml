@@ -28,14 +28,15 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
       - run: npm ci --package-lock
-      - run: npm run test:ci:deploySchema
-        env:
-          SCHEMA_GUID: ${{steps.generateId.outputs.id}}
-          HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
+#      - run: npm run test:ci:deploySchema
+#        env:
+#          SCHEMA_GUID: ${{steps.generateId.outputs.id}}
+#          HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
       - run: npm run test:ci
         env:
           NODE_ENV: githubAction-hana
-          SCHEMA_GUID: ${{steps.generateId.outputs.id}}
+#          SCHEMA_GUID: ${{steps.generateId.outputs.id}}
+          SCHEMA_GUID: 9CC4DD06_93E4_48B3_9EC3_C15C496EF82A
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
 
   lint:
