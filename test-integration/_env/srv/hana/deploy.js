@@ -9,6 +9,7 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
 
 (async () => {
   const logger = cds.log(COMPONENT_NAME);
+  process.env.SCHEMA_GUID = require("crypto").randomUUID();
   const schemaGuid = process.env.SCHEMA_GUID?.replace(/-/g, "_");
   if (!schemaGuid) {
     logger.error("process.env.SCHEMA_GUID not provided!");
