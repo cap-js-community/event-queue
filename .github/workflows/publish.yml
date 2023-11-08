@@ -23,7 +23,7 @@ jobs:
         id: generateId
         run: echo "id=$(uuidgen)" >> $GITHUB_OUTPUT
       - run: npm run lint:ci
-      - run: npm run test:ci:deploySchema
+      - run: npm run test:deploySchema
         env:
           SCHEMA_GUID: ${{steps.generateId.outputs.id}}
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
