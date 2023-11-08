@@ -33,7 +33,6 @@ async function prepare() {
   if (SYSTEM_USER.user && SYSTEM_USER.password) {
     const systemClient = await createClient(Object.assign({}, SYSTEM_USER, DB_CONNECTION));
     await prepareUsers(systemClient);
-    await _deleteExistingSchema();
     await systemClient.disconnect();
   } else {
     logger.info("SYSTEM_USER is not set up. Test users need to exist already\nDelete of old test schemes skipped");
@@ -165,7 +164,7 @@ const _getCreateTableSQL = (csn) => {
   return Object.values(entityDetails).map((entity) => entity.sql);
 };
 
-async function _deleteExistingSchema() {
+async function deleteExistingSchema() {
   const testAdmin = await createClient(Object.assign({}, TEST_ADMIN, DB_CONNECTION));
   const obsoleteSchemas = await testAdmin.exec(
     `SELECT SCHEMA_NAME, CREATE_TIME
@@ -190,4 +189,5 @@ module.exports = {
   deployToHana,
   prepareHana: prepare,
   generateCredentialsForCds,
+  deleteExistingSchema,
 };
