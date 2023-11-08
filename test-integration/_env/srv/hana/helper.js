@@ -9,6 +9,7 @@ const logger = cds.log("test/hana/deploy");
 const DB_CREDENTIALS = JSON.parse(process.env.HANA_DB_CREDENTIALS);
 const { SYSTEM_USER, TEST_ADMIN, TEST_WORKER, DB_CONNECTION } = DB_CREDENTIALS;
 const EVENT_QUEUE_PREFIX = "EVENT_QUEUE";
+const DELETE_SCHEMAS_AFTER = 10 * 60 * 1000;
 
 const createClient = async (credentials) => {
   const _client = hdb.createClient(credentials);
@@ -170,7 +171,7 @@ async function deleteExistingSchema() {
     `SELECT SCHEMA_NAME, CREATE_TIME
      FROM SYS.SCHEMAS
      WHERE SCHEMA_NAME LIKE '${EVENT_QUEUE_PREFIX}%' AND CREATE_TIME <= '${new Date(
-       Date.now() - 60 * 1000
+       Date.now() - DELETE_SCHEMAS_AFTER
      ).toISOString()}'`
   );
 
