@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: "generate unique id for schema"
         id: generateId
-        run: echo "::set-output name=id::$(uuidgen)"
+        run: echo "id=$(uuidgen)" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
