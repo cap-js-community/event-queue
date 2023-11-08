@@ -5,7 +5,7 @@ const { generateCredentialsForCds } = require("./hana/helper");
 
 let credentials = JSON.parse(process.env.HANA_DB_CREDENTIALS || null);
 try {
-  if (process.env.NODE_ENV === "githubAction-hana") {
+  if (process.env.GITHUB_ACTION_HANA) {
     if (!process.env.SCHEMA_GUID) {
       cds.log("/server").error("missing schema guid");
       process.exit(-1);

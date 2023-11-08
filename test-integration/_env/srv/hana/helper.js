@@ -91,17 +91,7 @@ async function createTestSchema(customSchemaName) {
 async function prepareTestSchema(schemaGuid) {
   const schema = generateSchemaName(schemaGuid);
   await createTestSchema(schema);
-  return {
-    credentials: generateCredentialsForCds(schemaGuid),
-    deployed: schema.deployed,
-    delete: async () => {
-      if (!schema) {
-        const testAdmin = await createClient(Object.assign({}, TEST_ADMIN, DB_CONNECTION));
-        await deleteTestSchema(schema, testAdmin);
-        await testAdmin.disconnect();
-      }
-    },
-  };
+  return generateCredentialsForCds(schemaGuid);
 }
 
 const generateCredentialsForCds = (schemaGuid) => ({
@@ -134,11 +124,7 @@ const deployToHana = async (csn) => {
     await transaction.commit();
     logger.info("Deploy completed", { seconds: (Date.now() - t0) / 1000 });
   } catch (error) {
-    transaction && (await transaction.rollback());
     logger.error("Deploy failed", error);
-    const testAdmin = await createClient(Object.assign({}, TEST_ADMIN, DB_CONNECTION));
-    await deleteTestSchema(schema[0].current_schema, testAdmin);
-    await testAdmin.disconnect();
     process.exit(1);
   }
 };
