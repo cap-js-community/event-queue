@@ -31,7 +31,7 @@ const tenantIds = [
   "e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792",
 ];
 
-describe.skip("redisRunner", () => {
+describe("redisRunner", () => {
   let context, tx, configInstance;
 
   beforeAll(async () => {
