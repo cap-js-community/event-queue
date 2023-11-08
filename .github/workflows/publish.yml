@@ -21,7 +21,7 @@ jobs:
       - run: npm ci --package-lock
       - name: "generate unique id for schema"
         id: generateId
-        run: echo "::set-output name=id::$(uuidgen)"
+        run: echo "id=$(uuidgen)" >> $GITHUB_OUTPUT
       - run: npm run lint:ci
       - run: npm run test:ci:deploySchema
         env:
