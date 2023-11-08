@@ -10,23 +10,31 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     strategy:
-      max-parallel: 1
+      max-parallel: 3
       matrix:
         node-version: [16, 18, 20]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     name: test - node.js ${{ matrix.node-version }}
     steps:
+      - name: "generate unique id for schema"
+        id: generateId
+        run: echo "::set-output name=id::$(uuidgen)"
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
       - run: npm ci --package-lock
+      - run: npm run test:ci:deploySchema
+        env:
+          SCHEMA_GUID: ${{steps.generateId.outputs.id}}
+          HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
       - run: npm run test:ci
         env:
+          NODE_ENV: githubAction-hana
+          SCHEMA_GUID: ${{steps.generateId.outputs.id}}
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
 
   lint:
@@ -39,3 +47,19 @@ jobs:
           cache: "npm"
       - run: npm ci --package-lock
       - run: npm run lint:ci
+
+  cleanSchemas:
+    needs:
+      - test
+      - lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "npm"
+      - run: npm ci --package-lock
+      - run: npm run test:ci:cleanSchemas
+        env:
+          HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
