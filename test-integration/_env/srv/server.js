@@ -1,10 +1,15 @@
 "use strict";
 
 const cds = require("@sap/cds");
+const { generateCredentialsForCds } = require("./hana/helper");
 
 let credentials = JSON.parse(process.env.HANA_DB_CREDENTIALS || null);
 try {
-  credentials = require("../db/default-env").VCAP_SERVICES.hana[0].credentials;
+  if (process.env.NODE_ENV === "local-hana") {
+    credentials = require("../db/default-env").VCAP_SERVICES.hana[0].credentials;
+  } else if (process.env.NODE_ENV === "githubAction-hana") {
+    credentials = generateCredentialsForCds();
+  }
 } catch {
   // Nothing to do
 }
