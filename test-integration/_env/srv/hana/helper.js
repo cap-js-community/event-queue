@@ -7,6 +7,8 @@ const cds = require("@sap/cds");
 
 const logger = cds.log("test/hana/deploy");
 
+console.log(process.env.HANA_DB_CREDENTIALS);
+
 const DB_CREDENTIALS = JSON.parse(process.env.HANA_DB_CREDENTIALS);
 const { SYSTEM_USER, TEST_ADMIN, TEST_WORKER, DB_CONNECTION } = DB_CREDENTIALS;
 const EVENT_QUEUE_PREFIX = "EVENT_QUEUE";
