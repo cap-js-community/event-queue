@@ -547,8 +547,8 @@ class EventQueueProcessorBase {
       result = openEvents;
       this.logger.info("Selected event queue entries for processing", {
         openEvents: openEvents.length,
-        ...(delayedEvents.length ?? { delayedEvents: delayedEvents.length }),
-        ...(exceededTries.length ?? { exceededTries: exceededTries.length }),
+        ...(delayedEvents.length && { delayedEvents: delayedEvents.length }),
+        ...(exceededTries.length && { exceededTries: exceededTries.length }),
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
       });
