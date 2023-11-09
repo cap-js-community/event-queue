@@ -9,7 +9,7 @@ class EventQueueMail extends eventQueue.EventQueueProcessorBase {
 
   async processEvent(processContext, key, queueEntries, payload) {
     this.logger.info("sending e-mail", payload);
-    return queueEntries.map((queueEntry) => [queueEntry.ID, eventQueue.EventProcessingStatus.Error]);
+    return queueEntries.map((queueEntry) => [queueEntry.ID, eventQueue.EventProcessingStatus.Done]);
   }
 }
 

@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "cds-serve",
+    "dev": "npm run copy-library && npm start",
     "copy-library": "npx shx rm -rf node_modules/@cap-js-community/event-queue && npx shx mkdir -p node_modules/@cap-js-community/event-queue && npx shx cp -R ../package.json ../index.cds ../cds-plugin.js ../src ../db node_modules/@cap-js-community/event-queue"
   },
   "dependencies": {
