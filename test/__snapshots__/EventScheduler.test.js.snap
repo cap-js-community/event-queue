@@ -1,0 +1,58 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EventScheduler broadcastEvent should be correctly called 1`] = `
+[
+  "scheduling event queue run for delayed event",
+  {
+    "delaySeconds": 10,
+    "subType": "subType",
+    "type": "type",
+  },
+]
+`;
+
+exports[`EventScheduler should handle an error when broadcasting an event 1`] = `
+[
+  "scheduling event queue run for delayed event",
+  {
+    "delaySeconds": 10,
+    "subType": "subType",
+    "type": "type",
+  },
+]
+`;
+
+exports[`EventScheduler should handle an error when broadcasting an event 2`] = `
+[
+  "could not execute scheduled event",
+  [Error: Broadcast failed],
+  {
+    "scheduledFor": "2021-10-01T00:00:10.000Z",
+    "subType": "subType",
+    "tenantId": "1",
+    "type": "type",
+  },
+]
+`;
+
+exports[`EventScheduler should not schedule an event if it's already scheduled 1`] = `
+[
+  "scheduling event queue run for delayed event",
+  {
+    "delaySeconds": 10,
+    "subType": "subType",
+    "type": "type",
+  },
+]
+`;
+
+exports[`EventScheduler should schedule an event 1`] = `
+[
+  "scheduling event queue run for delayed event",
+  {
+    "delaySeconds": 10,
+    "subType": "subType",
+    "type": "type",
+  },
+]
+`;
