@@ -10,6 +10,15 @@ exports[`integration-main empty queue - nothing to do 1`] = `
 }
 `;
 
+exports[`integration-main end-to-end insert one delayed entry and process - should be processed after timeout 1`] = `
+{
+  "BEGIN": 4,
+  "COMMIT": 3,
+  "CREATE": 2,
+  "READ": 3,
+}
+`;
+
 exports[`integration-main hookForExceededEvents hookForExceededEvents throws - rollback + counter increase 1`] = `
 {
   "BEGIN": 8,

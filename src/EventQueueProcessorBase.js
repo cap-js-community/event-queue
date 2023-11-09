@@ -21,7 +21,7 @@ const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const DEFAULT_DELETE_FINISHED_EVENTS_AFTER = 0;
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
-const EVENT_START_AFTER_HEADROOM = 5 * 1000;
+const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
@@ -545,16 +545,18 @@ class EventQueueProcessorBase {
       this.#handleDelayedEvents(delayedEvents);
 
       result = openEvents;
-
-      if (!result.length) {
-        this.__emptyChunkSelected = true;
-      }
-
       this.logger.info("Selected event queue entries for processing", {
-        queueEntriesCount: result.length,
+        openEvents: openEvents.length,
+        ...(delayedEvents.length ?? { delayedEvents: delayedEvents.length }),
+        ...(exceededTries.length ?? { exceededTries: exceededTries.length }),
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
       });
+
+      if (!eventsForProcessing.length) {
+        this.__emptyChunkSelected = true;
+        return;
+      }
 
       const isoTimestamp = new Date().toISOString();
       await tx.run(
