@@ -13,7 +13,7 @@ jest.mock("@sap/cds", () => ({
 }));
 
 jest.mock("../src/redisPubSub", () => ({
-  broadcastEvent: jest.fn(),
+  broadcastEvent: jest.fn().mockResolvedValue(),
 }));
 
 describe("EventScheduler", () => {
@@ -22,16 +22,16 @@ describe("EventScheduler", () => {
 
   beforeEach(() => {
     eventScheduler.clearScheduledEvents();
-  });
-
-  beforeAll(() => {
-    eventScheduler = EventScheduler();
-    jest.useFakeTimers();
     setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation(() => {
       return {
         unref: () => {},
       };
     });
+  });
+
+  beforeAll(() => {
+    eventScheduler = EventScheduler();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
@@ -45,16 +45,7 @@ describe("EventScheduler", () => {
 
     expect(cds.log().info).toHaveBeenCalledTimes(1);
     expect(cds.log().error).toHaveBeenCalledTimes(0);
-    expect(cds.log().info.mock.calls[0]).toMatchInlineSnapshot(`
-      [
-        "scheduling event queue run for delayed event",
-        {
-          "delaySeconds": 10,
-          "subType": "subType",
-          "type": "type",
-        },
-      ]
-    `);
+    expect(cds.log().info.mock.calls[0]).toMatchSnapshot();
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
     expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
     expect(broadcastEvent).not.toHaveBeenCalled();
@@ -69,44 +60,60 @@ describe("EventScheduler", () => {
 
     expect(cds.log().info).toHaveBeenCalledTimes(1);
     expect(cds.log().error).toHaveBeenCalledTimes(0);
-    expect(cds.log().info.mock.calls[0]).toMatchInlineSnapshot(`
-      [
-        "scheduling event queue run for delayed event",
-        {
-          "delaySeconds": 10,
-          "subType": "subType",
-          "type": "type",
-        },
-      ]
-    `);
+    expect(cds.log().info.mock.calls[0]).toMatchSnapshot();
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
     expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
     expect(broadcastEvent).not.toHaveBeenCalled();
   });
 
-  it.skip("should handle an error when broadcasting an event", async () => {
-    const dateNowStub = jest.fn(() => 1633029600000); // 2021-10-01T00:00:00.000Z
-    global.Date.now = dateNowStub;
-
+  it("broadcastEvent should be correctly called", async () => {
+    setTimeoutSpy.mockRestore();
+    setTimeoutSpy = jest.spyOn(global, "setTimeout");
+    jest.setSystemTime(new Date(1633046400000)); // 2021-10-01T00:00:00.000Z
     const startAfter = new Date("2021-10-01T00:00:01.000Z");
-    broadcastEvent.mockRejectedValue(new Error("Broadcast failed"));
-
     eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
 
-    await new Promise((r) => setTimeout(r, 2000)); // wait for the setTimeout to finish
+    expect(cds.log().info).toHaveBeenCalledTimes(1);
+    expect(cds.log().error).toHaveBeenCalledTimes(0);
+    expect(cds.log().info.mock.calls[0]).toMatchSnapshot();
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
+    expect(broadcastEvent).not.toHaveBeenCalled();
 
-    expect(cds.log).toHaveBeenCalled();
-    expect(setTimeout).toHaveBeenCalled();
-    expect(broadcastEvent).toHaveBeenCalled();
-    expect(cds.error).toHaveBeenCalledWith(
-      "could not execute scheduled event",
-      expect.any(Error),
-      expect.objectContaining({
-        tenantId: "1",
-        type: "type",
-        subType: "subType",
-        scheduledFor: expect.any(String),
-      })
-    );
+    await jest.runAllTimersAsync();
+    expect(broadcastEvent).toHaveBeenCalledTimes(1);
+    expect(broadcastEvent.mock.calls[0]).toMatchInlineSnapshot(`
+      [
+        "1",
+        "type",
+        "subType",
+      ]
+    `);
+  });
+
+  it("should handle an error when broadcasting an event", async () => {
+    setTimeoutSpy.mockRestore();
+    setTimeoutSpy = jest.spyOn(global, "setTimeout");
+    jest.setSystemTime(new Date(1633046400000)); // 2021-10-01T00:00:00.000Z
+    const startAfter = new Date("2021-10-01T00:00:01.000Z");
+    broadcastEvent.mockRejectedValueOnce(new Error("Broadcast failed"));
+
+    eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
+    await jest.runAllTimersAsync();
+
+    expect(cds.log().info).toHaveBeenCalledTimes(1);
+    expect(cds.log().error).toHaveBeenCalledTimes(1);
+    expect(cds.log().info.mock.calls[0]).toMatchSnapshot();
+    expect(cds.log().error.mock.calls[0]).toMatchSnapshot();
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
+    expect(broadcastEvent).toHaveBeenCalledTimes(1);
+    expect(broadcastEvent.mock.calls[0]).toMatchInlineSnapshot(`
+      [
+        "1",
+        "type",
+        "subType",
+      ]
+    `);
   });
 });
