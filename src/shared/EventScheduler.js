@@ -2,7 +2,7 @@
 
 const cds = require("@sap/cds");
 
-const runEventCombinationForTenant = require("../runEventCombinationForTenant");
+const { broadcastEvent } = require("../redisPubSub");
 
 const COMPONENT_NAME = "eventQueue/shared/EventScheduler";
 
@@ -25,7 +25,7 @@ class EventScheduler {
     });
     setTimeout(() => {
       delete this.#scheduledEvents[key];
-      runEventCombinationForTenant(tenantId, type, subType).catch((err) => {
+      broadcastEvent(tenantId, type, subType).catch((err) => {
         cds.log(COMPONENT_NAME).error("could not execute scheduled event", err, {
           tenantId,
           type,

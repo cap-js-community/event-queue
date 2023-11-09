@@ -3,7 +3,7 @@
 const redis = require("./shared/redis");
 const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
 const config = require("./config");
-const runEventCombinationForTenant = require("./runEventCombinationForTenant");
+const { runEventCombinationForTenant } = require("./runner");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "eventQueue/redisPubSub";
@@ -34,7 +34,7 @@ const messageHandlerProcessEvents = async (messageData) => {
   }
 };
 
-const publishEvent = async (tenantId, type, subType) => {
+const broadcastEvent = async (tenantId, type, subType) => {
   const logger = cds.log(COMPONENT_NAME);
   const configInstance = config.getConfigInstance();
   if (!configInstance.redisEnabled) {
@@ -69,5 +69,5 @@ const publishEvent = async (tenantId, type, subType) => {
 
 module.exports = {
   initEventQueueRedisSubscribe,
-  publishEvent,
+  broadcastEvent,
 };
