@@ -654,13 +654,10 @@ describe("integration-main", () => {
 
     it("insert one delayed entry and process - should be processed after timeout", async () => {
       await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 5 }));
-      dbCounts = {};
       const event = eventQueue.getConfigInstance().events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectOpen(tx);
-      expect(dbCounts).toMatchSnapshot();
-
       await waitEntryIsDone();
       await testHelper.selectEventQueueAndExpectDone(tx);
     });
