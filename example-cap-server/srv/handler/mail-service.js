@@ -8,6 +8,7 @@ const single = async (context) => {
     type: "Mail",
     subType: "Single",
     payload: JSON.stringify(context.data),
+    ...(context.data.startAfter && { startAfter: new Date(Date.now() + context.data.startAfter * 1000).toISOString() }),
   });
 };
 

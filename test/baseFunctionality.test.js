@@ -8,6 +8,7 @@ const cdsHelper = require("../src/shared/cdsHelper");
 const executeInNewTransactionSpy = jest.spyOn(cdsHelper, "executeInNewTransaction");
 
 const eventQueue = require("../src");
+const eventScheduler = require("../src/shared/EventScheduler");
 const testHelper = require("./helper");
 const EventQueueTest = require("./asset/EventQueueTest");
 const { Logger: mockLogger } = require("./mocks/logger");
@@ -66,6 +67,33 @@ describe("baseFunctionality", () => {
 
   test("insert one entry and process", async () => {
     await testHelper.insertEventEntry(tx);
+    const event = eventQueue.getConfigInstance().events[0];
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectDone(tx);
+  });
+
+  test("insert one delayed entry - should not directly be processed", async () => {
+    await testHelper.insertEventEntry(tx, { delayedSeconds: 15 });
+    const event = eventQueue.getConfigInstance().events[0];
+    const eventSchedulerInstance = eventScheduler.getInstance();
+    const eventSchedulerSpy = jest.spyOn(eventSchedulerInstance, "scheduleEvent").mockReturnValue();
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectOpen(tx);
+    expect(eventSchedulerSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("insert one delayed entry after runInterval", async () => {
+    await testHelper.insertEventEntry(tx, { delayedSeconds: 500 });
+    const event = eventQueue.getConfigInstance().events[0];
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectOpen(tx);
+  });
+
+  test("insert one delayed entry in past - should be directly be processed", async () => {
+    await testHelper.insertEventEntry(tx, { delayedSeconds: -100 });
     const event = eventQueue.getConfigInstance().events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
@@ -201,33 +229,49 @@ describe("baseFunctionality", () => {
         payload: JSON.stringify({
           testPayload: 123,
         }),
+        startAfter: new Date(1699344489697),
       });
       const events = await tx.run(SELECT.from("sap.eventqueue.Event"));
       expect(events).toHaveLength(1);
+      events[0].startAfter = new Date(events[0].startAfter);
       expect(events[0]).toMatchObject({
         type: event.type,
         subType: event.subType,
         payload: JSON.stringify({
           testPayload: 123,
         }),
+        startAfter: new Date(1699344489697),
       });
     });
 
     test("unknown event", async () => {
-      try {
-        await eventQueue.publishEvent(tx, {
+      await expect(
+        eventQueue.publishEvent(tx, {
           type: "404",
           subType: "NOT FOUND",
           payload: JSON.stringify({
             testPayload: 123,
           }),
-        });
-      } catch (err) {
-        // eslint-disable-next-line jest/no-conditional-expect
-        expect(err.toString()).toMatchInlineSnapshot(
-          `"UNKNOWN_EVENT_TYPE: The event type and subType configuration is not configured! Maintain the combination in the config file."`
-        );
-      }
+        })
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"The event type and subType configuration is not configured! Maintain the combination in the config file."`
+      );
+      const events = await tx.run(SELECT.from("sap.eventqueue.Event"));
+      expect(events).toHaveLength(0);
+    });
+
+    test("not a proper date", async () => {
+      const event = eventQueue.getConfigInstance().events[0];
+      await expect(
+        eventQueue.publishEvent(tx, {
+          type: event.type,
+          subType: event.subType,
+          payload: JSON.stringify({
+            testPayload: 123,
+          }),
+          startAfter: "notADate",
+        })
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"One or more events contain a date in a malformed format."`);
       const events = await tx.run(SELECT.from("sap.eventqueue.Event"));
       expect(events).toHaveLength(0);
     });

@@ -1,7 +1,11 @@
 "use strict";
 
-const { publishEvent } = require("./redisPubSub");
+const cds = require("@sap/cds");
+
+const { broadcastEvent } = require("./redisPubSub");
 const config = require("./config");
+
+const COMPONENT_NAME = "eventQueue/dbHandler";
 
 const registerEventQueueDbHandler = (dbService) => {
   const configInstance = config.getConfigInstance();
@@ -26,7 +30,12 @@ const registerEventQueueDbHandler = (dbService) => {
     eventCombinations.length &&
       req.on("succeeded", () => {
         for (const eventCombination of eventCombinations) {
-          publishEvent(req.tenant, ...eventCombination.split("##"));
+          broadcastEvent(req.tenant, ...eventCombination.split("##")).catch((err) => {
+            cds.log(COMPONENT_NAME).error("db handler failure during broadcasting event", err, {
+              tenant: req.tenant,
+              eventCombination,
+            });
+          });
         }
       });
   });

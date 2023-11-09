@@ -107,4 +107,15 @@ const limiter = async (limit, payloads, iterator) => {
   return Promise.allSettled(returnPromises);
 };
 
-module.exports = { arrayToFlatMap, Funnel, limiter };
+const isValidDate = (value) => {
+  if (typeof value === "string") {
+    const date = Date.parse(value);
+    return !isNaN(date);
+  } else if (value instanceof Date) {
+    return !isNaN(value.getTime());
+  } else {
+    return false;
+  }
+};
+
+module.exports = { arrayToFlatMap, Funnel, limiter, isValidDate };

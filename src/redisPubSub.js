@@ -1,11 +1,9 @@
 "use strict";
 
 const redis = require("./shared/redis");
-const { processEventQueue } = require("./processEventQueue");
-const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
 const config = require("./config");
-const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
+const { runEventCombinationForTenant } = require("./runner");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "eventQueue/redisPubSub";
@@ -23,19 +21,12 @@ const messageHandlerProcessEvents = async (messageData) => {
   const logger = cds.log(COMPONENT_NAME);
   try {
     const { tenantId, type, subType } = JSON.parse(messageData);
-    const subdomain = await getSubdomainForTenantId(tenantId);
-    const context = new cds.EventContext({
-      tenant: tenantId,
-      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
-    });
-    cds.context = context;
     logger.debug("received redis event", {
       tenantId,
       type,
       subType,
     });
-    getWorkerPoolInstance().addToQueue(async () => processEventQueue(context, type, subType));
+    await runEventCombinationForTenant(tenantId, type, subType);
   } catch (err) {
     logger.error("could not parse event information", {
       messageData,
@@ -43,12 +34,12 @@ const messageHandlerProcessEvents = async (messageData) => {
   }
 };
 
-const publishEvent = async (tenantId, type, subType) => {
+const broadcastEvent = async (tenantId, type, subType) => {
   const logger = cds.log(COMPONENT_NAME);
   const configInstance = config.getConfigInstance();
   if (!configInstance.redisEnabled) {
     if (configInstance.registerAsEventProcessor) {
-      await _handleEventInternally(tenantId, type, subType);
+      await runEventCombinationForTenant(tenantId, type, subType);
     }
     return;
   }
@@ -76,22 +67,7 @@ const publishEvent = async (tenantId, type, subType) => {
   }
 };
 
-const _handleEventInternally = async (tenantId, type, subType) => {
-  cds.log(COMPONENT_NAME).info("processEventQueue internally", {
-    tenantId,
-    type,
-    subType,
-  });
-  const subdomain = await getSubdomainForTenantId(tenantId);
-  const context = new cds.EventContext({
-    tenant: tenantId,
-    // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-    http: { req: { authInfo: { getSubdomain: () => subdomain } } },
-  });
-  getWorkerPoolInstance().addToQueue(async () => processEventQueue(context, type, subType));
-};
-
 module.exports = {
   initEventQueueRedisSubscribe,
-  publishEvent,
+  broadcastEvent,
 };

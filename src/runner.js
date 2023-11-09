@@ -3,11 +3,12 @@
 const { randomUUID } = require("crypto");
 
 const eventQueueConfig = require("./config");
-const { eventQueueRunner } = require("./processEventQueue");
+const { eventQueueRunner, processEventQueue } = require("./processEventQueue");
 const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
 const cdsHelper = require("./shared/cdsHelper");
 const distributedLock = require("./shared/distributedLock");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
+const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 
 const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
@@ -190,10 +191,31 @@ const _calculateOffsetForFirstRun = async () => {
   return offsetDependingOnLastRun;
 };
 
+const runEventCombinationForTenant = async (tenantId, type, subType) => {
+  try {
+    const subdomain = await getSubdomainForTenantId(tenantId);
+    const context = new cds.EventContext({
+      tenant: tenantId,
+      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
+      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+    });
+    cds.context = context;
+    getWorkerPoolInstance().addToQueue(async () => await processEventQueue(context, type, subType));
+  } catch (err) {
+    const logger = cds.log(COMPONENT_NAME);
+    logger.error("error executing event combination for tenant", err, {
+      tenantId,
+      type,
+      subType,
+    });
+  }
+};
+
 module.exports = {
   singleTenant,
   multiTenancyDb,
   multiTenancyRedis,
+  runEventCombinationForTenant,
   _: {
     _multiTenancyRedis,
     _multiTenancyDb,

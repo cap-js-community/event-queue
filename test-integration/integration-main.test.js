@@ -80,6 +80,16 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
+  it("insert one delayed entry and process - should not be processed", async () => {
+    await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 15 }));
+    dbCounts = {};
+    const event = eventQueue.getConfigInstance().events[0];
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectOpen(tx);
+    expect(dbCounts).toMatchSnapshot();
+  });
+
   it("if process event returns an error --> tx should be rolled backed", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
@@ -641,6 +651,16 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx);
     });
+
+    it("insert one delayed entry and process - should be processed after timeout", async () => {
+      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 5 }));
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectOpen(tx);
+      await waitEntryIsDone();
+      await testHelper.selectEventQueueAndExpectDone(tx);
+    });
   });
 });
 
@@ -654,7 +674,7 @@ const waitEntryIsDone = async () => {
     if (row?.status === EventProcessingStatus.Done) {
       break;
     }
-    if (Date.now() - startTime > 10 * 1000) {
+    if (Date.now() - startTime > 120 * 1000) {
       throw new Error("entry not completed");
     }
     await promisify(setTimeout)(50);
