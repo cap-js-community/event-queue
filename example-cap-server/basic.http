@@ -6,7 +6,8 @@ Authorization: Basic alice@wonderland.com alice
 {
   "to": "recipient@example.com",
   "subject": "Hello",
-  "body": "This is a test email"
+  "body": "This is a test email",
+  "startAfter": 9
 }
 
 ### Cluster E-Mails READY_FOR_APPROVE_TASK
