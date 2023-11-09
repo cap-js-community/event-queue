@@ -12,7 +12,6 @@ nav_order: 3
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
-
 - TOC
 {: toc}
 
@@ -24,15 +23,15 @@ executes basic input validations, but also handles the insertion of the event da
 ```js
 "use strict";
 
-const {publishEvent} = require("@cap-js-community/event-queue");
+const { publishEvent } = require("@cap-js-community/event-queue");
 
 await publishEvent(tx, {
-    type: "Notifications",
-    subType: "Tasks",
-    payload: JSON.stringify({
-        recipients: ["alice@wonder.land"]
-    }),
-})
+  type: "Notifications",
+  subType: "Tasks",
+  payload: JSON.stringify({
+    recipients: ["alice@wonder.land"],
+  }),
+});
 ```
 
 ### Function Parameters
@@ -78,13 +77,13 @@ the `startAfter` field contains a timestamp that is in the future, the event wil
 
 ```js
 await publishEvent(tx, {
-    type: "Notifications",
-    subType: "Tasks",
-    startAfter: new Date("2022-12-31T12:00:00"), // Future timestamp
-    payload: JSON.stringify({
-        recipients: ["alice@wonder.land"]
-    }),
-})
+  type: "Notifications",
+  subType: "Tasks",
+  startAfter: new Date("2022-12-31T12:00:00"), // Future timestamp
+  payload: JSON.stringify({
+    recipients: ["alice@wonder.land"],
+  }),
+});
 ```
 
 The `startAfter` field is optional. If it is not provided or if it contains a past or current timestamp, the event will
