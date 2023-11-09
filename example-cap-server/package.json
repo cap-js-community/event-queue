@@ -3,7 +3,8 @@
   "name": "example-cap-server",
   "version": "1.0.0",
   "scripts": {
-    "start": "node --preserve-symlinks ./node_modules/.bin/cds-serve"
+    "start": "cds-serve",
+    "copy-library": "npx shx rm -rf node_modules/@cap-js-community/event-queue && npx shx mkdir -p node_modules/@cap-js-community/event-queue && npx shx cp -R ../package.json ../index.cds ../cds-plugin.js ../src ../db node_modules/@cap-js-community/event-queue"
   },
   "dependencies": {
     "@sap/cds": "7.3.1",
