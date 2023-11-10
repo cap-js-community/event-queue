@@ -47,3 +47,11 @@ events:
     parallelEventProcessing: 1
     processAfterCommit: true
     transactionMode: isolated
+
+periodicEvents:
+  - type: HealthCheck
+    subType: DB
+    impl: ./test/asset/EventQueueHealthCheckDb
+    load: 40
+    transactionMode: alwaysRollback
+    interval: 10
