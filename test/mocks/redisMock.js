@@ -20,4 +20,5 @@ module.exports = {
   createClientAndConnect: _createMainClientAndConnect,
   createMainClientAndConnect: _createMainClientAndConnect,
   clearState: () => (state = {}),
+  closeMainClient: () => {},
 };

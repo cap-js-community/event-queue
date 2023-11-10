@@ -31,6 +31,7 @@ jest.mock("../src/shared/redis", () => {
       }
       mockRedisPublishCalls.push(args);
     }),
+    closeMainClient: () => {},
   };
 });
 

@@ -12,7 +12,8 @@ const EventQueueError = require("./EventQueueError");
 const runner = require("./runner");
 const dbHandler = require("./dbHandler");
 const { getConfigInstance } = require("./config");
-const { initEventQueueRedisSubscribe } = require("./redisPubSub");
+const { initEventQueueRedisSubscribe, closeSubscribeClient } = require("./redisPubSub");
+const { closeMainClient } = require("./shared/redis");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -82,6 +83,7 @@ const initialize = async ({
   }
 
   registerEventProcessors();
+  registerCdsShutdown();
   logger.info("event queue initialized", {
     registerAsEventProcessor: configInstance.registerAsEventProcessor,
     multiTenancyEnabled: configInstance.isMultiTenancy,
@@ -178,6 +180,12 @@ const mixConfigVarsWithEnv = (...args) => {
   CONFIG_VARS.forEach(([configName, defaultValue], index) => {
     const configValue = args[index];
     configInstance[configName] = configValue ?? cds.env.eventQueue?.[configName] ?? defaultValue;
+  });
+};
+
+const registerCdsShutdown = () => {
+  cds.on("shutdown", async () => {
+    await Promise.allSettled([closeMainClient(), closeSubscribeClient()]);
   });
 };
 
