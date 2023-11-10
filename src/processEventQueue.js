@@ -137,45 +137,49 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
 // TODO: don't forget to release lock
 const processPeriodicEvent = async (eventTypeInstance) => {
   let queueEntry;
-  await executeInNewTransaction(
-    eventTypeInstance.context,
-    `eventQueue-periodic-scheduleNext-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
-    async (tx) => {
-      eventTypeInstance.processEventContext = tx.context;
-      [queueEntry] = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
-      if (!queueEntry) {
-        return;
+  try {
+    await executeInNewTransaction(
+      eventTypeInstance.context,
+      `eventQueue-periodic-scheduleNext-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+      async (tx) => {
+        eventTypeInstance.processEventContext = tx.context;
+        [queueEntry] = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
+        if (!queueEntry) {
+          return;
+        }
+        await eventTypeInstance.scheduleNextPeriodEvent(queueEntry);
       }
-      await eventTypeInstance.scheduleNextPeriodEvent(queueEntry);
-    }
-  );
+    );
 
-  if (!queueEntry) {
-    return;
+    if (!queueEntry) {
+      return;
+    }
+
+    await executeInNewTransaction(
+      eventTypeInstance.context,
+      `eventQueue-periodic-process-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+      async (tx) => {
+        eventTypeInstance.processEventContext = tx.context;
+        eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
+        try {
+          await eventTypeInstance.processEvent(tx.context, queueEntry.ID, [queueEntry]);
+        } catch (err) {
+          eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
+        }
+      }
+    );
+
+    await executeInNewTransaction(
+      eventTypeInstance.context,
+      `eventQueue-periodic-setStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+      async (tx) => {
+        eventTypeInstance.processEventContext = tx.context;
+        await eventTypeInstance.setPeriodicEventStatus(queueEntry);
+      }
+    );
+  } finally {
+    await eventTypeInstance?.handleReleaseLock();
   }
-
-  await executeInNewTransaction(
-    eventTypeInstance.context,
-    `eventQueue-periodic-process-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
-    async (tx) => {
-      eventTypeInstance.processEventContext = tx.context;
-      eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
-      try {
-        await eventTypeInstance.processEvent(tx.context, queueEntry.ID, [queueEntry]);
-      } catch (err) {
-        eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
-      }
-    }
-  );
-
-  await executeInNewTransaction(
-    eventTypeInstance.context,
-    `eventQueue-periodic-setStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
-    async (tx) => {
-      eventTypeInstance.processEventContext = tx.context;
-      await eventTypeInstance.setPeriodicEventStatus(queueEntry);
-    }
-  );
 
   // process event in own tx
   // set status in own tx

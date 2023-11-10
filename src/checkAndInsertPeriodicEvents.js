@@ -3,7 +3,6 @@
 const cds = require("@sap/cds");
 
 const eventQueueConfig = require("./config");
-const eventScheduler = require("./shared/EventScheduler");
 const { publishEvent } = require("./publishEvent");
 
 const checkAndInsertPeriodicEvents = async (context) => {
@@ -28,7 +27,7 @@ const checkAndInsertPeriodicEvents = async (context) => {
 const insertAllEvents = async (tx) => {
   const configInstance = eventQueueConfig.getConfigInstance();
   const offset = configInstance.periodicEventOffset;
-  const baseDate = eventScheduler.getInstance().calculateFutureTime(new Date(), offset);
+  const baseDate = calculateFutureTime(new Date(), offset);
   const periodicEvents = configInstance.periodicEvents;
   const periodEventsInsert = periodicEvents.map((periodicEvent) => ({
     type: periodicEvent.type,
@@ -36,6 +35,12 @@ const insertAllEvents = async (tx) => {
     startAfter: baseDate,
   }));
   await publishEvent(tx, periodEventsInsert);
+};
+
+const calculateFutureTime = (date, seoncds) => {
+  const startAfterSeconds = date.getSeconds();
+  const secondsUntil = seoncds - (startAfterSeconds % seoncds);
+  return new Date(date.getTime() + secondsUntil * 1000);
 };
 
 module.exports = {

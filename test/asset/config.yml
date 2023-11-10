@@ -54,4 +54,4 @@ periodicEvents:
     impl: ./test/asset/EventQueueHealthCheckDb
     load: 40
     transactionMode: alwaysRollback
-    interval: 10
+    interval: 30

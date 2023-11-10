@@ -24,7 +24,8 @@
     "eventQueue": {
       "plugin": true,
       "configFilePath": "./srv/eventConfig.yml",
-      "parallelTenantProcessing": 2
+      "parallelTenantProcessing": 2,
+      "runInterval": 30000
     },
     "requires": {
       "multitenancy": true,
