@@ -30,6 +30,7 @@ class Config {
   #disableRedis;
   #env;
   #eventMap;
+  #periodicEventOffset;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
     this.#config = null;
@@ -46,6 +47,7 @@ class Config {
     this.#processEventsAfterPublish = null;
     this.#skipCsnCheck = null;
     this.#disableRedis = null;
+    this.#periodicEventOffset = 60;
     this.#env = getEnvInstance();
   }
 
@@ -101,10 +103,17 @@ class Config {
 
   set fileContent(config) {
     this.#config = config;
+    config.events = config.events ?? [];
+    config.periodicEvents = config.periodicEvents ?? [];
     this.#eventMap = config.events.reduce((result, event) => {
       result[[event.type, event.subType].join("##")] = event;
       return result;
     }, {});
+    this.#eventMap = config.periodicEvents.reduce((result, event) => {
+      event.isPeriodic = true;
+      result[[event.type, event.subType].join("##")] = event;
+      return result;
+    }, this.#eventMap);
   }
 
   get fileContent() {
@@ -113,6 +122,18 @@ class Config {
 
   get events() {
     return this.#config.events;
+  }
+
+  get periodicEvents() {
+    return this.#config.periodicEvents;
+  }
+
+  isPeriodicEvent(type, subType) {
+    return this.#eventMap[[type, subType].join("##")]?.isPeriodic;
+  }
+
+  get allEvents() {
+    return this.#config.events.concat(this.#config.periodicEvents);
   }
 
   get forUpdateTimeout() {
@@ -209,6 +230,14 @@ class Config {
 
   get disableRedis() {
     return this.#disableRedis;
+  }
+
+  set periodicEventOffset(value) {
+    this.#periodicEventOffset = value;
+  }
+
+  get periodicEventOffset() {
+    return this.#periodicEventOffset;
   }
 
   get isMultiTenancy() {

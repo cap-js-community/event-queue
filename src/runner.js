@@ -9,22 +9,23 @@ const cdsHelper = require("./shared/cdsHelper");
 const distributedLock = require("./shared/distributedLock");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
+const { checkAnsInsertPeriodicEvents } = require("./checkAndInsertPeriodicEvents");
 
 const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
 const EVENT_QUEUE_RUN_TS = "EVENT_QUEUE_RUN_TS";
 const OFFSET_FIRST_RUN = 10 * 1000;
 
-const singleTenant = () => _scheduleFunction(_executeRunForTenant);
+const singleTenant = () => _scheduleFunction(checkPeriodicEventsSingleTenant, _executeRunForTenant);
 
-const multiTenancyDb = () => _scheduleFunction(_multiTenancyDb);
+const multiTenancyDb = () => _scheduleFunction(checkPeriodicEventsSingleTenant, _multiTenancyDb);
 
-const multiTenancyRedis = () => _scheduleFunction(_multiTenancyRedis);
+const multiTenancyRedis = () => _scheduleFunction(checkPeriodicEventsSingleTenant, _multiTenancyRedis);
 
-const _scheduleFunction = async (fn) => {
+const _scheduleFunction = async (singleRunFn, periodicFn) => {
   const logger = cds.log(COMPONENT_NAME);
   const configInstance = eventQueueConfig.getConfigInstance();
-  const eventsForAutomaticRun = configInstance.events;
+  const eventsForAutomaticRun = configInstance.allEvents;
   if (!eventsForAutomaticRun.length) {
     logger.warn("no events for automatic run are configured - skipping runner registration");
     return;
@@ -36,7 +37,7 @@ const _scheduleFunction = async (fn) => {
       logger.info("runner is deactivated via config variable. Skipping this run.");
       return;
     }
-    return fn();
+    return periodicFn();
   };
 
   const offsetDependingOnLastRun = await _calculateOffsetForFirstRun();
@@ -47,6 +48,7 @@ const _scheduleFunction = async (fn) => {
 
   setTimeout(() => {
     fnWithRunningCheck();
+    singleRunFn();
     const intervalRunner = new SetIntervalDriftSafe(configInstance.runInterval);
     intervalRunner.run(fnWithRunningCheck);
   }, offsetDependingOnLastRun).unref();
@@ -107,7 +109,7 @@ const _executeRunForTenant = async (tenantId, runId) => {
   const logger = cds.log(COMPONENT_NAME);
   const configInstance = eventQueueConfig.getConfigInstance();
   try {
-    const eventsForAutomaticRun = configInstance.events;
+    const eventsForAutomaticRun = configInstance.allEvents;
     const subdomain = await cdsHelper.getSubdomainForTenantId(tenantId);
     const context = new cds.EventContext({
       tenant: tenantId,
@@ -207,6 +209,30 @@ const runEventCombinationForTenant = async (tenantId, type, subType) => {
       tenantId,
       type,
       subType,
+    });
+  }
+};
+
+const checkPeriodicEventsSingleTenant = async (tenantId) => {
+  const logger = cds.log(COMPONENT_NAME);
+  const configInstance = eventQueueConfig.getConfigInstance();
+  try {
+    const subdomain = await cdsHelper.getSubdomainForTenantId(tenantId);
+    const context = new cds.EventContext({
+      tenant: tenantId,
+      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
+      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+    });
+    cds.context = context;
+    logger.info("executing eventQueue run", {
+      tenantId,
+      subdomain,
+    });
+    await checkAnsInsertPeriodicEvents(context);
+  } catch (err) {
+    logger.error(`Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`, {
+      tenantId,
+      redisEnabled: configInstance.redisEnabled,
     });
   }
 };

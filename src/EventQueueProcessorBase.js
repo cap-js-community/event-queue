@@ -303,6 +303,29 @@ class EventQueueProcessorBase {
     return Object.fromEntries(queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Error]));
   }
 
+  handleErrorDuringPeriodicEventProcessing(error, queueEntry) {
+    this.logger.error(
+      `Caught error during event periodic processing. Please catch your promises/exceptions. Error: ${error}`,
+      {
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
+        queueEntryId: queueEntry.ID,
+      }
+    );
+  }
+
+  async setPeriodicEventStatus(queueEntry) {
+    await this.tx.run(
+      UPDATE.entity(this.#config.tableNameEventQueue)
+        .set({
+          status: EventProcessingStatus.Done,
+        })
+        .where({
+          ID: queueEntry.ID,
+        })
+    );
+  }
+
   /**
    * This function validates for all selected events one status has been submitted. It's also validated that only for
    * selected events a status has been submitted. Persisting the status of events is done in a dedicated database tx.
@@ -812,6 +835,17 @@ class EventQueueProcessorBase {
     }
   }
 
+  async scheduleNextPeriodEvent(queueEntry) {
+    const interval = this.__eventConfig.interval;
+    await this.tx.run(
+      INSERT.into(this.#config.tableNameEventQueue).entries({
+        type: this.#eventType,
+        subType: this.#eventSubType,
+        startAfter: new Date(new Date(queueEntry.startAfter).getTime() + interval * 1000),
+      })
+    );
+  }
+
   statusMapContainsError(statusMap) {
     return Object.values(statusMap).includes(EventProcessingStatus.Error);
   }
@@ -919,6 +953,10 @@ class EventQueueProcessorBase {
 
   setTxForEventProcessing(key, tx) {
     this.__txMap[key] = tx;
+  }
+
+  get isPeriodicEvent() {
+    return this.__eventConfig.isPeriodic;
   }
 }
 

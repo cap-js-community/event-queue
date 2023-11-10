@@ -43,6 +43,9 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
     if (!continueProcessing) {
       return;
     }
+    if (baseInstance.isPeriodicEvent) {
+      return await processPeriodicEvent(baseInstance);
+    }
     eventConfig.startTime = startTime;
     while (shouldContinue) {
       iterationCounter++;
@@ -131,6 +134,53 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
   return false;
 };
 
+// TODO: don't forget to release lock
+const processPeriodicEvent = async (eventTypeInstance) => {
+  let queueEntry;
+  await executeInNewTransaction(
+    eventTypeInstance.context,
+    `eventQueue-periodic-scheduleNext-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+    async (tx) => {
+      eventTypeInstance.processEventContext = tx.context;
+      [queueEntry] = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
+      if (!queueEntry) {
+        return;
+      }
+      await eventTypeInstance.scheduleNextPeriodEvent(queueEntry);
+    }
+  );
+
+  if (!queueEntry) {
+    return;
+  }
+
+  await executeInNewTransaction(
+    eventTypeInstance.context,
+    `eventQueue-periodic-process-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+    async (tx) => {
+      eventTypeInstance.processEventContext = tx.context;
+      eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
+      try {
+        await eventTypeInstance.processEvent(tx.context, queueEntry.ID, [queueEntry]);
+      } catch (err) {
+        eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
+      }
+    }
+  );
+
+  await executeInNewTransaction(
+    eventTypeInstance.context,
+    `eventQueue-periodic-setStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+    async (tx) => {
+      eventTypeInstance.processEventContext = tx.context;
+      await eventTypeInstance.setPeriodicEventStatus(queueEntry);
+    }
+  );
+
+  // process event in own tx
+  // set status in own tx
+};
+
 const processEventMap = async (eventTypeInstance) => {
   eventTypeInstance.startPerformanceTracerEvents();
   await eventTypeInstance.beforeProcessingEvents();
@@ -189,7 +239,7 @@ const _processEvent = async (eventTypeInstance, processContext, key, queueEntrie
     }
     eventTypeInstance.setTxForEventProcessing(key, cds.tx(processContext));
     const statusTuple = await eventTypeInstance.processEvent(processContext, key, queueEntries, payload);
-    return eventTypeInstance.setEventStatus(queueEntries, statusTuple);
+    return eventTypeInstance.isPeriodicEvent && eventTypeInstance.setEventStatus(queueEntries, statusTuple);
   } catch (err) {
     return eventTypeInstance.handleErrorDuringProcessing(err, queueEntries);
   }
