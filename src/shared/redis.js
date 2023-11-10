@@ -29,9 +29,18 @@ const _createClientBase = () => {
   if (env.isOnCF) {
     try {
       const credentials = env.getRedisCredentialsFromEnv();
-      // NOTE: settings the user explicitly to empty resolves auth problems, see
-      // https://github.com/go-redis/redis/issues/1343
+      const redisIsCluster = credentials.cluster_mode;
       const url = credentials.uri.replace(/(?<=rediss:\/\/)[\w-]+?(?=:)/, "");
+      if (redisIsCluster) {
+        return redis.createCluster({
+          rootNodes: [{ url }],
+          // https://github.com/redis/node-redis/issues/1782
+          defaults: {
+            password: credentials.password,
+            socket: { tls: credentials.tls },
+          },
+        });
+      }
       return redis.createClient({ url });
     } catch (err) {
       throw EventQueueError.redisConnectionFailure(err);
