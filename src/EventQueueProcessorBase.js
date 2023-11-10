@@ -837,13 +837,15 @@ class EventQueueProcessorBase {
 
   async scheduleNextPeriodEvent(queueEntry) {
     const interval = this.__eventConfig.interval;
-    await this.tx.run(
-      INSERT.into(this.#config.tableNameEventQueue).entries({
-        type: this.#eventType,
-        subType: this.#eventSubType,
-        startAfter: new Date(new Date(queueEntry.startAfter).getTime() + interval * 1000),
-      })
-    );
+    const newEvent = {
+      type: this.#eventType,
+      subType: this.#eventSubType,
+      startAfter: new Date(new Date(queueEntry.startAfter).getTime() + interval * 1000),
+    };
+    await this.tx.run(INSERT.into(this.#config.tableNameEventQueue).entries({ ...newEvent }));
+    if (interval < this.#config.runInterval) {
+      this.#handleDelayedEvents([newEvent]);
+    }
   }
 
   statusMapContainsError(statusMap) {

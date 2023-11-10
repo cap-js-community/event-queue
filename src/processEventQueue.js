@@ -239,7 +239,7 @@ const _processEvent = async (eventTypeInstance, processContext, key, queueEntrie
     }
     eventTypeInstance.setTxForEventProcessing(key, cds.tx(processContext));
     const statusTuple = await eventTypeInstance.processEvent(processContext, key, queueEntries, payload);
-    return eventTypeInstance.isPeriodicEvent && eventTypeInstance.setEventStatus(queueEntries, statusTuple);
+    return eventTypeInstance.setEventStatus(queueEntries, statusTuple);
   } catch (err) {
     return eventTypeInstance.handleErrorDuringProcessing(err, queueEntries);
   }
