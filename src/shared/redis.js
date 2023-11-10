@@ -96,9 +96,21 @@ const publishMessage = async (channel, message) => {
 
 const _localReconnectStrategy = () => EventQueueError.redisNoReconnect();
 
+const closeMainClient = async () => {
+  try {
+    const client = await mainClientPromise;
+    if (client?.quit) {
+      await client.quit();
+    }
+  } catch (err) {
+    // ignore errors during shutdown
+  }
+};
+
 module.exports = {
   createClientAndConnect,
   createMainClientAndConnect,
   subscribeRedisChannel,
   publishMessage,
+  closeMainClient,
 };

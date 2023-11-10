@@ -67,7 +67,19 @@ const broadcastEvent = async (tenantId, type, subType) => {
   }
 };
 
+const closeSubscribeClient = async () => {
+  try {
+    const client = await subscriberClientPromise;
+    if (client?.quit) {
+      await client.quit();
+    }
+  } catch (err) {
+    // ignore errors during shutdown
+  }
+};
+
 module.exports = {
   initEventQueueRedisSubscribe,
   broadcastEvent,
+  closeSubscribeClient,
 };
