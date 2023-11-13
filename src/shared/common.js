@@ -1,5 +1,7 @@
 "use strict";
 
+const crypto = require("crypto");
+
 const { floor, abs, min } = Math;
 
 const arrayToFlatMap = (array, key = "ID") => {
@@ -128,4 +130,6 @@ const processChunkedSync = (inputs, chunkSize, chunkHandler) => {
   }
 };
 
-module.exports = { arrayToFlatMap, Funnel, limiter, isValidDate, processChunkedSync };
+const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(value)).digest("base64").slice(0, 32);
+
+module.exports = { arrayToFlatMap, Funnel, limiter, isValidDate, processChunkedSync, hashStringTo32Bit };

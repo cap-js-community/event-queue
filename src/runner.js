@@ -10,6 +10,7 @@ const distributedLock = require("./shared/distributedLock");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const { checkAndInsertPeriodicEvents } = require("./checkAndInsertPeriodicEvents");
+const { hashStringTo32Bit } = require("./shared/common");
 
 const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
@@ -17,11 +18,13 @@ const EVENT_QUEUE_RUN_TS = "EVENT_QUEUE_RUN_TS";
 const EVENT_QUEUE_RUN_PERIODIC_EVENT = "EVENT_QUEUE_RUN_PERIODIC_EVENT";
 const OFFSET_FIRST_RUN = 10 * 1000;
 
+let tenantIdHash;
+
 const singleTenant = () => _scheduleFunction(_checkPeriodicEventsSingleTenant, _executeRunForTenant);
 
-const multiTenancyDb = () => _scheduleFunction(_multiTenancyPeriodicEventsDb, _multiTenancyDb);
+const multiTenancyDb = () => _scheduleFunction(_multiTenancyPeriodicEvents, _multiTenancyDb);
 
-const multiTenancyRedis = () => _scheduleFunction(_checkPeriodicEventsSingleTenant, _multiTenancyRedis);
+const multiTenancyRedis = () => _scheduleFunction(_multiTenancyPeriodicEvents, _multiTenancyRedis);
 
 const _scheduleFunction = async (singleRunFn, periodicFn) => {
   const logger = cds.log(COMPONENT_NAME);
@@ -60,6 +63,13 @@ const _multiTenancyRedis = async () => {
   const emptyContext = new cds.EventContext({});
   logger.info("executing event queue run for multi instance and tenant");
   const tenantIds = await cdsHelper.getAllTenantIds();
+  const hash = hashStringTo32Bit(JSON.stringify(tenantIds));
+  if (tenantIdHash && tenantIdHash !== hash) {
+    _multiTenancyPeriodicEvents().catch((err) => {
+      logger.error("Error during triggering updating periodic events! Error:", err);
+    });
+  }
+
   const runId = await _acquireRunId(emptyContext);
 
   if (!runId) {
@@ -219,16 +229,14 @@ const _multiTenancyDb = async () => {
   }
 };
 
-const _multiTenancyPeriodicEventsDb = async () => {
+const _multiTenancyPeriodicEvents = async () => {
   const logger = cds.log(COMPONENT_NAME);
   try {
     logger.info("executing event queue update periodic events");
     const tenantIds = await cdsHelper.getAllTenantIds();
     _executePeriodicEventsAllTenants(tenantIds, EVENT_QUEUE_RUN_PERIODIC_EVENT);
   } catch (err) {
-    logger.error(
-      `Couldn't fetch tenant ids for event queue processing! Next try after defined interval. Error: ${err}`
-    );
+    logger.error(`Couldn't fetch tenant ids for updating periodic event processing! Error: ${err}`);
   }
 };
 
