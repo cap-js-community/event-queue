@@ -79,3 +79,13 @@ exports[`baseFunctionality ad-hoc events error handling missing event implementa
   ],
 ]
 `;
+
+exports[`baseFunctionality periodic events two open events - not allowed 1`] = `
+[
+  "More than one open events for the same configuration which is not allowed!",
+  {
+    "eventSubType": "DB",
+    "eventType": "HealthCheck",
+  },
+]
+`;

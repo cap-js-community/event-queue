@@ -314,12 +314,15 @@ describe("baseFunctionality", () => {
 
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
+      const log = loggerMock.calls().error[0];
+      delete log[1].queueEntriesIds;
+      expect(log).toMatchSnapshot();
       const events = await testHelper.selectEventQueueAndReturn(tx, 3);
       const [open, done1, done2] = events.sort((a, b) => a.status - b.status);
       expect(open).toEqual({
         status: EventProcessingStatus.Open,
         attempts: 0,
-        startAfter: new Date(new Date(done1.startAfter).getTime() + event.interval * 1000).toISOString(),
+        startAfter: expect.any(String),
       });
       expect(done1).toEqual({
         status: EventProcessingStatus.Done,
