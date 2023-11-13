@@ -314,14 +314,14 @@ class EventQueueProcessorBase {
     );
   }
 
-  async setPeriodicEventStatus(queueEntry) {
+  async setPeriodicEventStatus(queueEntryIds) {
     await this.tx.run(
       UPDATE.entity(this.#config.tableNameEventQueue)
         .set({
           status: EventProcessingStatus.Done,
         })
         .where({
-          ID: queueEntry.ID,
+          ID: queueEntryIds,
         })
     );
   }
@@ -848,6 +848,32 @@ class EventQueueProcessorBase {
     if (interval < this.#config.runInterval) {
       this.#handleDelayedEvents([newEvent]);
     }
+  }
+
+  async handleDuplicatedPeriodicEventEntry(queueEntries) {
+    this.logger.error("More than one open events for the same configuration which is not allowed!", {
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
+      queueEntriesIds: queueEntries.map(({ ID }) => ID),
+    });
+
+    let queueEntryToUse;
+    const obsoleteEntries = [];
+    for (const queueEntry of queueEntries) {
+      if (!queueEntryToUse) {
+        queueEntryToUse = queueEntry;
+        continue;
+      }
+
+      if (queueEntryToUse.startAfter <= queueEntry.queueEntry) {
+        obsoleteEntries.push(queueEntryToUse);
+        queueEntryToUse = queueEntry;
+      } else {
+        obsoleteEntries.push(queueEntry);
+      }
+    }
+    await this.setPeriodicEventStatus(obsoleteEntries.map(({ ID }) => ID));
+    return queueEntryToUse;
   }
 
   statusMapContainsError(statusMap) {

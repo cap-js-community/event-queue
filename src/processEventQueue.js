@@ -143,9 +143,14 @@ const processPeriodicEvent = async (eventTypeInstance) => {
       `eventQueue-periodic-scheduleNext-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
       async (tx) => {
         eventTypeInstance.processEventContext = tx.context;
-        [queueEntry] = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
-        if (!queueEntry) {
+        const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
+        if (!queueEntries.length) {
           return;
+        }
+        if (queueEntries.length > 1) {
+          queueEntry = await eventTypeInstance.handleDuplicatedPeriodicEventEntry(queueEntries);
+        } else {
+          queueEntry = queueEntries[0];
         }
         await eventTypeInstance.scheduleNextPeriodEvent(queueEntry);
       }
@@ -174,15 +179,12 @@ const processPeriodicEvent = async (eventTypeInstance) => {
       `eventQueue-periodic-setStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
       async (tx) => {
         eventTypeInstance.processEventContext = tx.context;
-        await eventTypeInstance.setPeriodicEventStatus(queueEntry);
+        await eventTypeInstance.setPeriodicEventStatus(queueEntry.ID);
       }
     );
   } finally {
     await eventTypeInstance?.handleReleaseLock();
   }
-
-  // process event in own tx
-  // set status in own tx
 };
 
 const processEventMap = async (eventTypeInstance) => {
