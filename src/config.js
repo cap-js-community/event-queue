@@ -31,6 +31,7 @@ class Config {
   #env;
   #eventMap;
   #periodicEventOffset;
+  #updatePeriodicEvents;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
     this.#config = null;
@@ -238,6 +239,14 @@ class Config {
 
   get periodicEventOffset() {
     return this.#periodicEventOffset;
+  }
+
+  set updatePeriodicEvents(value) {
+    this.#updatePeriodicEvents = value;
+  }
+
+  get updatePeriodicEvents() {
+    return this.#updatePeriodicEvents;
   }
 
   get isMultiTenancy() {

@@ -118,4 +118,14 @@ const isValidDate = (value) => {
   }
 };
 
-module.exports = { arrayToFlatMap, Funnel, limiter, isValidDate };
+const processChunkedSync = (inputs, chunkSize, chunkHandler) => {
+  let start = 0;
+  while (start < inputs.length) {
+    let end = start + chunkSize > inputs.length ? inputs.length : start + chunkSize;
+    const chunk = inputs.slice(start, end);
+    chunkHandler(chunk);
+    start = end;
+  }
+};
+
+module.exports = { arrayToFlatMap, Funnel, limiter, isValidDate, processChunkedSync };

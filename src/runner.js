@@ -235,6 +235,9 @@ const _multiTenancyPeriodicEventsDb = async () => {
 const _checkPeriodicEventsSingleTenant = async (tenantId) => {
   const logger = cds.log(COMPONENT_NAME);
   const configInstance = eventQueueConfig.getConfigInstance();
+  if (!configInstance.updatePeriodicEvents) {
+    logger.info("updating of periodic events is disabled");
+  }
   try {
     const subdomain = await cdsHelper.getSubdomainForTenantId(tenantId);
     const context = new cds.EventContext({

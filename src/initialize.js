@@ -34,6 +34,7 @@ const CONFIG_VARS = [
   ["tableNameEventLock", BASE_TABLES.LOCK],
   ["disableRedis", false],
   ["skipCsnCheck", false],
+  ["updatePeriodicEvents", true],
 ];
 
 const initialize = async ({
@@ -47,6 +48,7 @@ const initialize = async ({
   tableNameEventLock,
   disableRedis,
   skipCsnCheck,
+  updatePeriodicEvents,
 } = {}) => {
   // TODO: initialize check:
   // - content of yaml check
@@ -68,7 +70,8 @@ const initialize = async ({
     tableNameEventQueue,
     tableNameEventLock,
     disableRedis,
-    skipCsnCheck
+    skipCsnCheck,
+    updatePeriodicEvents
   );
 
   const logger = cds.log(COMPONENT);
