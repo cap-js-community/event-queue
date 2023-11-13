@@ -237,6 +237,7 @@ exports[`integration-main transactionMode=alwaysCommit one green with register r
 [
   {
     "attempts": 1,
+    "startAfter": null,
     "status": 2,
   },
 ]
@@ -258,14 +259,17 @@ exports[`integration-main transactionMode=alwaysCommit one with error + one with
 [
   {
     "attempts": 0,
+    "startAfter": null,
     "status": 0,
   },
   {
     "attempts": 1,
+    "startAfter": null,
     "status": 2,
   },
   {
     "attempts": 1,
+    "startAfter": null,
     "status": 3,
   },
 ]
@@ -287,6 +291,7 @@ exports[`integration-main transactionMode=alwaysRollback one green --> tx rollba
 [
   {
     "attempts": 1,
+    "startAfter": null,
     "status": 2,
   },
 ]
@@ -308,10 +313,12 @@ exports[`integration-main transactionMode=alwaysRollback one with error + one wi
 [
   {
     "attempts": 1,
+    "startAfter": null,
     "status": 2,
   },
   {
     "attempts": 1,
+    "startAfter": null,
     "status": 3,
   },
 ]
@@ -333,14 +340,17 @@ exports[`integration-main transactionMode=isolated first processed register tx r
 [
   {
     "attempts": 1,
+    "startAfter": null,
     "status": 2,
   },
   {
     "attempts": 0,
+    "startAfter": null,
     "status": 0,
   },
   {
     "attempts": 1,
+    "startAfter": null,
     "status": 2,
   },
 ]

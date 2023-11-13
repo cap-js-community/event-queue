@@ -15,6 +15,10 @@ const { EventProcessingStatus } = require("../src");
 const { Logger: mockLogger } = require("../test/mocks/logger");
 const distributedLock = require("../src/shared/distributedLock");
 
+jest.mock("../src/checkAndInsertPeriodicEvents", () => ({
+  checkAndInsertPeriodicEvents: jest.fn().mockResolvedValue(),
+}));
+
 let dbCounts = {};
 describe("integration-main", () => {
   let context;
