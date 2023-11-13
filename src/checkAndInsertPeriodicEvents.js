@@ -26,21 +26,13 @@ const checkAndInsertPeriodicEvents = async (context) => {
 
 const insertAllEvents = async (tx) => {
   const configInstance = eventQueueConfig.getConfigInstance();
-  const offset = configInstance.periodicEventOffset;
-  const baseDate = calculateFutureTime(new Date(), offset);
   const periodicEvents = configInstance.periodicEvents;
   const periodEventsInsert = periodicEvents.map((periodicEvent) => ({
     type: periodicEvent.type,
     subType: periodicEvent.subType,
-    startAfter: baseDate,
+    startAfter: new Date(),
   }));
-  await publishEvent(tx, periodEventsInsert);
-};
-
-const calculateFutureTime = (date, seoncds) => {
-  const startAfterSeconds = date.getSeconds();
-  const secondsUntil = seoncds - (startAfterSeconds % seoncds);
-  return new Date(date.getTime() + secondsUntil * 1000);
+  await publishEvent(tx, periodEventsInsert, true);
 };
 
 module.exports = {

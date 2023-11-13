@@ -3,6 +3,7 @@
 const cds = require("@sap/cds");
 
 const { broadcastEvent } = require("../redisPubSub");
+const config = require("./../config");
 
 const COMPONENT_NAME = "eventQueue/shared/EventScheduler";
 
@@ -12,7 +13,10 @@ class EventScheduler {
   constructor() {}
 
   scheduleEvent(tenantId, type, subType, startAfter) {
-    const roundUpDate = this.calculateFutureTime(startAfter, 10);
+    const configInstance = config.getConfigInstance();
+    const eventConfig = configInstance.getEventConfig(type, subType);
+    const scheduleWithoutDelay = configInstance.isPeriodicEvent(type, subType) && eventConfig.interval < 30 * 1000;
+    const roundUpDate = scheduleWithoutDelay ? startAfter : this.calculateFutureTime(startAfter, 10);
     const key = [tenantId, type, subType, roundUpDate.toISOString()].join("##");
     if (this.#scheduledEvents[key]) {
       return; // event combination already scheduled

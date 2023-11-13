@@ -25,4 +25,4 @@ periodicEvents:
     impl: ./srv/EventQueueHealthCheckDb
     load: 40
     transactionMode: alwaysRollback
-    interval: 10
+    interval: 20

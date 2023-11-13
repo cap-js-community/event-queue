@@ -9,7 +9,10 @@ class EventQueueMail extends eventQueue.EventQueueProcessorBase {
 
   // eslint-disable-next-line no-unused-vars
   async processEvent(processContext, key, queueEntries, payload) {
-    this.logger.info("doing db health check...");
+    this.logger.info("doing db health check...", {
+      id: queueEntries[0].ID,
+      now: new Date().toISOString(),
+    });
   }
 }
 

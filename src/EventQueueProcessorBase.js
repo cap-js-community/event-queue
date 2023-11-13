@@ -842,7 +842,9 @@ class EventQueueProcessorBase {
       subType: this.#eventSubType,
       startAfter: new Date(new Date(queueEntry.startAfter).getTime() + interval * 1000),
     };
+    this.tx._skipEventQueueBroadcase = true;
     await this.tx.run(INSERT.into(this.#config.tableNameEventQueue).entries({ ...newEvent }));
+    this.tx._skipEventQueueBroadcase = false;
     if (interval < this.#config.runInterval) {
       this.#handleDelayedEvents([newEvent]);
     }

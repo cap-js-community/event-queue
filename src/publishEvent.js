@@ -21,12 +21,13 @@ const EventQueueError = require("./EventQueueError");
  *     createdAt: Timestamp, // Timestamp of event creation. This field is automatically set on insert.
  *     startAfter: Timestamp, // Timestamp indicating when the event should start after.
  *   }
+ * @param {Boolean} skipBroadcast - (Optional) If set to true, event broadcasting will be skipped. Defaults to false.
  * @throws {EventQueueError} Throws an error if the configuration is not initialized.
  * @throws {EventQueueError} Throws an error if the event type is unknown.
  * @throws {EventQueueError} Throws an error if the startAfter field is not a valid date.
  * @returns {Promise} Returns a promise which resolves to the result of the database insert operation.
  */
-const publishEvent = async (tx, events) => {
+const publishEvent = async (tx, events, skipBroadcast = false) => {
   const configInstance = config.getConfigInstance();
   if (!configInstance.initialized) {
     throw EventQueueError.notInitialized();
@@ -41,7 +42,10 @@ const publishEvent = async (tx, events) => {
       throw EventQueueError.malformedDate(startAfter);
     }
   }
-  return await tx.run(INSERT.into(configInstance.tableNameEventQueue).entries(eventsForProcessing));
+  tx._skipEventQueueBroadcase = skipBroadcast;
+  const result = await tx.run(INSERT.into(configInstance.tableNameEventQueue).entries(eventsForProcessing));
+  tx._skipEventQueueBroadcase = false;
+  return result;
 };
 
 module.exports = {
