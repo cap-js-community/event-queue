@@ -284,7 +284,6 @@ describe("baseFunctionality", () => {
   describe("periodic events", () => {
     test("straight forward", async () => {
       const event = eventQueue.getConfigInstance().periodicEvents[0];
-      eventQueue.getConfigInstance().periodicEventOffset = 1;
       await checkAndInsertPeriodicEvents(context);
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -299,6 +298,38 @@ describe("baseFunctionality", () => {
         status: EventProcessingStatus.Done,
         attempts: 1,
         startAfter: new Date(done.startAfter).toISOString(),
+      });
+    });
+
+    test("two open events - not allowed", async () => {
+      const event = eventQueue.getConfigInstance().periodicEvents[0];
+      await checkAndInsertPeriodicEvents(context);
+      await tx.run(
+        INSERT.into("sap.eventqueue.Event").entries({
+          type: event.type,
+          subType: event.subType,
+          startAfter: new Date(),
+        })
+      );
+
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      const [open, done1, done2] = events.sort((a, b) => a.status - b.status);
+      expect(open).toEqual({
+        status: EventProcessingStatus.Open,
+        attempts: 0,
+        startAfter: new Date(new Date(done1.startAfter).getTime() + event.interval * 1000).toISOString(),
+      });
+      expect(done1).toEqual({
+        status: EventProcessingStatus.Done,
+        attempts: 1,
+        startAfter: new Date(done1.startAfter).toISOString(),
+      });
+      expect(done2).toEqual({
+        status: EventProcessingStatus.Done,
+        attempts: 1,
+        startAfter: new Date(done2.startAfter).toISOString(),
       });
     });
   });
