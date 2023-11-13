@@ -1,0 +1,122 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`baseFunctionality basic insert all new events 1`] = `
+[
+  [
+    "inserting changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "subType": "DB",
+          "type": "HealthCheck",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality basic insert all new events 2`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality delta insert 1`] = `
+[
+  [
+    "inserting changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "subType": "DB",
+          "type": "HealthCheck",
+        },
+      ],
+    },
+  ],
+  [
+    "inserting changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "subType": "DB2",
+          "type": "HealthCheck",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality delta insert 2`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality interval changed 1`] = `
+[
+  [
+    "inserting changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "subType": "DB",
+          "type": "HealthCheck",
+        },
+      ],
+    },
+  ],
+  [
+    "deleting periodic events because they have changed",
+    {
+      "changedEvents": [
+        {
+          "subType": "DB",
+          "type": "HealthCheck",
+        },
+      ],
+    },
+  ],
+  [
+    "inserting changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 10,
+          "subType": "DB",
+          "type": "HealthCheck",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality interval changed 2`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
