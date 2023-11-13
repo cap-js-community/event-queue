@@ -63,12 +63,7 @@ const _multiTenancyRedis = async () => {
   const emptyContext = new cds.EventContext({});
   logger.info("executing event queue run for multi instance and tenant");
   const tenantIds = await cdsHelper.getAllTenantIds();
-  const hash = hashStringTo32Bit(JSON.stringify(tenantIds));
-  if (tenantIdHash && tenantIdHash !== hash) {
-    _multiTenancyPeriodicEvents().catch((err) => {
-      logger.error("Error during triggering updating periodic events! Error:", err);
-    });
-  }
+  _checkAndTriggerPriodicEventUpdate(tenantIds);
 
   const runId = await _acquireRunId(emptyContext);
 
@@ -78,6 +73,20 @@ const _multiTenancyRedis = async () => {
   }
 
   _executeAllTenants(tenantIds, runId);
+};
+
+const _checkAndTriggerPriodicEventUpdate = (tenantIds) => {
+  const hash = hashStringTo32Bit(JSON.stringify(tenantIds));
+  if (!tenantIdHash) {
+    tenantIdHash = hash;
+    return;
+  }
+  if (tenantIdHash && tenantIdHash !== hash) {
+    cds.log(COMPONENT_NAME).info("tenant id hash changed, triggering updating periodic events!");
+    _multiTenancyPeriodicEvents().catch((err) => {
+      cds.log(COMPONENT_NAME).error("Error during triggering updating periodic events! Error:", err);
+    });
+  }
 };
 
 const _executeAllTenantsGeneric = (tenantIds, runId, fn) => {
@@ -221,6 +230,7 @@ const _multiTenancyDb = async () => {
   try {
     logger.info("executing event queue run for single instance and multi tenant");
     const tenantIds = await cdsHelper.getAllTenantIds();
+    _checkAndTriggerPriodicEventUpdate(tenantIds);
     _executeAllTenants(tenantIds, EVENT_QUEUE_RUN_ID);
   } catch (err) {
     logger.error(
