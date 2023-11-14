@@ -15,6 +15,7 @@ const ERROR_CODES = {
   INVALID_INTERVAL: "INVALID_INTERVAL",
   MISSING_IMPL: "MISSING_IMPL",
   DUPLICATE_EVENT_REGISTRATION: "DUPLICATE_EVENT_REGISTRATION",
+  NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
 };
 
 const ERROR_CODES_META = {
@@ -54,6 +55,9 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.DUPLICATE_EVENT_REGISTRATION]: {
     message: "Duplicate event registration, check the uniqueness of type and subType.",
+  },
+  [ERROR_CODES.NO_MANUEL_INSERT_OF_PERIODIC]: {
+    message: "Periodic events are managed by the framework and are not allowed to insert manually.",
   },
 };
 
@@ -186,6 +190,17 @@ class EventQueueError extends VError {
     return new EventQueueError(
       {
         name: ERROR_CODES.DUPLICATE_EVENT_REGISTRATION,
+        info: { type, subType },
+      },
+      message
+    );
+  }
+
+  static manuelPeriodicEventInsert(type, subType) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.NO_MANUEL_INSERT_OF_PERIODIC];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.NO_MANUEL_INSERT_OF_PERIODIC,
         info: { type, subType },
       },
       message

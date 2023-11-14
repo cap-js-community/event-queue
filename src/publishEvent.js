@@ -41,6 +41,10 @@ const publishEvent = async (tx, events, skipBroadcast = false) => {
     if (startAfter && !common.isValidDate(startAfter)) {
       throw EventQueueError.malformedDate(startAfter);
     }
+
+    if (eventConfig.isPeriodic) {
+      throw EventQueueError.manuelPeriodicEventInsert(type, subType);
+    }
   }
   tx._skipEventQueueBroadcase = skipBroadcast;
   const result = await tx.run(INSERT.into(configInstance.tableNameEventQueue).entries(eventsForProcessing));

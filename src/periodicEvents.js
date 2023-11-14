@@ -2,7 +2,6 @@
 
 const cds = require("@sap/cds");
 
-const { publishEvent } = require("./publishEvent");
 const { EventProcessingStatus } = require("./constants");
 const { processChunkedSync } = require("./shared/common");
 const { getConfigInstance } = require("./config");
@@ -97,7 +96,10 @@ const insertPeriodEvents = async (tx, events) => {
     subType: periodicEvent.subType,
     startAfter: startAfter,
   }));
-  await publishEvent(tx, periodEventsInsert, true);
+
+  tx._skipEventQueueBroadcase = true;
+  await tx.run(INSERT.into(configInstance.tableNameEventQueue).entries(periodEventsInsert));
+  tx._skipEventQueueBroadcase = false;
 };
 
 const _generateKey = ({ type, subType }) => [type, subType].join("##");
