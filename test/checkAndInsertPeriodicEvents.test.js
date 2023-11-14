@@ -6,7 +6,7 @@ const cds = require("@sap/cds/lib");
 
 const eventQueue = require("../src");
 const { Logger: mockLogger } = require("./mocks/logger");
-const { checkAndInsertPeriodicEvents } = require("../src/checkAndInsertPeriodicEvents");
+const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getConfigInstance } = require("../src/config");
 const { selectEventQueueAndReturn } = require("./helper");
 const project = __dirname + "/.."; // The project's root folder

@@ -7,7 +7,7 @@ const { EventProcessingStatus } = require("./constants");
 const { processChunkedSync } = require("./shared/common");
 const { getConfigInstance } = require("./config");
 
-const COMPONENT_NAME = "eventQueue/checkAndInsertPeriodicEvents";
+const COMPONENT_NAME = "eventQueue/periodicEvents";
 
 const checkAndInsertPeriodicEvents = async (context) => {
   const tx = cds.tx(context);

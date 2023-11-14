@@ -9,7 +9,7 @@ const cdsHelper = require("./shared/cdsHelper");
 const distributedLock = require("./shared/distributedLock");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
-const { checkAndInsertPeriodicEvents } = require("./checkAndInsertPeriodicEvents");
+const periodicEvents = require("./periodicEvents");
 const { hashStringTo32Bit } = require("./shared/common");
 
 const COMPONENT_NAME = "eventQueue/runner";
@@ -269,7 +269,7 @@ const _checkPeriodicEventsSingleTenant = async (tenantId) => {
       subdomain,
     });
     await cdsHelper.executeInNewTransaction(context, "update-periodic-events", async (tx) => {
-      await checkAndInsertPeriodicEvents(tx.context);
+      await periodicEvents.checkAndInsertPeriodicEvents(tx.context);
     });
   } catch (err) {
     logger.error(`Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`, {
