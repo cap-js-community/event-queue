@@ -12,19 +12,21 @@ const COMPONENT_NAME = "eventQueue/checkAndInsertPeriodicEvents";
 const checkAndInsertPeriodicEvents = async (context) => {
   const tx = cds.tx(context);
   const configInstance = getConfigInstance();
-  const baseCqn = SELECT.distinct.from(configInstance.tableNameEventQueue).where([
-    { list: [{ ref: ["type"] }, { ref: ["subType"] }] },
-    "IN",
-    {
-      list: configInstance.periodicEvents.map((periodicEvent) => ({
-        list: [{ val: periodicEvent.type }, { val: periodicEvent.subType }],
-      })),
-    },
-    "AND",
-    { ref: ["status"] },
-    "=",
-    { val: EventProcessingStatus.Open },
-  ]);
+  const baseCqn = SELECT.from(configInstance.tableNameEventQueue)
+    .where([
+      { list: [{ ref: ["type"] }, { ref: ["subType"] }] },
+      "IN",
+      {
+        list: configInstance.periodicEvents.map((periodicEvent) => ({
+          list: [{ val: periodicEvent.type }, { val: periodicEvent.subType }],
+        })),
+      },
+      "AND",
+      { ref: ["status"] },
+      "=",
+      { val: EventProcessingStatus.Open },
+    ])
+    .columns(["ID", "type", "subType", "startAfter"]);
   const currentPeriodEvents = await tx.run(baseCqn);
 
   if (!currentPeriodEvents.length) {
