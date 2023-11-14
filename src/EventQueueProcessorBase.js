@@ -7,7 +7,7 @@ const { EventProcessingStatus, TransactionMode } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
 const { arrayToFlatMap } = require("./shared/common");
-const eventScheduler = require("./shared/EventScheduler");
+const eventScheduler = require("./shared/eventScheduler");
 const eventQueueConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
 
