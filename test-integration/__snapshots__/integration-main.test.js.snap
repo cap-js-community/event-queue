@@ -180,6 +180,29 @@ exports[`integration-main lock wait timeout during keepAlive 1`] = `
 }
 `;
 
+exports[`integration-main periodic events transactions modes always commit 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 6,
+  "CREATE": 1,
+  "DELETE": 2,
+  "READ": 2,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main periodic events transactions modes always rollback 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 2,
+  "READ": 2,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
 exports[`integration-main returning exceeded status should be allowed 1`] = `
 {
   "BEGIN": 8,

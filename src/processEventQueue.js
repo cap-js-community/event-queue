@@ -170,6 +170,13 @@ const processPeriodicEvent = async (eventTypeInstance) => {
           await eventTypeInstance.processEvent(tx.context, queueEntry.ID, [queueEntry]);
         } catch (err) {
           eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
+          throw new TriggerRollback();
+        }
+        if (
+          eventTypeInstance.transactionMode !== TransactionMode.alwaysCommit ||
+          eventTypeInstance.shouldRollbackTransaction(queueEntry.ID)
+        ) {
+          throw new TriggerRollback();
         }
       }
     );

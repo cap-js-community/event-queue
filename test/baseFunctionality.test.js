@@ -8,7 +8,7 @@ const cdsHelper = require("../src/shared/cdsHelper");
 const executeInNewTransactionSpy = jest.spyOn(cdsHelper, "executeInNewTransaction");
 
 const eventQueue = require("../src");
-const eventScheduler = require("../src/shared/EventScheduler");
+const eventScheduler = require("../src/shared/eventScheduler");
 const { checkAndInsertPeriodicEvents } = require("../src/checkAndInsertPeriodicEvents");
 const testHelper = require("./helper");
 const EventQueueTest = require("./asset/EventQueueTest");

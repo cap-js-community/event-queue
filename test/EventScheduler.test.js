@@ -2,7 +2,7 @@
 
 const cds = require("@sap/cds");
 
-const { getInstance: getEventSchedulerInstance } = require("../src/shared/EventScheduler");
+const { getInstance: getEventSchedulerInstance } = require("../src/shared/eventScheduler");
 const { getConfigInstance } = require("../src/config");
 const { broadcastEvent } = require("../src/redisPubSub");
 
