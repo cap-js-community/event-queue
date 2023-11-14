@@ -640,34 +640,6 @@ describe("integration-main", () => {
     });
   });
 
-  describe("end-to-end", () => {
-    beforeAll(async () => {
-      eventQueue.getConfigInstance().initialized = false;
-      const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
-      await eventQueue.initialize({
-        configFilePath,
-        processEventsAfterPublish: true,
-      });
-    });
-
-    it("insert entry, entry should be automatically processed", async () => {
-      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
-      await waitEntryIsDone();
-      expect(loggerMock.callsLengths().error).toEqual(0);
-      await testHelper.selectEventQueueAndExpectDone(tx);
-    });
-
-    it("insert one delayed entry and process - should be processed after timeout", async () => {
-      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 5 }));
-      const event = eventQueue.getConfigInstance().events[0];
-      await eventQueue.processEventQueue(context, event.type, event.subType);
-      expect(loggerMock.callsLengths().error).toEqual(0);
-      await testHelper.selectEventQueueAndExpectOpen(tx);
-      await waitEntryIsDone();
-      await testHelper.selectEventQueueAndExpectDone(tx);
-    });
-  });
-
   describe("periodic events", () => {
     beforeAll(async () => {
       eventQueue.getConfigInstance().initialized = false;
@@ -799,6 +771,34 @@ describe("integration-main", () => {
 
         await testHelper.selectEventQueueAndExpectDone(tx);
       });
+    });
+  });
+
+  describe("end-to-end", () => {
+    beforeAll(async () => {
+      eventQueue.getConfigInstance().initialized = false;
+      const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
+      await eventQueue.initialize({
+        configFilePath,
+        processEventsAfterPublish: true,
+      });
+    });
+
+    it("insert entry, entry should be automatically processed", async () => {
+      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
+      await waitEntryIsDone();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectDone(tx);
+    });
+
+    it("insert one delayed entry and process - should be processed after timeout", async () => {
+      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 5 }));
+      const event = eventQueue.getConfigInstance().events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectOpen(tx);
+      await waitEntryIsDone();
+      await testHelper.selectEventQueueAndExpectDone(tx);
     });
   });
 });
