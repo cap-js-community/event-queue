@@ -776,6 +776,7 @@ describe("integration-main", () => {
 
   describe("end-to-end", () => {
     beforeAll(async () => {
+      checkAndInsertPeriodicEventsMock = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
       eventQueue.getConfigInstance().initialized = false;
       const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
       await eventQueue.initialize({
