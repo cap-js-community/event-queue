@@ -74,7 +74,7 @@ const selectEventQueueAndExpectExceeded = async (tx, expectedLength = 1, attempt
   _selectEventQueueAndExpect(tx, EventProcessingStatus.Exceeded, expectedLength, attempts);
 
 const selectEventQueueAndReturn = async (tx, expectedLength = 1) => {
-  const events = await tx.run(SELECT.from("sap.eventqueue.Event").columns("status", "attempts"));
+  const events = await tx.run(SELECT.from("sap.eventqueue.Event").columns("status", "attempts", "startAfter"));
   expect(events).toHaveLength(expectedLength);
   return events;
 };

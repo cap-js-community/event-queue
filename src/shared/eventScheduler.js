@@ -3,8 +3,9 @@
 const cds = require("@sap/cds");
 
 const { broadcastEvent } = require("../redisPubSub");
+const config = require("./../config");
 
-const COMPONENT_NAME = "eventQueue/shared/EventScheduler";
+const COMPONENT_NAME = "eventQueue/shared/eventScheduler";
 
 let instance;
 class EventScheduler {
@@ -12,9 +13,10 @@ class EventScheduler {
   constructor() {}
 
   scheduleEvent(tenantId, type, subType, startAfter) {
-    const startAfterSeconds = startAfter.getSeconds();
-    const secondsUntilNextTen = 10 - (startAfterSeconds % 10);
-    const roundUpDate = new Date(startAfter.getTime() + secondsUntilNextTen * 1000);
+    const configInstance = config.getConfigInstance();
+    const eventConfig = configInstance.getEventConfig(type, subType);
+    const scheduleWithoutDelay = configInstance.isPeriodicEvent(type, subType) && eventConfig.interval < 30 * 1000;
+    const roundUpDate = scheduleWithoutDelay ? startAfter : this.calculateFutureTime(startAfter, 10);
     const key = [tenantId, type, subType, roundUpDate.toISOString()].join("##");
     if (this.#scheduledEvents[key]) {
       return; // event combination already scheduled
@@ -36,6 +38,12 @@ class EventScheduler {
         });
       });
     }, roundUpDate.getTime() - Date.now()).unref();
+  }
+
+  calculateFutureTime(date, seoncds) {
+    const startAfterSeconds = date.getSeconds();
+    const secondsUntil = seoncds - (startAfterSeconds % seoncds);
+    return new Date(date.getTime() + secondsUntil * 1000);
   }
 
   clearScheduledEvents() {

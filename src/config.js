@@ -4,6 +4,7 @@ const cds = require("@sap/cds");
 
 const { getEnvInstance } = require("./shared/env");
 const redis = require("./shared/redis");
+const EventQueueError = require("./EventQueueError");
 
 let instance;
 
@@ -11,6 +12,7 @@ const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
 const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
 const COMPONENT_NAME = "eventQueue/config";
+const MIN_INTERVAL_SEC = 10;
 
 class Config {
   #logger;
@@ -30,6 +32,7 @@ class Config {
   #disableRedis;
   #env;
   #eventMap;
+  #updatePeriodicEvents;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
     this.#config = null;
@@ -50,11 +53,11 @@ class Config {
   }
 
   getEventConfig(type, subType) {
-    return this.#eventMap[[type, subType].join("##")];
+    return this.#eventMap[this.generateKey(type, subType)];
   }
 
   hasEventAfterCommitFlag(type, subType) {
-    return this.#eventMap[[type, subType].join("##")]?.processAfterCommit ?? true;
+    return this.#eventMap[this.generateKey(type, subType)]?.processAfterCommit ?? true;
   }
 
   _checkRedisIsBound() {
@@ -101,10 +104,47 @@ class Config {
 
   set fileContent(config) {
     this.#config = config;
+    config.events = config.events ?? [];
+    config.periodicEvents = config.periodicEvents ?? [];
     this.#eventMap = config.events.reduce((result, event) => {
+      this.validateAdHocEvents(result, event);
       result[[event.type, event.subType].join("##")] = event;
       return result;
     }, {});
+    this.#eventMap = config.periodicEvents.reduce((result, event) => {
+      this.validatePeriodicConfig(result, event);
+      event.isPeriodic = true;
+      result[[event.type, event.subType].join("##")] = event;
+      return result;
+    }, this.#eventMap);
+  }
+
+  validatePeriodicConfig(eventMap, config) {
+    if (eventMap[this.generateKey(config.type, config.subType)]) {
+      throw EventQueueError.duplicateEventRegistration(config.type, config.subType);
+    }
+
+    if (!config.interval || config.interval <= MIN_INTERVAL_SEC) {
+      throw EventQueueError.invalidInterval(config.type, config.subType, config.interval);
+    }
+
+    if (!config.impl) {
+      throw EventQueueError.missingImpl(config.type, config.subType);
+    }
+  }
+
+  validateAdHocEvents(eventMap, config) {
+    if (eventMap[this.generateKey(config.type, config.subType)]) {
+      throw EventQueueError.duplicateEventRegistration(config.type, config.subType);
+    }
+
+    if (!config.impl) {
+      throw EventQueueError.missingImpl(config.type, config.subType);
+    }
+  }
+
+  generateKey(type, subType) {
+    return [type, subType].join("##");
   }
 
   get fileContent() {
@@ -113,6 +153,18 @@ class Config {
 
   get events() {
     return this.#config.events;
+  }
+
+  get periodicEvents() {
+    return this.#config.periodicEvents;
+  }
+
+  isPeriodicEvent(type, subType) {
+    return this.#eventMap[this.generateKey(type, subType)]?.isPeriodic;
+  }
+
+  get allEvents() {
+    return this.#config.events.concat(this.#config.periodicEvents);
   }
 
   get forUpdateTimeout() {
@@ -209,6 +261,14 @@ class Config {
 
   get disableRedis() {
     return this.#disableRedis;
+  }
+
+  set updatePeriodicEvents(value) {
+    this.#updatePeriodicEvents = value;
+  }
+
+  get updatePeriodicEvents() {
+    return this.#updatePeriodicEvents;
   }
 
   get isMultiTenancy() {

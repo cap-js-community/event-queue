@@ -21,6 +21,13 @@ async function subscribeTenants() {
     await ds.subscribe(tenant);
   }
 
+  setTimeout(() => {
+    LOGGER.info("onboarding another tenant...");
+    ds.subscribe("t3").then(() => {
+      LOGGER.info("done...");
+    });
+  }, 15 * 1000);
+
   LOGGER.info("Setup of tenants finished - You can start testing now!");
 }
 

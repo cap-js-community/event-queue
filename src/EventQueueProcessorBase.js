@@ -7,7 +7,7 @@ const { EventProcessingStatus, TransactionMode } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
 const { arrayToFlatMap } = require("./shared/common");
-const eventScheduler = require("./shared/EventScheduler");
+const eventScheduler = require("./shared/eventScheduler");
 const eventQueueConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
 
@@ -301,6 +301,29 @@ class EventQueueProcessorBase {
       this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error)
     );
     return Object.fromEntries(queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Error]));
+  }
+
+  handleErrorDuringPeriodicEventProcessing(error, queueEntry) {
+    this.logger.error(
+      `Caught error during event periodic processing. Please catch your promises/exceptions. Error: ${error}`,
+      {
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
+        queueEntryId: queueEntry.ID,
+      }
+    );
+  }
+
+  async setPeriodicEventStatus(queueEntryIds) {
+    await this.tx.run(
+      UPDATE.entity(this.#config.tableNameEventQueue)
+        .set({
+          status: EventProcessingStatus.Done,
+        })
+        .where({
+          ID: queueEntryIds,
+        })
+    );
   }
 
   /**
@@ -812,6 +835,47 @@ class EventQueueProcessorBase {
     }
   }
 
+  async scheduleNextPeriodEvent(queueEntry) {
+    const interval = this.__eventConfig.interval;
+    const newEvent = {
+      type: this.#eventType,
+      subType: this.#eventSubType,
+      startAfter: new Date(new Date(queueEntry.startAfter).getTime() + interval * 1000),
+    };
+    this.tx._skipEventQueueBroadcase = true;
+    await this.tx.run(INSERT.into(this.#config.tableNameEventQueue).entries({ ...newEvent }));
+    this.tx._skipEventQueueBroadcase = false;
+    if (interval < this.#config.runInterval) {
+      this.#handleDelayedEvents([newEvent]);
+    }
+  }
+
+  async handleDuplicatedPeriodicEventEntry(queueEntries) {
+    this.logger.error("More than one open events for the same configuration which is not allowed!", {
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
+      queueEntriesIds: queueEntries.map(({ ID }) => ID),
+    });
+
+    let queueEntryToUse;
+    const obsoleteEntries = [];
+    for (const queueEntry of queueEntries) {
+      if (!queueEntryToUse) {
+        queueEntryToUse = queueEntry;
+        continue;
+      }
+
+      if (queueEntryToUse.startAfter <= queueEntry.queueEntry) {
+        obsoleteEntries.push(queueEntryToUse);
+        queueEntryToUse = queueEntry;
+      } else {
+        obsoleteEntries.push(queueEntry);
+      }
+    }
+    await this.setPeriodicEventStatus(obsoleteEntries.map(({ ID }) => ID));
+    return queueEntryToUse;
+  }
+
   statusMapContainsError(statusMap) {
     return Object.values(statusMap).includes(EventProcessingStatus.Error);
   }
@@ -919,6 +983,10 @@ class EventQueueProcessorBase {
 
   setTxForEventProcessing(key, tx) {
     this.__txMap[key] = tx;
+  }
+
+  get isPeriodicEvent() {
+    return this.__eventConfig.isPeriodic;
   }
 }
 

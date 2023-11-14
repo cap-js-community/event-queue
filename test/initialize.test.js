@@ -11,6 +11,7 @@ const redisPubSub = require("../src/redisPubSub");
 const eventQueue = require("../src");
 const { getEnvInstance } = require("../src/shared/env");
 const runner = require("../src/runner");
+const { getConfigInstance } = require("../src/config");
 
 jest.spyOn(redisPubSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
 
@@ -42,9 +43,53 @@ describe("initialize", () => {
     ).rejects.toThrow();
   });
 
+  test("missing interval for period event", async () => {
+    await eventQueue.initialize({
+      configFilePath: path.join(__dirname, "asset", "config.yml"),
+      processEventsAfterPublish: false,
+    });
+
+    const fileContent = getConfigInstance().fileContent;
+    delete fileContent.periodicEvents[0].interval;
+    expect(() => {
+      getConfigInstance().fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"Invalid interval, the value needs to greater than 10 seconds."`);
+  });
+
+  test("missing impl for both types", async () => {
+    await eventQueue.initialize({
+      configFilePath: path.join(__dirname, "asset", "config.yml"),
+      processEventsAfterPublish: false,
+    });
+
+    const fileContent = getConfigInstance().fileContent;
+    delete fileContent.periodicEvents[0].impl;
+    expect(() => {
+      getConfigInstance().fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"Missing path to event class implementation."`);
+
+    delete fileContent.events[0].impl;
+    fileContent.periodicEvents[0].impl = 123;
+    expect(() => {
+      getConfigInstance().fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"Missing path to event class implementation."`);
+
+    fileContent.events[0].impl = 123;
+    fileContent.periodicEvents.push(fileContent.periodicEvents[0]);
+    expect(() => {
+      getConfigInstance().fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"Duplicate event registration, check the uniqueness of type and subType."`);
+
+    fileContent.periodicEvents.splice(1);
+    fileContent.events.push(fileContent.events[0]);
+    expect(() => {
+      getConfigInstance().fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"Duplicate event registration, check the uniqueness of type and subType."`);
+  });
+
   describe("runner mode registration", () => {
     test("single tenant", async () => {
-      const singleTenantSpy = jest.spyOn(runner, "singleTenant").mockReturnValueOnce();
+      const singleTenantSpy = jest.spyOn(runner, "singleTenant").mockResolvedValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -54,7 +99,7 @@ describe("initialize", () => {
 
     test("multi tenancy with db", async () => {
       cds.requires.multitenancy = {};
-      const multiTenancyDbSpy = jest.spyOn(runner, "multiTenancyDb").mockReturnValueOnce();
+      const multiTenancyDbSpy = jest.spyOn(runner, "multiTenancyDb").mockResolvedValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -64,7 +109,7 @@ describe("initialize", () => {
     });
 
     test("calling initialize twice should only processed once", async () => {
-      const singleTenant = jest.spyOn(runner, "singleTenant").mockReturnValueOnce();
+      const singleTenant = jest.spyOn(runner, "singleTenant").mockResolvedValueOnce();
       const p1 = eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -84,7 +129,7 @@ describe("initialize", () => {
       env.vcapServices = {
         "redis-cache": [{ credentials: { hostname: "123" } }],
       };
-      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockReturnValueOnce();
+      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -101,7 +146,7 @@ describe("initialize", () => {
       env.vcapServices = {
         "redis-cache": [{ credentials: { hostname: "123" } }],
       };
-      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockReturnValueOnce();
+      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,

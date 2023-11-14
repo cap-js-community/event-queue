@@ -12,6 +12,10 @@ const ERROR_CODES = {
   MISSING_ELEMENT_IN_TABLE: "MISSING_ELEMENT_IN_TABLE",
   TYPE_MISMATCH_TABLE: "TYPE_MISMATCH_TABLE",
   NO_VALID_DATE: "NO_VALID_DATE",
+  INVALID_INTERVAL: "INVALID_INTERVAL",
+  MISSING_IMPL: "MISSING_IMPL",
+  DUPLICATE_EVENT_REGISTRATION: "DUPLICATE_EVENT_REGISTRATION",
+  NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
 };
 
 const ERROR_CODES_META = {
@@ -42,6 +46,18 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.NO_VALID_DATE]: {
     message: "One or more events contain a date in a malformed format.",
+  },
+  [ERROR_CODES.INVALID_INTERVAL]: {
+    message: "Invalid interval, the value needs to greater than 10 seconds.",
+  },
+  [ERROR_CODES.MISSING_IMPL]: {
+    message: "Missing path to event class implementation.",
+  },
+  [ERROR_CODES.DUPLICATE_EVENT_REGISTRATION]: {
+    message: "Duplicate event registration, check the uniqueness of type and subType.",
+  },
+  [ERROR_CODES.NO_MANUEL_INSERT_OF_PERIODIC]: {
+    message: "Periodic events are managed by the framework and are not allowed to insert manually.",
   },
 };
 
@@ -142,6 +158,50 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.NO_VALID_DATE,
         info: { date },
+      },
+      message
+    );
+  }
+
+  static invalidInterval(type, subType, interval) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.INVALID_INTERVAL];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.INVALID_INTERVAL,
+        info: { type, subType, interval },
+      },
+      message
+    );
+  }
+
+  static missingImpl(type, subType) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.MISSING_IMPL];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.MISSING_IMPL,
+        info: { type, subType },
+      },
+      message
+    );
+  }
+
+  static duplicateEventRegistration(type, subType) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.DUPLICATE_EVENT_REGISTRATION];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.DUPLICATE_EVENT_REGISTRATION,
+        info: { type, subType },
+      },
+      message
+    );
+  }
+
+  static manuelPeriodicEventInsert(type, subType) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.NO_MANUEL_INSERT_OF_PERIODIC];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.NO_MANUEL_INSERT_OF_PERIODIC,
+        info: { type, subType },
       },
       message
     );

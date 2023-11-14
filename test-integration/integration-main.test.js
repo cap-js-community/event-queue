@@ -11,18 +11,23 @@ jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValue(null);
 const eventQueue = require("../src");
 const testHelper = require("../test/helper");
 const EventQueueTest = require("../test/asset/EventQueueTest");
-const { EventProcessingStatus } = require("../src");
+const { EventProcessingStatus, EventQueueProcessorBase } = require("../src");
 const { Logger: mockLogger } = require("../test/mocks/logger");
 const distributedLock = require("../src/shared/distributedLock");
+const eventScheduler = require("../src/shared/eventScheduler");
+const { processEventQueue } = require("../src/processEventQueue");
+const periodicEvents = require("../src/periodicEvents");
 
 let dbCounts = {};
 describe("integration-main", () => {
   let context;
   let tx;
   let loggerMock;
+  let checkAndInsertPeriodicEventsMock;
 
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
+    checkAndInsertPeriodicEventsMock = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
     await eventQueue.initialize({
       configFilePath,
       processEventsAfterPublish: false,
@@ -635,8 +640,143 @@ describe("integration-main", () => {
     });
   });
 
+  describe("periodic events", () => {
+    beforeAll(async () => {
+      eventQueue.getConfigInstance().initialized = false;
+      const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
+      await eventQueue.initialize({
+        configFilePath,
+        processEventsAfterPublish: false,
+        registerAsEventProcessor: false,
+      });
+    });
+
+    it("insert periodic event and process - should call schedule next", async () => {
+      const event = eventQueue.getConfigInstance().periodicEvents[0];
+      await cds.tx({}, async (tx2) => {
+        checkAndInsertPeriodicEventsMock.mockRestore();
+        await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+      });
+      const scheduleNextSpy = jest
+        .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+        .mockResolvedValueOnce();
+
+      await processEventQueue(context, event.type, event.subType);
+
+      expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectDone(tx);
+    });
+
+    it("insert periodic event and process - should handle if the event is already running - execute anyway", async () => {
+      const event = eventQueue.getConfigInstance().periodicEvents[0];
+      await cds.tx({}, async (tx2) => {
+        checkAndInsertPeriodicEventsMock.mockRestore();
+        await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+
+        const currentEntry = await tx2.run(SELECT.one.from("sap.eventqueue.Event"));
+        delete currentEntry.ID;
+        currentEntry.status = 1;
+        currentEntry.attempts = 1;
+        await tx2.run(INSERT.into("sap.eventqueue.Event").entries(currentEntry));
+      });
+      const scheduleNextSpy = jest
+        .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+        .mockResolvedValueOnce();
+
+      await processEventQueue(context, event.type, event.subType);
+
+      expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const [running, done] = events.sort((a, b) => a.status - b.status);
+      expect(running).toEqual({
+        status: EventProcessingStatus.InProgress,
+        attempts: 1,
+        startAfter: expect.any(String),
+      });
+      expect(done).toEqual({
+        status: EventProcessingStatus.Done,
+        attempts: 1,
+        startAfter: expect.any(String),
+      });
+    });
+
+    it("insert periodic event and process - next event should be scheduled with correct params", async () => {
+      const event = eventQueue.getConfigInstance().periodicEvents[0];
+      const scheduler = eventScheduler.getInstance();
+      const scheduleEventSpy = jest.spyOn(scheduler, "scheduleEvent").mockReturnValueOnce();
+      await cds.tx({}, async (tx2) => {
+        checkAndInsertPeriodicEventsMock.mockRestore();
+        await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+      });
+
+      await processEventQueue(context, event.type, event.subType);
+
+      expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+      expect(scheduleEventSpy.mock.calls[0]).toEqual([undefined, "HealthCheck", "DB", expect.anything()]);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const [open, done] = events.sort((a, b) => a.status - b.status);
+      expect(open).toEqual({
+        status: EventProcessingStatus.Open,
+        attempts: 0,
+        startAfter: new Date(new Date(done.startAfter).getTime() + event.interval * 1000).toISOString(),
+      });
+      expect(done).toEqual({
+        status: EventProcessingStatus.Done,
+        attempts: 1,
+        startAfter: new Date(done.startAfter).toISOString(),
+      });
+    });
+
+    describe("transactions modes", () => {
+      it("always rollback", async () => {
+        const event = eventQueue.getConfigInstance().periodicEvents[0];
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        });
+        const scheduleNextSpy = jest
+          .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+          .mockResolvedValueOnce();
+
+        dbCounts = {};
+        await processEventQueue(context, event.type, event.subType);
+
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(dbCounts).toMatchSnapshot();
+
+        await testHelper.selectEventQueueAndExpectDone(tx);
+      });
+
+      it("always commit", async () => {
+        const event = eventQueue.getConfigInstance().periodicEvents[0];
+        event.transactionMode = "alwaysCommit";
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        });
+        const scheduleNextSpy = jest
+          .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+          .mockResolvedValueOnce();
+
+        dbCounts = {};
+        await processEventQueue(context, event.type, event.subType);
+
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(dbCounts).toMatchSnapshot();
+
+        await testHelper.selectEventQueueAndExpectDone(tx);
+      });
+    });
+  });
+
   describe("end-to-end", () => {
     beforeAll(async () => {
+      checkAndInsertPeriodicEventsMock = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
       eventQueue.getConfigInstance().initialized = false;
       const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
       await eventQueue.initialize({

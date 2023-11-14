@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`baseFunctionality error handling handle checkEventAndGeneratePayload fails 1`] = `
+exports[`baseFunctionality ad-hoc events error handling handle checkEventAndGeneratePayload fails 1`] = `
 [
   [
     "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: syntax error",
@@ -15,7 +15,7 @@ exports[`baseFunctionality error handling handle checkEventAndGeneratePayload fa
 ]
 `;
 
-exports[`baseFunctionality error handling handle clusterQueueEntries fails 1`] = `
+exports[`baseFunctionality ad-hoc events error handling handle clusterQueueEntries fails 1`] = `
 [
   [
     "Error during clustering of events - setting all queue entries to error. Error: Error: syntax error",
@@ -27,7 +27,7 @@ exports[`baseFunctionality error handling handle clusterQueueEntries fails 1`] =
 ]
 `;
 
-exports[`baseFunctionality error handling handle getQueueEntriesAndSetToInProgress fails 1`] = `
+exports[`baseFunctionality ad-hoc events error handling handle getQueueEntriesAndSetToInProgress fails 1`] = `
 [
   [
     "Processing event queue failed with unexpected error. Error:",
@@ -40,7 +40,7 @@ exports[`baseFunctionality error handling handle getQueueEntriesAndSetToInProgre
 ]
 `;
 
-exports[`baseFunctionality error handling handle handleDistributedLock fails 1`] = `
+exports[`baseFunctionality ad-hoc events error handling handle handleDistributedLock fails 1`] = `
 [
   [
     "Processing event queue failed with unexpected error. Error:",
@@ -53,7 +53,7 @@ exports[`baseFunctionality error handling handle handleDistributedLock fails 1`]
 ]
 `;
 
-exports[`baseFunctionality error handling handle modifyQueueEntry fails 1`] = `
+exports[`baseFunctionality ad-hoc events error handling handle modifyQueueEntry fails 1`] = `
 [
   [
     "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: syntax error",
@@ -68,7 +68,7 @@ exports[`baseFunctionality error handling handle modifyQueueEntry fails 1`] = `
 ]
 `;
 
-exports[`baseFunctionality error handling missing event implementation 1`] = `
+exports[`baseFunctionality ad-hoc events error handling missing event implementation 1`] = `
 [
   [
     "No Implementation found in the provided configuration file.",
@@ -77,5 +77,15 @@ exports[`baseFunctionality error handling missing event implementation 1`] = `
       "eventType": "404",
     },
   ],
+]
+`;
+
+exports[`baseFunctionality periodic events two open events - not allowed 1`] = `
+[
+  "More than one open events for the same configuration which is not allowed!",
+  {
+    "eventSubType": "DB",
+    "eventType": "HealthCheck",
+  },
 ]
 `;
