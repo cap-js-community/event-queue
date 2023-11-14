@@ -89,7 +89,7 @@ describe("initialize", () => {
 
   describe("runner mode registration", () => {
     test("single tenant", async () => {
-      const singleTenantSpy = jest.spyOn(runner, "singleTenant").mockReturnValueOnce();
+      const singleTenantSpy = jest.spyOn(runner, "singleTenant").mockResolvedValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -99,7 +99,7 @@ describe("initialize", () => {
 
     test("multi tenancy with db", async () => {
       cds.requires.multitenancy = {};
-      const multiTenancyDbSpy = jest.spyOn(runner, "multiTenancyDb").mockReturnValueOnce();
+      const multiTenancyDbSpy = jest.spyOn(runner, "multiTenancyDb").mockResolvedValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -109,7 +109,7 @@ describe("initialize", () => {
     });
 
     test("calling initialize twice should only processed once", async () => {
-      const singleTenant = jest.spyOn(runner, "singleTenant").mockReturnValueOnce();
+      const singleTenant = jest.spyOn(runner, "singleTenant").mockResolvedValueOnce();
       const p1 = eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -129,7 +129,7 @@ describe("initialize", () => {
       env.vcapServices = {
         "redis-cache": [{ credentials: { hostname: "123" } }],
       };
-      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockReturnValueOnce();
+      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -146,7 +146,7 @@ describe("initialize", () => {
       env.vcapServices = {
         "redis-cache": [{ credentials: { hostname: "123" } }],
       };
-      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockReturnValueOnce();
+      const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
