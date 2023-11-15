@@ -6,22 +6,27 @@ const config = require("../config");
 
 const COMPONENT_NAME = "eventQueue/WorkerQueue";
 
-let instance = null;
-
 class WorkerQueue {
+  #concurrencyLimit;
+  #runningPromises;
+  #runningLoad;
+  #queue;
+  static #instance;
+
   constructor(concurrency) {
     if (Number.isNaN(concurrency) || concurrency <= 0) {
-      this.__concurrencyLimit = 1;
+      this.#concurrencyLimit = 1;
     } else {
-      this.__concurrencyLimit = concurrency;
+      this.#concurrencyLimit = concurrency;
     }
-    this.__runningPromises = [];
-    this.__queue = [];
+    this.#runningPromises = [];
+    this.#runningLoad = 0;
+    this.#queue = [];
   }
 
-  addToQueue(cb) {
+  addToQueue(load, cb) {
     const p = new Promise((resolve, reject) => {
-      this.__queue.push([cb, resolve, reject]);
+      this.#queue.push([load, cb, resolve, reject]);
     });
     this._checkForNext();
     return p;
@@ -29,10 +34,10 @@ class WorkerQueue {
 
   _executeFunction(cb, resolve, reject) {
     const promise = Promise.resolve().then(() => cb());
-    this.__runningPromises.push(promise);
+    this.#runningPromises.push(promise);
     promise
       .finally(() => {
-        this.__runningPromises.splice(this.__runningPromises.indexOf(promise), 1);
+        this.#runningPromises.splice(this.#runningPromises.indexOf(promise), 1);
         this._checkForNext();
       })
       .then((...results) => {
@@ -45,21 +50,33 @@ class WorkerQueue {
   }
 
   _checkForNext() {
-    if (!this.__queue.length || this.__runningPromises.length >= this.__concurrencyLimit) {
+    const load = this.#queue[0]?.[0];
+    if (!this.#queue.length || this.#runningPromises.length >= this.#concurrencyLimit) {
       return;
     }
-    const [cb, resolve, reject] = this.__queue.shift();
+    const [, cb, resolve, reject] = this.#queue.shift();
     this._executeFunction(cb, resolve, reject);
+  }
+
+  get runningPromises() {
+    return this.#runningPromises;
+  }
+
+  /**
+   @return { WorkerQueue }
+   **/
+  static get instance() {
+    if (!WorkerQueue.#instance) {
+      WorkerQueue.#instance = new WorkerQueue(config.parallelTenantProcessing);
+    }
+    return WorkerQueue.#instance;
   }
 }
 
+const instance = WorkerQueue.instance;
+
 module.exports = {
-  getWorkerPoolInstance: () => {
-    if (!instance) {
-      instance = new WorkerQueue(config.parallelTenantProcessing);
-    }
-    return instance;
-  },
+  workerQueue: instance,
   _: {
     WorkerQueue,
   },

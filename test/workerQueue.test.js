@@ -10,9 +10,9 @@ describe("workerQueue", () => {
   it("straight forward - limit one and one function", async () => {
     const workerQueue = new WorkerQueue(1);
     const jestFn = jest.fn();
-    await workerQueue.addToQueue(jestFn);
+    await workerQueue.addToQueue(1, jestFn);
     expect(jestFn).toHaveBeenCalledTimes(1);
-    expect(workerQueue.__runningPromises).toHaveLength(0);
+    expect(workerQueue.runningPromises).toHaveLength(0);
   });
 
   it("straight forward - limit one and two promises", async () => {
@@ -30,15 +30,15 @@ describe("workerQueue", () => {
     const fn1 = () => {
       result["fn1"] = { called: true, done: true };
     };
-    const p1 = workerQueue.addToQueue(fn);
-    const p2 = workerQueue.addToQueue(fn1);
+    const p1 = workerQueue.addToQueue(1, fn);
+    const p2 = workerQueue.addToQueue(1, fn1);
 
     // NOTE: get the work queue the chance to start working
     await promisify(setTimeout)(1);
     expect(result.fn.called).toBeTruthy();
     expect(result.fn.done).toBeFalsy();
     expect(result.fn1).toBeFalsy();
-    expect(workerQueue.__runningPromises).toHaveLength(1);
+    expect(workerQueue.runningPromises).toHaveLength(1);
 
     await Promise.allSettled([p1, p2]);
 
@@ -46,7 +46,7 @@ describe("workerQueue", () => {
     expect(result.fn.done).toBeTruthy();
     expect(result.fn1.called).toBeTruthy();
     expect(result.fn1.done).toBeTruthy();
-    expect(workerQueue.__runningPromises).toHaveLength(0);
+    expect(workerQueue.runningPromises).toHaveLength(0);
   });
 
   it("rejecting promises should not block the queue", async () => {
@@ -65,15 +65,15 @@ describe("workerQueue", () => {
     const fn1 = () => {
       result["fn1"] = { called: true, done: true };
     };
-    const p1 = workerQueue.addToQueue(fn);
-    const p2 = workerQueue.addToQueue(fn1);
+    const p1 = workerQueue.addToQueue(1, fn);
+    const p2 = workerQueue.addToQueue(1, fn1);
     await promisify(setTimeout)(1);
 
     // NOTE: get the work queue the chance to start working
     expect(result.fn.called).toBeTruthy();
     expect(result.fn.done).toBeFalsy();
     expect(result.fn1).toBeFalsy();
-    expect(workerQueue.__runningPromises).toHaveLength(1);
+    expect(workerQueue.runningPromises).toHaveLength(1);
 
     await Promise.allSettled([p1, p2]);
 
@@ -82,6 +82,6 @@ describe("workerQueue", () => {
     expect(result.fn1.called).toBeTruthy();
     expect(result.fn1.done).toBeTruthy();
 
-    expect(workerQueue.__runningPromises).toHaveLength(0);
+    expect(workerQueue.runningPromises).toHaveLength(0);
   });
 });

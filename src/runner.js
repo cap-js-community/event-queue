@@ -4,7 +4,7 @@ const { randomUUID } = require("crypto");
 
 const eventQueueConfig = require("./config");
 const { eventQueueRunner, processEventQueue } = require("./processEventQueue");
-const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
+const { workerQueue } = require("./shared/WorkerQueue");
 const cdsHelper = require("./shared/cdsHelper");
 const distributedLock = require("./shared/distributedLock");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
@@ -93,9 +93,8 @@ const _checkAndTriggerPeriodicEventUpdate = (tenantIds) => {
 };
 
 const _executeAllTenantsGeneric = (tenantIds, runId, fn) => {
-  const workerQueueInstance = getWorkerPoolInstance();
   tenantIds.forEach((tenantId) => {
-    workerQueueInstance.addToQueue(async () => {
+    workerQueue.addToQueue(1, async () => {
       try {
         const tenantContext = new cds.EventContext({ tenant: tenantId });
         const couldAcquireLock = await distributedLock.acquireLock(tenantContext, runId, {
@@ -213,7 +212,7 @@ const runEventCombinationForTenant = async (tenantId, type, subType) => {
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     });
     cds.context = context;
-    getWorkerPoolInstance().addToQueue(async () => await processEventQueue(context, type, subType));
+    workerQueue.addToQueue(1, async () => await processEventQueue(context, type, subType));
   } catch (err) {
     const logger = cds.log(COMPONENT_NAME);
     logger.error("error executing event combination for tenant", err, {

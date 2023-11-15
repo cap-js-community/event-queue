@@ -8,7 +8,7 @@ cds.test(__dirname + "/_env");
 const mockRedis = require("../test/mocks/redisMock");
 jest.mock("../src/shared/redis", () => mockRedis);
 const cdsHelper = require("../src/shared/cdsHelper");
-const { getWorkerPoolInstance } = require("../src/shared/WorkerQueue");
+const { workerQueue } = require("../src/shared/WorkerQueue");
 const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
 jest.spyOn(cdsHelper, "getSubdomainForTenantId").mockResolvedValue("dummy");
 const processEventQueue = require("../src/processEventQueue");
@@ -77,10 +77,9 @@ describe("redisRunner", () => {
     const p2 = runner._._multiTenancyRedis();
 
     await Promise.allSettled([p1, p2]);
-    const workerPoolInstance = getWorkerPoolInstance();
-    await Promise.allSettled(workerPoolInstance.__runningPromises);
+    await Promise.allSettled(workerQueue.runningPromises);
     await promisify(setTimeout)(500);
-    await Promise.allSettled(workerPoolInstance.__runningPromises);
+    await Promise.allSettled(workerQueue.runningPromises);
 
     expect(setValueWithExpireSpy).toHaveBeenCalledTimes(3);
     expect(checkLockExistsAndReturnValueSpy).toHaveBeenCalledTimes(1);
@@ -106,7 +105,7 @@ describe("redisRunner", () => {
     // another run within 5 minutes should do nothing
     await runner._._multiTenancyRedis();
     await promisify(setTimeout)(500);
-    await Promise.allSettled(workerPoolInstance.__runningPromises);
+    await Promise.allSettled(workerQueue.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
   });
@@ -128,10 +127,9 @@ describe("redisRunner", () => {
     const p1 = runner._._multiTenancyDb();
     const p2 = runner._._multiTenancyDb();
     await Promise.allSettled([p1, p2]);
-    const workerPoolInstance = getWorkerPoolInstance();
-    await Promise.allSettled(workerPoolInstance.__runningPromises);
+    await Promise.allSettled(workerQueue.runningPromises);
     await promisify(setTimeout)(500);
-    await Promise.allSettled(workerPoolInstance.__runningPromises);
+    await Promise.allSettled(workerQueue.runningPromises);
 
     expect(acquireLockSpy).toHaveBeenCalledTimes(6);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
@@ -155,7 +153,7 @@ describe("redisRunner", () => {
     // another run within 5 minutes should do nothing
     await runner._._multiTenancyDb();
     await promisify(setTimeout)(500);
-    await Promise.allSettled(workerPoolInstance.__runningPromises);
+    await Promise.allSettled(workerQueue.runningPromises);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
 
@@ -170,7 +168,7 @@ describe("redisRunner", () => {
 
     await runner._._multiTenancyDb();
     await promisify(setTimeout)(500);
-    await Promise.allSettled(workerPoolInstance.__runningPromises);
+    await Promise.allSettled(workerQueue.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(12);
     expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(6);
     jest.spyOn(cds, "tx").mockRestore();
