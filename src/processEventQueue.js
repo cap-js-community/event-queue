@@ -137,58 +137,67 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
 // TODO: don't forget to release lock
 const processPeriodicEvent = async (eventTypeInstance) => {
   let queueEntry;
+  let processNext = true;
+
   try {
-    await executeInNewTransaction(
-      eventTypeInstance.context,
-      `eventQueue-periodic-scheduleNext-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
-      async (tx) => {
-        eventTypeInstance.processEventContext = tx.context;
-        const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
-        if (!queueEntries.length) {
-          return;
+    while (processNext) {
+      await executeInNewTransaction(
+        eventTypeInstance.context,
+        `eventQueue-periodic-scheduleNext-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+        async (tx) => {
+          eventTypeInstance.processEventContext = tx.context;
+          const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
+          if (!queueEntries.length) {
+            return;
+          }
+          if (queueEntries.length > 1) {
+            queueEntry = await eventTypeInstance.handleDuplicatedPeriodicEventEntry(queueEntries);
+          } else {
+            queueEntry = queueEntries[0];
+          }
+          processNext = await eventTypeInstance.scheduleNextPeriodEvent(queueEntry);
         }
-        if (queueEntries.length > 1) {
-          queueEntry = await eventTypeInstance.handleDuplicatedPeriodicEventEntry(queueEntries);
-        } else {
-          queueEntry = queueEntries[0];
-        }
-        await eventTypeInstance.scheduleNextPeriodEvent(queueEntry);
-      }
-    );
+      );
 
-    if (!queueEntry) {
-      return;
+      if (!queueEntry) {
+        return;
+      }
+
+      await executeInNewTransaction(
+        eventTypeInstance.context,
+        `eventQueue-periodic-process-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+        async (tx) => {
+          eventTypeInstance.processEventContext = tx.context;
+          eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
+          try {
+            await eventTypeInstance.processEvent(tx.context, queueEntry.ID, [queueEntry]);
+          } catch (err) {
+            eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
+            throw new TriggerRollback();
+          }
+          if (
+            eventTypeInstance.transactionMode !== TransactionMode.alwaysCommit ||
+            eventTypeInstance.shouldRollbackTransaction(queueEntry.ID)
+          ) {
+            throw new TriggerRollback();
+          }
+        }
+      );
+
+      await executeInNewTransaction(
+        eventTypeInstance.context,
+        `eventQueue-periodic-setStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+        async (tx) => {
+          eventTypeInstance.processEventContext = tx.context;
+          await eventTypeInstance.setPeriodicEventStatus(queueEntry.ID);
+        }
+      );
     }
-
-    await executeInNewTransaction(
-      eventTypeInstance.context,
-      `eventQueue-periodic-process-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
-      async (tx) => {
-        eventTypeInstance.processEventContext = tx.context;
-        eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
-        try {
-          await eventTypeInstance.processEvent(tx.context, queueEntry.ID, [queueEntry]);
-        } catch (err) {
-          eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
-          throw new TriggerRollback();
-        }
-        if (
-          eventTypeInstance.transactionMode !== TransactionMode.alwaysCommit ||
-          eventTypeInstance.shouldRollbackTransaction(queueEntry.ID)
-        ) {
-          throw new TriggerRollback();
-        }
-      }
-    );
-
-    await executeInNewTransaction(
-      eventTypeInstance.context,
-      `eventQueue-periodic-setStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
-      async (tx) => {
-        eventTypeInstance.processEventContext = tx.context;
-        await eventTypeInstance.setPeriodicEventStatus(queueEntry.ID);
-      }
-    );
+  } catch (err) {
+    cds.log(COMPONENT_NAME).error("Processing periodic events failed with unexpected error. Error:", err, {
+      eventType: eventTypeInstance?.eventType,
+      eventSubType: eventTypeInstance?.eventSubType,
+    });
   } finally {
     await eventTypeInstance?.handleReleaseLock();
   }
