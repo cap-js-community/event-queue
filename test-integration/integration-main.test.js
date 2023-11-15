@@ -757,9 +757,9 @@ describe("integration-main", () => {
 
       expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
       expect(loggerMock.callsLengths().error).toEqual(0);
-      expect(loggerMock.calls().info[3][0]).toMatchInlineSnapshot(
-        `"interval adjusted because shifted more than one interval"`
-      );
+      expect(
+        loggerMock.calls().info.find(([log]) => log === "interval adjusted because shifted more than one interval")
+      ).toBeTruthy();
       const events = await testHelper.selectEventQueueAndReturn(tx, 2);
       const [done, open] = events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
       expect(done).toEqual({

@@ -19,6 +19,7 @@ const EVENT_QUEUE_RUN_PERIODIC_EVENT = "EVENT_QUEUE_RUN_PERIODIC_EVENT";
 const OFFSET_FIRST_RUN = 10 * 1000;
 
 let tenantIdHash;
+let singleRunDone;
 
 const singleTenant = () => _scheduleFunction(_checkPeriodicEventsSingleTenant, _executeRunForTenant);
 
@@ -41,6 +42,10 @@ const _scheduleFunction = async (singleRunFn, periodicFn) => {
       logger.info("runner is deactivated via config variable. Skipping this run.");
       return;
     }
+    if (!singleRunDone) {
+      singleRunDone = true;
+      singleRunFn().catch(() => (singleRunDone = false));
+    }
     return periodicFn();
   };
 
@@ -51,7 +56,6 @@ const _scheduleFunction = async (singleRunFn, periodicFn) => {
   });
 
   setTimeout(() => {
-    singleRunFn();
     fnWithRunningCheck();
     const intervalRunner = new SetIntervalDriftSafe(configInstance.runInterval);
     intervalRunner.run(fnWithRunningCheck);
@@ -63,7 +67,7 @@ const _multiTenancyRedis = async () => {
   const emptyContext = new cds.EventContext({});
   logger.info("executing event queue run for multi instance and tenant");
   const tenantIds = await cdsHelper.getAllTenantIds();
-  _checkAndTriggerPriodicEventUpdate(tenantIds);
+  _checkAndTriggerPeriodicEventUpdate(tenantIds);
 
   const runId = await _acquireRunId(emptyContext);
 
@@ -75,7 +79,7 @@ const _multiTenancyRedis = async () => {
   _executeAllTenants(tenantIds, runId);
 };
 
-const _checkAndTriggerPriodicEventUpdate = (tenantIds) => {
+const _checkAndTriggerPeriodicEventUpdate = (tenantIds) => {
   const hash = hashStringTo32Bit(JSON.stringify(tenantIds));
   if (!tenantIdHash) {
     tenantIdHash = hash;
@@ -230,7 +234,7 @@ const _multiTenancyDb = async () => {
   try {
     logger.info("executing event queue run for single instance and multi tenant");
     const tenantIds = await cdsHelper.getAllTenantIds();
-    _checkAndTriggerPriodicEventUpdate(tenantIds);
+    _checkAndTriggerPeriodicEventUpdate(tenantIds);
     _executeAllTenants(tenantIds, EVENT_QUEUE_RUN_ID);
   } catch (err) {
     logger.error(
