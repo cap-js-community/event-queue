@@ -1,7 +1,5 @@
 "use strict";
 
-const { promisify } = require("util");
-
 const cds = require("@sap/cds");
 cds.test(__dirname + "/_env");
 
@@ -76,9 +74,8 @@ describe("redisRunner", () => {
     const p1 = runner._._multiTenancyRedis();
     const p2 = runner._._multiTenancyRedis();
 
-    await Promise.allSettled([p1, p2]);
-    await Promise.allSettled(workerQueue.runningPromises);
-    await promisify(setTimeout)(500);
+    const [promises1, promises2] = await Promise.allSettled([p1, p2]);
+    await Promise.allSettled(promises1.value.concat(promises2.value));
     await Promise.allSettled(workerQueue.runningPromises);
 
     expect(setValueWithExpireSpy).toHaveBeenCalledTimes(3);
@@ -103,8 +100,8 @@ describe("redisRunner", () => {
     expect(tenantChecks).toMatchSnapshot();
 
     // another run within 5 minutes should do nothing
-    await runner._._multiTenancyRedis();
-    await promisify(setTimeout)(500);
+    const promises = await runner._._multiTenancyRedis();
+    await Promise.allSettled(promises);
     await Promise.allSettled(workerQueue.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
@@ -126,9 +123,8 @@ describe("redisRunner", () => {
     expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
     const p1 = runner._._multiTenancyDb();
     const p2 = runner._._multiTenancyDb();
-    await Promise.allSettled([p1, p2]);
-    await Promise.allSettled(workerQueue.runningPromises);
-    await promisify(setTimeout)(800);
+    const [promises1, promises2] = await Promise.allSettled([p1, p2]);
+    await Promise.allSettled(promises1.value.concat(promises2.value));
     await Promise.allSettled(workerQueue.runningPromises);
 
     expect(acquireLockSpy).toHaveBeenCalledTimes(6);
@@ -151,8 +147,8 @@ describe("redisRunner", () => {
     expect(tenantChecks).toMatchSnapshot();
 
     // another run within 5 minutes should do nothing
-    await runner._._multiTenancyDb();
-    await promisify(setTimeout)(500);
+    const promises = await runner._._multiTenancyDb();
+    await Promise.allSettled(promises);
     await Promise.allSettled(workerQueue.runningPromises);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
@@ -166,8 +162,8 @@ describe("redisRunner", () => {
       )
     );
 
-    await runner._._multiTenancyDb();
-    await promisify(setTimeout)(500);
+    const promises3 = await runner._._multiTenancyDb();
+    await Promise.allSettled(promises3);
     await Promise.allSettled(workerQueue.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(12);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
