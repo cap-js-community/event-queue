@@ -8,8 +8,7 @@ const config = require("./config");
 const COMPONENT_NAME = "eventQueue/dbHandler";
 
 const registerEventQueueDbHandler = (dbService) => {
-  const configInstance = config.getConfigInstance();
-  const def = dbService.model.definitions[configInstance.tableNameEventQueue];
+  const def = dbService.model.definitions[config.tableNameEventQueue];
   dbService.after("CREATE", def, (_, req) => {
     if (req.tx._skipEventQueueBroadcase) {
       return;
@@ -21,7 +20,7 @@ const registerEventQueueDbHandler = (dbService) => {
     const eventCombinations = Object.keys(
       data.reduce((result, event) => {
         const key = [event.type, event.subType].join("##");
-        if (!configInstance.hasEventAfterCommitFlag(event.type, event.subType) || eventQueuePublishEvents[key]) {
+        if (!config.hasEventAfterCommitFlag(event.type, event.subType) || eventQueuePublishEvents[key]) {
           return result;
         }
         eventQueuePublishEvents[key] = true;

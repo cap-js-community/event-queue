@@ -8,7 +8,7 @@ const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
 const { arrayToFlatMap } = require("./shared/common");
 const eventScheduler = require("./shared/eventScheduler");
-const eventQueueConfig = require("./config");
+const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
@@ -31,37 +31,43 @@ class EventQueueProcessorBase {
   #eventType = null;
   #eventSubType = null;
   #config = null;
+  #eventSchedulerInstance = null;
+  #eventConfig;
+  #isPeriodic;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
     this.__baseContext = context;
     this.__tx = cds.tx(context);
     this.__baseLogger = cds.log(COMPONENT_NAME);
+    this.#eventSchedulerInstance = eventScheduler.getInstance();
+    this.#config = eventConfig;
+    this.#isPeriodic = this.#config.isPeriodicEvent(eventType, eventSubType);
     this.__logger = null;
     this.__eventProcessingMap = {};
     this.__statusMap = {};
     this.__commitedStatusMap = {};
     this.#eventType = eventType;
     this.#eventSubType = eventSubType;
-    this.__eventConfig = config ?? {};
-    this.__parallelEventProcessing = this.__eventConfig.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
+    this.#eventConfig = config ?? {};
+    this.__parallelEventProcessing = this.#eventConfig.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
     // NOTE: keep the feature, this might be needed again
     this.__concurrentEventProcessing = false;
-    this.__startTime = this.__eventConfig.startTime ?? new Date();
-    this.__retryAttempts = this.__eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
-    this.__selectMaxChunkSize = this.__eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
-    this.__selectNextChunk = !!this.__eventConfig.checkForNextChunk;
+    this.__startTime = this.#eventConfig.startTime ?? new Date();
+    this.__retryAttempts = this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
+    this.__selectMaxChunkSize = this.#eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
+    this.__selectNextChunk = !!this.#eventConfig.checkForNextChunk;
     this.__keepalivePromises = {};
-    this.__outdatedCheckEnabled = this.__eventConfig.eventOutdatedCheck ?? true;
-    this.__transactionMode = this.__eventConfig.transactionMode ?? TransactionMode.isolated;
-    if (this.__eventConfig.deleteFinishedEventsAfterDays) {
+    this.__outdatedCheckEnabled = this.#eventConfig.eventOutdatedCheck ?? true;
+    this.__transactionMode = this.#eventConfig.transactionMode ?? TransactionMode.isolated;
+    if (this.#eventConfig.deleteFinishedEventsAfterDays) {
       this.__deleteFinishedEventsAfter =
-        Number.isInteger(this.__eventConfig.deleteFinishedEventsAfterDays) &&
-        this.__eventConfig.deleteFinishedEventsAfterDays > 0
-          ? this.__eventConfig.deleteFinishedEventsAfterDays
+        Number.isInteger(this.#eventConfig.deleteFinishedEventsAfterDays) &&
+        this.#eventConfig.deleteFinishedEventsAfterDays > 0
+          ? this.#eventConfig.deleteFinishedEventsAfterDays
           : DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
     } else {
       this.__deleteFinishedEventsAfter = DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
@@ -71,7 +77,6 @@ class EventQueueProcessorBase {
     this.__txUsageAllowed = true;
     this.__txMap = {};
     this.__txRollback = {};
-    this.#config = eventQueueConfig.getConfigInstance();
     this.__queueEntries = [];
   }
 
@@ -610,9 +615,8 @@ class EventQueueProcessorBase {
   }
 
   #handleDelayedEvents(delayedEvents) {
-    const eventSchedulerInstance = eventScheduler.getInstance();
     for (const delayedEvent of delayedEvents) {
-      eventSchedulerInstance.scheduleEvent(
+      this.#eventSchedulerInstance.scheduleEvent(
         this.__context.tenant,
         this.#eventType,
         this.#eventSubType,
@@ -836,17 +840,47 @@ class EventQueueProcessorBase {
   }
 
   async scheduleNextPeriodEvent(queueEntry) {
-    const interval = this.__eventConfig.interval;
+    const interval = this.#eventConfig.interval;
     const newEvent = {
       type: this.#eventType,
       subType: this.#eventSubType,
       startAfter: new Date(new Date(queueEntry.startAfter).getTime() + interval * 1000),
     };
+    const { relative } = this.#eventSchedulerInstance.calculateOffset(
+      this.#eventType,
+      this.#eventSubType,
+      newEvent.startAfter
+    );
+
+    // more than one interval behind - shift tick to keep up
+    if (relative < 0 && Math.abs(relative) >= this.#eventConfig.interval * 1000) {
+      newEvent.startAfter = new Date(Date.now() + 5 * 1000);
+      this.logger.info("interval adjusted because shifted more than one interval", {
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
+        newStartAfter: newEvent.startAfter,
+      });
+    }
+
     this.tx._skipEventQueueBroadcase = true;
     await this.tx.run(INSERT.into(this.#config.tableNameEventQueue).entries({ ...newEvent }));
     this.tx._skipEventQueueBroadcase = false;
     if (interval < this.#config.runInterval) {
       this.#handleDelayedEvents([newEvent]);
+      const { relative: relativeAfterSchedule } = this.#eventSchedulerInstance.calculateOffset(
+        this.#eventType,
+        this.#eventSubType,
+        newEvent.startAfter
+      );
+      // next tick is already behind schedule --> execute direct
+      if (relativeAfterSchedule <= 0) {
+        this.logger.info("running behind schedule - executing next tick immediately", {
+          eventType: this.#eventType,
+          eventSubType: this.#eventSubType,
+          newStartAfter: newEvent.startAfter,
+        });
+        return true;
+      }
     }
   }
 
@@ -986,7 +1020,7 @@ class EventQueueProcessorBase {
   }
 
   get isPeriodicEvent() {
-    return this.__eventConfig.isPeriodic;
+    return this.#eventConfig.isPeriodic;
   }
 }
 

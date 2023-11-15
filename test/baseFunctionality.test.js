@@ -63,14 +63,14 @@ describe("baseFunctionality", () => {
 
   describe("ad-hoc events", () => {
     test("empty queue - nothing to do", async () => {
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
     test("insert one entry and process", async () => {
       await testHelper.insertEventEntry(tx);
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx);
@@ -78,7 +78,7 @@ describe("baseFunctionality", () => {
 
     test("insert one delayed entry - should not directly be processed", async () => {
       await testHelper.insertEventEntry(tx, { delayedSeconds: 15 });
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       const eventSchedulerInstance = eventScheduler.getInstance();
       const eventSchedulerSpy = jest.spyOn(eventSchedulerInstance, "scheduleEvent").mockReturnValue();
       await eventQueue.processEventQueue(context, event.type, event.subType);
@@ -89,7 +89,7 @@ describe("baseFunctionality", () => {
 
     test("insert one delayed entry after runInterval", async () => {
       await testHelper.insertEventEntry(tx, { delayedSeconds: 500 });
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectOpen(tx);
@@ -97,7 +97,7 @@ describe("baseFunctionality", () => {
 
     test("insert one delayed entry in past - should be directly be processed", async () => {
       await testHelper.insertEventEntry(tx, { delayedSeconds: -100 });
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx);
@@ -106,7 +106,7 @@ describe("baseFunctionality", () => {
     test("should do nothing if no lock is available", async () => {
       await testHelper.insertEventEntry(tx);
       jest.spyOn(eventQueue.EventQueueProcessorBase.prototype, "handleDistributedLock").mockResolvedValueOnce(false);
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectOpen(tx);
@@ -126,7 +126,7 @@ describe("baseFunctionality", () => {
         jest
           .spyOn(eventQueue.EventQueueProcessorBase.prototype, "handleDistributedLock")
           .mockRejectedValueOnce(new Error("lock require failed"));
-        const event = eventQueue.getConfigInstance().events[0];
+        const event = eventQueue.config.events[0];
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(1);
         expect(loggerMock.calls().error).toMatchSnapshot();
@@ -138,7 +138,7 @@ describe("baseFunctionality", () => {
         jest
           .spyOn(eventQueue.EventQueueProcessorBase.prototype, "getQueueEntriesAndSetToInProgress")
           .mockRejectedValueOnce(new Error("db error"));
-        const event = eventQueue.getConfigInstance().events[0];
+        const event = eventQueue.config.events[0];
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(1);
         expect(loggerMock.calls().error).toMatchSnapshot();
@@ -150,7 +150,7 @@ describe("baseFunctionality", () => {
         jest.spyOn(eventQueue.EventQueueProcessorBase.prototype, "modifyQueueEntry").mockImplementationOnce(() => {
           throw new Error("syntax error");
         });
-        const event = eventQueue.getConfigInstance().events[0];
+        const event = eventQueue.config.events[0];
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(1);
         expect(loggerMock.calls().error).toMatchSnapshot();
@@ -162,7 +162,7 @@ describe("baseFunctionality", () => {
         jest
           .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
           .mockRejectedValueOnce(new Error("syntax error"));
-        const event = eventQueue.getConfigInstance().events[0];
+        const event = eventQueue.config.events[0];
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(1);
         expect(loggerMock.calls().error).toMatchSnapshot();
@@ -174,7 +174,7 @@ describe("baseFunctionality", () => {
         jest.spyOn(eventQueue.EventQueueProcessorBase.prototype, "clusterQueueEntries").mockImplementationOnce(() => {
           throw new Error("syntax error");
         });
-        const event = eventQueue.getConfigInstance().events[0];
+        const event = eventQueue.config.events[0];
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(1);
         expect(loggerMock.calls().error).toMatchSnapshot();
@@ -190,7 +190,7 @@ describe("baseFunctionality", () => {
             return queueEntry.payload;
           });
         await tx.run(INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry));
-        const event = eventQueue.getConfigInstance().events[0];
+        const event = eventQueue.config.events[0];
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndExpectDone(tx);
@@ -203,7 +203,7 @@ describe("baseFunctionality", () => {
           return null;
         });
         await tx.run(INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry));
-        const event = eventQueue.getConfigInstance().events[0];
+        const event = eventQueue.config.events[0];
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndExpectDone(tx);
@@ -216,7 +216,7 @@ describe("baseFunctionality", () => {
           return undefined;
         });
         await tx.run(INSERT.into("sap.eventqueue.Event").entries(eventQueueEntry));
-        const event = eventQueue.getConfigInstance().events[0];
+        const event = eventQueue.config.events[0];
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(1);
         await testHelper.selectEventQueueAndExpectError(tx);
@@ -225,7 +225,7 @@ describe("baseFunctionality", () => {
 
     describe("insert events", () => {
       test("straight forward", async () => {
-        const event = eventQueue.getConfigInstance().events[0];
+        const event = eventQueue.config.events[0];
         await eventQueue.publishEvent(tx, {
           type: event.type,
           subType: event.subType,
@@ -264,7 +264,7 @@ describe("baseFunctionality", () => {
       });
 
       test("not a proper date", async () => {
-        const event = eventQueue.getConfigInstance().events[0];
+        const event = eventQueue.config.events[0];
         await expect(
           eventQueue.publishEvent(tx, {
             type: event.type,
@@ -283,7 +283,7 @@ describe("baseFunctionality", () => {
 
   describe("periodic events", () => {
     test("straight forward", async () => {
-      const event = eventQueue.getConfigInstance().periodicEvents[0];
+      const event = eventQueue.config.periodicEvents[0];
       await checkAndInsertPeriodicEvents(context);
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -302,7 +302,7 @@ describe("baseFunctionality", () => {
     });
 
     test("two open events - not allowed", async () => {
-      const event = eventQueue.getConfigInstance().periodicEvents[0];
+      const event = eventQueue.config.periodicEvents[0];
       await checkAndInsertPeriodicEvents(context);
       await tx.run(
         INSERT.into("sap.eventqueue.Event").entries({

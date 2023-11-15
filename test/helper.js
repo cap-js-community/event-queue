@@ -13,7 +13,7 @@ const _selectEventQueueAndExpect = async (tx, status, expectedLength = 1, attemp
 };
 
 const getEventEntry = () => {
-  const event = eventQueue.getConfigInstance().events[0];
+  const event = eventQueue.config.events[0];
   return {
     type: event.type,
     subType: event.subType,

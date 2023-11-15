@@ -13,11 +13,8 @@ class EventScheduler {
   constructor() {}
 
   scheduleEvent(tenantId, type, subType, startAfter) {
-    const configInstance = config.getConfigInstance();
-    const eventConfig = configInstance.getEventConfig(type, subType);
-    const scheduleWithoutDelay = configInstance.isPeriodicEvent(type, subType) && eventConfig.interval < 30 * 1000;
-    const roundUpDate = scheduleWithoutDelay ? startAfter : this.calculateFutureTime(startAfter, 10);
-    const key = [tenantId, type, subType, roundUpDate.toISOString()].join("##");
+    const { date, relative } = this.calculateOffset(type, subType, startAfter);
+    const key = [tenantId, type, subType, date.toISOString()].join("##");
     if (this.#scheduledEvents[key]) {
       return; // event combination already scheduled
     }
@@ -25,7 +22,7 @@ class EventScheduler {
     cds.log(COMPONENT_NAME).info("scheduling event queue run for delayed event", {
       type,
       subType,
-      delaySeconds: (roundUpDate.getTime() - Date.now()) / 1000,
+      delaySeconds: (date.getTime() - Date.now()) / 1000,
     });
     setTimeout(() => {
       delete this.#scheduledEvents[key];
@@ -34,10 +31,18 @@ class EventScheduler {
           tenantId,
           type,
           subType,
-          scheduledFor: roundUpDate.toISOString(),
+          scheduledFor: date.toISOString(),
         });
       });
-    }, roundUpDate.getTime() - Date.now()).unref();
+    }, relative).unref();
+  }
+
+  calculateOffset(type, subType, startAfter) {
+    const eventConfig = config.getEventConfig(type, subType);
+    const scheduleWithoutDelay = config.isPeriodicEvent(type, subType) && eventConfig.interval < 30 * 1000;
+    const date = scheduleWithoutDelay ? startAfter : this.calculateFutureTime(startAfter, 10);
+
+    return { date, relative: date.getTime() - Date.now() };
   }
 
   calculateFutureTime(date, seoncds) {

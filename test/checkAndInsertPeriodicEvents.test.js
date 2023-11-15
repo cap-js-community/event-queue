@@ -7,7 +7,7 @@ const cds = require("@sap/cds/lib");
 const eventQueue = require("../src");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
-const { getConfigInstance } = require("../src/config");
+const config = require("../src/config");
 const { selectEventQueueAndReturn } = require("./helper");
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
@@ -53,17 +53,20 @@ describe("baseFunctionality", () => {
   it("delta insert", async () => {
     await checkAndInsertPeriodicEvents(context);
 
-    const fileContent = getConfigInstance().fileContent;
+    const fileContent = config.fileContent;
+    fileContent.periodicEvents[0].type = "HealthCheck";
     fileContent.periodicEvents.push({
-      ...getConfigInstance().fileContent.periodicEvents[0],
+      ...config.fileContent.periodicEvents[0],
+      type: "HealthCheck",
       subType: "DB2",
     });
-    getConfigInstance().fileContent = fileContent;
+    config.fileContent = fileContent;
 
     await checkAndInsertPeriodicEvents(context);
 
     fileContent.periodicEvents.splice(1, 1);
-    getConfigInstance().fileContent = fileContent;
+    fileContent.periodicEvents[0].type = "HealthCheck";
+    config.fileContent = fileContent;
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
     expect(await selectEventQueueAndReturn(tx, 2)).toMatchSnapshot();
@@ -71,7 +74,7 @@ describe("baseFunctionality", () => {
 
   it("interval changed", async () => {
     await checkAndInsertPeriodicEvents(context);
-    const eventConfig = getConfigInstance().periodicEvents[0];
+    const eventConfig = config.periodicEvents[0];
     eventConfig.interval = 10;
 
     await tx.run(

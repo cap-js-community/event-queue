@@ -68,7 +68,7 @@ describe("integration-main", () => {
   });
 
   it("empty queue - nothing to do", async () => {
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     await testHelper.selectEventQueueAndExpectDone(tx, 0);
     expect(loggerMock.callsLengths().error).toEqual(0);
@@ -78,7 +78,7 @@ describe("integration-main", () => {
   it("insert one entry and process", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectDone(tx);
@@ -88,7 +88,7 @@ describe("integration-main", () => {
   it("insert one delayed entry and process - should not be processed", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 15 }));
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectOpen(tx);
@@ -98,7 +98,7 @@ describe("integration-main", () => {
   it("if process event returns an error --> tx should be rolled backed", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     jest
       .spyOn(EventQueueTest.prototype, "processEvent")
       .mockImplementationOnce(async (processContext, key, queueEntries) => {
@@ -114,7 +114,7 @@ describe("integration-main", () => {
   it("if process event throws an error --> tx should be rolled backed", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     jest.spyOn(EventQueueTest.prototype, "processEvent").mockImplementationOnce(async (processContext) => {
       await cds.tx(processContext).run(SELECT.from("sap.eventqueue.Lock"));
       throw new Error("error during processing");
@@ -129,7 +129,7 @@ describe("integration-main", () => {
   it("if cluster methods throws an error --> entry should not be processed + status should be error", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     jest.spyOn(EventQueueTest.prototype, "clusterQueueEntries").mockImplementationOnce(() => {
       throw new Error("error during processing");
     });
@@ -144,7 +144,7 @@ describe("integration-main", () => {
   it("if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     jest.spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload").mockImplementationOnce(() => {
       throw new Error("error during processing");
     });
@@ -158,7 +158,7 @@ describe("integration-main", () => {
   it("if modifyQueueEntry methods throws an error --> entry should not be processed + status should be error", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     jest.spyOn(EventQueueTest.prototype, "modifyQueueEntry").mockImplementationOnce(() => {
       throw new Error("error during processing");
     });
@@ -193,7 +193,7 @@ describe("integration-main", () => {
         return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Exceeded]);
       });
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectExceeded(tx, 1);
@@ -210,7 +210,7 @@ describe("integration-main", () => {
   });
 
   it("should do nothing if lock for event combination cannot be acquired", async () => {
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     await cds.tx({}, async (tx2) => {
       await testHelper.insertEventEntry(tx2);
       await distributedLock.acquireLock(tx2.context, [event.type, event.subType].join("##"));
@@ -230,7 +230,7 @@ describe("integration-main", () => {
       await eventQueue.publishEvent(tx2, event);
     });
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectDone(tx, 0);
@@ -240,7 +240,7 @@ describe("integration-main", () => {
   it("lock wait timeout during keepAlive", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
-    const event = eventQueue.getConfigInstance().events[0];
+    const event = eventQueue.config.events[0];
 
     const db = await cds.connect.to("db");
     let doCheck = true;
@@ -467,7 +467,7 @@ describe("integration-main", () => {
         event.attempts = 3;
         await eventQueue.publishEvent(tx2, event);
       });
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(loggerMock.callsLengths().warn).toEqual(1);
@@ -494,7 +494,7 @@ describe("integration-main", () => {
         event.attempts = 3;
         await eventQueue.publishEvent(tx2, event);
       });
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.callsLengths().warn).toEqual(0);
@@ -532,7 +532,7 @@ describe("integration-main", () => {
       });
 
       // First iteration with error
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.callsLengths().warn).toEqual(0);
@@ -575,7 +575,7 @@ describe("integration-main", () => {
         await eventQueue.publishEvent(tx2, event);
       });
 
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.callsLengths().warn).toEqual(0);
@@ -628,7 +628,7 @@ describe("integration-main", () => {
         await eventQueue.publishEvent(tx2, [event, event1]);
       });
 
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(
         await tx.run(SELECT.from("sap.eventqueue.Event").orderBy("status").columns("status", "attempts"))
@@ -642,7 +642,7 @@ describe("integration-main", () => {
 
   describe("periodic events", () => {
     beforeAll(async () => {
-      eventQueue.getConfigInstance().initialized = false;
+      eventQueue.config.initialized = false;
       const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
       await eventQueue.initialize({
         configFilePath,
@@ -651,8 +651,8 @@ describe("integration-main", () => {
       });
     });
 
-    it("insert periodic event and process - should call schedule next", async () => {
-      const event = eventQueue.getConfigInstance().periodicEvents[0];
+    it("insert and process - should call schedule next", async () => {
+      const event = eventQueue.config.periodicEvents[0];
       await cds.tx({}, async (tx2) => {
         checkAndInsertPeriodicEventsMock.mockRestore();
         await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
@@ -668,8 +668,8 @@ describe("integration-main", () => {
       await testHelper.selectEventQueueAndExpectDone(tx);
     });
 
-    it("insert periodic event and process - should handle if the event is already running - execute anyway", async () => {
-      const event = eventQueue.getConfigInstance().periodicEvents[0];
+    it("insert process - should handle if the event is already running - execute anyway", async () => {
+      const event = eventQueue.config.periodicEvents[0];
       await cds.tx({}, async (tx2) => {
         checkAndInsertPeriodicEventsMock.mockRestore();
         await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
@@ -702,8 +702,81 @@ describe("integration-main", () => {
       });
     });
 
-    it("insert periodic event and process - next event should be scheduled with correct params", async () => {
-      const event = eventQueue.getConfigInstance().periodicEvents[0];
+    it("if delayed within the next two intervals should schedule next and execute direct", async () => {
+      const event = eventQueue.config.periodicEvents[0];
+      const newDate = new Date(Date.now() - 35 * 1000);
+      await cds.tx({}, async (tx2) => {
+        checkAndInsertPeriodicEventsMock.mockRestore();
+        await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        await tx2.run(
+          UPDATE.entity("sap.eventqueue.Event").set({
+            startAfter: newDate,
+          })
+        );
+      });
+      const scheduleNextSpy = jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent");
+
+      await processEventQueue(context, event.type, event.subType);
+
+      expect(scheduleNextSpy).toHaveBeenCalledTimes(2);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      const [done, done2, open] = events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
+      expect(done).toEqual({
+        status: EventProcessingStatus.Done,
+        attempts: 1,
+        startAfter: newDate.toISOString(),
+      });
+      expect(done2).toEqual({
+        status: EventProcessingStatus.Done,
+        attempts: 1,
+        startAfter: new Date(newDate.getTime() + 30 * 1000).toISOString(),
+      });
+      expect(open).toEqual({
+        status: EventProcessingStatus.Open,
+        attempts: 0,
+        startAfter: new Date(newDate.getTime() + 60 * 1000).toISOString(),
+      });
+    });
+
+    it("if delayed more than next two intervals should schedule next and execute direct - should adjust interval", async () => {
+      const event = eventQueue.config.periodicEvents[0];
+      const newDate = new Date(Date.now() - 65 * 1000);
+      await cds.tx({}, async (tx2) => {
+        checkAndInsertPeriodicEventsMock.mockRestore();
+        await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        await tx2.run(
+          UPDATE.entity("sap.eventqueue.Event").set({
+            startAfter: newDate,
+          })
+        );
+      });
+      const scheduleNextSpy = jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent");
+
+      await processEventQueue(context, event.type, event.subType);
+
+      expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(
+        loggerMock.calls().info.find(([log]) => log === "interval adjusted because shifted more than one interval")
+      ).toBeTruthy();
+      const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const [done, open] = events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
+      expect(done).toEqual({
+        status: EventProcessingStatus.Done,
+        attempts: 1,
+        startAfter: newDate.toISOString(),
+      });
+      expect(open).toEqual({
+        status: EventProcessingStatus.Open,
+        attempts: 0,
+        startAfter: expect.anything(),
+      });
+      expect(new Date(open.startAfter) <= new Date(Date.now() + 30 * 1000)).toBeTruthy();
+    });
+
+    it("insert and process - next event should be scheduled with correct params", async () => {
+      const event = eventQueue.config.periodicEvents[0];
       const scheduler = eventScheduler.getInstance();
       const scheduleEventSpy = jest.spyOn(scheduler, "scheduleEvent").mockReturnValueOnce();
       await cds.tx({}, async (tx2) => {
@@ -714,7 +787,7 @@ describe("integration-main", () => {
       await processEventQueue(context, event.type, event.subType);
 
       expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
-      expect(scheduleEventSpy.mock.calls[0]).toEqual([undefined, "HealthCheck", "DB", expect.anything()]);
+      expect(scheduleEventSpy.mock.calls[0]).toEqual([undefined, "HealthCheck_PERIODIC", "DB", expect.anything()]);
       expect(loggerMock.callsLengths().error).toEqual(0);
       const events = await testHelper.selectEventQueueAndReturn(tx, 2);
       const [open, done] = events.sort((a, b) => a.status - b.status);
@@ -732,7 +805,7 @@ describe("integration-main", () => {
 
     describe("transactions modes", () => {
       it("always rollback", async () => {
-        const event = eventQueue.getConfigInstance().periodicEvents[0];
+        const event = eventQueue.config.periodicEvents[0];
         await cds.tx({}, async (tx2) => {
           checkAndInsertPeriodicEventsMock.mockRestore();
           await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
@@ -752,7 +825,7 @@ describe("integration-main", () => {
       });
 
       it("always commit", async () => {
-        const event = eventQueue.getConfigInstance().periodicEvents[0];
+        const event = eventQueue.config.periodicEvents[0];
         event.transactionMode = "alwaysCommit";
         await cds.tx({}, async (tx2) => {
           checkAndInsertPeriodicEventsMock.mockRestore();
@@ -777,7 +850,7 @@ describe("integration-main", () => {
   describe("end-to-end", () => {
     beforeAll(async () => {
       checkAndInsertPeriodicEventsMock = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
-      eventQueue.getConfigInstance().initialized = false;
+      eventQueue.config.initialized = false;
       const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
       await eventQueue.initialize({
         configFilePath,
@@ -794,7 +867,7 @@ describe("integration-main", () => {
 
     it("insert one delayed entry and process - should be processed after timeout", async () => {
       await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 5 }));
-      const event = eventQueue.getConfigInstance().events[0];
+      const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectOpen(tx);

@@ -11,7 +11,7 @@ const COMPONENT_NAME = "eventQueue/redisPubSub";
 let subscriberClientPromise;
 
 const initEventQueueRedisSubscribe = () => {
-  if (subscriberClientPromise || !config.getConfigInstance().redisEnabled) {
+  if (subscriberClientPromise || !config.redisEnabled) {
     return;
   }
   redis.subscribeRedisChannel(EVENT_MESSAGE_CHANNEL, messageHandlerProcessEvents);
@@ -36,9 +36,8 @@ const messageHandlerProcessEvents = async (messageData) => {
 
 const broadcastEvent = async (tenantId, type, subType) => {
   const logger = cds.log(COMPONENT_NAME);
-  const configInstance = config.getConfigInstance();
-  if (!configInstance.redisEnabled) {
-    if (configInstance.registerAsEventProcessor) {
+  if (!config.redisEnabled) {
+    if (config.registerAsEventProcessor) {
       await runEventCombinationForTenant(tenantId, type, subType);
     }
     return;

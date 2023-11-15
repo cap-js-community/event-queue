@@ -28,13 +28,12 @@ const EventQueueError = require("./EventQueueError");
  * @returns {Promise} Returns a promise which resolves to the result of the database insert operation.
  */
 const publishEvent = async (tx, events, skipBroadcast = false) => {
-  const configInstance = config.getConfigInstance();
-  if (!configInstance.initialized) {
+  if (!config.initialized) {
     throw EventQueueError.notInitialized();
   }
   const eventsForProcessing = Array.isArray(events) ? events : [events];
   for (const { type, subType, startAfter } of eventsForProcessing) {
-    const eventConfig = configInstance.getEventConfig(type, subType);
+    const eventConfig = config.getEventConfig(type, subType);
     if (!eventConfig) {
       throw EventQueueError.unknownEventType(type, subType);
     }
@@ -47,7 +46,7 @@ const publishEvent = async (tx, events, skipBroadcast = false) => {
     }
   }
   tx._skipEventQueueBroadcase = skipBroadcast;
-  const result = await tx.run(INSERT.into(configInstance.tableNameEventQueue).entries(eventsForProcessing));
+  const result = await tx.run(INSERT.into(config.tableNameEventQueue).entries(eventsForProcessing));
   tx._skipEventQueueBroadcase = false;
   return result;
 };

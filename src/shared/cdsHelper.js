@@ -94,7 +94,7 @@ class TriggerRollback extends VError {
 }
 
 const getSubdomainForTenantId = async (tenantId) => {
-  if (!config.getConfigInstance().isMultiTenancy) {
+  if (!config.isMultiTenancy) {
     return null;
   }
   if (subdomainCache[tenantId]) {
@@ -111,7 +111,7 @@ const getSubdomainForTenantId = async (tenantId) => {
 };
 
 const getAllTenantIds = async () => {
-  if (!config.getConfigInstance().isMultiTenancy) {
+  if (!config.isMultiTenancy) {
     return null;
   }
   const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
