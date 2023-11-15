@@ -38,9 +38,8 @@ class EventScheduler {
   }
 
   calculateOffset(type, subType, startAfter) {
-    const configInstance = config.getConfigInstance();
-    const eventConfig = configInstance.getEventConfig(type, subType);
-    const scheduleWithoutDelay = configInstance.isPeriodicEvent(type, subType) && eventConfig.interval < 30 * 1000;
+    const eventConfig = config.getEventConfig(type, subType);
+    const scheduleWithoutDelay = config.isPeriodicEvent(type, subType) && eventConfig.interval < 30 * 1000;
     const date = scheduleWithoutDelay ? startAfter : this.calculateFutureTime(startAfter, 10);
 
     return { date, relative: date.getTime() - Date.now() };

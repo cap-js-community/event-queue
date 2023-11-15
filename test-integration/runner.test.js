@@ -41,7 +41,7 @@ describe("redisRunner", () => {
       processEventsAfterPublish: false,
       registerAsEventProcessor: false,
     });
-    configInstance = eventQueue.getConfigInstance();
+    configInstance = eventQueue.config;
     configInstance.redisEnabled = true;
     jest.clearAllMocks();
   });

@@ -4,7 +4,7 @@ const pathLib = require("path");
 
 const cds = require("@sap/cds");
 
-const { getConfigInstance } = require("./config");
+const config = require("./config");
 const { TransactionMode } = require("./constants");
 const { limiter, Funnel } = require("./shared/common");
 
@@ -29,7 +29,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
   let baseInstance;
   try {
     let eventTypeInstance;
-    const eventConfig = getConfigInstance().getEventConfig(eventType, eventSubType);
+    const eventConfig = config.getEventConfig(eventType, eventSubType);
     const [err, EventTypeClass] = resilientRequire(eventConfig?.impl);
     if (!eventConfig || err || !(typeof EventTypeClass.constructor === "function")) {
       cds.log(COMPONENT_NAME).error("No Implementation found in the provided configuration file.", {

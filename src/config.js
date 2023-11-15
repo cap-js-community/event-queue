@@ -6,8 +6,6 @@ const { getEnvInstance } = require("./shared/env");
 const redis = require("./shared/redis");
 const EventQueueError = require("./EventQueueError");
 
-let instance;
-
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
 const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
@@ -33,6 +31,7 @@ class Config {
   #env;
   #eventMap;
   #updatePeriodicEvents;
+  static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
     this.#config = null;
@@ -112,15 +111,18 @@ class Config {
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
-      this.validatePeriodicConfig(result, event);
+      const SUFFIX_PERIODIC = "_PERIODIC";
+      event.type = `${event.type}${SUFFIX_PERIODIC}`;
       event.isPeriodic = true;
+      this.validatePeriodicConfig(result, event);
       result[[event.type, event.subType].join("##")] = event;
       return result;
     }, this.#eventMap);
   }
 
   validatePeriodicConfig(eventMap, config) {
-    if (eventMap[this.generateKey(config.type, config.subType)]) {
+    const key = this.generateKey(config.type, config.subType);
+    if (eventMap[key] && eventMap[key].isPeriodic) {
       throw EventQueueError.duplicateEventRegistration(config.type, config.subType);
     }
 
@@ -134,7 +136,8 @@ class Config {
   }
 
   validateAdHocEvents(eventMap, config) {
-    if (eventMap[this.generateKey(config.type, config.subType)]) {
+    const key = this.generateKey(config.type, config.subType);
+    if (eventMap[key] && !eventMap[key].isPeriodic) {
       throw EventQueueError.duplicateEventRegistration(config.type, config.subType);
     }
 
@@ -274,15 +277,18 @@ class Config {
   get isMultiTenancy() {
     return !!cds.requires.multitenancy;
   }
+
+  /**
+    @return { Config }
+  **/
+  static get instance() {
+    if (!Config.#instance) {
+      Config.#instance = new Config();
+    }
+    return Config.#instance;
+  }
 }
 
-const getConfigInstance = () => {
-  if (!instance) {
-    instance = new Config();
-  }
-  return instance;
-};
+const instance = Config.instance;
 
-module.exports = {
-  getConfigInstance,
-};
+module.exports = instance;

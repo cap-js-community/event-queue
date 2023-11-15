@@ -29,8 +29,7 @@ const multiTenancyRedis = () => _scheduleFunction(_multiTenancyPeriodicEvents, _
 
 const _scheduleFunction = async (singleRunFn, periodicFn) => {
   const logger = cds.log(COMPONENT_NAME);
-  const configInstance = eventQueueConfig.getConfigInstance();
-  const eventsForAutomaticRun = configInstance.allEvents;
+  const eventsForAutomaticRun = eventQueueConfig.allEvents;
   if (!eventsForAutomaticRun.length) {
     logger.warn("no events for automatic run are configured - skipping runner registration");
     return;
@@ -38,7 +37,7 @@ const _scheduleFunction = async (singleRunFn, periodicFn) => {
 
   const fnWithRunningCheck = () => {
     const logger = cds.log(COMPONENT_NAME);
-    if (configInstance.isRunnerDeactivated) {
+    if (eventQueueConfig.isRunnerDeactivated) {
       logger.info("runner is deactivated via config variable. Skipping this run.");
       return;
     }
@@ -57,7 +56,7 @@ const _scheduleFunction = async (singleRunFn, periodicFn) => {
 
   setTimeout(() => {
     fnWithRunningCheck();
-    const intervalRunner = new SetIntervalDriftSafe(configInstance.runInterval);
+    const intervalRunner = new SetIntervalDriftSafe(eventQueueConfig.runInterval);
     intervalRunner.run(fnWithRunningCheck);
   }, offsetDependingOnLastRun).unref();
 };
@@ -94,14 +93,13 @@ const _checkAndTriggerPeriodicEventUpdate = (tenantIds) => {
 };
 
 const _executeAllTenantsGeneric = (tenantIds, runId, fn) => {
-  const configInstance = eventQueueConfig.getConfigInstance();
   const workerQueueInstance = getWorkerPoolInstance();
   tenantIds.forEach((tenantId) => {
     workerQueueInstance.addToQueue(async () => {
       try {
         const tenantContext = new cds.EventContext({ tenant: tenantId });
         const couldAcquireLock = await distributedLock.acquireLock(tenantContext, runId, {
-          expiryTime: configInstance.runInterval * 0.95,
+          expiryTime: eventQueueConfig.runInterval * 0.95,
         });
         if (!couldAcquireLock) {
           return;
@@ -123,9 +121,8 @@ const _executePeriodicEventsAllTenants = (tenantIds, runId) =>
 
 const _executeRunForTenant = async (tenantId, runId) => {
   const logger = cds.log(COMPONENT_NAME);
-  const configInstance = eventQueueConfig.getConfigInstance();
   try {
-    const eventsForAutomaticRun = configInstance.allEvents;
+    const eventsForAutomaticRun = eventQueueConfig.allEvents;
     const subdomain = await cdsHelper.getSubdomainForTenantId(tenantId);
     const context = new cds.EventContext({
       tenant: tenantId,
@@ -142,23 +139,22 @@ const _executeRunForTenant = async (tenantId, runId) => {
   } catch (err) {
     logger.error(`Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`, {
       tenantId,
-      redisEnabled: configInstance.redisEnabled,
+      redisEnabled: eventQueueConfig.redisEnabled,
     });
   }
 };
 
 const _acquireRunId = async (context) => {
-  const configInstance = eventQueueConfig.getConfigInstance();
   let runId = randomUUID();
   const couldSetValue = await distributedLock.setValueWithExpire(context, EVENT_QUEUE_RUN_ID, runId, {
     tenantScoped: false,
-    expiryTime: configInstance.runInterval * 0.95,
+    expiryTime: eventQueueConfig.runInterval * 0.95,
   });
 
   if (couldSetValue) {
     await distributedLock.setValueWithExpire(context, EVENT_QUEUE_RUN_TS, new Date().toISOString(), {
       tenantScoped: false,
-      expiryTime: configInstance.runInterval,
+      expiryTime: eventQueueConfig.runInterval,
       overrideValue: true,
     });
   } else {
@@ -171,13 +167,12 @@ const _acquireRunId = async (context) => {
 };
 
 const _calculateOffsetForFirstRun = async () => {
-  const configInstance = eventQueueConfig.getConfigInstance();
   let offsetDependingOnLastRun = OFFSET_FIRST_RUN;
   const now = Date.now();
   // NOTE: this is only supported with Redis, because this is a tenant agnostic information
   //       currently there is no proper place to store this information beside t0 schema
   try {
-    if (configInstance.redisEnabled) {
+    if (eventQueueConfig.redisEnabled) {
       const dummyContext = new cds.EventContext({});
       let lastRunTs = await distributedLock.checkLockExistsAndReturnValue(dummyContext, EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
@@ -186,7 +181,7 @@ const _calculateOffsetForFirstRun = async () => {
         const ts = new Date(now).toISOString();
         const couldSetValue = await distributedLock.setValueWithExpire(dummyContext, EVENT_QUEUE_RUN_TS, ts, {
           tenantScoped: false,
-          expiryTime: configInstance.runInterval,
+          expiryTime: eventQueueConfig.runInterval,
         });
         if (couldSetValue) {
           lastRunTs = ts;
@@ -196,7 +191,7 @@ const _calculateOffsetForFirstRun = async () => {
           });
         }
       }
-      offsetDependingOnLastRun = new Date(lastRunTs).getTime() + configInstance.runInterval - now;
+      offsetDependingOnLastRun = new Date(lastRunTs).getTime() + eventQueueConfig.runInterval - now;
     }
   } catch (err) {
     cds
@@ -256,8 +251,7 @@ const _multiTenancyPeriodicEvents = async () => {
 
 const _checkPeriodicEventsSingleTenant = async (tenantId) => {
   const logger = cds.log(COMPONENT_NAME);
-  const configInstance = eventQueueConfig.getConfigInstance();
-  if (!configInstance.updatePeriodicEvents) {
+  if (!eventQueueConfig.updatePeriodicEvents) {
     logger.info("updating of periodic events is disabled");
   }
   try {
@@ -278,7 +272,7 @@ const _checkPeriodicEventsSingleTenant = async (tenantId) => {
   } catch (err) {
     logger.error(`Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`, {
       tenantId,
-      redisEnabled: configInstance.redisEnabled,
+      redisEnabled: eventQueueConfig.redisEnabled,
     });
   }
 };

@@ -9,7 +9,7 @@ exports[`baseFunctionality basic insert all new events 1`] = `
         {
           "interval": 30,
           "subType": "DB",
-          "type": "HealthCheck",
+          "type": "HealthCheck_PERIODIC",
         },
       ],
     },
@@ -36,7 +36,7 @@ exports[`baseFunctionality delta insert 1`] = `
         {
           "interval": 30,
           "subType": "DB",
-          "type": "HealthCheck",
+          "type": "HealthCheck_PERIODIC",
         },
       ],
     },
@@ -48,7 +48,7 @@ exports[`baseFunctionality delta insert 1`] = `
         {
           "interval": 30,
           "subType": "DB2",
-          "type": "HealthCheck",
+          "type": "HealthCheck_PERIODIC",
         },
       ],
     },
@@ -80,7 +80,7 @@ exports[`baseFunctionality interval changed 1`] = `
         {
           "interval": 30,
           "subType": "DB",
-          "type": "HealthCheck",
+          "type": "HealthCheck_PERIODIC",
         },
       ],
     },
@@ -91,7 +91,7 @@ exports[`baseFunctionality interval changed 1`] = `
       "changedEvents": [
         {
           "subType": "DB",
-          "type": "HealthCheck",
+          "type": "HealthCheck_PERIODIC",
         },
       ],
     },
@@ -103,7 +103,7 @@ exports[`baseFunctionality interval changed 1`] = `
         {
           "interval": 10,
           "subType": "DB",
-          "type": "HealthCheck",
+          "type": "HealthCheck_PERIODIC",
         },
       ],
     },

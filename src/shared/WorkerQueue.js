@@ -2,7 +2,7 @@
 
 const cds = require("@sap/cds");
 
-const { getConfigInstance } = require("../config");
+const config = require("../config");
 
 const COMPONENT_NAME = "eventQueue/WorkerQueue";
 
@@ -56,8 +56,7 @@ class WorkerQueue {
 module.exports = {
   getWorkerPoolInstance: () => {
     if (!instance) {
-      const configInstance = getConfigInstance();
-      instance = new WorkerQueue(configInstance.parallelTenantProcessing);
+      instance = new WorkerQueue(config.parallelTenantProcessing);
     }
     return instance;
   },

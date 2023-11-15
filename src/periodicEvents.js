@@ -4,19 +4,18 @@ const cds = require("@sap/cds");
 
 const { EventProcessingStatus } = require("./constants");
 const { processChunkedSync } = require("./shared/common");
-const { getConfigInstance } = require("./config");
+const eventConfig = require("./config");
 
 const COMPONENT_NAME = "eventQueue/periodicEvents";
 
 const checkAndInsertPeriodicEvents = async (context) => {
   const tx = cds.tx(context);
-  const configInstance = getConfigInstance();
-  const baseCqn = SELECT.from(configInstance.tableNameEventQueue)
+  const baseCqn = SELECT.from(eventConfig.tableNameEventQueue)
     .where([
       { list: [{ ref: ["type"] }, { ref: ["subType"] }] },
       "IN",
       {
-        list: configInstance.periodicEvents.map((periodicEvent) => ({
+        list: eventConfig.periodicEvents.map((periodicEvent) => ({
           list: [{ val: periodicEvent.type }, { val: periodicEvent.subType }],
         })),
       },
@@ -30,7 +29,7 @@ const checkAndInsertPeriodicEvents = async (context) => {
 
   if (!currentPeriodEvents.length) {
     // fresh insert all
-    return await insertPeriodEvents(tx, configInstance.periodicEvents);
+    return await insertPeriodEvents(tx, eventConfig.periodicEvents);
   }
 
   const exitingEventMap = currentPeriodEvents.reduce((result, current) => {
@@ -39,7 +38,7 @@ const checkAndInsertPeriodicEvents = async (context) => {
     return result;
   }, {});
 
-  const { newEvents, existingEvents } = configInstance.periodicEvents.reduce(
+  const { newEvents, existingEvents } = eventConfig.periodicEvents.reduce(
     (result, event) => {
       if (exitingEventMap[_generateKey(event)]) {
         result.existingEvents.push(exitingEventMap[_generateKey(event)]);
@@ -53,7 +52,7 @@ const checkAndInsertPeriodicEvents = async (context) => {
 
   const currentDate = new Date();
   const exitingWithNotMatchingInterval = existingEvents.filter((existingEvent) => {
-    const config = configInstance.getEventConfig(existingEvent.type, existingEvent.subType);
+    const config = eventConfig.getEventConfig(existingEvent.type, existingEvent.subType);
     const eventStartAfter = new Date(existingEvent.startAfter);
     // check if to far in future
     const dueInWithNewInterval = new Date(currentDate.getTime() + config.interval * 1000);
@@ -65,7 +64,7 @@ const checkAndInsertPeriodicEvents = async (context) => {
       changedEvents: exitingWithNotMatchingInterval.map(({ type, subType }) => ({ type, subType })),
     });
   await tx.run(
-    DELETE.from(configInstance.tableNameEventQueue).where(
+    DELETE.from(eventConfig.tableNameEventQueue).where(
       "ID IN",
       exitingWithNotMatchingInterval.map(({ ID }) => ID)
     )
@@ -82,11 +81,10 @@ const checkAndInsertPeriodicEvents = async (context) => {
 
 const insertPeriodEvents = async (tx, events) => {
   const startAfter = new Date();
-  const configInstance = getConfigInstance();
   processChunkedSync(events, 4, (chunk) => {
     cds.log(COMPONENT_NAME).info("inserting changed or new periodic events", {
       events: chunk.map(({ type, subType }) => {
-        const { interval } = configInstance.getEventConfig(type, subType);
+        const { interval } = eventConfig.getEventConfig(type, subType);
         return { type, subType, interval };
       }),
     });
@@ -98,7 +96,7 @@ const insertPeriodEvents = async (tx, events) => {
   }));
 
   tx._skipEventQueueBroadcase = true;
-  await tx.run(INSERT.into(configInstance.tableNameEventQueue).entries(periodEventsInsert));
+  await tx.run(INSERT.into(eventConfig.tableNameEventQueue).entries(periodEventsInsert));
   tx._skipEventQueueBroadcase = false;
 };
 

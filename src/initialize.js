@@ -11,7 +11,7 @@ const VError = require("verror");
 const EventQueueError = require("./EventQueueError");
 const runner = require("./runner");
 const dbHandler = require("./dbHandler");
-const { getConfigInstance } = require("./config");
+const config = require("./config");
 const { initEventQueueRedisSubscribe, closeSubscribeClient } = require("./redisPubSub");
 const { closeMainClient } = require("./shared/redis");
 
@@ -54,11 +54,10 @@ const initialize = async ({
   // - content of yaml check
   // - betweenRuns and parallelTenantProcessing
 
-  const configInstance = getConfigInstance();
-  if (configInstance.initialized) {
+  if (config.initialized) {
     return;
   }
-  configInstance.initialized = true;
+  config.initialized = true;
 
   mixConfigVarsWithEnv(
     configFilePath,
@@ -75,24 +74,24 @@ const initialize = async ({
   );
 
   const logger = cds.log(COMPONENT);
-  configInstance.fileContent = await readConfigFromFile(configInstance.configFilePath);
-  configInstance.checkRedisEnabled();
+  config.fileContent = await readConfigFromFile(config.configFilePath);
+  config.checkRedisEnabled();
 
   const dbService = await cds.connect.to("db");
   await (cds.model ? Promise.resolve() : new Promise((resolve) => cds.on("serving", resolve)));
-  !configInstance.skipCsnCheck && (await csnCheck());
-  if (configInstance.processEventsAfterPublish) {
+  !config.skipCsnCheck && (await csnCheck());
+  if (config.processEventsAfterPublish) {
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
   registerEventProcessors();
   registerCdsShutdown();
   logger.info("event queue initialized", {
-    registerAsEventProcessor: configInstance.registerAsEventProcessor,
-    multiTenancyEnabled: configInstance.isMultiTenancy,
-    redisEnabled: configInstance.redisEnabled,
-    runInterval: configInstance.runInterval,
-    parallelTenantProcessing: configInstance.parallelTenantProcessing,
+    registerAsEventProcessor: config.registerAsEventProcessor,
+    multiTenancyEnabled: config.isMultiTenancy,
+    redisEnabled: config.redisEnabled,
+    runInterval: config.runInterval,
+    config: config.parallelTenantProcessing,
   });
 };
 
@@ -114,22 +113,20 @@ const readConfigFromFile = async (configFilepath) => {
 };
 
 const registerEventProcessors = () => {
-  const configInstance = getConfigInstance();
-
-  if (!configInstance.registerAsEventProcessor) {
+  if (!config.registerAsEventProcessor) {
     return;
   }
 
   const errorHandler = (err) => cds.log(COMPONENT).error("error during init runner", err);
 
-  if (!configInstance.isMultiTenancy) {
+  if (!config.isMultiTenancy) {
     runner.singleTenant().catch(errorHandler);
     return;
   }
 
-  if (configInstance.redisEnabled) {
+  if (config.redisEnabled) {
     initEventQueueRedisSubscribe();
-    configInstance.attachConfigChangeHandler();
+    config.attachConfigChangeHandler();
     runner.multiTenancyRedis().catch(errorHandler);
   } else {
     runner.multiTenancyDb().catch(errorHandler);
@@ -137,21 +134,17 @@ const registerEventProcessors = () => {
 };
 
 const csnCheck = async () => {
-  const configInstance = getConfigInstance();
-  const eventCsn = cds.model.definitions[configInstance.tableNameEventQueue];
+  const eventCsn = cds.model.definitions[config.tableNameEventQueue];
   if (!eventCsn) {
-    throw EventQueueError.missingTableInCsn(configInstance.tableNameEventQueue);
+    throw EventQueueError.missingTableInCsn(config.tableNameEventQueue);
   }
 
-  const lockCsn = cds.model.definitions[configInstance.tableNameEventLock];
+  const lockCsn = cds.model.definitions[config.tableNameEventLock];
   if (!lockCsn) {
-    throw EventQueueError.missingTableInCsn(configInstance.tableNameEventLock);
+    throw EventQueueError.missingTableInCsn(config.tableNameEventLock);
   }
 
-  if (
-    configInstance.tableNameEventQueue === BASE_TABLES.EVENT &&
-    configInstance.tableNameEventLock === BASE_TABLES.LOCK
-  ) {
+  if (config.tableNameEventQueue === BASE_TABLES.EVENT && config.tableNameEventLock === BASE_TABLES.LOCK) {
     return; // no need to check base tables
   }
 
@@ -181,10 +174,9 @@ const checkCustomTable = (baseCsn, customCsn) => {
 };
 
 const mixConfigVarsWithEnv = (...args) => {
-  const configInstance = getConfigInstance();
   CONFIG_VARS.forEach(([configName, defaultValue], index) => {
     const configValue = args[index];
-    configInstance[configName] = configValue ?? cds.env.eventQueue?.[configName] ?? defaultValue;
+    config[configName] = configValue ?? cds.env.eventQueue?.[configName] ?? defaultValue;
   });
 };
 

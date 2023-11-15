@@ -11,7 +11,7 @@
 
 module.exports = {
   ...require("./initialize"),
-  ...require("./config"),
+  config: require("./config"),
   ...require("./processEventQueue"),
   ...require("./dbHandler"),
   ...require("./constants"),

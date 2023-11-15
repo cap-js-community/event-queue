@@ -8,7 +8,7 @@ const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
 const { arrayToFlatMap } = require("./shared/common");
 const eventScheduler = require("./shared/eventScheduler");
-const eventQueueConfig = require("./config");
+const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
@@ -33,6 +33,7 @@ class EventQueueProcessorBase {
   #config = null;
   #eventSchedulerInstance = null;
   #eventConfig;
+  #isPeriodic;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -40,11 +41,14 @@ class EventQueueProcessorBase {
     this.__tx = cds.tx(context);
     this.__baseLogger = cds.log(COMPONENT_NAME);
     this.#eventSchedulerInstance = eventScheduler.getInstance();
+    this.#config = eventConfig;
+    this.#isPeriodic = this.#config.isPeriodicEvent(eventType, eventSubType);
     this.__logger = null;
     this.__eventProcessingMap = {};
     this.__statusMap = {};
     this.__commitedStatusMap = {};
     this.#eventType = eventType;
+    // this.#eventType = `${eventType}${this.#isPeriodic ? SUFFIX_PERIODIC : ""}`;
     this.#eventSubType = eventSubType;
     this.#eventConfig = config ?? {};
     this.__parallelEventProcessing = this.#eventConfig.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
@@ -74,7 +78,6 @@ class EventQueueProcessorBase {
     this.__txUsageAllowed = true;
     this.__txMap = {};
     this.__txRollback = {};
-    this.#config = eventQueueConfig.getConfigInstance();
     this.__queueEntries = [];
   }
 

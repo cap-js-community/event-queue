@@ -3,7 +3,7 @@
 const cds = require("@sap/cds");
 
 const { getInstance: getEventSchedulerInstance } = require("../src/shared/eventScheduler");
-const { getConfigInstance } = require("../src/config");
+const config = require("../src/config");
 const { broadcastEvent } = require("../src/redisPubSub");
 
 jest.mock("@sap/cds", () => ({
@@ -32,11 +32,10 @@ describe("EventScheduler", () => {
 
   beforeAll(() => {
     eventScheduler = getEventSchedulerInstance();
-    const configInstance = getConfigInstance();
-    jest.spyOn(configInstance, "getEventConfig").mockReturnValue({
+    jest.spyOn(config, "getEventConfig").mockReturnValue({
       interval: 60,
     });
-    jest.spyOn(configInstance, "isPeriodicEvent").mockReturnValue(false);
+    jest.spyOn(config, "isPeriodicEvent").mockReturnValue(false);
     jest.useFakeTimers();
   });
 
