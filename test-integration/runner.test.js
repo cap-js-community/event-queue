@@ -13,7 +13,7 @@ const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
 jest.spyOn(cdsHelper, "getSubdomainForTenantId").mockResolvedValue("dummy");
 const processEventQueue = require("../src/processEventQueue");
 
-const eventQueueRunnerSpy = jest.spyOn(processEventQueue, "eventQueueRunner").mockImplementation(
+const processEventQueueSpy = jest.spyOn(processEventQueue, "processEventQueue").mockImplementation(
   async () =>
     new Promise((resolve) => {
       setTimeout(resolve, 10);
@@ -35,7 +35,7 @@ describe("redisRunner", () => {
   let context, tx, configInstance;
 
   beforeAll(async () => {
-    const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
+    const configFilePath = path.join(__dirname, "..", "./test", "asset", "configSmall.yml");
     await eventQueue.initialize({
       configFilePath,
       processEventsAfterPublish: false,
@@ -84,7 +84,7 @@ describe("redisRunner", () => {
     expect(setValueWithExpireSpy).toHaveBeenCalledTimes(3);
     expect(checkLockExistsAndReturnValueSpy).toHaveBeenCalledTimes(1);
     expect(acquireLockSpy).toHaveBeenCalledTimes(6);
-    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
 
     const acquireLockMock = acquireLockSpy.mock;
     const runId = acquireLockMock.calls[0][1];
@@ -107,7 +107,7 @@ describe("redisRunner", () => {
     await promisify(setTimeout)(500);
     await Promise.allSettled(workerQueue.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
-    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
   });
 
   it("db", async () => {
@@ -123,16 +123,16 @@ describe("redisRunner", () => {
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds);
-    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(0);
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
     const p1 = runner._._multiTenancyDb();
     const p2 = runner._._multiTenancyDb();
     await Promise.allSettled([p1, p2]);
     await Promise.allSettled(workerQueue.runningPromises);
-    await promisify(setTimeout)(500);
+    await promisify(setTimeout)(800);
     await Promise.allSettled(workerQueue.runningPromises);
 
     expect(acquireLockSpy).toHaveBeenCalledTimes(6);
-    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
 
     const acquireLockMock = acquireLockSpy.mock;
     const runId = acquireLockMock.calls[0][1];
@@ -154,7 +154,7 @@ describe("redisRunner", () => {
     await runner._._multiTenancyDb();
     await promisify(setTimeout)(500);
     await Promise.allSettled(workerQueue.runningPromises);
-    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(3);
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
 
     // 5 min's later the tenants should be processed again
@@ -170,7 +170,7 @@ describe("redisRunner", () => {
     await promisify(setTimeout)(500);
     await Promise.allSettled(workerQueue.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(12);
-    expect(eventQueueRunnerSpy).toHaveBeenCalledTimes(6);
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
     jest.spyOn(cds, "tx").mockRestore();
   });
 

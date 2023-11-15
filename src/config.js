@@ -11,6 +11,7 @@ const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
 const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
 const COMPONENT_NAME = "eventQueue/config";
 const MIN_INTERVAL_SEC = 10;
+const DEFAULT_LOAD = 1;
 
 class Config {
   #logger;
@@ -106,11 +107,13 @@ class Config {
     config.events = config.events ?? [];
     config.periodicEvents = config.periodicEvents ?? [];
     this.#eventMap = config.events.reduce((result, event) => {
+      event.load = event.load ?? DEFAULT_LOAD;
       this.validateAdHocEvents(result, event);
       result[[event.type, event.subType].join("##")] = event;
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
+      event.load = event.load ?? DEFAULT_LOAD;
       const SUFFIX_PERIODIC = "_PERIODIC";
       event.type = `${event.type}${SUFFIX_PERIODIC}`;
       event.isPeriodic = true;
