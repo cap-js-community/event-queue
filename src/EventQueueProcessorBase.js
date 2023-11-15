@@ -48,7 +48,6 @@ class EventQueueProcessorBase {
     this.__statusMap = {};
     this.__commitedStatusMap = {};
     this.#eventType = eventType;
-    // this.#eventType = `${eventType}${this.#isPeriodic ? SUFFIX_PERIODIC : ""}`;
     this.#eventSubType = eventSubType;
     this.#eventConfig = config ?? {};
     this.__parallelEventProcessing = this.#eventConfig.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
@@ -875,6 +874,11 @@ class EventQueueProcessorBase {
       );
       // next tick is already behind schedule --> execute direct
       if (relativeAfterSchedule <= 0) {
+        this.logger.info("running behind schedule - executing next tick immediately", {
+          eventType: this.#eventType,
+          eventSubType: this.#eventSubType,
+          newStartAfter: newEvent.startAfter,
+        });
         return true;
       }
     }
