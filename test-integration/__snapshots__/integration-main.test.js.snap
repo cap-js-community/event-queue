@@ -49,7 +49,8 @@ exports[`integration-main hookForExceededEvents one which is exceeded and one fo
 exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 1`] = `
 [
   [
-    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: error during processing",
+    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions",
+    [Error: error during processing],
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
@@ -72,10 +73,11 @@ exports[`integration-main if checkEventAndGeneratePayload methods throws an erro
 }
 `;
 
-exports[`integration-main if cluster methods throws an error --> entry should not be processed + status should be error 1`] = `
+exports[`integration-main if cluster methods throws an error --> entry should not be processed + status should be error 2`] = `
 [
   [
-    "Error during clustering of events - setting all queue entries to error. Error: Error: error during processing",
+    "Error during clustering of events - setting all queue entries to error.",
+    [Error: error during processing],
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
@@ -84,7 +86,7 @@ exports[`integration-main if cluster methods throws an error --> entry should no
 ]
 `;
 
-exports[`integration-main if cluster methods throws an error --> entry should not be processed + status should be error 2`] = `
+exports[`integration-main if cluster methods throws an error --> entry should not be processed + status should be error 3`] = `
 {
   "BEGIN": 7,
   "COMMIT": 5,
@@ -99,7 +101,8 @@ exports[`integration-main if cluster methods throws an error --> entry should no
 exports[`integration-main if modifyQueueEntry methods throws an error --> entry should not be processed + status should be error 1`] = `
 [
   [
-    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: error during processing",
+    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions",
+    [Error: error during processing],
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
@@ -134,7 +137,7 @@ exports[`integration-main if process event returns an error --> tx should be rol
 }
 `;
 
-exports[`integration-main if process event throws an error --> tx should be rolled backed 1`] = `
+exports[`integration-main if process event throws an error --> tx should be rolled backed 2`] = `
 {
   "BEGIN": 9,
   "COMMIT": 6,
@@ -266,7 +269,7 @@ exports[`integration-main transactionMode=alwaysCommit one green with register r
 ]
 `;
 
-exports[`integration-main transactionMode=alwaysCommit one with error + one without error --> tx no rollback because mode alwaysCommit 1`] = `
+exports[`integration-main transactionMode=alwaysCommit one with error + one without error --> tx no rollback because mode alwaysCommit 2`] = `
 {
   "BEGIN": 8,
   "COMMIT": 7,
@@ -278,7 +281,7 @@ exports[`integration-main transactionMode=alwaysCommit one with error + one with
 }
 `;
 
-exports[`integration-main transactionMode=alwaysCommit one with error + one without error --> tx no rollback because mode alwaysCommit 2`] = `
+exports[`integration-main transactionMode=alwaysCommit one with error + one without error --> tx no rollback because mode alwaysCommit 3`] = `
 [
   {
     "attempts": 0,
@@ -320,7 +323,7 @@ exports[`integration-main transactionMode=alwaysRollback one green --> tx rollba
 ]
 `;
 
-exports[`integration-main transactionMode=alwaysRollback one with error + one without error --> tx rollback because mode alwaysRollback 1`] = `
+exports[`integration-main transactionMode=alwaysRollback one with error + one without error --> tx rollback because mode alwaysRollback 2`] = `
 {
   "BEGIN": 8,
   "COMMIT": 6,
@@ -332,7 +335,7 @@ exports[`integration-main transactionMode=alwaysRollback one with error + one wi
 }
 `;
 
-exports[`integration-main transactionMode=alwaysRollback one with error + one without error --> tx rollback because mode alwaysRollback 2`] = `
+exports[`integration-main transactionMode=alwaysRollback one with error + one without error --> tx rollback because mode alwaysRollback 3`] = `
 [
   {
     "attempts": 1,

@@ -111,7 +111,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       }
     }
   } catch (err) {
-    cds.log(COMPONENT_NAME).error("Processing event queue failed with unexpected error. Error:", err, {
+    cds.log(COMPONENT_NAME).error("Processing event queue failed with unexpected error.", err, {
       eventType,
       eventSubType,
     });
@@ -194,7 +194,7 @@ const processPeriodicEvent = async (eventTypeInstance) => {
       );
     }
   } catch (err) {
-    cds.log(COMPONENT_NAME).error("Processing periodic events failed with unexpected error. Error:", err, {
+    cds.log(COMPONENT_NAME).error("Processing periodic events failed with unexpected error.", err, {
       eventType: eventTypeInstance?.eventType,
       eventSubType: eventTypeInstance?.eventSubType,
     });

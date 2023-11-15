@@ -51,7 +51,7 @@ class WorkerQueue {
         resolve(...results);
       })
       .catch((err) => {
-        cds.log(COMPONENT_NAME).error("Error happened in WorkQueue. Errors should be caught before! Error:", err);
+        cds.log(COMPONENT_NAME).error("Error happened in WorkQueue. Errors should be caught before!", err);
         reject(err);
       });
   }

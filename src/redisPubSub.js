@@ -58,7 +58,7 @@ const broadcastEvent = async (tenantId, type, subType) => {
     });
     await redis.publishMessage(EVENT_MESSAGE_CHANNEL, JSON.stringify({ tenantId, type, subType }));
   } catch (err) {
-    logger.error(`publish event failed with error: ${err.toString()}`, {
+    logger.error("publish event failed!", err, {
       tenantId,
       type,
       subType,

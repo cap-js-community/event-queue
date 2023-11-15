@@ -3,7 +3,8 @@
 exports[`baseFunctionality ad-hoc events error handling handle checkEventAndGeneratePayload fails 1`] = `
 [
   [
-    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: syntax error",
+    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions",
+    [Error: syntax error],
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
@@ -18,7 +19,8 @@ exports[`baseFunctionality ad-hoc events error handling handle checkEventAndGene
 exports[`baseFunctionality ad-hoc events error handling handle clusterQueueEntries fails 1`] = `
 [
   [
-    "Error during clustering of events - setting all queue entries to error. Error: Error: syntax error",
+    "Error during clustering of events - setting all queue entries to error.",
+    [Error: syntax error],
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
@@ -30,7 +32,7 @@ exports[`baseFunctionality ad-hoc events error handling handle clusterQueueEntri
 exports[`baseFunctionality ad-hoc events error handling handle getQueueEntriesAndSetToInProgress fails 1`] = `
 [
   [
-    "Processing event queue failed with unexpected error. Error:",
+    "Processing event queue failed with unexpected error.",
     [Error: db error],
     {
       "eventSubType": "Task",
@@ -43,7 +45,7 @@ exports[`baseFunctionality ad-hoc events error handling handle getQueueEntriesAn
 exports[`baseFunctionality ad-hoc events error handling handle handleDistributedLock fails 1`] = `
 [
   [
-    "Processing event queue failed with unexpected error. Error:",
+    "Processing event queue failed with unexpected error.",
     [Error: lock require failed],
     {
       "eventSubType": "Task",
@@ -56,7 +58,8 @@ exports[`baseFunctionality ad-hoc events error handling handle handleDistributed
 exports[`baseFunctionality ad-hoc events error handling handle modifyQueueEntry fails 1`] = `
 [
   [
-    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: Error: syntax error",
+    "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions",
+    [Error: syntax error],
     {
       "eventSubType": "Task",
       "eventType": "Notifications",

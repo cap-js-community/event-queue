@@ -87,12 +87,13 @@ const _checkAndTriggerPeriodicEventUpdate = (tenantIds) => {
   if (tenantIdHash && tenantIdHash !== hash) {
     cds.log(COMPONENT_NAME).info("tenant id hash changed, triggering updating periodic events!");
     _multiTenancyPeriodicEvents().catch((err) => {
-      cds.log(COMPONENT_NAME).error("Error during triggering updating periodic events! Error:", err);
+      cds.log(COMPONENT_NAME).error("Error during triggering updating periodic events!", err);
     });
   }
 };
 
 const _executeAllTenantsGeneric = (tenantIds, runId, fn) => {
+  const events = eventQueueConfig.allEvents;
   tenantIds.forEach((tenantId) => {
     workerQueue.addToQueue(1, async () => {
       try {
@@ -136,7 +137,7 @@ const _executeRunForTenant = async (tenantId, runId) => {
     });
     await eventQueueRunner(context, eventsForAutomaticRun);
   } catch (err) {
-    logger.error(`Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`, {
+    logger.error("Couldn't process eventQueue for tenant! Next try after defined interval.", err, {
       tenantId,
       redisEnabled: eventQueueConfig.redisEnabled,
     });
@@ -195,10 +196,7 @@ const _calculateOffsetForFirstRun = async () => {
   } catch (err) {
     cds
       .log(COMPONENT_NAME)
-      .error(
-        "calculating offset for first run failed, falling back to default. Runs might be out-of-sync. Error:",
-        err
-      );
+      .error("calculating offset for first run failed, falling back to default. Runs might be out-of-sync.", err);
   }
   return offsetDependingOnLastRun;
 };
@@ -231,9 +229,7 @@ const _multiTenancyDb = async () => {
     _checkAndTriggerPeriodicEventUpdate(tenantIds);
     _executeAllTenants(tenantIds, EVENT_QUEUE_RUN_ID);
   } catch (err) {
-    logger.error(
-      `Couldn't fetch tenant ids for event queue processing! Next try after defined interval. Error: ${err}`
-    );
+    logger.error("Couldn't fetch tenant ids for event queue processing! Next try after defined interval.", err);
   }
 };
 
@@ -244,7 +240,7 @@ const _multiTenancyPeriodicEvents = async () => {
     const tenantIds = await cdsHelper.getAllTenantIds();
     _executePeriodicEventsAllTenants(tenantIds, EVENT_QUEUE_RUN_PERIODIC_EVENT);
   } catch (err) {
-    logger.error(`Couldn't fetch tenant ids for updating periodic event processing! Error: ${err}`);
+    logger.error("Couldn't fetch tenant ids for updating periodic event processing!", err);
   }
 };
 
@@ -269,7 +265,7 @@ const _checkPeriodicEventsSingleTenant = async (tenantId) => {
       await periodicEvents.checkAndInsertPeriodicEvents(tx.context);
     });
   } catch (err) {
-    logger.error(`Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`, {
+    logger.error("Couldn't process eventQueue for tenant! Next try after defined interval.", err, {
       tenantId,
       redisEnabled: eventQueueConfig.redisEnabled,
     });
