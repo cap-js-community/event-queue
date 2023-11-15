@@ -89,7 +89,7 @@ class EventQueueProcessorBase {
    * @param {Array<Object>} queueEntries this are the queueEntries which are collected during the clustering step for the given
    *        clustering key
    * @param {Object} payload resulting from the functions checkEventAndGeneratePayload and the clustering function
-   * @returns {Promise<Array <Array <String, Number>>>} Must return an array of the length of passed queueEntries
+   * @returns {Promise<Array <Array <String, Number>>> || undefined} Must return an array of the length of passed queueEntries
    *          This array needs to be nested based on the following structure: [ ["eventId1", EventProcessingStatus.Done],
    *          ["eventId2", EventProcessingStatus.Error] ]
    */
@@ -254,7 +254,8 @@ class EventQueueProcessorBase {
         this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error, statusMap)
       );
       this.logger.error(
-        `The supplied status tuple doesn't have the required structure. Setting all entries to error. Error: ${error.toString()}`,
+        "The supplied status tuple doesn't have the required structure. Setting all entries to error.",
+        error,
         {
           eventType: this.#eventType,
           eventSubType: this.#eventSubType,
@@ -295,7 +296,8 @@ class EventQueueProcessorBase {
   handleErrorDuringProcessing(error, queueEntries) {
     queueEntries = Array.isArray(queueEntries) ? queueEntries : [queueEntries];
     this.logger.error(
-      `Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions. Error: ${error}`,
+      "Caught error during event processing - setting queue entry to error. Please catch your promises/exceptions",
+      error,
       {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
@@ -309,14 +311,11 @@ class EventQueueProcessorBase {
   }
 
   handleErrorDuringPeriodicEventProcessing(error, queueEntry) {
-    this.logger.error(
-      `Caught error during event periodic processing. Please catch your promises/exceptions. Error: ${error}`,
-      {
-        eventType: this.#eventType,
-        eventSubType: this.#eventSubType,
-        queueEntryId: queueEntry.ID,
-      }
-    );
+    this.logger.error("Caught error during event periodic processing. Please catch your promises/exceptions.", error, {
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
+      queueEntryId: queueEntry.ID,
+    });
   }
 
   async setPeriodicEventStatus(queueEntryIds) {
@@ -491,7 +490,7 @@ class EventQueueProcessorBase {
   }
 
   handleErrorDuringClustering(error) {
-    this.logger.error(`Error during clustering of events - setting all queue entries to error. Error: ${error}`, {
+    this.logger.error("Error during clustering of events - setting all queue entries to error.", error, {
       eventType: this.#eventType,
       eventSubType: this.#eventSubType,
     });
@@ -677,7 +676,8 @@ class EventQueueProcessorBase {
             await this.#persistEventQueueStatusForExceeded(this.tx, [exceededEvent], EventProcessingStatus.Exceeded);
           } catch (err) {
             this.logger.error(
-              `Caught error during hook for exceeded events - setting queue entry to error. Please catch your promises/exceptions. Error: ${err}`,
+              "Caught error during hook for exceeded events - setting queue entry to error. Please catch your promises/exceptions.",
+              err,
               {
                 eventType: this.#eventType,
                 eventSubType: this.#eventSubType,
@@ -835,7 +835,7 @@ class EventQueueProcessorBase {
     try {
       await distributedLock.releaseLock(this.context, [this.#eventType, this.#eventSubType].join("##"));
     } catch (err) {
-      this.logger.error("Releasing distributed lock failed. Error:", err.toString());
+      this.logger.error("Releasing distributed lock failed.", err);
     }
   }
 

@@ -1,0 +1,9 @@
+events:
+  - type: Notifications
+    subType: Task
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    parallelEventProcessing: 5
+    processAfterCommit: true
+    transactionMode: alwaysRollback
+    deleteFinishedEventsAfterDays: 30

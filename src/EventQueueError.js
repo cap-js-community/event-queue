@@ -16,6 +16,7 @@ const ERROR_CODES = {
   MISSING_IMPL: "MISSING_IMPL",
   DUPLICATE_EVENT_REGISTRATION: "DUPLICATE_EVENT_REGISTRATION",
   NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
+  LOAD_HIGHER_THAN_LIMIT: "LOAD_HIGHER_THAN_LIMIT",
 };
 
 const ERROR_CODES_META = {
@@ -58,6 +59,9 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.NO_MANUEL_INSERT_OF_PERIODIC]: {
     message: "Periodic events are managed by the framework and are not allowed to insert manually.",
+  },
+  [ERROR_CODES.LOAD_HIGHER_THAN_LIMIT]: {
+    message: "The defined load of an event is higher than the maximum defined limit. Check your configuration!",
   },
 };
 
@@ -202,6 +206,16 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.NO_MANUEL_INSERT_OF_PERIODIC,
         info: { type, subType },
+      },
+      message
+    );
+  }
+  static loadHigherThanLimit(load) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.LOAD_HIGHER_THAN_LIMIT];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.LOAD_HIGHER_THAN_LIMIT,
+        info: { load },
       },
       message
     );

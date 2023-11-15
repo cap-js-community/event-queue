@@ -121,7 +121,7 @@ describe("integration-main", () => {
     });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(1);
-    expect(loggerMock.calls().error[0][0].includes("error during processing")).toBeTruthy();
+    expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
     await testHelper.selectEventQueueAndExpectError(tx);
     expect(dbCounts).toMatchSnapshot();
   });
@@ -135,7 +135,7 @@ describe("integration-main", () => {
     });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(1);
-    expect(loggerMock.calls().error[0][0].includes("error during processing")).toBeTruthy();
+    expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
     expect(loggerMock.calls().error).toMatchSnapshot();
     await testHelper.selectEventQueueAndExpectError(tx);
     expect(dbCounts).toMatchSnapshot();
@@ -356,7 +356,7 @@ describe("integration-main", () => {
       });
       await eventQueue.processEventQueue(context, "TransactionMode", "alwaysCommit");
       expect(loggerMock.callsLengths().error).toEqual(1);
-      expect(loggerMock.calls().error[0][0].includes("error during processing")).toBeTruthy();
+      expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
       expect(dbCounts).toMatchSnapshot();
       const events = await testHelper.selectEventQueueAndReturn(tx, 3);
       expect(events).toMatchSnapshot();
@@ -412,8 +412,7 @@ describe("integration-main", () => {
       });
       await eventQueue.processEventQueue(context, "TransactionMode", "alwaysRollback");
       expect(loggerMock.callsLengths().error).toEqual(1);
-      expect(loggerMock.calls().error[0][0].includes("error during processing")).toBeTruthy();
-      expect(loggerMock.calls().error[0][0].includes("error during processing")).toBeTruthy();
+      expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
       expect(dbCounts).toMatchSnapshot();
       const result = await testHelper.selectEventQueueAndReturn(tx, 2);
       expect(result).toMatchSnapshot();

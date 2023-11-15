@@ -4,7 +4,7 @@ const { randomUUID } = require("crypto");
 
 const eventQueueConfig = require("./config");
 const { eventQueueRunner, processEventQueue } = require("./processEventQueue");
-const { getWorkerPoolInstance } = require("./shared/WorkerQueue");
+const { workerQueue } = require("./shared/WorkerQueue");
 const cdsHelper = require("./shared/cdsHelper");
 const distributedLock = require("./shared/distributedLock");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
@@ -75,7 +75,7 @@ const _multiTenancyRedis = async () => {
     return;
   }
 
-  _executeAllTenants(tenantIds, runId);
+  return _executeEventsAllTenants(tenantIds, runId);
 };
 
 const _checkAndTriggerPeriodicEventUpdate = (tenantIds) => {
@@ -87,15 +87,43 @@ const _checkAndTriggerPeriodicEventUpdate = (tenantIds) => {
   if (tenantIdHash && tenantIdHash !== hash) {
     cds.log(COMPONENT_NAME).info("tenant id hash changed, triggering updating periodic events!");
     _multiTenancyPeriodicEvents().catch((err) => {
-      cds.log(COMPONENT_NAME).error("Error during triggering updating periodic events! Error:", err);
+      cds.log(COMPONENT_NAME).error("Error during triggering updating periodic events!", err);
     });
   }
 };
 
-const _executeAllTenantsGeneric = (tenantIds, runId, fn) => {
-  const workerQueueInstance = getWorkerPoolInstance();
+const _executeEventsAllTenants = (tenantIds, runId) => {
+  const events = eventQueueConfig.allEvents;
+  const promises = [];
   tenantIds.forEach((tenantId) => {
-    workerQueueInstance.addToQueue(async () => {
+    events.forEach((event) => {
+      promises.push(
+        workerQueue.addToQueue(event.load, async () => {
+          try {
+            const lockId = `${runId}_${event.type}_${event.subType}`;
+            const tenantContext = new cds.EventContext({ tenant: tenantId });
+            const couldAcquireLock = await distributedLock.acquireLock(tenantContext, lockId, {
+              expiryTime: eventQueueConfig.runInterval * 0.95,
+            });
+            if (!couldAcquireLock) {
+              return;
+            }
+            await runEventCombinationForTenant(tenantId, event.type, event.subType);
+          } catch (err) {
+            cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
+              tenantId,
+            });
+          }
+        })
+      );
+    });
+  });
+  return promises;
+};
+
+const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
+  tenantIds.forEach((tenantId) => {
+    workerQueue.addToQueue(1, async () => {
       try {
         const tenantContext = new cds.EventContext({ tenant: tenantId });
         const couldAcquireLock = await distributedLock.acquireLock(tenantContext, runId, {
@@ -104,7 +132,7 @@ const _executeAllTenantsGeneric = (tenantIds, runId, fn) => {
         if (!couldAcquireLock) {
           return;
         }
-        await fn(tenantId, runId);
+        await _checkPeriodicEventsSingleTenant(tenantId);
       } catch (err) {
         cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
           tenantId,
@@ -113,11 +141,6 @@ const _executeAllTenantsGeneric = (tenantIds, runId, fn) => {
     });
   });
 };
-
-const _executeAllTenants = (tenantIds, runId) => _executeAllTenantsGeneric(tenantIds, runId, _executeRunForTenant);
-
-const _executePeriodicEventsAllTenants = (tenantIds, runId) =>
-  _executeAllTenantsGeneric(tenantIds, runId, _checkPeriodicEventsSingleTenant);
 
 const _executeRunForTenant = async (tenantId, runId) => {
   const logger = cds.log(COMPONENT_NAME);
@@ -137,7 +160,7 @@ const _executeRunForTenant = async (tenantId, runId) => {
     });
     await eventQueueRunner(context, eventsForAutomaticRun);
   } catch (err) {
-    logger.error(`Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`, {
+    logger.error("Couldn't process eventQueue for tenant! Next try after defined interval.", err, {
       tenantId,
       redisEnabled: eventQueueConfig.redisEnabled,
     });
@@ -196,10 +219,7 @@ const _calculateOffsetForFirstRun = async () => {
   } catch (err) {
     cds
       .log(COMPONENT_NAME)
-      .error(
-        "calculating offset for first run failed, falling back to default. Runs might be out-of-sync. Error:",
-        err
-      );
+      .error("calculating offset for first run failed, falling back to default. Runs might be out-of-sync.", err);
   }
   return offsetDependingOnLastRun;
 };
@@ -213,7 +233,7 @@ const runEventCombinationForTenant = async (tenantId, type, subType) => {
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     });
     cds.context = context;
-    getWorkerPoolInstance().addToQueue(async () => await processEventQueue(context, type, subType));
+    await processEventQueue(context, type, subType);
   } catch (err) {
     const logger = cds.log(COMPONENT_NAME);
     logger.error("error executing event combination for tenant", err, {
@@ -230,11 +250,9 @@ const _multiTenancyDb = async () => {
     logger.info("executing event queue run for single instance and multi tenant");
     const tenantIds = await cdsHelper.getAllTenantIds();
     _checkAndTriggerPeriodicEventUpdate(tenantIds);
-    _executeAllTenants(tenantIds, EVENT_QUEUE_RUN_ID);
+    return _executeEventsAllTenants(tenantIds, EVENT_QUEUE_RUN_ID);
   } catch (err) {
-    logger.error(
-      `Couldn't fetch tenant ids for event queue processing! Next try after defined interval. Error: ${err}`
-    );
+    logger.error("Couldn't fetch tenant ids for event queue processing! Next try after defined interval.", err);
   }
 };
 
@@ -245,7 +263,7 @@ const _multiTenancyPeriodicEvents = async () => {
     const tenantIds = await cdsHelper.getAllTenantIds();
     _executePeriodicEventsAllTenants(tenantIds, EVENT_QUEUE_RUN_PERIODIC_EVENT);
   } catch (err) {
-    logger.error(`Couldn't fetch tenant ids for updating periodic event processing! Error: ${err}`);
+    logger.error("Couldn't fetch tenant ids for updating periodic event processing!", err);
   }
 };
 
@@ -270,7 +288,7 @@ const _checkPeriodicEventsSingleTenant = async (tenantId) => {
       await periodicEvents.checkAndInsertPeriodicEvents(tx.context);
     });
   } catch (err) {
-    logger.error(`Couldn't process eventQueue for tenant! Next try after defined interval. Error: ${err}`, {
+    logger.error("Couldn't process eventQueue for tenant! Next try after defined interval.", err, {
       tenantId,
       redisEnabled: eventQueueConfig.redisEnabled,
     });
