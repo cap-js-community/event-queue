@@ -3,6 +3,7 @@
 const cds = require("@sap/cds");
 
 const config = require("../config");
+const EventQueueError = require("../EventQueueError");
 
 const COMPONENT_NAME = "eventQueue/WorkerQueue";
 
@@ -25,6 +26,10 @@ class WorkerQueue {
   }
 
   addToQueue(load, cb) {
+    if (load > this.#concurrencyLimit) {
+      throw EventQueueError.loadHigherThanLimit(load);
+    }
+
     const p = new Promise((resolve, reject) => {
       this.#queue.push([load, cb, resolve, reject]);
     });
@@ -32,11 +37,13 @@ class WorkerQueue {
     return p;
   }
 
-  _executeFunction(cb, resolve, reject) {
+  _executeFunction(load, cb, resolve, reject) {
     const promise = Promise.resolve().then(() => cb());
     this.#runningPromises.push(promise);
+    this.#runningLoad = this.#runningLoad + load;
     promise
       .finally(() => {
+        this.#runningLoad = this.#runningLoad - load;
         this.#runningPromises.splice(this.#runningPromises.indexOf(promise), 1);
         this._checkForNext();
       })
@@ -51,11 +58,11 @@ class WorkerQueue {
 
   _checkForNext() {
     const load = this.#queue[0]?.[0];
-    if (!this.#queue.length || this.#runningPromises.length >= this.#concurrencyLimit) {
+    if (!this.#queue.length || this.#runningLoad + load > this.#concurrencyLimit) {
       return;
     }
     const [, cb, resolve, reject] = this.#queue.shift();
-    this._executeFunction(cb, resolve, reject);
+    this._executeFunction(load, cb, resolve, reject);
   }
 
   get runningPromises() {
