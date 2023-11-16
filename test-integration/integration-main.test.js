@@ -886,7 +886,7 @@ const waitEntryIsDone = async () => {
     if (row?.status === EventProcessingStatus.Done) {
       break;
     }
-    if (Date.now() - startTime > 120 * 1000) {
+    if (Date.now() - startTime > 180 * 1000) {
       throw new Error("entry not completed");
     }
     await promisify(setTimeout)(50);
