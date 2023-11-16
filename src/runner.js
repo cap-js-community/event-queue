@@ -269,8 +269,12 @@ const _multiTenancyPeriodicEvents = async () => {
 
 const _checkPeriodicEventsSingleTenant = async (tenantId) => {
   const logger = cds.log(COMPONENT_NAME);
-  if (!eventQueueConfig.updatePeriodicEvents) {
-    logger.info("updating of periodic events is disabled");
+  if (!eventQueueConfig.updatePeriodicEvents || !eventQueueConfig.periodicEvents.length) {
+    logger.info("updating of periodic events is disabled or no periodic events configured", {
+      updateEnabled: eventQueueConfig.updatePeriodicEvents,
+      events: eventQueueConfig.periodicEvents.length,
+    });
+    return;
   }
   try {
     const subdomain = await cdsHelper.getSubdomainForTenantId(tenantId);
@@ -288,7 +292,7 @@ const _checkPeriodicEventsSingleTenant = async (tenantId) => {
       await periodicEvents.checkAndInsertPeriodicEvents(tx.context);
     });
   } catch (err) {
-    logger.error("Couldn't process eventQueue for tenant! Next try after defined interval.", err, {
+    logger.error("Couldn't update periodic events for tenant! Next try after defined interval.", err, {
       tenantId,
       redisEnabled: eventQueueConfig.redisEnabled,
     });
