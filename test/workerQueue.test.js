@@ -2,9 +2,7 @@
 
 const { promisify } = require("util");
 
-const {
-  _: { WorkerQueue },
-} = require("../src/shared/WorkerQueue");
+const WorkerQueue = require("../src/shared/WorkerQueue");
 
 describe("workerQueue", () => {
   it("straight forward - limit one and one function", async () => {

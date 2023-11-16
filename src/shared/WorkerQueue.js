@@ -80,11 +80,4 @@ class WorkerQueue {
   }
 }
 
-const instance = WorkerQueue.instance;
-
-module.exports = {
-  workerQueue: instance,
-  _: {
-    WorkerQueue,
-  },
-};
+module.exports = WorkerQueue;

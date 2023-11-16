@@ -4,7 +4,7 @@ const { randomUUID } = require("crypto");
 
 const eventQueueConfig = require("./config");
 const { eventQueueRunner, processEventQueue } = require("./processEventQueue");
-const { workerQueue } = require("./shared/WorkerQueue");
+const WorkerQueue = require("./shared/WorkerQueue");
 const cdsHelper = require("./shared/cdsHelper");
 const distributedLock = require("./shared/distributedLock");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
@@ -98,7 +98,7 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
   tenantIds.forEach((tenantId) => {
     events.forEach((event) => {
       promises.push(
-        workerQueue.addToQueue(event.load, async () => {
+        WorkerQueue.instance.addToQueue(event.load, async () => {
           try {
             const lockId = `${runId}_${event.type}_${event.subType}`;
             const tenantContext = new cds.EventContext({ tenant: tenantId });
@@ -123,7 +123,7 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
 
 const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
   tenantIds.forEach((tenantId) => {
-    workerQueue.addToQueue(1, async () => {
+    WorkerQueue.instance.addToQueue(1, async () => {
       try {
         const tenantContext = new cds.EventContext({ tenant: tenantId });
         const couldAcquireLock = await distributedLock.acquireLock(tenantContext, runId, {
