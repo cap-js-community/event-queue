@@ -836,6 +836,10 @@ class EventQueueProcessorBase {
       [this.#eventType, this.#eventSubType].join("##")
     );
     if (!lockAcquired) {
+      this.logger.debug("no lock available, exit processing", {
+        type: this.#eventType,
+        subType: this.#eventSubType,
+      });
       return false;
     }
     this.__lockAcquired = true;
