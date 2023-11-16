@@ -88,6 +88,7 @@ const initialize = async ({
   registerCdsShutdown();
   logger.info("event queue initialized", {
     registerAsEventProcessor: config.registerAsEventProcessor,
+    processEventsAfterPublish: config.processEventsAfterPublish,
     multiTenancyEnabled: config.isMultiTenancy,
     redisEnabled: config.redisEnabled,
     runInterval: config.runInterval,

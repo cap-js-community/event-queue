@@ -8,7 +8,7 @@ class EventQueueHealthCheckDb extends EventQueueBaseClass {
   }
 
   // eslint-disable-next-line no-unused-vars
-  async processEvent(processContext, key, queueEntries, payload) {
+  async processPeriodicEvent(processContext, key) {
     await this.getTxForEventProcessing(key).run(SELECT.from("sap.eventqueue.Event"));
   }
 }

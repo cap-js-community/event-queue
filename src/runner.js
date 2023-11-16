@@ -3,8 +3,8 @@
 const { randomUUID } = require("crypto");
 
 const eventQueueConfig = require("./config");
-const { eventQueueRunner, processEventQueue } = require("./processEventQueue");
-const { workerQueue } = require("./shared/WorkerQueue");
+const { processEventQueue } = require("./processEventQueue");
+const WorkerQueue = require("./shared/WorkerQueue");
 const cdsHelper = require("./shared/cdsHelper");
 const distributedLock = require("./shared/distributedLock");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
@@ -21,7 +21,7 @@ const OFFSET_FIRST_RUN = 10 * 1000;
 let tenantIdHash;
 let singleRunDone;
 
-const singleTenant = () => _scheduleFunction(_checkPeriodicEventsSingleTenant, _executeRunForTenant);
+const singleTenant = () => _scheduleFunction(_checkPeriodicEventsSingleTenant, _singleTenantDb);
 
 const multiTenancyDb = () => _scheduleFunction(_multiTenancyPeriodicEvents, _multiTenancyDb);
 
@@ -98,7 +98,7 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
   tenantIds.forEach((tenantId) => {
     events.forEach((event) => {
       promises.push(
-        workerQueue.addToQueue(event.load, async () => {
+        WorkerQueue.instance.addToQueue(event.load, async () => {
           try {
             const lockId = `${runId}_${event.type}_${event.subType}`;
             const tenantContext = new cds.EventContext({ tenant: tenantId });
@@ -108,7 +108,7 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
             if (!couldAcquireLock) {
               return;
             }
-            await runEventCombinationForTenant(tenantId, event.type, event.subType);
+            await runEventCombinationForTenant(tenantId, event.type, event.subType, true);
           } catch (err) {
             cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
               tenantId,
@@ -123,7 +123,7 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
 
 const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
   tenantIds.forEach((tenantId) => {
-    workerQueue.addToQueue(1, async () => {
+    WorkerQueue.instance.addToQueue(1, async () => {
       try {
         const tenantContext = new cds.EventContext({ tenant: tenantId });
         const couldAcquireLock = await distributedLock.acquireLock(tenantContext, runId, {
@@ -142,29 +142,20 @@ const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
   });
 };
 
-const _executeRunForTenant = async (tenantId, runId) => {
-  const logger = cds.log(COMPONENT_NAME);
-  try {
-    const eventsForAutomaticRun = eventQueueConfig.allEvents;
-    const subdomain = await cdsHelper.getSubdomainForTenantId(tenantId);
-    const context = new cds.EventContext({
-      tenant: tenantId,
-      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+const _singleTenantDb = async (tenantId) => {
+  const events = eventQueueConfig.allEvents;
+  events.forEach((event) => {
+    WorkerQueue.instance.addToQueue(event.load, async () => {
+      try {
+        await runEventCombinationForTenant(tenantId, event.type, event.subType, true);
+      } catch (err) {
+        cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
+          tenantId,
+          redisEnabled: eventQueueConfig.redisEnabled,
+        });
+      }
     });
-    cds.context = context;
-    logger.info("executing eventQueue run", {
-      tenantId,
-      subdomain,
-      ...(runId ? { runId } : null),
-    });
-    await eventQueueRunner(context, eventsForAutomaticRun);
-  } catch (err) {
-    logger.error("Couldn't process eventQueue for tenant! Next try after defined interval.", err, {
-      tenantId,
-      redisEnabled: eventQueueConfig.redisEnabled,
-    });
-  }
+  });
 };
 
 const _acquireRunId = async (context) => {
@@ -224,7 +215,7 @@ const _calculateOffsetForFirstRun = async () => {
   return offsetDependingOnLastRun;
 };
 
-const runEventCombinationForTenant = async (tenantId, type, subType) => {
+const runEventCombinationForTenant = async (tenantId, type, subType, skipWorkerPool) => {
   try {
     const subdomain = await getSubdomainForTenantId(tenantId);
     const context = new cds.EventContext({
@@ -233,7 +224,15 @@ const runEventCombinationForTenant = async (tenantId, type, subType) => {
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     });
     cds.context = context;
-    await processEventQueue(context, type, subType);
+    if (skipWorkerPool) {
+      return await processEventQueue(context, type, subType);
+    } else {
+      const config = eventQueueConfig.getEventConfig(type, subType);
+      return await WorkerQueue.instance.addToQueue(
+        config.load,
+        async () => await processEventQueue(context, type, subType)
+      );
+    }
   } catch (err) {
     const logger = cds.log(COMPONENT_NAME);
     logger.error("error executing event combination for tenant", err, {
@@ -269,8 +268,12 @@ const _multiTenancyPeriodicEvents = async () => {
 
 const _checkPeriodicEventsSingleTenant = async (tenantId) => {
   const logger = cds.log(COMPONENT_NAME);
-  if (!eventQueueConfig.updatePeriodicEvents) {
-    logger.info("updating of periodic events is disabled");
+  if (!eventQueueConfig.updatePeriodicEvents || !eventQueueConfig.periodicEvents.length) {
+    logger.info("updating of periodic events is disabled or no periodic events configured", {
+      updateEnabled: eventQueueConfig.updatePeriodicEvents,
+      events: eventQueueConfig.periodicEvents.length,
+    });
+    return;
   }
   try {
     const subdomain = await cdsHelper.getSubdomainForTenantId(tenantId);
@@ -288,7 +291,7 @@ const _checkPeriodicEventsSingleTenant = async (tenantId) => {
       await periodicEvents.checkAndInsertPeriodicEvents(tx.context);
     });
   } catch (err) {
-    logger.error("Couldn't process eventQueue for tenant! Next try after defined interval.", err, {
+    logger.error("Couldn't update periodic events for tenant! Next try after defined interval.", err, {
       tenantId,
       redisEnabled: eventQueueConfig.redisEnabled,
     });

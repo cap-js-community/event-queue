@@ -48,7 +48,10 @@ const broadcastEvent = async (tenantId, type, subType) => {
       [type, subType].join("##")
     );
     if (result) {
-      logger.info("skip publish redis event as no lock is available");
+      logger.info("skip publish redis event as no lock is available", {
+        type,
+        subType,
+      });
       return;
     }
     logger.debug("publishing redis event", {

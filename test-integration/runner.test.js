@@ -6,7 +6,7 @@ cds.test(__dirname + "/_env");
 const mockRedis = require("../test/mocks/redisMock");
 jest.mock("../src/shared/redis", () => mockRedis);
 const cdsHelper = require("../src/shared/cdsHelper");
-const { workerQueue } = require("../src/shared/WorkerQueue");
+const WorkerQueue = require("../src/shared/WorkerQueue");
 const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
 jest.spyOn(cdsHelper, "getSubdomainForTenantId").mockResolvedValue("dummy");
 const processEventQueue = require("../src/processEventQueue");
@@ -76,7 +76,7 @@ describe("redisRunner", () => {
 
     const [promises1, promises2] = await Promise.allSettled([p1, p2]);
     await Promise.allSettled(promises1.value.concat(promises2.value));
-    await Promise.allSettled(workerQueue.runningPromises);
+    await Promise.allSettled(WorkerQueue.instance.runningPromises);
 
     expect(setValueWithExpireSpy).toHaveBeenCalledTimes(3);
     expect(checkLockExistsAndReturnValueSpy).toHaveBeenCalledTimes(1);
@@ -102,7 +102,7 @@ describe("redisRunner", () => {
     // another run within 5 minutes should do nothing
     const promises = await runner._._multiTenancyRedis();
     await Promise.allSettled(promises);
-    await Promise.allSettled(workerQueue.runningPromises);
+    await Promise.allSettled(WorkerQueue.instance.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
   });
@@ -125,7 +125,7 @@ describe("redisRunner", () => {
     const p2 = runner._._multiTenancyDb();
     const [promises1, promises2] = await Promise.allSettled([p1, p2]);
     await Promise.allSettled(promises1.value.concat(promises2.value));
-    await Promise.allSettled(workerQueue.runningPromises);
+    await Promise.allSettled(WorkerQueue.instance.runningPromises);
 
     expect(acquireLockSpy).toHaveBeenCalledTimes(6);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
@@ -149,7 +149,7 @@ describe("redisRunner", () => {
     // another run within 5 minutes should do nothing
     const promises = await runner._._multiTenancyDb();
     await Promise.allSettled(promises);
-    await Promise.allSettled(workerQueue.runningPromises);
+    await Promise.allSettled(WorkerQueue.instance.runningPromises);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
     expect(acquireLockSpy).toHaveBeenCalledTimes(9);
 
@@ -164,7 +164,7 @@ describe("redisRunner", () => {
 
     const promises3 = await runner._._multiTenancyDb();
     await Promise.allSettled(promises3);
-    await Promise.allSettled(workerQueue.runningPromises);
+    await Promise.allSettled(WorkerQueue.instance.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(12);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
     jest.spyOn(cds, "tx").mockRestore();

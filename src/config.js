@@ -28,6 +28,7 @@ class Config {
   #configFilePath;
   #processEventsAfterPublish;
   #skipCsnCheck;
+  #registerAsEventProcessor;
   #disableRedis;
   #env;
   #eventMap;
@@ -275,6 +276,14 @@ class Config {
 
   get updatePeriodicEvents() {
     return this.#updatePeriodicEvents;
+  }
+
+  set registerAsEventProcessor(value) {
+    this.#registerAsEventProcessor = value;
+  }
+
+  get registerAsEventProcessor() {
+    return this.#registerAsEventProcessor;
   }
 
   get isMultiTenancy() {

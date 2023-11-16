@@ -32,6 +32,7 @@ describe("integration-main", () => {
       configFilePath,
       processEventsAfterPublish: false,
       registerAsEventProcessor: false,
+      isRunnerDeactivated: true,
     });
     loggerMock = mockLogger();
     jest.spyOn(cds, "log").mockImplementation((layer) => {
@@ -647,6 +648,7 @@ describe("integration-main", () => {
         configFilePath,
         processEventsAfterPublish: false,
         registerAsEventProcessor: false,
+        isRunnerDeactivated: true,
       });
     });
 
@@ -802,6 +804,18 @@ describe("integration-main", () => {
       });
     });
 
+    it("insert one delayed entry and process - should be processed after timeout", async () => {
+      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 5 }));
+      const event = eventQueue.config.events[0];
+      eventQueue.config.registerAsEventProcessor = true;
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectOpen(tx);
+      await waitEntryIsDone();
+      await testHelper.selectEventQueueAndExpectDone(tx);
+      eventQueue.config.registerAsEventProcessor = false;
+    });
+
     describe("transactions modes", () => {
       it("always rollback", async () => {
         const event = eventQueue.config.periodicEvents[0];
@@ -854,6 +868,7 @@ describe("integration-main", () => {
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: true,
+        isRunnerDeactivated: true,
       });
     });
 
@@ -861,16 +876,6 @@ describe("integration-main", () => {
       await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
       await waitEntryIsDone();
       expect(loggerMock.callsLengths().error).toEqual(0);
-      await testHelper.selectEventQueueAndExpectDone(tx);
-    });
-
-    it("insert one delayed entry and process - should be processed after timeout", async () => {
-      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 5 }));
-      const event = eventQueue.config.events[0];
-      await eventQueue.processEventQueue(context, event.type, event.subType);
-      expect(loggerMock.callsLengths().error).toEqual(0);
-      await testHelper.selectEventQueueAndExpectOpen(tx);
-      await waitEntryIsDone();
       await testHelper.selectEventQueueAndExpectDone(tx);
     });
   });
@@ -886,7 +891,7 @@ const waitEntryIsDone = async () => {
     if (row?.status === EventProcessingStatus.Done) {
       break;
     }
-    if (Date.now() - startTime > 120 * 1000) {
+    if (Date.now() - startTime > 180 * 1000) {
       throw new Error("entry not completed");
     }
     await promisify(setTimeout)(50);

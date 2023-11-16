@@ -6,6 +6,12 @@ const config = require("../config");
 const EventQueueError = require("../EventQueueError");
 
 const COMPONENT_NAME = "eventQueue/WorkerQueue";
+const NANO_TO_MS = 1e6;
+const THRESHOLD = {
+  INFO: 5 * 1000,
+  WARN: 10 * 1000,
+  ERROR: 15 * 1000,
+};
 
 class WorkerQueue {
   #concurrencyLimit;
@@ -30,14 +36,16 @@ class WorkerQueue {
       throw EventQueueError.loadHigherThanLimit(load);
     }
 
+    const startTime = process.hrtime.bigint();
     const p = new Promise((resolve, reject) => {
-      this.#queue.push([load, cb, resolve, reject]);
+      this.#queue.push([load, cb, resolve, reject, startTime]);
     });
     this._checkForNext();
     return p;
   }
 
-  _executeFunction(load, cb, resolve, reject) {
+  _executeFunction(load, cb, resolve, reject, startTime) {
+    this.checkAndLogWaitingTime(startTime);
     const promise = Promise.resolve().then(() => cb());
     this.#runningPromises.push(promise);
     this.#runningLoad = this.#runningLoad + load;
@@ -61,8 +69,8 @@ class WorkerQueue {
     if (!this.#queue.length || this.#runningLoad + load > this.#concurrencyLimit) {
       return;
     }
-    const [, cb, resolve, reject] = this.#queue.shift();
-    this._executeFunction(load, cb, resolve, reject);
+    const args = this.#queue.shift();
+    this._executeFunction(...args);
   }
 
   get runningPromises() {
@@ -78,13 +86,23 @@ class WorkerQueue {
     }
     return WorkerQueue.#instance;
   }
+
+  checkAndLogWaitingTime(startTime) {
+    const diffMs = Math.round(Number(process.hrtime.bigint() - startTime) / NANO_TO_MS);
+    let logLevel;
+    if (diffMs >= THRESHOLD.ERROR) {
+      logLevel = "error";
+    } else if (diffMs >= THRESHOLD.WARN) {
+      logLevel = "warn";
+    } else if (diffMs >= THRESHOLD.INFO) {
+      logLevel = "info";
+    } else {
+      logLevel = "debug";
+    }
+    cds.log(COMPONENT_NAME)[logLevel]("Waiting time in worker queue", {
+      diffMs,
+    });
+  }
 }
 
-const instance = WorkerQueue.instance;
-
-module.exports = {
-  workerQueue: instance,
-  _: {
-    WorkerQueue,
-  },
-};
+module.exports = WorkerQueue;

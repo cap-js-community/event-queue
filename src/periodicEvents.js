@@ -63,12 +63,15 @@ const checkAndInsertPeriodicEvents = async (context) => {
     cds.log(COMPONENT_NAME).info("deleting periodic events because they have changed", {
       changedEvents: exitingWithNotMatchingInterval.map(({ type, subType }) => ({ type, subType })),
     });
-  await tx.run(
-    DELETE.from(eventConfig.tableNameEventQueue).where(
-      "ID IN",
-      exitingWithNotMatchingInterval.map(({ ID }) => ID)
-    )
-  );
+
+  if (exitingWithNotMatchingInterval.length) {
+    await tx.run(
+      DELETE.from(eventConfig.tableNameEventQueue).where(
+        "ID IN",
+        exitingWithNotMatchingInterval.map(({ ID }) => ID)
+      )
+    );
+  }
 
   const newOrChangedEvents = newEvents.concat(exitingWithNotMatchingInterval);
 

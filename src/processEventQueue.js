@@ -6,22 +6,12 @@ const cds = require("@sap/cds");
 
 const config = require("./config");
 const { TransactionMode } = require("./constants");
-const { limiter, Funnel } = require("./shared/common");
+const { limiter } = require("./shared/common");
 
 const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
 
 const COMPONENT_NAME = "eventQueue/processEventQueue";
 const MAX_EXECUTION_TIME = 5 * 60 * 1000;
-
-const eventQueueRunner = async (context, events) => {
-  const startTime = new Date();
-  const funnel = new Funnel();
-  await Promise.allSettled(
-    events.map((event) =>
-      funnel.run(event.load, async () => processEventQueue(context, event.type, event.subType, startTime))
-    )
-  );
-};
 
 const processEventQueue = async (context, eventType, eventSubType, startTime = new Date()) => {
   let iterationCounter = 0;
@@ -170,7 +160,7 @@ const processPeriodicEvent = async (eventTypeInstance) => {
           eventTypeInstance.processEventContext = tx.context;
           eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
           try {
-            await eventTypeInstance.processEvent(tx.context, queueEntry.ID, [queueEntry]);
+            await eventTypeInstance.processPeriodicEvent(tx.context, queueEntry.ID, queueEntry);
           } catch (err) {
             eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
             throw new TriggerRollback();
@@ -278,5 +268,4 @@ const resilientRequire = (path) => {
 
 module.exports = {
   processEventQueue,
-  eventQueueRunner,
 };

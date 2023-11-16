@@ -89,12 +89,26 @@ class EventQueueProcessorBase {
    * @param {Array<Object>} queueEntries this are the queueEntries which are collected during the clustering step for the given
    *        clustering key
    * @param {Object} payload resulting from the functions checkEventAndGeneratePayload and the clustering function
-   * @returns {Promise<Array <Array <String, Number>>> || undefined} Must return an array of the length of passed queueEntries
+   * @returns {Promise<Array <Array <String, Number>>>} Must return an array of the length of passed queueEntries
    *          This array needs to be nested based on the following structure: [ ["eventId1", EventProcessingStatus.Done],
    *          ["eventId2", EventProcessingStatus.Error] ]
    */
   // eslint-disable-next-line no-unused-vars
   async processEvent(processContext, key, queueEntries, payload) {
+    throw new Error(IMPLEMENT_ERROR_MESSAGE);
+  }
+
+  /**
+   * Process one periodic event
+   * @param processContext the context valid for the event processing. This context is associated with a valid transaction
+   *                       Access to the context is also possible with this.getContextForEventProcessing(key).
+   *                       The associated tx can be accessed with this.getTxForEventProcessing(key).
+   * @param {string} key cluster key generated during the clustering step. By default, this is ID of the event queue entry
+   * @param {Object} queueEntry this is the queueEntry which should be processed
+   * @returns {Promise<undefined>}
+   */
+  // eslint-disable-next-line no-unused-vars
+  async processPeriodicEvent(processContext, key, queueEntry) {
     throw new Error(IMPLEMENT_ERROR_MESSAGE);
   }
 
@@ -822,6 +836,10 @@ class EventQueueProcessorBase {
       [this.#eventType, this.#eventSubType].join("##")
     );
     if (!lockAcquired) {
+      this.logger.debug("no lock available, exit processing", {
+        type: this.#eventType,
+        subType: this.#eventSubType,
+      });
       return false;
     }
     this.__lockAcquired = true;
