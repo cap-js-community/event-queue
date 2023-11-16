@@ -4,6 +4,8 @@ const redis = require("./redis");
 const config = require("../config");
 const cdsHelper = require("./cdsHelper");
 
+const KEY_PREFIX = "EVENT_QUEUE";
+
 const acquireLock = async (context, key, { tenantScoped = true, expiryTime = config.globalTxTimeout } = {}) => {
   const fullKey = _generateKey(context, tenantScoped, key);
   if (config.redisEnabled) {
@@ -128,7 +130,7 @@ const _generateKey = (context, tenantScoped, key) => {
   const keyParts = [];
   tenantScoped && keyParts.push(context.tenant);
   keyParts.push(key);
-  return keyParts.join("##");
+  return `${KEY_PREFIX}_${keyParts.join("##")}`;
 };
 
 module.exports = {
