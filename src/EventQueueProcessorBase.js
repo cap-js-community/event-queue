@@ -534,7 +534,7 @@ class EventQueueProcessorBase {
    */
   async getQueueEntriesAndSetToInProgress() {
     let result = [];
-    const refDateStartAfter = new Date(Date.now() + this.#config.runInterval);
+    const refDateStartAfter = new Date(Date.now() + this.#config.runInterval * 2);
     await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
       const entries = await tx.run(
         SELECT.from(this.#config.tableNameEventQueue)
@@ -883,7 +883,7 @@ class EventQueueProcessorBase {
     this.tx._skipEventQueueBroadcase = true;
     await this.tx.run(INSERT.into(this.#config.tableNameEventQueue).entries({ ...newEvent }));
     this.tx._skipEventQueueBroadcase = false;
-    if (interval < this.#config.runInterval) {
+    if (interval * 1000 < this.#config.runInterval * 2) {
       this.#handleDelayedEvents([newEvent]);
       const { relative: relativeAfterSchedule } = this.#eventSchedulerInstance.calculateOffset(
         this.#eventType,
