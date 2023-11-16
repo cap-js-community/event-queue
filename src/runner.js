@@ -147,7 +147,7 @@ const _singleTenantDb = async (tenantId) => {
   events.forEach((event) => {
     WorkerQueue.instance.addToQueue(event.load, async () => {
       try {
-        await runEventCombinationForTenant(tenantId, event.type, event.subType);
+        await runEventCombinationForTenant(tenantId, event.type, event.subType, true);
       } catch (err) {
         cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
           tenantId,
