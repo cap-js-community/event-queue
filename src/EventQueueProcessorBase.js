@@ -534,7 +534,7 @@ class EventQueueProcessorBase {
    */
   async getQueueEntriesAndSetToInProgress() {
     let result = [];
-    const refDateStartAfter = new Date(Date.now() + this.#config.runInterval * 2);
+    const refDateStartAfter = new Date(Date.now() + this.#config.runInterval * 1.2);
     await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
       const entries = await tx.run(
         SELECT.from(this.#config.tableNameEventQueue)
@@ -639,7 +639,7 @@ class EventQueueProcessorBase {
   }
 
   #clusterEvents(events, refDateStartAfter) {
-    const refDate = new Date(refDateStartAfter.getTime() - this.#config.runInterval + EVENT_START_AFTER_HEADROOM);
+    const refDate = new Date(refDateStartAfter.getTime() - this.#config.runInterval * 1.2 + EVENT_START_AFTER_HEADROOM);
     return events.reduce(
       (result, event) => {
         if (event.attempts === this.__retryAttempts + TRIES_FOR_EXCEEDED_EVENTS) {
@@ -858,11 +858,11 @@ class EventQueueProcessorBase {
   }
 
   async scheduleNextPeriodEvent(queueEntry) {
-    const interval = this.#eventConfig.interval;
+    const intervalInSec = this.#eventConfig.interval * 1000;
     const newEvent = {
       type: this.#eventType,
       subType: this.#eventSubType,
-      startAfter: new Date(new Date(queueEntry.startAfter).getTime() + interval * 1000),
+      startAfter: new Date(new Date(queueEntry.startAfter).getTime() + intervalInSec),
     };
     const { relative } = this.#eventSchedulerInstance.calculateOffset(
       this.#eventType,
@@ -871,7 +871,7 @@ class EventQueueProcessorBase {
     );
 
     // more than one interval behind - shift tick to keep up
-    if (relative < 0 && Math.abs(relative) >= this.#eventConfig.interval * 1000) {
+    if (relative < 0 && Math.abs(relative) >= intervalInSec) {
       newEvent.startAfter = new Date(Date.now() + 5 * 1000);
       this.logger.info("interval adjusted because shifted more than one interval", {
         eventType: this.#eventType,
@@ -883,7 +883,7 @@ class EventQueueProcessorBase {
     this.tx._skipEventQueueBroadcase = true;
     await this.tx.run(INSERT.into(this.#config.tableNameEventQueue).entries({ ...newEvent }));
     this.tx._skipEventQueueBroadcase = false;
-    if (interval * 1000 < this.#config.runInterval * 2) {
+    if (intervalInSec < this.#config.runInterval * 1.5) {
       this.#handleDelayedEvents([newEvent]);
       const { relative: relativeAfterSchedule } = this.#eventSchedulerInstance.calculateOffset(
         this.#eventType,
