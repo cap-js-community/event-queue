@@ -941,6 +941,10 @@ class EventQueueProcessorBase {
     return this.__logger ?? this.__baseLogger;
   }
 
+  set logger(value) {
+    this.__logger = value;
+  }
+
   get queueEntriesWithPayloadMap() {
     return this.#queueEntriesWithPayloadMap;
   }
