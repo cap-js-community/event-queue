@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Configure Event
-nav_order: 4
+title: Load Balancing
+nav_order: 5
 ---
 
 <!-- prettier-ignore-start -->
