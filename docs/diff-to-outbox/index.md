@@ -28,7 +28,7 @@ operations. You can learn more about these features in the [load balancing secti
 
 The event-queue package also supports periodic events, similar to cron-jobs. This feature allows for the scheduling of
 tasks at regular intervals. More details about this feature are available in the 
-[periodic events section](/event-queue/configure-event/#periodic-events).
+.
 
 Moreover, the event-queue package allows for the publishing and processing of events in different microservices,
 enhancing the modularity and scalability of applications.

@@ -21,7 +21,7 @@ class Config {
   #runInterval;
   #redisEnabled;
   #initialized;
-  #parallelTenantProcessing;
+  #instanceLoadLimit;
   #tableNameEventQueue;
   #tableNameEventLock;
   #isRunnerDeactivated;
@@ -42,7 +42,7 @@ class Config {
     this.#runInterval = null;
     this.#redisEnabled = null;
     this.#initialized = false;
-    this.#parallelTenantProcessing = null;
+    this.#instanceLoadLimit = null;
     this.#tableNameEventQueue = null;
     this.#tableNameEventLock = null;
     this.#isRunnerDeactivated = false;
@@ -214,12 +214,12 @@ class Config {
     this.#initialized = value;
   }
 
-  get parallelTenantProcessing() {
-    return this.#parallelTenantProcessing;
+  get instanceLoadLimit() {
+    return this.#instanceLoadLimit;
   }
 
-  set parallelTenantProcessing(value) {
-    this.#parallelTenantProcessing = value;
+  set instanceLoadLimit(value) {
+    this.#instanceLoadLimit = value;
   }
 
   get tableNameEventQueue() {
