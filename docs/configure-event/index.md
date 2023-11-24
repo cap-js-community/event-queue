@@ -17,7 +17,7 @@ nav_order: 4
 
 Ad-hoc events are one-time events that are either processed directly or with a defined delay. The purpose of such events
 is to process asynchronous loads, such as sending email notifications or compressing uploaded attachments, where you
-don't want the user to wait until the process is finished. These events have various configurations to determine how 
+don't want the user to wait until the process is finished. These events have various configurations to determine how
 they should be processed.
 
 ### Configuration

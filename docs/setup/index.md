@@ -37,6 +37,7 @@ Extend the cds section of your package.json. Reference to the cds-plugin section
 ### in server.js
 
 Call the initialize function in your server.js. Check here the available settings for the initialization.
+
 ```js
 eventQueue.initialize({
   configFilePath: "./srv/eventConfig.yml",
@@ -51,7 +52,7 @@ such as the configuration file path, event processing behavior, load balancing, 
 The table includes the parameter name, a description of its purpose, and the default value if not specified.
 
 | Name                      | Description                                                                                                                  | Default                |
-|:--------------------------|:-----------------------------------------------------------------------------------------------------------------------------|:-----------------------|
+| :------------------------ | :--------------------------------------------------------------------------------------------------------------------------- | :--------------------- |
 | configFilePath            | Path to the configuration file.                                                                                              | `null`                 |
 | registerAsEventProcessor  | Whether or not to register as an event processor. If false, the app can publish events but doesn't process events.           | `true`                 |
 | processEventsAfterPublish | Whether or not to process events immediately after publish. Events are distributed via Redis to all available app instances. | `true`                 |

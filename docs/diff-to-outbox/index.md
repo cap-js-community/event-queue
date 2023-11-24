@@ -27,8 +27,7 @@ resources. Further, there's a concurrency limit set on the application instance 
 operations. You can learn more about these features in the [load balancing section](/event-queue/load-balancing).
 
 The event-queue package also supports periodic events, similar to cron-jobs. This feature allows for the scheduling of
-tasks at regular intervals. More details about this feature are available in the 
-.
+tasks at regular intervals. More details about this feature are available in the.
 
 Moreover, the event-queue package allows for the publishing and processing of events in different microservices,
 enhancing the modularity and scalability of applications.

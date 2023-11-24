@@ -11,11 +11,10 @@ streamlined asynchronous event processing. With a focus on load balancing, this 
 event distribution across all available application instances. By providing managed transactions similar to CAP
 handlers, the Event-Queue framework simplifies event processing, enhancing the overall performance of your application.
 
-Additionally, Event-Queue provides support for periodic events, allowing for processing at defined intervals. This 
-feature further extends its capabilities in load balancing and transaction management, ensuring that even regularly 
+Additionally, Event-Queue provides support for periodic events, allowing for processing at defined intervals. This
+feature further extends its capabilities in load balancing and transaction management, ensuring that even regularly
 occurring tasks are handled efficiently and effectively without overloading any single instance. This makes it an ideal
 solution for applications needing consistent, reliable event processing.
-
 
 ## Content
 
@@ -29,7 +28,6 @@ solution for applications needing consistent, reliable event processing.
 | [Event Status Handling](status-handling)     | Event Status Handling                                  |
 | [Concurrency Control](setup)                 | Configure and concepts on Concurrency Control          |
 | [Load-balancing app-instances](setup)        | How load is distributed on the available app instances |
-
 
 ## Features
 
