@@ -5,13 +5,15 @@ nav_order: 4
 ---
 
 <!-- prettier-ignore-start -->
+
 # Configure Event
+
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
 - TOC
-{: toc}
+  {: toc}
 
 ## Ad-Hoc events
 
@@ -31,7 +33,7 @@ The configuration YAML file is where all the required information regarding even
 | impl                          | impl                                                                                                                                                                                                                    | -             |
 | type                          | type                                                                                                                                                                                                                    | -             |
 | subType                       | subType                                                                                                                                                                                                                 | -             |
-| load                          | load                                                                                                                                                                                                                    | -             |
+| load                          | load                                                                                                                                                                                                                    | 1             |
 | retryAttempts                 | For infinite retries, maintain -1.                                                                                                                                                                                      | 3             |
 | processAfterCommit            | Indicates whether an event is processed immediately after the transaction, in which the event was written, has been committed.                                                                                          | true          |
 | parallelEventProcessing       | How many events of the same type and subType are parallel processed after clustering. Limit is 10.                                                                                                                      | 1             |
@@ -74,4 +76,28 @@ instance is overloaded.
 
 ### Parameters
 
+| Property        | Description                                                                                                                                                                                                    | Default Value |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| type            | Specifies the type of the periodic event.                                                                                                                                                                      | -             |
+| subType         | Specifies the subType of the periodic event.                                                                                                                                                                   | -             |
+| impl            | Specifies the implementation file path for the periodic event.                                                                                                                                                 | -             |
+| load            | Specifies the load value for the periodic event.                                                                                                                                                               | 1             |
+| transactionMode | Specifies the transaction mode for the periodic event. Possible values are "alwaysRollback" which means the event will always rollback, and "commit" which means the event will be committed after processing. | -             |
+| interval        | Specifies the interval in seconds at which the periodic event should occur.                                                                                                                                    | -             |
+
 ### Configuration
+
+The following demonstrates a configuration for a periodic event with a default load of 1 and an interval of 30 seconds.
+This means the periodic event is scheduled to execute every 30 seconds, provided there is sufficient capacity on any
+application instance. If capacity is unavailable, execution is delayed, but subsequent attempts will aim to adhere to
+the originally planned schedule plus the defined interval.
+
+```yaml
+periodicEvents:
+  - type: HealthCheck
+    subType: DB
+    impl: ./test/asset/EventQueueHealthCheckDb
+    load: 1
+    transactionMode: alwaysRollback
+    interval: 30
+```
