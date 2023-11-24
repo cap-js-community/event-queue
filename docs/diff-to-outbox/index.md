@@ -5,9 +5,9 @@ nav_order: 2
 ---
 
 <!-- prettier-ignore-start -->
-# Distinction to others solutions
+# Distinction from other solutions
 
-There are mainly three solutions that have similar functionalities as this package in the context of CAP and BTP.
+In the following, the event queue will be compared and differentiated with other SAP products.
 
 {: .no_toc}
 <!-- prettier-ignore-end -->

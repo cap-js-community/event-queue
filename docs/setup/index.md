@@ -45,16 +45,21 @@ eventQueue.initialize({
 
 ## Initialization parameters
 
-| Name                      | Description                                                | Default             |
-|:--------------------------|:-----------------------------------------------------------|:--------------------|
-| configFilePath            | Path to the configuration file.                            | `null`              |
-| registerAsEventProcessor  | Whether or not to register as an event processor.          | `true`              |
-| processEventsAfterPublish | Whether or not to process events after they are published. | `true`              |
-| isRunnerDeactivated       | Whether or not the runner is deactivated.                  | `false`             |
-| runInterval               | The interval in milliseconds at which the runner runs.     | `5 * 60 * 1000`     |
-| instanceLoadLimit         | The number of tenants that can be processed in parallel.   | `5`                 |
-| tableNameEventQueue       | The name of the event queue table.                         | `BASE_TABLES.EVENT` |
-| tableNameEventLock        | The name of the event lock table.                          | `BASE_TABLES.LOCK`  |
-| disableRedis              | Whether or not to disable Redis.                           | `false`             |
-| skipCsnCheck              | Whether or not to skip the CSN check.                      | `false`             |
-| updatePeriodicEvents      | Whether or not to update periodic events.                  | `true`              |
+The table below lists the initialization parameters that can be used to configure how the event-queue operates.
+These parameters allow you to customize various aspects of the event processing,
+such as the configuration file path, event processing behavior, load balancing, and more.
+The table includes the parameter name, a description of its purpose, and the default value if not specified.
+
+| Name                      | Description                                                                                                                  | Default                |
+|:--------------------------|:-----------------------------------------------------------------------------------------------------------------------------|:-----------------------|
+| configFilePath            | Path to the configuration file.                                                                                              | `null`                 |
+| registerAsEventProcessor  | Whether or not to register as an event processor. If false, the app can publish events but doesn't process events.           | `true`                 |
+| processEventsAfterPublish | Whether or not to process events immediately after publish. Events are distributed via Redis to all available app instances. | `true`                 |
+| isRunnerDeactivated       | Whether or not the runner is deactivated. This can be changed on the fly to temporarily deactivate the periodic runs.        | `false`                |
+| runInterval               | The interval in milliseconds at which the runner runs.                                                                       | `5 * 60 * 1000`        |
+| instanceLoadLimit         | The number of tenants that can be processed in parallel.                                                                     | `5`                    |
+| tableNameEventQueue       | The name of the event queue table.                                                                                           | `sap.eventqueue.Event` |
+| tableNameEventLock        | The name of the event lock table.                                                                                            | `sap.eventqueue.Lock`  |
+| disableRedis              | Whether or not to disable Redis.                                                                                             | `false`                |
+| skipCsnCheck              | Whether or not to skip the CSN check. Only relevant if custom tables are supplied.                                           | `false`                |
+| updatePeriodicEvents      | Whether or not to update periodic events.                                                                                    | `true`                 |

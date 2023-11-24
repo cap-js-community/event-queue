@@ -15,6 +15,11 @@ nav_order: 4
 
 ## Ad-Hoc events
 
+Ad-hoc events are one-time events that are either processed directly or with a defined delay. The purpose of such events
+is to process asynchronous loads, such as sending email notifications or compressing uploaded attachments, where you
+don't want the user to wait until the process is finished. These events have various configurations to determine how 
+they should be processed.
+
 ### Configuration
 
 The configuration YAML file is where all the required information regarding event processing should be maintained.
@@ -38,28 +43,34 @@ The configuration YAML file is where all the required information regarding even
 
 ### Configuration
 
-// TODO: add explanation
+Below are two examples of ad-hoc event configurations. The first example demonstrates a simple configuration, while the
+second example showcases the full complexity of the configuration.
 
 ```yaml
 events:
   - type: Notification
     subType: EMail
     impl: ./srv/util/mail-service/EventQueueNotificationProcessor
-    load: 10
+    load: 2
     parallelEventProcessing: 5
 
-  - type: Process
-    subType: SyncClosingTask
+  - type: Attachment
+    subType: Compress
     impl: ./srv/common/process/EventQueueClosingTaskSync
-    load: 40
+    load: 6
     parallelEventProcessing: 2
-    selectMaxChunkSize: 20
+    selectMaxChunkSize: 5
     checkForNextChunk: true
     commitOnEventLevel: true
     retryAttempts: 1
 ```
 
-## Periodic events
+## Periodic Events
+
+Periodic events in the Event-Queue framework are events processed at pre-defined intervals, similar to cron jobs.
+This feature is particularly useful for regular business processes such as checking if a task is overdue. Just like
+ad-hoc events, these events are managed efficiently across all available application instances, ensuring no single
+instance is overloaded.
 
 ### Parameters
 
