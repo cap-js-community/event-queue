@@ -22,7 +22,7 @@ nav_order: 3
 ### As cds-plugin
 
 Extend the cds section of your package.json. Reference to the cds-plugin section in the capire documentation about the
-[cds-plugin concept](https://cap.cloud.sap/docs/releases/march23#new-cds-plugin-technique).
+[cds-plugin concept](https://cap.cloud.sap/docs/node.js/cds-plugins).
 
 ```json
 {

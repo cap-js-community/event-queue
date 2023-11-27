@@ -29,7 +29,7 @@ The configuration YAML file is where all the required information regarding even
 ### Parameters
 
 | Property                      | Description                                                                                                                                                                                                             | Default Value |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
 | impl                          | impl                                                                                                                                                                                                                    | -             |
 | type                          | type                                                                                                                                                                                                                    | -             |
 | subType                       | subType                                                                                                                                                                                                                 | -             |
@@ -38,7 +38,7 @@ The configuration YAML file is where all the required information regarding even
 | processAfterCommit            | Indicates whether an event is processed immediately after the transaction, in which the event was written, has been committed.                                                                                          | true          |
 | parallelEventProcessing       | How many events of the same type and subType are parallel processed after clustering. Limit is 10.                                                                                                                      | 1             |
 | eventOutdatedCheck            | Checks if the db record for the event has been modified since the selection and right before the processing of the event.                                                                                               | true          |
-| commitOnEventLevel            | After processing an event, the associated transaction is committed and the associated status is committed with the same transaction. This should be used if events should be processed atomically.                      | false         |
+| transactionMode               | Specifies the transaction mode for the periodic event. For allowed values refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes)                                                         | isolated      |
 | selectMaxChunkSize            | Number of events which are selected at once. If it should be checked if there are more open events available, set the parameter checkForNextChunk to true.                                                              | 100           |
 | checkForNextChunk             | Determines if after processing a chunk (the size depends on the value of selectMaxChunkSize), a next chunk is being processed if there are more open events and the processing time has not already exceeded 5 minutes. | false         |
 | deleteFinishedEventsAfterDays | This parameter determines the number of days after which events are deleted, regardless of their status. A value of 0 signifies that event entries are never deleted from the database table.                           | 0             |
@@ -53,17 +53,17 @@ events:
   - type: Notification
     subType: EMail
     impl: ./srv/util/mail-service/EventQueueNotificationProcessor
-    load: 2
+    load: 1
     parallelEventProcessing: 5
 
   - type: Attachment
     subType: Compress
     impl: ./srv/common/process/EventQueueClosingTaskSync
-    load: 6
+    load: 3
     parallelEventProcessing: 2
     selectMaxChunkSize: 5
     checkForNextChunk: true
-    commitOnEventLevel: true
+    transactionMode: alwaysRollback
     retryAttempts: 1
 ```
 
@@ -76,14 +76,14 @@ instance is overloaded.
 
 ### Parameters
 
-| Property        | Description                                                                                                                                                                                                    | Default Value |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| type            | Specifies the type of the periodic event.                                                                                                                                                                      | -             |
-| subType         | Specifies the subType of the periodic event.                                                                                                                                                                   | -             |
-| impl            | Specifies the implementation file path for the periodic event.                                                                                                                                                 | -             |
-| load            | Specifies the load value for the periodic event.                                                                                                                                                               | 1             |
-| transactionMode | Specifies the transaction mode for the periodic event. Possible values are "alwaysRollback" which means the event will always rollback, and "commit" which means the event will be committed after processing. | -             |
-| interval        | Specifies the interval in seconds at which the periodic event should occur.                                                                                                                                    | -             |
+| Property        | Description                                                                                                                                                     | Default Value |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| type            | Specifies the type of the periodic event.                                                                                                                       | -             |
+| subType         | Specifies the subType of the periodic event.                                                                                                                    | -             |
+| impl            | Specifies the implementation file path for the periodic event.                                                                                                  | -             |
+| load            | Specifies the load value for the periodic event.                                                                                                                | 1             |
+| transactionMode | Specifies the transaction mode for the periodic event. For allowed values refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes) | isolated      |
+| interval        | Specifies the interval in seconds at which the periodic event should occur.                                                                                     | -             |
 
 ### Configuration
 
