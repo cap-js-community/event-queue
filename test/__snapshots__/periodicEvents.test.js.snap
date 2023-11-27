@@ -3,7 +3,7 @@
 exports[`baseFunctionality basic insert all new events 1`] = `
 [
   [
-    "inserting changed or new periodic events",
+    "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
@@ -30,7 +30,7 @@ exports[`baseFunctionality basic insert all new events 2`] = `
 exports[`baseFunctionality delta insert 1`] = `
 [
   [
-    "inserting changed or new periodic events",
+    "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
@@ -42,7 +42,7 @@ exports[`baseFunctionality delta insert 1`] = `
     },
   ],
   [
-    "inserting changed or new periodic events",
+    "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
@@ -74,7 +74,7 @@ exports[`baseFunctionality delta insert 2`] = `
 exports[`baseFunctionality interval changed 1`] = `
 [
   [
-    "inserting changed or new periodic events",
+    "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
@@ -97,7 +97,7 @@ exports[`baseFunctionality interval changed 1`] = `
     },
   ],
   [
-    "inserting changed or new periodic events",
+    "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {

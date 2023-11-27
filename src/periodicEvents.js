@@ -86,7 +86,7 @@ const checkAndInsertPeriodicEvents = async (context) => {
 const insertPeriodEvents = async (tx, events) => {
   const startAfter = new Date();
   let counter = 1;
-  const chunks = events.length / CHUNK_SIZE_INSERT_PERIODIC_EVENTS;
+  const chunks = Math.ceil(events.length / CHUNK_SIZE_INSERT_PERIODIC_EVENTS);
   const logger = cds.log(COMPONENT_NAME);
   processChunkedSync(events, CHUNK_SIZE_INSERT_PERIODIC_EVENTS, (chunk) => {
     logger.info(`${counter}/${chunks} | inserting chunk of changed or new periodic events`, {
