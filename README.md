@@ -40,9 +40,9 @@ For detailed information check out the [documentation](https://cap-js-community.
 Learn more about features in the [documentation](https://cap-js-community.github.io/event-queue/#functionality-and-problem-solutions). To compare the
 event-queue with other SAP products head over to [Distinction from other solutions](https://cap-js-community.github.io/event-queue/diff-to-outbox/).
 
-- [load balancing](/https://cap-js-community.github.io/event-queueload-balancing) and concurrency control of event processing across app instances
-- [periodic events](/https://cap-js-community.github.io/event-queueconfigure-event/#periodic-events) similar to running cron jobs for business processes
-- [managed transactions](/https://cap-js-community.github.io/event-queuetransaction-handling) for event processing
+- [load balancing](https://cap-js-community.github.io/event-queue/load-balancing) and concurrency control of event processing across app instances
+- [periodic events](https://cap-js-community.github.io/event-queue/configure-event/#periodic-events) similar to running cron jobs for business processes
+- [managed transactions](https://cap-js-community.github.io/event-queue/transaction-handling) for event processing
 - async processing of processing intensive tasks for better UI responsiveness
 - push/pull mechanism for reducing delay between publish an event and processing
 - cluster published events during processing (e.g. for combining multiple E-Mail events to one E-Mail)
