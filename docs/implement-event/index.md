@@ -167,3 +167,5 @@ committed due to the transaction rollback.
 
 This scenario highlights the importance of careful error handling and status management in batch processing of events to
 ensure data integrity and consistency.
+
+## Minimal implementation for periodic events
