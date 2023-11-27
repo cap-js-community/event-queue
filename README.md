@@ -22,7 +22,7 @@ overloading any single instance. This makes it an ideal solution for application
 
 ### As cds-plugin
 
-For detailed information check out the [documentation](https://cap-js-community.github.io/event-queue/configure-event/#setup).
+For detailed information check out the [documentation](https://cap-js-community.github.io/event-queue/setup).
 
 ```json
 {
