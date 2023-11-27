@@ -5,11 +5,15 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/cap-js-community/event-queue)](https://api.reuse.software/info/github.com/cap-js-community/event-queue)
 [![CI Main](https://github.com/cap-js-community/event-queue/actions/workflows/main-ci.yml/badge.svg)](https://github.com/cap-js-community/event-queue/commits/main)
 
-The Event-Queue is a framework built on top of CAP Node.js, specifically designed to enable efficient and streamlined
-asynchronous event processing in a multi-tenancy environment. With a strong emphasis on load balancing, this package
-ensures optimal distribution of workload across all available application instances. By offering managed tenant-specific
-transactions, similar to CAP handlers, the Event-Queue framework simplifies event and asynchronous processing, thereby
-enhancing the overall performance of your application.
+The Event-Queue is a framework built on top of CAP Node.js, designed specifically for efficient and
+streamlined asynchronous event processing. With a focus on load balancing, this package ensures optimal
+event distribution across all available application instances. By providing managed transactions similar to CAP
+handlers, the Event-Queue framework simplifies event processing, enhancing the overall performance of your application.
+
+Additionally, Event-Queue provides support for [periodic events](https://cap-js-community.github.io/event-queue/configure-event/#periodic-events),
+allowing for processing at defined intervals. This feature further extends its capabilities in load balancing and
+transaction management, ensuring that even regularly occurring tasks are handled efficiently and effectively without
+overloading any single instance. This makes it an ideal solution for applications needing consistent, reliable event processing.
 
 ## Getting started
 
@@ -17,10 +21,6 @@ enhancing the overall performance of your application.
 - Activate the cds-plugin in the cds section of the package.sjon
 
 ### As cds-plugin
-
-Extend the cds section of your package.json. Reference to the cds-plugin section in the capire documentation about the
-cds-plugin concept.
-https://cap.cloud.sap/docs/releases/march23#new-cds-plugin-technique
 
 ```json
 {
