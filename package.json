@@ -31,7 +31,7 @@
     "lint:ci": "npm run eslint:ci && npm run prettier:ci",
     "eslint": "eslint --fix .",
     "eslint:ci": "eslint .",
-    "prettier": "prettier --write --log-level error .",
+    "prettier": "prettier --write --loglevel error .",
     "prettier:ci": "prettier --check .",
     "prepareRelease": "npm prune --production",
     "docs": "cd docs && bundle exec jekyll serve",

@@ -92,8 +92,8 @@ server. The event will be processed as soon as possible after the `startAfter` t
 ## Processing of events after publish
 
 The processing of events relies on various configurations. Events are directly processed after publishing if
-the [processEventsAfterPublish](/event-queue/setup/#initialization-parameters) parameter is set to `true` during the 
-initialization of the event queue. If this parameter is set to `false`, the event is processed at the next regular 
+the [processEventsAfterPublish](/event-queue/setup/#initialization-parameters) parameter is set to `true` during the
+initialization of the event queue. If this parameter is set to `false`, the event is processed at the next regular
 interval for processing events. However, in the case of automatic processing, the way of processing depends on whether
 Redis is available and enabled.
 
