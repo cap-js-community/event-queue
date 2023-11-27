@@ -15,22 +15,22 @@ nav_order: 7
 
 # Overview
 
-Events are implemented through an Event Processor. Each Event Processor must be a class that inherits from the 
+Events are implemented through an Event Processor. Each Event Processor must be a class that inherits from the
 EventQueueProcessorBase.
 
 # Basic Implementation
 
-The most minimalist event implementation only redefines the `processEvent` method for ad-hoc events, and 
-`processPeriodicEvent` for periodic events. The interfaces for processing ad-hoc and periodic events are slightly 
-different. Ad-hoc events have an additional `payload` parameter, which is the payload defined during the event's 
+The most minimalist event implementation only redefines the `processEvent` method for ad-hoc events, and
+`processPeriodicEvent` for periodic events. The interfaces for processing ad-hoc and periodic events are slightly
+different. Ad-hoc events have an additional `payload` parameter, which is the payload defined during the event's
 publication.
 
-| Argument       | Purpose                                                                                                                                                                                            |
-|:---------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| processContext | CDS event context - this context is associated with a managed transaction.                                                                                                                         |
-| key            | Key used to identify the event-queue database entry                                                                                                                                                |
+| Argument       | Purpose                                                                                                                                                                |
+| :------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| processContext | CDS event context - this context is associated with a managed transaction.                                                                                             |
+| key            | Key used to identify the event-queue database entry                                                                                                                    |
 | queueEntries   | Array of event-queue entries. If no clustering has been implemented, the length is always 1. How to implement clustering events refer to [here](#clusterqueueentries). |
-| payload        | The payload that was provided during the event's publication. This only applies to ad-hoc events.                                                                                                  |
+| payload        | The payload that was provided during the event's publication. This only applies to ad-hoc events.                                                                      |
 
 ## Minimal implementation for ad-hoc events
 
@@ -76,8 +76,8 @@ module.exports = EventQueueMinimalistic;
 
 # Managed Transactions and CDS Context
 
-During event processing, the library manages transaction handling. To gain a more comprehensive understanding of the 
-scenarios in which transactions are committed or rolled back, please refer to the dedicated chapter on 
+During event processing, the library manages transaction handling. To gain a more comprehensive understanding of the
+scenarios in which transactions are committed or rolled back, please refer to the dedicated chapter on
 [transaction handling](/event-queue/transaction-handling).
 
 # Advanced implementation
@@ -144,10 +144,10 @@ clusterQueueEntries(queueEntriesWithPayloadMap) {
 However, it is important to note that when using this function, transaction handling can become more complex. See the
 example [below](#example-if-multiple-events-are-clustered) for that.
 
-
 ### Example if multiple events are clustered
 
 Given the following example where `processEvent` is processing three events: A, B, and C.
+
 - Event A is processed successfully and returns a status of `done`.
 - Event B is also processed successfully and returns a status of `done`.
 - Event C encounters an error during processing and returns a status of `error`.
@@ -160,7 +160,7 @@ error in Event C. However, the statuses of all three events (A, B, and C) would 
 Events A and B would be `done` and the status of Event C would be `error`.
 
 This leads to the following situation: If the processing of these events is attempted again, Events A and B would
-not be processed again because their status is `done`. But the business data associated with these events would have 
+not be processed again because their status is `done`. But the business data associated with these events would have
 been rolled back from the previous transaction. This could potentially lead to data inconsistencies because the status
 suggests that the events were processed successfully, but the business data associated with these events was not
 committed due to the transaction rollback.

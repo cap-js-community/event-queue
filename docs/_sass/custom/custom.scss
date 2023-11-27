@@ -5,8 +5,8 @@ code {
 .notice--warning {
   padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
-  background-color: #FFFAEB;
-  border-left: 0.5rem solid #FFF5A1;
+  background-color: #fffaeb;
+  border-left: 0.5rem solid #fff5a1;
   position: relative;
   border-radius: 0.375rem;
   font-size: 1rem;
@@ -18,10 +18,10 @@ code {
   content: "";
   border-width: 0 0.5rem 0.625rem 0;
   border-style: solid;
-  border-color: #FFF5A1 transparent;
+  border-color: #fff5a1 transparent;
   display: block;
   width: 0;
-  zIndex: 2;
+  zindex: 2;
   left: 1rem;
   top: -0.3125rem;
 }

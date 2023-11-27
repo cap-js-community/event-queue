@@ -61,9 +61,10 @@ is processed and altered with the transaction passed to `processEvent`, the tran
 
 {% include warning.html message="
 The function `setShouldRollbackTransaction` can be used to override the transaction mode `alwaysCommit`. This function
-can also be used in `isolation` mode if the event status has been reported as `Done`, which usually results in 
-committing the associated transaction. However, with `setShouldRollbackTransaction`, the transaction would be rolled 
+can also be used in `isolation` mode if the event status has been reported as `Done`, which usually results in
+committing the associated transaction. However, with `setShouldRollbackTransaction`, the transaction would be rolled
 back regardless of the reported event status. The example belows shows how to use the function.
+
 ```js
 class EventQueueMinimalistic extends EventQueueBaseClass {
   constructor(context, eventType, eventSubType, config) {
