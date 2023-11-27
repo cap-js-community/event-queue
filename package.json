@@ -31,7 +31,7 @@
     "lint:ci": "npm run eslint:ci && npm run prettier:ci",
     "eslint": "eslint --fix .",
     "eslint:ci": "eslint .",
-    "prettier": "prettier --write --log-level error .",
+    "prettier": "prettier --write --loglevel error .",
     "prettier:ci": "prettier --check .",
     "prepareRelease": "npm prune --production",
     "docs": "cd docs && bundle exec jekyll serve",
@@ -42,14 +42,14 @@
     "node": ">=16"
   },
   "dependencies": {
-    "redis": "4.6.10",
+    "redis": "4.6.11",
     "verror": "1.10.1",
     "yaml": "2.3.4"
   },
   "devDependencies": {
-    "@sap/cds": "7.3.1",
-    "@sap/cds-dk": "7.3.1",
-    "eslint": "8.52.0",
+    "@sap/cds": "7.4.0",
+    "@sap/cds-dk": "7.4.0",
+    "eslint": "8.54.0",
     "eslint-config-prettier": "9.0.0",
     "eslint-plugin-jest": "27.6.0",
     "eslint-plugin-node": "11.1.0",

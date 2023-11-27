@@ -29,7 +29,7 @@ const CONFIG_VARS = [
   ["processEventsAfterPublish", true],
   ["isRunnerDeactivated", false],
   ["runInterval", 5 * 60 * 1000],
-  ["parallelTenantProcessing", 5],
+  ["instanceLoadLimit", 20],
   ["tableNameEventQueue", BASE_TABLES.EVENT],
   ["tableNameEventLock", BASE_TABLES.LOCK],
   ["disableRedis", false],
@@ -43,7 +43,7 @@ const initialize = async ({
   processEventsAfterPublish,
   isRunnerDeactivated,
   runInterval,
-  parallelTenantProcessing,
+  instanceLoadLimit,
   tableNameEventQueue,
   tableNameEventLock,
   disableRedis,
@@ -52,7 +52,7 @@ const initialize = async ({
 } = {}) => {
   // TODO: initialize check:
   // - content of yaml check
-  // - betweenRuns and parallelTenantProcessing
+  // - betweenRuns and instanceLoadLimit
 
   if (config.initialized) {
     return;
@@ -65,7 +65,7 @@ const initialize = async ({
     processEventsAfterPublish,
     isRunnerDeactivated,
     runInterval,
-    parallelTenantProcessing,
+    instanceLoadLimit,
     tableNameEventQueue,
     tableNameEventLock,
     disableRedis,
@@ -92,7 +92,7 @@ const initialize = async ({
     multiTenancyEnabled: config.isMultiTenancy,
     redisEnabled: config.redisEnabled,
     runInterval: config.runInterval,
-    config: config.parallelTenantProcessing,
+    config: config.instanceLoadLimit,
   });
 };
 

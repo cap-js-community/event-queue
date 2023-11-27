@@ -1,13 +1,13 @@
 ---
 layout: default
 title: Publishing of Events
-nav_order: 3
+nav_order: 6
 ---
 
 <!-- prettier-ignore-start -->
 
-# Publishing of Events
 
+# Publishing of Events
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
@@ -15,7 +15,7 @@ nav_order: 3
 - TOC
 {: toc}
 
-## How to
+# Ad-hoc events
 
 This function `publishEvent` offered by the package helps you to publish events in an efficient way. It not only
 executes basic input validations, but also handles the insertion of the event data into the appropriate database table.
@@ -34,7 +34,7 @@ await publishEvent(tx, {
 });
 ```
 
-### Function Parameters
+## Function Parameters
 
 The `publishEvent` function takes two parameters:
 
@@ -49,12 +49,8 @@ Each event object should contain the following properties:
 - `referenceEntityKey` (UUID): UUID key of the reference entity.
 - `status` (Status): Status of the event, defaults to 0.
 - `payload` (LargeString): Payload of the event.
-- `attempts` (Integer): The number of attempts made, defaults to 0.
-- `lastAttemptTimestamp` (Timestamp): Timestamp of the last attempt.
-- `createdAt` (Timestamp): Timestamp of event creation. This field is automatically set on insert.
-- `startAfter` (Timestamp): Timestamp indicating when the event should start after.
 
-### Error Handling
+## Error Handling
 
 The function throws an `EventQueueError` in the following cases:
 
@@ -62,12 +58,12 @@ The function throws an `EventQueueError` in the following cases:
 - If the event type is unknown.
 - If the `startAfter` field is not a valid date.
 
-### Return Value
+## Return Value
 
 The function returns a `Promise` that resolves to the result of the database insert operation. This can be used to
 handle any subsequent logic depending on the outcome of the event publishing operation.
 
-## Delayed Events
+# Delayed Events
 
 Delayed events allow for scheduling events to be processed at a future time. This is especially useful when there are
 tasks or events that need to be triggered at a specific time in the future.
@@ -93,19 +89,25 @@ processed until the specified time.
 Please note that the actual time of publishing may vary slightly due to the processing interval and the load on the
 server. The event will be processed as soon as possible after the `startAfter` time.
 
-## Processing of events after publish
+# Periodic Events
+
+Periodic events must not published manually and are rejected by the `publishEvent` function. Updating and keeping track
+of new periodic events happens automatically during server start. The events are derived from the `config.yml`.
+
+# Processing of events after publish
 
 The processing of events relies on various configurations. Events are directly processed after publishing if
-the `processEventsAfterPublish` parameter is set to `true` during the initialization of the event queue. If this
-parameter is set to `false`, the event is processed at the next regular interval for processing events. However, in the
-case of automatic processing, the way of processing depends on whether Redis is available and enabled.
+the [processEventsAfterPublish](/event-queue/setup/#initialization-parameters) parameter is set to `true` during the
+initialization of the event queue. If this parameter is set to `false`, the event is processed at the next regular
+interval for processing events. However, in the case of automatic processing, the way of processing depends on whether
+Redis is available and enabled.
 
-### Redis
+## Redis
 
 If Redis is available and enabled, the event is broadcasted to all available app instances which are registered
-as `registerAsEventProcessor` during initialization of the event queue. This enables automatic load balancing across all
-app instances.
+as [registerAsEventProcessor](/event-queue/setup/#initialization-parameters) during initialization of the event queue.
+This enables automatic load balancing across all app instances.
 
-### DB
+## DB
 
 In this case, the event is processed directly in the app instance in which the event has been published.

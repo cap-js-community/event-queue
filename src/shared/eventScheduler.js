@@ -19,7 +19,7 @@ class EventScheduler {
       return; // event combination already scheduled
     }
     this.#scheduledEvents[key] = true;
-    cds.log(COMPONENT_NAME).info("scheduling event queue run for delayed event", {
+    cds.log(COMPONENT_NAME).debug("scheduling event queue run for delayed event", {
       type,
       subType,
       delaySeconds: (date.getTime() - Date.now()) / 1000,

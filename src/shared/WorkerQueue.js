@@ -82,7 +82,7 @@ class WorkerQueue {
    **/
   static get instance() {
     if (!WorkerQueue.#instance) {
-      WorkerQueue.#instance = new WorkerQueue(config.parallelTenantProcessing);
+      WorkerQueue.#instance = new WorkerQueue(config.instanceLoadLimit);
     }
     return WorkerQueue.#instance;
   }

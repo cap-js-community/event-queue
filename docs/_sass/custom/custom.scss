@@ -1,3 +1,27 @@
 code {
   white-space: pre;
 }
+
+.notice--warning {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  background-color: #fffaeb;
+  border-left: 0.5rem solid #fff5a1;
+  position: relative;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.notice--warning:after {
+  position: absolute;
+  content: "";
+  border-width: 0 0.5rem 0.625rem 0;
+  border-style: solid;
+  border-color: #fff5a1 transparent;
+  display: block;
+  width: 0;
+  zindex: 2;
+  left: 1rem;
+  top: -0.3125rem;
+}

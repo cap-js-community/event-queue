@@ -7,6 +7,7 @@ const { processChunkedSync } = require("./shared/common");
 const eventConfig = require("./config");
 
 const COMPONENT_NAME = "eventQueue/periodicEvents";
+const CHUNK_SIZE_INSERT_PERIODIC_EVENTS = 4;
 
 const checkAndInsertPeriodicEvents = async (context) => {
   const tx = cds.tx(context);
@@ -84,13 +85,17 @@ const checkAndInsertPeriodicEvents = async (context) => {
 
 const insertPeriodEvents = async (tx, events) => {
   const startAfter = new Date();
-  processChunkedSync(events, 4, (chunk) => {
-    cds.log(COMPONENT_NAME).info("inserting changed or new periodic events", {
+  let counter = 1;
+  const chunks = Math.ceil(events.length / CHUNK_SIZE_INSERT_PERIODIC_EVENTS);
+  const logger = cds.log(COMPONENT_NAME);
+  processChunkedSync(events, CHUNK_SIZE_INSERT_PERIODIC_EVENTS, (chunk) => {
+    logger.info(`${counter}/${chunks} | inserting chunk of changed or new periodic events`, {
       events: chunk.map(({ type, subType }) => {
         const { interval } = eventConfig.getEventConfig(type, subType);
         return { type, subType, interval };
       }),
     });
+    counter++;
   });
   const periodEventsInsert = events.map((periodicEvent) => ({
     type: periodicEvent.type,
