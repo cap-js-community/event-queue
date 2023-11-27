@@ -18,9 +18,11 @@ overloading any single instance. This makes it an ideal solution for application
 ## Getting started
 
 - Run `npm add @cap-js-community/event-queue` in `@sap/cds` project
-- Activate the cds-plugin in the cds section of the package.sjon
+- Activate the cds-plugin in the cds section of the package.json.
 
 ### As cds-plugin
+
+For detailed information check out the [documentation](https://cap-js-community.github.io/event-queue/configure-event/#periodic-events).
 
 ```json
 {
@@ -35,13 +37,16 @@ overloading any single instance. This makes it an ideal solution for application
 
 ## Features
 
-- load balancing of event processing throughout app instances
-- control concurrency in app instances
-- managed transactions for event processing
+Learn more about features in the [documentation](https://cap-js-community.github.io/event-queue). To compare the 
+event-queue with other SAP products head over to [Distinction from other solutions](https://cap-js-community.github.io/event-queue/diff-to-outbox/).
+
+- [load balancing](/https://cap-js-community.github.io/event-queueload-balancing) and concurrency control of event processing across app instances
+- [periodic events](/https://cap-js-community.github.io/event-queueconfigure-event/#periodic-events) similar to running cron jobs for business processes
+- [managed transactions](/https://cap-js-community.github.io/event-queuetransaction-handling) for event processing
 - async processing of processing intensive tasks for better UI responsiveness
 - push/pull mechanism for reducing delay between publish an event and processing
 - cluster published events during processing (e.g. for combining multiple E-Mail events to one E-Mail)
-- plug and play via cds-plugin
+- [plug and play](https://cap-js-community.github.io/event-queue/setup) via cds-plugin
 
 ## Documentation
 
@@ -50,7 +55,7 @@ Head over to our [Documentation](https://cap-js-community.github.io/event-queue/
 ## Support, Feedback, Contributing
 
 This project is open to feature requests/suggestions, bug reports etc.
-via [GitHub issues](https://github.com/cap-js-community/<your-project>/issues). Contribution and feedback are encouraged
+via [GitHub issues](https://github.com/cap-js-communityevent-queue/issues). Contribution and feedback are encouraged
 and always welcome. For more information about how to contribute, the project structure, as well as additional
 contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
 
@@ -62,7 +67,7 @@ times.
 
 ## Licensing
 
-Copyright 2023 SAP SE or an SAP affiliate company and `@cap-js-community/event-queue contributors`. Please see
+Copyright 2023 SAP SE or an SAP affiliate company and `@cap-js-community/event-queue` contributors. Please see
 our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and
 their licensing/copyright information is
 available [via the REUSE tool](https://api.reuse.software/info/github.com/cap-js-community/<your-project>).
