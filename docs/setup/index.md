@@ -4,22 +4,21 @@ title: Getting started
 nav_order: 3
 ---
 
-# Setup
-
 <!-- prettier-ignore-start -->
 
+# Setup
 {: .no_toc}
 
 - TOC
 {: toc}
 <!-- prettier-ignore-end -->
 
-## Ways of Initialization
+# Ways of Initialization
 
 - Run `npm add @cap-js-community/event-queue` in `@sap/cds` project
 - Initialize the event queue as CAP-Plugin or manually in your server.js
 
-### As cds-plugin
+## As cds-plugin
 
 Extend the cds section of your package.json. Reference to the cds-plugin section in the capire documentation about the
 [cds-plugin concept](https://cap.cloud.sap/docs/node.js/cds-plugins).
@@ -35,7 +34,7 @@ Extend the cds section of your package.json. Reference to the cds-plugin section
 }
 ```
 
-### in server.js
+## in server.js
 
 Call the initialize function in your server.js. Check here the available settings for the initialization.
 
@@ -45,7 +44,7 @@ eventQueue.initialize({
 });
 ```
 
-## Initialization parameters
+# Initialization parameters
 
 The table below lists the initialization parameters that can be used to configure how the event-queue operates.
 These parameters allow you to customize various aspects of the event processing,

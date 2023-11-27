@@ -7,7 +7,6 @@ nav_order: 8
 <!-- prettier-ignore-start -->
 
 # Transaction Handling
-
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
@@ -15,7 +14,7 @@ nav_order: 8
 - TOC
 {: toc}
 
-## Overview
+# Overview
 
 One of the fundamental pillars of this library is the secure handling of transactions in conjunction with business
 processes. All transactions related to event processing are fully managed and should not be committed or rolled back by
@@ -23,7 +22,7 @@ the event implementation. The circumstances under which transactions are committ
 following section. Transactions are always CDS transactions associated with a CDS context. For more general information
 about CAP transaction handling, please refer to the [documentation](https://cap.cloud.sap/docs/node.js/cds-tx).
 
-## Transaction Handling
+# Transaction Handling
 
 The handling of a transaction for an event is determined by the event configuration, particularly the
 parameter `transactionMode`. This parameter influences heavily if transactions passed to the `processEvent` method is
@@ -38,7 +37,7 @@ The transactions available in the pre-processing steps are always read transacti
 everything considered before the `processEvent` method. However, the `processEvent` always has a read/write transaction
 available.
 
-### Transaction Modes
+## Transaction Modes
 
 There are three available transaction modes. The first two should be used when it's not possible to establish a proper
 transactional bracket between the transaction passed to the `processEvent` function and the data processed within this
@@ -60,11 +59,37 @@ is processed and altered with the transaction passed to `processEvent`, the tran
     - Status `Open`,`Error`, `Exceeded` will result in a rollback. For more information about the status handling of
       events, refer to the corresponding [wiki page](/event-queue/status-handling).
 
-### Exception Handling
+{% include warning.html message="
+The function `setShouldRollbackTransaction` can be used to override the transaction mode `alwaysCommit`. This function
+can also be used in `isolation` mode if the event status has been reported as `Done`, which usually results in 
+committing the associated transaction. However, with `setShouldRollbackTransaction`, the transaction would be rolled 
+back regardless of the reported event status. The example belows shows how to use the function.
+```js
+class EventQueueMinimalistic extends EventQueueBaseClass {
+  constructor(context, eventType, eventSubType, config) {
+    super(context, eventType, eventSubType, config);
+  }
+
+  async processEvent(processContext, key, eventEntries, payload) {
+    let eventStatus = EventProcessingStatus.Done;
+    try {
+      await sendNotification(queueEntries, payload);
+    } catch {
+      eventStatus = EventProcessingStatus.Error;
+    }
+    this.setShouldRollbackTransaction(key); // leads to always rollback the transaction
+    return eventEntries.map((eventEntry) => [eventEntry.ID, eventStatus]);
+  }
+}
+```
+
+" %}
+
+## Exception Handling
 
 - When an exception is raised by user code and not handled:
-  - The event queue tries to catch all exceptions, and if this occurs, it sets the event entry to an error state.
-- The event processor (`processEvent`) changes the status of an event to 'error'. For more details on status handling of
+  - The event queue tries to catch all exceptions, and if this occurs, it sets the event entry to error.
+- The event processor (`processEvent`) changes the status of an event to `error`. For more details on status handling of
   events, please refer to the dedicated [wiki page](/event-queue/status-handling).
 
 In both situations, the transaction associated with the event processing is rolled back. This means that all changes

@@ -6,8 +6,8 @@ nav_order: 6
 
 <!-- prettier-ignore-start -->
 
-# Publishing of Events
 
+# Publishing of Events
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
@@ -15,7 +15,7 @@ nav_order: 6
 - TOC
 {: toc}
 
-## Ad-hoc events
+# Ad-hoc events
 
 This function `publishEvent` offered by the package helps you to publish events in an efficient way. It not only
 executes basic input validations, but also handles the insertion of the event data into the appropriate database table.
@@ -34,7 +34,7 @@ await publishEvent(tx, {
 });
 ```
 
-### Function Parameters
+## Function Parameters
 
 The `publishEvent` function takes two parameters:
 
@@ -50,7 +50,7 @@ Each event object should contain the following properties:
 - `status` (Status): Status of the event, defaults to 0.
 - `payload` (LargeString): Payload of the event.
 
-### Error Handling
+## Error Handling
 
 The function throws an `EventQueueError` in the following cases:
 
@@ -58,12 +58,12 @@ The function throws an `EventQueueError` in the following cases:
 - If the event type is unknown.
 - If the `startAfter` field is not a valid date.
 
-### Return Value
+## Return Value
 
 The function returns a `Promise` that resolves to the result of the database insert operation. This can be used to
 handle any subsequent logic depending on the outcome of the event publishing operation.
 
-## Delayed Events
+# Delayed Events
 
 Delayed events allow for scheduling events to be processed at a future time. This is especially useful when there are
 tasks or events that need to be triggered at a specific time in the future.
@@ -89,7 +89,7 @@ processed until the specified time.
 Please note that the actual time of publishing may vary slightly due to the processing interval and the load on the
 server. The event will be processed as soon as possible after the `startAfter` time.
 
-## Periodic Events
+# Periodic Events
 
 Periodic events must not published manually and are rejected by the `publishEvent` function. Updating and keeping track
 of new periodic events happens automatically during server start. The events are derived from the `config.yml`.

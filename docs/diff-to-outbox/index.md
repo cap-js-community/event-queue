@@ -5,16 +5,17 @@ nav_order: 2
 ---
 
 <!-- prettier-ignore-start -->
+
+
 # Distinction from other solutions
-
-In the following, the event queue will be compared and differentiated with other SAP products.
-
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
 - TOC
 {: toc}
+
+In the following, the event queue will be compared and differentiated with other SAP products.
 
 ## CAP persistent outbox
 
