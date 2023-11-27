@@ -4,10 +4,10 @@ title: Getting started
 nav_order: 3
 ---
 
-
 # Setup
 
 <!-- prettier-ignore-start -->
+
 {: .no_toc}
 
 - TOC
@@ -53,12 +53,12 @@ such as the configuration file path, event processing behavior, load balancing, 
 The table includes the parameter name, a description of its purpose, and the default value if not specified.
 
 | Name                      | Description                                                                                                                              | Default              |
-|:--------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------|:---------------------|
+| :------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------- | :------------------- |
 | configFilePath            | Path to the configuration file.                                                                                                          | null                 |
 | registerAsEventProcessor  | Whether or not to register as an event processor. If false, the app can publish events but doesn't process events.                       | true                 |
 | processEventsAfterPublish | Whether or not to process events immediately after publish. Events are distributed via Redis to all available app instances.             | true                 |
 | isRunnerDeactivated       | Whether or not the runner is deactivated. This can be changed on the fly to temporarily deactivate the periodic runs.                    | false                |
-| runInterval [ms]          | The interval in milliseconds at which the runner runs.                                                                                   | 5 * 60 * 1000        |
+| runInterval [ms]          | The interval in milliseconds at which the runner runs.                                                                                   | 5 _ 60 _ 1000        |
 | instanceLoadLimit         | A number representing the load one app-instance is able to handle. Detailed information in [load balancing](/event-queue/load-balancing) | 5                    |
 | tableNameEventQueue       | The name of the event queue table.                                                                                                       | sap.eventqueue.Event |
 | tableNameEventLock        | The name of the event lock table.                                                                                                        | sap.eventqueue.Lock  |

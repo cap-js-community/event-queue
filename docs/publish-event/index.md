@@ -90,6 +90,7 @@ Please note that the actual time of publishing may vary slightly due to the proc
 server. The event will be processed as soon as possible after the `startAfter` time.
 
 ## Periodic Events
+
 Periodic events must not published manually and are rejected by the `publishEvent` function. Updating and keeping track
 of new periodic events happens automatically during server start. The events are derived from the `config.yml`.
 
