@@ -89,7 +89,11 @@ processed until the specified time.
 Please note that the actual time of publishing may vary slightly due to the processing interval and the load on the
 server. The event will be processed as soon as possible after the `startAfter` time.
 
-## Processing of events after publish
+## Periodic Events
+Periodic events must not published manually and are rejected by the `publishEvent` function. Updating and keeping track
+of new periodic events happens automatically during server start. The events are derived from the `config.yml`.
+
+# Processing of events after publish
 
 The processing of events relies on various configurations. Events are directly processed after publishing if
 the [processEventsAfterPublish](/event-queue/setup/#initialization-parameters) parameter is set to `true` during the
@@ -97,12 +101,12 @@ initialization of the event queue. If this parameter is set to `false`, the even
 interval for processing events. However, in the case of automatic processing, the way of processing depends on whether
 Redis is available and enabled.
 
-### Redis
+## Redis
 
 If Redis is available and enabled, the event is broadcasted to all available app instances which are registered
 as [registerAsEventProcessor](/event-queue/setup/#initialization-parameters) during initialization of the event queue.
 This enables automatic load balancing across all app instances.
 
-### DB
+## DB
 
 In this case, the event is processed directly in the app instance in which the event has been published.

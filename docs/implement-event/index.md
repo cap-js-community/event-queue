@@ -93,11 +93,12 @@ class EventQueueAdvanced extends EventQueueBaseClass {
   }
 
   async checkEventAndGeneratePayload(queueEntry) {
+    // dummy function
     const eventStillValid = await checkEventIsStillValid(this.tx, queueEntry.payload);
     if (!eventStillValid) {
       this.logger.info("Event not valid anymore, skipping processing", {
-        eventType: this.__eventType,
-        eventSubType: this.__eventSubType,
+        eventType: this.eventType,
+        eventSubType: this.eventSubType,
         queueEntryId: queueEntry.ID,
       });
       return null;
