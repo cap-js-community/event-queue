@@ -22,7 +22,7 @@ overloading any single instance. This makes it an ideal solution for application
 
 ### As cds-plugin
 
-For detailed information check out the [documentation](https://cap-js-community.github.io/event-queue/configure-event/#periodic-events).
+For detailed information check out the [documentation](https://cap-js-community.github.io/event-queue/configure-event/#setup).
 
 ```json
 {
@@ -37,7 +37,7 @@ For detailed information check out the [documentation](https://cap-js-community.
 
 ## Features
 
-Learn more about features in the [documentation](https://cap-js-community.github.io/event-queue). To compare the
+Learn more about features in the [documentation](https://cap-js-community.github.io/event-queue/#functionality-and-problem-solutions). To compare the
 event-queue with other SAP products head over to [Distinction from other solutions](https://cap-js-community.github.io/event-queue/diff-to-outbox/).
 
 - [load balancing](/https://cap-js-community.github.io/event-queueload-balancing) and concurrency control of event processing across app instances
