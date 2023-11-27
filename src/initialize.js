@@ -29,7 +29,7 @@ const CONFIG_VARS = [
   ["processEventsAfterPublish", true],
   ["isRunnerDeactivated", false],
   ["runInterval", 5 * 60 * 1000],
-  ["instanceLoadLimit", 5],
+  ["instanceLoadLimit", 20],
   ["tableNameEventQueue", BASE_TABLES.EVENT],
   ["tableNameEventLock", BASE_TABLES.LOCK],
   ["disableRedis", false],

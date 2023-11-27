@@ -5,7 +5,7 @@ nav_order: 5
 ---
 
 <!-- prettier-ignore-start -->
-# Configure Event
+# Load Balancing
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
@@ -13,54 +13,63 @@ nav_order: 5
 - TOC
 {: toc}
 
-## Ad-Hoc events
+Load balancing is a critical feature of the Event-Queue framework, designed to efficiently distribute asynchronous
+event processing across multiple application instances. This chapter provides an overview of how Event-Queue employs
+load balancing to ensure optimal performance.
 
-### Configuration
+## Importance of Load Balancing with Event-Queue
 
-The configuration YAML file is where all the required information regarding event processing should be maintained.
+One of the key factors to use Event-Queue is its ability to balance the load of event processing across all available
+application instances. Load balancing helps prevent overloading any single instance, thereby avoiding CPU and memory
+peaks that could adversely affect the application's performance and stability.
 
-### Parameters
+## Control Over Load Distribution
 
-| Property                      | Description                                                                                                                                                                                                             | Default Value |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| impl                          | impl                                                                                                                                                                                                                    | -             |
-| type                          | type                                                                                                                                                                                                                    | -             |
-| subType                       | subType                                                                                                                                                                                                                 | -             |
-| load                          | load                                                                                                                                                                                                                    | -             |
-| retryAttempts                 | For infinite retries, maintain -1.                                                                                                                                                                                      | 3             |
-| processAfterCommit            | Indicates whether an event is processed immediately after the transaction, in which the event was written, has been committed.                                                                                          | true          |
-| parallelEventProcessing       | How many events of the same type and subType are parallel processed after clustering. Limit is 10.                                                                                                                      | 1             |
-| eventOutdatedCheck            | Checks if the db record for the event has been modified since the selection and right before the processing of the event.                                                                                               | true          |
-| commitOnEventLevel            | After processing an event, the associated transaction is committed and the associated status is committed with the same transaction. This should be used if events should be processed atomically.                      | false         |
-| selectMaxChunkSize            | Number of events which are selected at once. If it should be checked if there are more open events available, set the parameter checkForNextChunk to true.                                                              | 100           |
-| checkForNextChunk             | Determines if after processing a chunk (the size depends on the value of selectMaxChunkSize), a next chunk is being processed if there are more open events and the processing time has not already exceeded 5 minutes. | false         |
-| deleteFinishedEventsAfterDays | This parameter determines the number of days after which events are deleted, regardless of their status. A value of 0 signifies that event entries are never deleted from the database table.                           | 0             |
+Event-Queue allows for precise control over the load of specific processes. This is achieved by defining the load that
+each event can handle, thus ensuring that no single event or process becomes a bottleneck. This load distribution 
+strategy not only helps in maintaining a smooth and stable performance but also contributes to the overall robustness 
+of the application.
 
-### Configuration
+## Application Instance Load Limit
 
-// TODO: add explanation
+Each application instance has a specific load limit that is not exceeded, ensuring that the application runs optimally
+without overloading the resources of any particular instance. This limit is dynamic and can be adjusted based on the
+requirements and capabilities of the application.
 
-```yaml
-events:
-  - type: Notification
-    subType: EMail
-    impl: ./srv/util/mail-service/EventQueueNotificationProcessor
-    load: 10
-    parallelEventProcessing: 5
+## Load Transfer Between App Instances
 
-  - type: Process
-    subType: SyncClosingTask
-    impl: ./srv/common/process/EventQueueClosingTaskSync
-    load: 40
-    parallelEventProcessing: 2
-    selectMaxChunkSize: 20
-    checkForNextChunk: true
-    commitOnEventLevel: true
-    retryAttempts: 1
-```
+In scenarios where a particular application instance reaches its maximum load, other instances can take over the 
+processing of events. This automatic load transfer feature ensures that the application continues to function smoothly
+and efficiently, even under high load conditions.
 
-## Periodic events
+## Event Distribution via Redis
 
-### Parameters
+Event-Queue utilizes Redis' publish/subscribe mechanism to distribute events to different application instances. 
+This approach allows for effective load balancing and ensures that each instance processes only the events it is 
+subscribed to. With Redis' reliable and fast publish/subscribe system, Event-Queue can distribute events quickly and
+efficiently, ensuring optimal load balancing across all application instances.
 
-### Configuration
+## Configuration parameters
+
+The maximal load of an application instance is defined by the parameter [instanceLoadLimit](/event-queue/setup/#initialization-parameters).
+The current load of an application instance is calculated by multiplying the number of running events by the load of
+each event. It's important to note that the calculated load is cross-tenant, meaning the available capacity is shared 
+across all tenants.
+
+## Explained on example
+
+The picture below shows an example architecture where the event-queue is used. The setup is divided into a backend designated
+to purely serve frontend requests and a worker-backend for the async processing to keep the event-loop of the frontend
+facing backend responsive at any time.
+
+In this example, business processes originating from a user produce an event in the backend and publish that event
+via Redis to the worker-backend for processing. On the worker-backend, all periodic events are also processed. In
+this example, both worker-backends can do the processing depending on which instance has the capacity to process the
+load.
+<img alt="img_1.png" src="img_1.png"/>
+
+In conclusion, the load balancing feature of Event-Queue is instrumental in ensuring efficient and effective event 
+processing. By controlling the load distribution, limiting the load on individual instances, and transferring the 
+load between instances as needed, Event-Queue helps maintain optimal application performance. Coupled with the power
+of Redis' publish/subscribe mechanism for event distribution, Event-Queue delivers a robust solution for managing
+asynchronous event processing in high-performance applications.

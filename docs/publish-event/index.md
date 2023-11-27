@@ -15,7 +15,7 @@ nav_order: 6
 - TOC
 {: toc}
 
-## How to
+## Ad-hoc events
 
 This function `publishEvent` offered by the package helps you to publish events in an efficient way. It not only
 executes basic input validations, but also handles the insertion of the event data into the appropriate database table.
@@ -49,10 +49,6 @@ Each event object should contain the following properties:
 - `referenceEntityKey` (UUID): UUID key of the reference entity.
 - `status` (Status): Status of the event, defaults to 0.
 - `payload` (LargeString): Payload of the event.
-- `attempts` (Integer): The number of attempts made, defaults to 0.
-- `lastAttemptTimestamp` (Timestamp): Timestamp of the last attempt.
-- `createdAt` (Timestamp): Timestamp of event creation. This field is automatically set on insert.
-- `startAfter` (Timestamp): Timestamp indicating when the event should start after.
 
 ### Error Handling
 
@@ -96,15 +92,16 @@ server. The event will be processed as soon as possible after the `startAfter` t
 ## Processing of events after publish
 
 The processing of events relies on various configurations. Events are directly processed after publishing if
-the `processEventsAfterPublish` parameter is set to `true` during the initialization of the event queue. If this
-parameter is set to `false`, the event is processed at the next regular interval for processing events. However, in the
-case of automatic processing, the way of processing depends on whether Redis is available and enabled.
+the [processEventsAfterPublish](/event-queue/setup/#initialization-parameters) parameter is set to `true` during the 
+initialization of the event queue. If this parameter is set to `false`, the event is processed at the next regular 
+interval for processing events. However, in the case of automatic processing, the way of processing depends on whether
+Redis is available and enabled.
 
 ### Redis
 
 If Redis is available and enabled, the event is broadcasted to all available app instances which are registered
-as `registerAsEventProcessor` during initialization of the event queue. This enables automatic load balancing across all
-app instances.
+as [registerAsEventProcessor](/event-queue/setup/#initialization-parameters) during initialization of the event queue.
+This enables automatic load balancing across all app instances.
 
 ### DB
 
