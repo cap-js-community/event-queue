@@ -183,7 +183,6 @@ describe("initialize", () => {
       await eventQueue.initialize({
         configFilePath,
         registerAsEventProcessor: false,
-        instanceLoadLimit: 3,
       });
       expect(configInstance.registerAsEventProcessor).toEqual(false);
       expect(configInstance.processEventsAfterPublish).toEqual(true);
