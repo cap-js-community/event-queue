@@ -183,12 +183,10 @@ describe("initialize", () => {
       await eventQueue.initialize({
         configFilePath,
         registerAsEventProcessor: false,
-        instanceLoadLimit: 3,
       });
       expect(configInstance.registerAsEventProcessor).toEqual(false);
       expect(configInstance.processEventsAfterPublish).toEqual(true);
       expect(configInstance.runInterval).toEqual(5 * 60 * 1000);
-      expect(configInstance.instanceLoadLimit).toEqual(3);
       expect(configInstance.tableNameEventQueue).toEqual("sap.eventqueue.Event");
       expect(configInstance.tableNameEventLock).toEqual("sap.eventqueue.Lock");
       expect(configInstance.skipCsnCheck).toEqual(false);

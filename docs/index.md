@@ -4,7 +4,7 @@ title: Home
 nav_order: 1
 ---
 
-# About
+# SAP BTP Event-Queue for CAP Node.js
 
 The Event-Queue is a framework built on top of CAP Node.js, designed specifically for efficient and
 streamlined asynchronous event processing. With a focus on load balancing, this package ensures optimal

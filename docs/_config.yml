@@ -19,7 +19,7 @@
 # in the templates via {{ site.myvariable }}.
 
 title: >-
-  Event-Queue for CAP Node.js
+  event-queue
 description: >-
   Event-Queue is a framework built on top of CAP Node.js, designed specifically for efficient and streamlined asynchronous event processing
 
