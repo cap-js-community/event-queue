@@ -8,42 +8,51 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## v0.2.5 - 2023-11-16
 
 ### Added
+
 - logger get setter for better providing own logger
 
 ### Changed
+
 - new documentation
 - improve logging
 
 ### Fixed
+
 - small bug fixes and improvements for periodic events
 
 ## v0.2.4 - 2023-11-16
 
 ### Added
+
 - further improve periodic events
 
 ### Changed
+
 - rework of load management and concurrency control
 
 ## v0.2.3 - 2023-11-15
 
 ### Fixed
+
 - fixes and improvements for periodic events
 
 ## v0.2.2 - 2023-11-14
 
 ### Added
+
 - periodic events - use event-queue to process periodic jobs
 
 ## v0.2.1 - 2023-11-13
 
 ### Added
+
 - cds shutdown - close redis clients
 - add redis cluster support
 
 ## v0.2.0 - 2023-11-09
 
 ### Added
+
 - implementation of delayed events, which allows to publish events that should be processed at a later point in time
 - option to disable redis + refactoring of config
 - improved HANA integration test setup
@@ -51,6 +60,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## v0.1.58 - 2023-11-03
 
 ### Changed
+
 - update dependencies
 - remove uuid dependency
 
@@ -65,6 +75,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - small bug fixes for local mode
 
 ### Changed
+
 - better documentation
 
 ## v0.1.55 - 2023-08-17
