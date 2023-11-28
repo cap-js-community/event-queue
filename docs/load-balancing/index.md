@@ -51,7 +51,7 @@ efficiently, ensuring optimal load balancing across all application instances.
 
 ## Configuration parameters
 
-The maximal load of an application instance is defined by the parameter [instanceLoadLimit](/event-queue/setup/#initialization-parameters).
+The maximal load of an application instance is 100%.
 The current load of an application instance is calculated by multiplying the number of running events by the load of
 each event. It's important to note that the calculated load is cross-tenant, meaning the available capacity is shared
 across all tenants.

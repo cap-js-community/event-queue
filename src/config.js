@@ -12,6 +12,7 @@ const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
 const COMPONENT_NAME = "eventQueue/config";
 const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
+const SUFFIX_PERIODIC = "_PERIODIC";
 
 class Config {
   #logger;
@@ -42,7 +43,7 @@ class Config {
     this.#runInterval = null;
     this.#redisEnabled = null;
     this.#initialized = false;
-    this.#instanceLoadLimit = null;
+    this.#instanceLoadLimit = 100;
     this.#tableNameEventQueue = null;
     this.#tableNameEventLock = null;
     this.#isRunnerDeactivated = false;
@@ -115,7 +116,6 @@ class Config {
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
       event.load = event.load ?? DEFAULT_LOAD;
-      const SUFFIX_PERIODIC = "_PERIODIC";
       event.type = `${event.type}${SUFFIX_PERIODIC}`;
       event.isPeriodic = true;
       this.validatePeriodicConfig(result, event);

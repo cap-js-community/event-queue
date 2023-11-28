@@ -24,7 +24,6 @@
     "eventQueue": {
       "plugin": true,
       "configFilePath": "./srv/eventConfig.yml",
-      "instanceLoadLimit": 2,
       "runInterval": 30000
     },
     "requires": {
