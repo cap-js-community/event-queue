@@ -99,11 +99,11 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
     events.forEach((event) => {
       promises.push(async () => {
         const subdomain = await getSubdomainForTenantId(tenantId);
-        const tenantContext = new cds.EventContext({
+        const tenantContext = {
           tenant: tenantId,
           // NOTE: we need this because of logging otherwise logs would not contain the subdomain
           http: { req: { authInfo: { getSubdomain: () => subdomain } } },
-        });
+        };
         return await cds.tx(tenantContext, ({ context }) => {
           WorkerQueue.instance.addToQueue(event.load, async () => {
             try {

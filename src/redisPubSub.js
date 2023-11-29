@@ -28,11 +28,11 @@ const messageHandlerProcessEvents = async (messageData) => {
       subType,
     });
     const subdomain = await getSubdomainForTenantId(tenantId);
-    const tenantContext = new cds.EventContext({
+    const tenantContext = {
       tenant: tenantId,
       // NOTE: we need this because of logging otherwise logs would not contain the subdomain
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
-    });
+    };
     return await cds.tx(tenantContext, async ({ context }) => {
       return await runEventCombinationForTenant(context, type, subType);
     });
@@ -48,13 +48,17 @@ const broadcastEvent = async (tenantId, type, subType) => {
   try {
     if (!config.redisEnabled) {
       if (config.registerAsEventProcessor) {
-        const subdomain = await getSubdomainForTenantId(tenantId);
-        const tenantContext = new cds.EventContext({
-          tenant: tenantId,
-          // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-          http: { req: { authInfo: { getSubdomain: () => subdomain } } },
-        });
-        return await cds.tx(tenantContext, async ({ context }) => {
+        let context = {};
+        if (tenantId) {
+          const subdomain = await getSubdomainForTenantId(tenantId);
+          context = {
+            // NOTE: we need this because of logging otherwise logs would not contain the subdomain
+            tenant: tenantId,
+            http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+          };
+        }
+
+        return await cds.tx(context, async ({ context }) => {
           return await runEventCombinationForTenant(context, type, subType);
         });
       }
