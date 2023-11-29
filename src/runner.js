@@ -94,38 +94,39 @@ const _checkAndTriggerPeriodicEventUpdate = (tenantIds) => {
 
 const _executeEventsAllTenants = (tenantIds, runId) => {
   const events = eventQueueConfig.allEvents;
-  const promises = [];
-  tenantIds.forEach((tenantId) => {
+  const product = tenantIds.reduce((result, tenantId) => {
     events.forEach((event) => {
-      promises.push(async () => {
-        const subdomain = await getSubdomainForTenantId(tenantId);
-        const tenantContext = {
-          tenant: tenantId,
-          // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-          http: { req: { authInfo: { getSubdomain: () => subdomain } } },
-        };
-        return await cds.tx(tenantContext, ({ context }) => {
-          WorkerQueue.instance.addToQueue(event.load, async () => {
-            try {
-              const lockId = `${runId}_${event.type}_${event.subType}`;
-              const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
-                expiryTime: eventQueueConfig.runInterval * 0.95,
-              });
-              if (!couldAcquireLock) {
-                return;
-              }
-              await runEventCombinationForTenant(context, event.type, event.subType, true);
-            } catch (err) {
-              cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
-                tenantId,
-              });
-            }
+      result.push([tenantId, event]);
+    });
+    return result;
+  });
+
+  return product.map(async ([tenantId, event]) => {
+    const subdomain = await getSubdomainForTenantId(tenantId);
+    const tenantContext = {
+      tenant: tenantId,
+      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
+      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+    };
+    return await cds.tx(tenantContext, ({ context }) => {
+      WorkerQueue.instance.addToQueue(event.load, async () => {
+        try {
+          const lockId = `${runId}_${event.type}_${event.subType}`;
+          const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+            expiryTime: eventQueueConfig.runInterval * 0.95,
           });
-        });
+          if (!couldAcquireLock) {
+            return;
+          }
+          await runEventCombinationForTenant(context, event.type, event.subType, true);
+        } catch (err) {
+          cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
+            tenantId,
+          });
+        }
       });
     });
   });
-  return promises;
 };
 
 const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
