@@ -111,7 +111,9 @@ describe("redisRunner", () => {
     configInstance.redisEnabled = false;
     const originalCdsTx = cds.tx;
     jest.spyOn(cds, "tx").mockImplementation(async function (context, fn) {
-      context.tenant = null;
+      if (!fn.toString().toLowerCase().includes("worker")) {
+        context.tenant = null;
+      }
       return originalCdsTx.call(this, context, fn);
     });
     const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");

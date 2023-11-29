@@ -49,7 +49,6 @@ is processed and altered with the transaction passed to `processEvent`, the tran
 
 - alwaysCommit
   - The transaction passed to `processEvent` is always committed, even if an unsuccessful event status is returned.
-  - TODO: explain new function setShouldRollbackTransaction()
 - alwaysRollback
   - The transaction passed to `processEvent` is always rolled back, regardless of the event status returned
 - isolated
