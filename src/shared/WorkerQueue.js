@@ -8,9 +8,9 @@ const EventQueueError = require("../EventQueueError");
 const COMPONENT_NAME = "eventQueue/WorkerQueue";
 const NANO_TO_MS = 1e6;
 const THRESHOLD = {
-  INFO: 5 * 1000,
-  WARN: 10 * 1000,
-  ERROR: 15 * 1000,
+  INFO: 15 * 1000,
+  WARN: 30 * 1000,
+  ERROR: 45 * 1000,
 };
 
 class WorkerQueue {
