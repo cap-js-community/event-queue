@@ -11,7 +11,6 @@ const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const periodicEvents = require("./periodicEvents");
 const { hashStringTo32Bit } = require("./shared/common");
-const { context } = require("@sap/cds");
 
 const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
