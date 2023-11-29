@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Removed the `instanceLoadLimit` parameter. The limit is now statically set to 100. The event load should henceforth be specified as a percentage.
 - Upgrade docs dependencies
+- Adjusted workerQueue logging thresholds for waiting time
+
+### Fixed
+
+- set cds.context correctly for periodic runner
 
 ## v0.2.5 - 2023-11-16
 
