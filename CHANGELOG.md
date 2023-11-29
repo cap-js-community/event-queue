@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Upgrade docs dependencies
 
 ### Fixed
+
 - set cds.context correctly for periodic runner
 
 ## v0.2.5 - 2023-11-16
