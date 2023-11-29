@@ -11,6 +11,7 @@ const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const periodicEvents = require("./periodicEvents");
 const { hashStringTo32Bit } = require("./shared/common");
+const { context } = require("@sap/cds");
 
 const COMPONENT_NAME = "eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
@@ -97,25 +98,32 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
   const promises = [];
   tenantIds.forEach((tenantId) => {
     events.forEach((event) => {
-      promises.push(
-        WorkerQueue.instance.addToQueue(event.load, async () => {
-          try {
-            const lockId = `${runId}_${event.type}_${event.subType}`;
-            const tenantContext = new cds.EventContext({ tenant: tenantId });
-            const couldAcquireLock = await distributedLock.acquireLock(tenantContext, lockId, {
-              expiryTime: eventQueueConfig.runInterval * 0.95,
-            });
-            if (!couldAcquireLock) {
-              return;
+      promises.push(async () => {
+        const subdomain = await getSubdomainForTenantId(tenantId);
+        const tenantContext = new cds.EventContext({
+          tenant: tenantId,
+          // NOTE: we need this because of logging otherwise logs would not contain the subdomain
+          http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+        });
+        return await cds.tx(tenantContext, ({ context }) => {
+          WorkerQueue.instance.addToQueue(event.load, async () => {
+            try {
+              const lockId = `${runId}_${event.type}_${event.subType}`;
+              const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+                expiryTime: eventQueueConfig.runInterval * 0.95,
+              });
+              if (!couldAcquireLock) {
+                return;
+              }
+              await runEventCombinationForTenant(context, event.type, event.subType, true);
+            } catch (err) {
+              cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
+                tenantId,
+              });
             }
-            await runEventCombinationForTenant(tenantId, event.type, event.subType, true);
-          } catch (err) {
-            cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
-              tenantId,
-            });
-          }
-        })
-      );
+          });
+        });
+      });
     });
   });
   return promises;
@@ -147,7 +155,8 @@ const _singleTenantDb = async (tenantId) => {
   events.forEach((event) => {
     WorkerQueue.instance.addToQueue(event.load, async () => {
       try {
-        await runEventCombinationForTenant(tenantId, event.type, event.subType, true);
+        const context = new cds.EventContext({ tenant: tenantId });
+        await runEventCombinationForTenant(context, event.type, event.subType, true);
       } catch (err) {
         cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
           tenantId,
@@ -215,15 +224,8 @@ const _calculateOffsetForFirstRun = async () => {
   return offsetDependingOnLastRun;
 };
 
-const runEventCombinationForTenant = async (tenantId, type, subType, skipWorkerPool) => {
+const runEventCombinationForTenant = async (context, type, subType, skipWorkerPool) => {
   try {
-    const subdomain = await getSubdomainForTenantId(tenantId);
-    const context = new cds.EventContext({
-      tenant: tenantId,
-      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
-    });
-    cds.context = context;
     if (skipWorkerPool) {
       return await processEventQueue(context, type, subType);
     } else {
@@ -236,7 +238,7 @@ const runEventCombinationForTenant = async (tenantId, type, subType, skipWorkerP
   } catch (err) {
     const logger = cds.log(COMPONENT_NAME);
     logger.error("error executing event combination for tenant", err, {
-      tenantId,
+      tenantId: context.tenant,
       type,
       subType,
     });

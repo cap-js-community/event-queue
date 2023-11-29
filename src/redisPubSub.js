@@ -4,6 +4,7 @@ const redis = require("./shared/redis");
 const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
 const config = require("./config");
 const { runEventCombinationForTenant } = require("./runner");
+const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "eventQueue/redisPubSub";
@@ -26,7 +27,15 @@ const messageHandlerProcessEvents = async (messageData) => {
       type,
       subType,
     });
-    await runEventCombinationForTenant(tenantId, type, subType);
+    const subdomain = await getSubdomainForTenantId(tenantId);
+    const tenantContext = new cds.EventContext({
+      tenant: tenantId,
+      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
+      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+    });
+    return await cds.tx(tenantContext, async ({ context }) => {
+      return await runEventCombinationForTenant(context, type, subType);
+    });
   } catch (err) {
     logger.error("could not parse event information", {
       messageData,
@@ -36,13 +45,21 @@ const messageHandlerProcessEvents = async (messageData) => {
 
 const broadcastEvent = async (tenantId, type, subType) => {
   const logger = cds.log(COMPONENT_NAME);
-  if (!config.redisEnabled) {
-    if (config.registerAsEventProcessor) {
-      await runEventCombinationForTenant(tenantId, type, subType);
-    }
-    return;
-  }
   try {
+    if (!config.redisEnabled) {
+      if (config.registerAsEventProcessor) {
+        const subdomain = await getSubdomainForTenantId(tenantId);
+        const tenantContext = new cds.EventContext({
+          tenant: tenantId,
+          // NOTE: we need this because of logging otherwise logs would not contain the subdomain
+          http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+        });
+        return await cds.tx(tenantContext, async ({ context }) => {
+          return await runEventCombinationForTenant(context, type, subType);
+        });
+      }
+      return;
+    }
     const result = await checkLockExistsAndReturnValue(
       new cds.EventContext({ tenant: tenantId }),
       [type, subType].join("##")
