@@ -99,7 +99,7 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
       result.push([tenantId, event]);
     });
     return result;
-  });
+  }, []);
 
   return product.map(async ([tenantId, event]) => {
     const subdomain = await getSubdomainForTenantId(tenantId);
@@ -108,8 +108,8 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
       // NOTE: we need this because of logging otherwise logs would not contain the subdomain
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     };
-    return await cds.tx(tenantContext, ({ context }) => {
-      WorkerQueue.instance.addToQueue(event.load, async () => {
+    return await cds.tx(tenantContext, async ({ context }) => {
+      return await WorkerQueue.instance.addToQueue(event.load, async () => {
         try {
           const lockId = `${runId}_${event.type}_${event.subType}`;
           const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
