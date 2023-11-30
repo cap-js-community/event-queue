@@ -49,7 +49,7 @@ eventQueue.initialize({
 
 The table below lists the initialization parameters that can be used to configure how the event-queue operates.
 These parameters allow you to customize various aspects of the event processing,
-such as the configuration file path, event processing behavior, load balancing, and more.
+such as the configuration file path, event processing behavior, load balancing and more.
 The table includes the parameter name, a description of its purpose, and the default value if not specified.
 
 | Name                      | Description                                                                                                                  | Default              |
