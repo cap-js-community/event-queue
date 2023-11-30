@@ -11,6 +11,7 @@ jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValue(null);
 const eventQueue = require("../src");
 const testHelper = require("../test/helper");
 const EventQueueTest = require("../test/asset/EventQueueTest");
+const EventQueueHealthCheckDb = require("../test/asset/EventQueueHealthCheckDb");
 const { EventProcessingStatus, EventQueueProcessorBase } = require("../src");
 const { Logger: mockLogger } = require("../test/mocks/logger");
 const distributedLock = require("../src/shared/distributedLock");
@@ -819,6 +820,7 @@ describe("integration-main", () => {
     describe("transactions modes", () => {
       it("always rollback", async () => {
         const event = eventQueue.config.periodicEvents[0];
+        event.transactionMode = "alwaysRollback";
         await cds.tx({}, async (tx2) => {
           checkAndInsertPeriodicEventsMock.mockRestore();
           await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
@@ -827,8 +829,18 @@ describe("integration-main", () => {
           .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
           .mockResolvedValueOnce();
 
+        const idCheck = cds.utils.uuid();
+        jest
+          .spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent")
+          .mockImplementationOnce(async (processContext) => {
+            await cds.tx(processContext).run(INSERT.into("sap.eventqueue.Lock").entries({ code: idCheck }));
+          });
+
         dbCounts = {};
         await processEventQueue(context, event.type, event.subType);
+
+        const result = await tx.run(SELECT.one.from("sap.eventqueue.Lock").where({ code: idCheck }));
+        expect(result?.code).toBeUndefined();
 
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
@@ -848,9 +860,49 @@ describe("integration-main", () => {
           .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
           .mockResolvedValueOnce();
 
+        const idCheck = cds.utils.uuid();
+        jest
+          .spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent")
+          .mockImplementationOnce(async (processContext) => {
+            await cds.tx(processContext).run(INSERT.into("sap.eventqueue.Lock").entries({ code: idCheck }));
+          });
+
         dbCounts = {};
         await processEventQueue(context, event.type, event.subType);
 
+        const result = await tx.run(SELECT.one.from("sap.eventqueue.Lock").where({ code: idCheck }));
+        expect(result?.code).toEqual(idCheck);
+
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(dbCounts).toMatchSnapshot();
+
+        await testHelper.selectEventQueueAndExpectDone(tx);
+      });
+
+      it("no tx mode should commit if not exception", async () => {
+        const event = eventQueue.config.periodicEvents[0];
+        event.transactionMode = null;
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        });
+        const scheduleNextSpy = jest
+          .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+          .mockResolvedValueOnce();
+
+        const idCheck = cds.utils.uuid();
+        jest
+          .spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent")
+          .mockImplementationOnce(async (processContext) => {
+            await cds.tx(processContext).run(INSERT.into("sap.eventqueue.Lock").entries({ code: idCheck }));
+          });
+
+        dbCounts = {};
+        await processEventQueue(context, event.type, event.subType);
+
+        const result = await tx.run(SELECT.one.from("sap.eventqueue.Lock").where({ code: idCheck }));
+        expect(result?.code).toEqual(idCheck);
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(dbCounts).toMatchSnapshot();

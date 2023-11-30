@@ -185,9 +185,9 @@ exports[`integration-main lock wait timeout during keepAlive 1`] = `
 
 exports[`integration-main periodic events transactions modes always commit 1`] = `
 {
-  "BEGIN": 6,
+  "BEGIN": 7,
   "COMMIT": 6,
-  "CREATE": 1,
+  "CREATE": 2,
   "DELETE": 2,
   "READ": 2,
   "UPDATE": 2,
@@ -196,12 +196,23 @@ exports[`integration-main periodic events transactions modes always commit 1`] =
 
 exports[`integration-main periodic events transactions modes always rollback 1`] = `
 {
-  "BEGIN": 6,
+  "BEGIN": 7,
   "COMMIT": 5,
-  "CREATE": 1,
+  "CREATE": 2,
   "DELETE": 2,
   "READ": 2,
   "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main periodic events transactions modes no tx mode should commit if not exception 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 6,
+  "CREATE": 2,
+  "DELETE": 2,
+  "READ": 2,
   "UPDATE": 2,
 }
 `;

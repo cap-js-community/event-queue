@@ -166,7 +166,7 @@ const processPeriodicEvent = async (eventTypeInstance) => {
             throw new TriggerRollback();
           }
           if (
-            eventTypeInstance.transactionMode !== TransactionMode.alwaysCommit ||
+            eventTypeInstance.transactionMode === TransactionMode.alwaysRollback ||
             eventTypeInstance.shouldRollbackTransaction(queueEntry.ID)
           ) {
             throw new TriggerRollback();
