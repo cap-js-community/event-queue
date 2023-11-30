@@ -5,13 +5,15 @@ nav_order: 7
 ---
 
 <!-- prettier-ignore-start -->
+
 # Implement Event
+
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
 - TOC
-{: toc}
+  {: toc}
 
 # Overview
 
@@ -124,20 +126,23 @@ module.exports = EventQueueAdvanced;
 ## clusterQueueEntries
 
 The function `clusterQueueEntries` is designed to bundle the processing of multiple events into a single batch. This
-approach means the `processEvent` method is invoked only once for all events that have been grouped or "clustered" together.
+approach means the `processEvent` method is invoked only once for all events that have been grouped or "clustered"
+together.
 
-This method is particularly beneficial in situations where multiple events of the same type have been published and need to be
+This method is particularly beneficial in situations where multiple events of the same type have been published and need
+to be
 processed in a unified manner. For instance, if multiple email events have been published, you could use
 `clusterQueueEntries` to send a single batch email to the user, instead of triggering multiple individual emails.
 
 Here is an example of how to use the `clusterQueueEntries` function:
 
 ```js
-clusterQueueEntries(queueEntriesWithPayloadMap) {
-    Object.entries(queueEntriesWithPayloadMap).forEach(([key, { queueEntry, payload }]) => {
-        const clusterKey = payload.emailAddress;
-        this.addEntryToProcessingMap(clusterKey, queueEntry, payload);
-    });
+clusterQueueEntries(queueEntriesWithPayloadMap);
+{
+  Object.entries(queueEntriesWithPayloadMap).forEach(([key, { queueEntry, payload }]) => {
+    const clusterKey = payload.emailAddress;
+    this.addEntryToProcessingMap(clusterKey, queueEntry, payload);
+  });
 }
 ```
 
@@ -169,3 +174,31 @@ This scenario highlights the importance of careful error handling and status man
 ensure data integrity and consistency.
 
 ## Minimal implementation for periodic events
+
+The `processPeriodicEvent` function is utilized to process periodic events. In comparison to ad-hoc events periodic events
+should not return a processing status. The process function for periodic events also does not get passed a payload for
+processing.
+
+```js
+"use strict";
+
+const { EventQueueBaseClass } = require("@cap-js-community/event-queue");
+
+class EventQueueMinimalistic extends EventQueueBaseClass {
+  constructor(context, eventType, eventSubType, config) {
+    super(context, eventType, eventSubType, config);
+  }
+
+  async processPeriodicEvent(processContext, key, eventEntry) {
+    try {
+      await doHeavyProcessing(queueEntries, payload);
+    } catch {
+      this.logger.error("Error during processing periodic event!", err);
+    }
+  }
+}
+
+module.exports = EventQueueMinimalistic;
+```
+
+For periodic events there are no more class methods which can be overridden to customize any logic.

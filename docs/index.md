@@ -47,5 +47,5 @@ solution for applications needing consistent, reliable event processing.
   - Each event processor is invoked with a managed transaction, akin to CAP handlers. This arrangement absolves you of the responsibility of managing transactions, allowing you to concentrate on crafting business code.
 - Load Management (a vital aspect when the app serves numerous users):
   - When the event-queue is employed for asynchronous processing, the package can regulate the load, thus avoiding CPU/Memory peaks. This functionality allows processing based on the available resources in the app. Furthermore, the event-queue disseminates the load across all available app instances where the event-queue has been initialized. Consequently, the app instance which publishes the event need not process the event. This distribution capability also facilitates processing the event on a different app than the one that published it, supporting a microservice architecture if required.
-- Periodic Events (currently under beta testing):
+- Periodic Events:
   - It's possible to set up periodic events that execute every X seconds. Even here, the event-queue manages the load, distributing it across all available app instances.
