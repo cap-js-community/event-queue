@@ -15,40 +15,38 @@ nav_order: 7
 
 # Overview
 
-Events are implemented through an Event Processor. Each Event Processor must be a class that inherits from the
-EventQueueProcessorBase.
+Events are implemented through an event processor. Each processor must be a class that inherits from the `EventQueueProcessorBase`.
 
 # Basic Implementation
 
-The most minimalist event implementation only redefines the `processEvent` method for ad-hoc events, and
+The most minimalist event implementation only redefines the `processEvent` method for ad-hoc events and
 `processPeriodicEvent` for periodic events. The interfaces for processing ad-hoc and periodic events are slightly
 different. Ad-hoc events have an additional `payload` parameter, which is the payload defined during the event's
 publication.
 
-| Argument       | Purpose                                                                                                                                                                |
-| :------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| processContext | CDS event context - this context is associated with a managed transaction.                                                                                             |
-| key            | Key used to identify the event-queue database entry                                                                                                                    |
-| queueEntries   | Array of event-queue entries. If no clustering has been implemented, the length is always 1. How to implement clustering events refer to [here](#clusterqueueentries). |
-| payload        | The payload that was provided during the event's publication. This only applies to ad-hoc events.                                                                      |
+| Argument       | Purpose                                                                                                                                                                                |
+| :------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| processContext | CDS event context - this context is associated with a managed transaction.                                                                                                             |
+| key            | Key used to identify the event-queue database entry                                                                                                                                    |
+| queueEntries   | Array of event-queue entries. If no clustering has been implemented, the length is always 1. For further information about clustering events have a look [here](#clusterqueueentries). |
+| payload        | The payload that was provided during the event's publication. This only applies to ad-hoc events.                                                                                      |
 
 ## Minimal implementation for ad-hoc events
 
 The `processEvent` function is utilized to process the published ad-hoc events. It is designed to
-return an array of tuples, each tuple consisting of the ID of the processed eventEntry and its
-respective status. Under normal circumstances, the eventEntries parameter of the `processEvent`
-function is always an array with a length of one.
+return an array of tuples. Each tuple consists of the ID of the processed event entry and its respective status.
+Under normal circumstances, the `queueEntries` parameter of the `processEvent` function is always an array with a length of one.
 
 However, this behavior can be altered by overriding the [clusterQueueEntries](#clusterqueueentries)
 function in the base class `EventQueueProcessorBase`. This adjustment becomes beneficial when
-there's a requirement to process multiple events simultaneously. In these scenarios, multiple
+there is a requirement to process multiple events simultaneously. In this scenario, multiple
 queueEntries are provided to the `processEvent` function, which in turn must return a status for
 each queueEntry.
 
 Please note that each queueEntry can have a different status. If multiple events are processed in
-one batch the transaction handling gets more complex. The event-queue uses worst status
-aggregation, meaning in transaction mode `isolated` the transaction would be rolled back if one
-reported event status is `error`. This is described in detail in [below](#example-if-multiple-events-are-clustered).
+one batch, the transaction handling gets more complex. The event-queue uses worst status aggregation.
+Meaning in transaction mode `isolated` the transaction would be rolled back if one of the reported event status is `error`.
+This is described in detail in below [section](#example-if-multiple-events-are-clustered).
 
 ```js
 "use strict";
@@ -60,14 +58,14 @@ class EventQueueMinimalistic extends EventQueueBaseClass {
     super(context, eventType, eventSubType, config);
   }
 
-  async processEvent(processContext, key, eventEntries, payload) {
+  async processEvent(processContext, key, queueEntries, payload) {
     let eventStatus = EventProcessingStatus.Done;
     try {
       await doHeavyProcessing(queueEntries, payload);
     } catch {
       eventStatus = EventProcessingStatus.Error;
     }
-    return eventEntries.map((eventEntry) => [eventEntry.ID, eventStatus]);
+    return queueEntries.map((queueEntry) => [queueEntry.ID, eventStatus]);
   }
 }
 
@@ -82,16 +80,15 @@ scenarios in which transactions are committed or rolled back, please refer to th
 
 # Advanced implementation
 
-The following paragraph outlines the most common methods that can be overridden in the base class
-(EventQueueProcessorBase). For detailed descriptions of each function, please refer to the JSDoc documentation in
-the base class (EventQueueProcessorBase).
+The following paragraph outlines the most common methods that can be overridden in the base class (EventQueueProcessorBase).
+For detailed descriptions of each function, please refer to the JSDoc documentation in the base class (EventQueueProcessorBase).
 
 ## checkEventAndGeneratePayload
 
-The function "checkEventAndGeneratePayload" is called for each event that will be processed. This function is used to
+The function `checkEventAndGeneratePayload` is called for each event that will be processed. This function is used to
 validate whether the event still needs to be processed and to fetch additional data that cannot be fetched in bulk
-(for all events at once). The data retrieved in this function is typically used in the "clusterQueueEntries" function.
-Mass-enabled data reading is possible in the "beforeProcessingEvents" function.
+(for all events at once). The data retrieved in this function is typically used in the `clusterQueueEntries` function.
+Mass-enabled data reading is possible in the `beforeProcessingEvents` function.
 
 ```js
 "use strict";
@@ -161,9 +158,9 @@ Events A and B would be `done` and the status of Event C would be `error`.
 
 This leads to the following situation: If the processing of these events is attempted again, Events A and B would
 not be processed again because their status is `done`. But the business data associated with these events would have
-been rolled back from the previous transaction. This could potentially lead to data inconsistencies because the status
+been rolled back from the previous transaction. This could potentially lead to data inconsistencies, because the status
 suggests that the events were processed successfully, but the business data associated with these events was not
 committed due to the transaction rollback.
 
-This scenario highlights the importance of careful error handling and status management in batch processing of events to
+This scenario highlights the importance of careful error handling and status management in batch processing of events, to
 ensure data integrity and consistency.
