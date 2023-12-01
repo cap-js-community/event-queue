@@ -69,7 +69,7 @@ load.
 <img alt="img_1.png" src="img_1.png"/>
 
 In conclusion, the load balancing feature of event-queue is instrumental in ensuring efficient and effective event
-processing, but keeping the optimal application performance. This is achieved by controlling the load distribution, 
+processing, but keeping the optimal application performance. This is achieved by controlling the load distribution,
 limiting the load on individual instances and transferring the load between instances as needed. Coupled with the power
 of Redis' publish/subscribe mechanism for event distribution, event-queue delivers a robust solution for managing
 asynchronous event processing in high-performance applications.
