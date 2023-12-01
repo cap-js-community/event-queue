@@ -48,7 +48,7 @@ Each event object should contain the following properties:
 - `referenceEntity` (String): Reference entity associated with the event
 - `referenceEntityKey` (UUID): UUID key of the reference entity
 - `status` (Status): Status of the event, defaults to 0
-- `payload` (LargeString): Event payload
+- `payload` (String)(Required): Event payload
 
 ## Error Handling
 
