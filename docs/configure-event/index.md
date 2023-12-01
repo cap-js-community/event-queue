@@ -50,7 +50,7 @@ second example showcases the full complexity of the configuration.
 ```yaml
 events:
   - type: Notification
-    subType: EMail
+    subType: Email
     impl: ./srv/util/mail-service/EventQueueNotificationProcessor
     load: 1
     parallelEventProcessing: 5
@@ -68,27 +68,27 @@ events:
 
 # Periodic Events
 
-Periodic events in the Event-Queue framework are events processed at pre-defined intervals, similar to cron jobs.
+Periodic events in the event-queue framework are events processed at pre-defined intervals, similar to cron jobs.
 This feature is particularly useful for regular business processes such as checking if a task is overdue. Just like
 ad-hoc events, these events are managed efficiently across all available application instances, ensuring no single
 instance is overloaded.
 
 ## Parameters
 
-| Property        | Description                                                                                                                                                     | Default Value |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| type            | Specifies the type of the periodic event.                                                                                                                       | -             |
-| subType         | Specifies the subType of the periodic event.                                                                                                                    | -             |
-| impl            | Specifies the implementation file path for the periodic event.                                                                                                  | -             |
-| load            | Specifies the load value for the periodic event.                                                                                                                | 1             |
-| transactionMode | Specifies the transaction mode for the periodic event. For allowed values refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes) | isolated      |
-| interval        | Specifies the interval in seconds at which the periodic event should occur.                                                                                     | -             |
+| Property        | Description                                                                                                                                       | Default Value |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| type            | Type of the periodic event                                                                                                                        | -             |
+| subType         | SubType of the periodic event                                                                                                                     | -             |
+| impl            | Implementation file path for the periodic event                                                                                                   | -             |
+| load            | Load value for the periodic event                                                                                                                 | 1             |
+| transactionMode | Transaction mode for the periodic event. For allowed values refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes) | isolated      |
+| interval        | Interval in seconds at which the periodic event should occur                                                                                      | -             |
 
 ## Configuration
 
 The following demonstrates a configuration for a periodic event with a default load of 1 and an interval of 30 seconds.
-This means the periodic event is scheduled to execute every 30 seconds, provided there is sufficient capacity on any
-application instance. If capacity is unavailable, execution is delayed, but subsequent attempts will aim to adhere to
+This means the periodic event is scheduled to execute every 30 seconds, if the provided capacity is sufficient on any
+application instance. If capacity is unavailable, the execution is delayed, but subsequent attempts will aim to adhere to
 the originally planned schedule plus the defined interval.
 
 ```yaml
