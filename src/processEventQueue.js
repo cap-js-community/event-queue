@@ -129,6 +129,13 @@ const processPeriodicEvent = async (eventTypeInstance) => {
   let queueEntry;
   let processNext = true;
 
+  if (config.isPeriodicEventBlocked(eventTypeInstance.eventType, eventTypeInstance.eventSubType)) {
+    eventTypeInstance.logger.info("skipping run because periodic event is blocked by configuration", {
+      type: eventTypeInstance.eventType,
+      subType: eventTypeInstance.eventSubType,
+    });
+  }
+
   try {
     while (processNext) {
       await executeInNewTransaction(

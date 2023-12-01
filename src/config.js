@@ -9,10 +9,12 @@ const EventQueueError = require("./EventQueueError");
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
 const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
+const REDIS_CONFIG_BLOCKLIST_CHANNEL = "REDIS_CONFIG_BLOCKLIST_CHANNEL";
 const COMPONENT_NAME = "eventQueue/config";
 const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
 const SUFFIX_PERIODIC = "_PERIODIC";
+const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 
 class Config {
   #logger;
@@ -34,6 +36,7 @@ class Config {
   #env;
   #eventMap;
   #updatePeriodicEvents;
+  #blockedPeriodicEvents;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -52,6 +55,7 @@ class Config {
     this.#skipCsnCheck = null;
     this.#disableRedis = null;
     this.#env = getEnvInstance();
+    this.#blockedPeriodicEvents = {};
   }
 
   getEventConfig(type, subType) {
@@ -71,6 +75,7 @@ class Config {
   }
 
   attachConfigChangeHandler() {
+    this.#attachBlocklistChangeHandler();
     redis.subscribeRedisChannel(REDIS_CONFIG_CHANNEL, (messageData) => {
       try {
         const { key, value } = JSON.parse(messageData);
@@ -79,7 +84,7 @@ class Config {
           this[key] = value;
         }
       } catch (err) {
-        this.#logger.error("could not parse event config change", {
+        this.#logger.error("could not parse event config change", err, {
           messageData,
         });
       }
@@ -94,6 +99,40 @@ class Config {
     redis.publishMessage(REDIS_CONFIG_CHANNEL, JSON.stringify({ key, value })).catch((error) => {
       this.#logger.error(`publishing config change failed key: ${key}, value: ${value}`, error);
     });
+  }
+
+  #attachBlocklistChangeHandler() {
+    redis.subscribeRedisChannel(REDIS_CONFIG_BLOCKLIST_CHANNEL, (messageData) => {
+      try {
+        const { command, key, tenant } = JSON.parse(messageData);
+        if (command === COMMAND_BLOCK) {
+          this.#blockedPeriodicEvents[key] = tenant;
+        } else {
+          delete this.#blockedPeriodicEvents[key];
+        }
+      } catch (err) {
+        this.#logger.error("could not parse event blocklist change", err, {
+          messageData,
+        });
+      }
+    });
+  }
+
+  // TODO: check combi exists
+  // TODO: don't forget PERIODIC suffix
+  blockPeriodicEvent(type, subType, tenant) {
+    const key = this.generateKey(type, subType);
+    this.#blockedPeriodicEvents[this.generateKey(type, subType)] = tenant;
+    redis
+      .publishMessage(REDIS_CONFIG_BLOCKLIST_CHANNEL, JSON.stringify({ command: COMMAND_BLOCK, key, tenant }))
+      .catch((error) => {
+        this.#logger.error(`publishing config block failed key: ${key}`, error);
+      });
+  }
+
+  isPeriodicEventBlocked(type, subType, tenant) {
+    const value = this.#blockedPeriodicEvents[this.generateKey(type, subType)];
+    return value === "*" || value === tenant;
   }
 
   get isRunnerDeactivated() {
