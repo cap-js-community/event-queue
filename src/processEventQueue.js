@@ -128,13 +128,24 @@ const processPeriodicEvent = async (eventTypeInstance) => {
   let queueEntry;
   let processNext = true;
 
-  if (
-    config.isPeriodicEventBlocked(
-      eventTypeInstance.eventType,
-      eventTypeInstance.eventSubType,
-      eventTypeInstance.context.tenant
-    )
-  ) {
+  const isPeriodicEventBlockedCb = config.isPeriodicEventBlockedCb;
+  const params = [eventTypeInstance.eventType, eventTypeInstance.eventSubType, eventTypeInstance.context.tenant];
+  let eventBlocked = false;
+  if (isPeriodicEventBlockedCb) {
+    try {
+      eventBlocked = isPeriodicEventBlockedCb(...params);
+    } catch (err) {
+      eventBlocked = true;
+      eventTypeInstance.logger.error("skipping run because periodic event blocked check failed!", err, {
+        type: eventTypeInstance.eventType,
+        subType: eventTypeInstance.eventSubType,
+      });
+    }
+  } else {
+    eventBlocked = config.isPeriodicEventBlocked(...params);
+  }
+
+  if (eventBlocked) {
     eventTypeInstance.logger.info("skipping run because periodic event is blocked by configuration", {
       type: eventTypeInstance.eventType,
       subType: eventTypeInstance.eventSubType,

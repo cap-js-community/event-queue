@@ -53,6 +53,7 @@ describe("baseFunctionality", () => {
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
     await tx.run(DELETE.from("sap.eventqueue.Event"));
     eventQueue.config.clearPeriodicEventBlockList();
+    eventQueue.config.isPeriodicEventBlockedCb = null;
   });
 
   afterEach(async () => {
@@ -390,6 +391,37 @@ describe("baseFunctionality", () => {
           status: EventProcessingStatus.Done,
           attempts: 1,
           startAfter: new Date(done.startAfter).toISOString(),
+        });
+      });
+
+      describe("cb api", () => {
+        test("blocked event should not be executed", async () => {
+          const event = eventQueue.config.periodicEvents[0];
+          eventQueue.config.isPeriodicEventBlockedCb = () => true;
+          await checkAndInsertPeriodicEvents(context);
+          await eventQueue.processEventQueue(context, event.type, event.subType);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+          await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+        });
+
+        test("not blocked event - should execute", async () => {
+          const event = eventQueue.config.periodicEvents[0];
+          eventQueue.config.isPeriodicEventBlockedCb = () => false;
+          await checkAndInsertPeriodicEvents(context);
+          await eventQueue.processEventQueue(context, event.type, event.subType);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+          const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+          const [open, done] = events.sort((a, b) => a.status - b.status);
+          expect(open).toEqual({
+            status: EventProcessingStatus.Open,
+            attempts: 0,
+            startAfter: new Date(new Date(done.startAfter).getTime() + event.interval * 1000).toISOString(),
+          });
+          expect(done).toEqual({
+            status: EventProcessingStatus.Done,
+            attempts: 1,
+            startAfter: new Date(done.startAfter).toISOString(),
+          });
         });
       });
     });

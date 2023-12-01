@@ -37,6 +37,7 @@ class Config {
   #eventMap;
   #updatePeriodicEvents;
   #blockedPeriodicEvents;
+  #isPeriodicEventBlockedCb;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -303,6 +304,14 @@ class Config {
 
   set instanceLoadLimit(value) {
     this.#instanceLoadLimit = value;
+  }
+
+  get isPeriodicEventBlockedCb() {
+    return this.#isPeriodicEventBlockedCb;
+  }
+
+  set isPeriodicEventBlockedCb(value) {
+    this.#isPeriodicEventBlockedCb = value;
   }
 
   get tableNameEventQueue() {
