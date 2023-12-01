@@ -43,12 +43,12 @@ The `publishEvent` function takes two parameters:
 
 Each event object should contain the following properties:
 
-- `type` (String)(Required): Event type
-- `subType` (String)(Required): Event subtype
+- `type` (String) [Required]: Event type
+- `subType` (String) [Required]: Event subtype
 - `referenceEntity` (String): Reference entity associated with the event
 - `referenceEntityKey` (UUID): UUID key of the reference entity
 - `status` (Status): Status of the event, defaults to 0
-- `payload` (String)(Required): Event payload
+- `payload` (String) [Required]: Event payload
 
 ## Error Handling
 
@@ -75,7 +75,7 @@ the `startAfter` field contains a timestamp that is in the future, the event wil
 await publishEvent(tx, {
   type: "Notifications",
   subType: "Tasks",
-  startAfter: new Date("2022-12-31T12:00:00"), // Future timestamp
+  startAfter: new Date("2023-12-31T12:00:00"), // Future timestamp
   payload: JSON.stringify({
     recipients: ["alice@wonder.land"],
   }),
