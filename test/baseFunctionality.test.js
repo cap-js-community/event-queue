@@ -52,6 +52,7 @@ describe("baseFunctionality", () => {
     tx = cds.tx(context);
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
     await tx.run(DELETE.from("sap.eventqueue.Event"));
+    eventQueue.config.clearPeriodicEventBlockList();
   });
 
   afterEach(async () => {
@@ -298,6 +299,98 @@ describe("baseFunctionality", () => {
         status: EventProcessingStatus.Done,
         attempts: 1,
         startAfter: new Date(done.startAfter).toISOString(),
+      });
+    });
+
+    describe("block and unblock periodic tenants", () => {
+      test("blocked event should not be executed", async () => {
+        const event = eventQueue.config.periodicEvents[0];
+        eventQueue.config.blockPeriodicEvent("HealthCheck", "DB");
+        await checkAndInsertPeriodicEvents(context);
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+      });
+
+      test("blocked event for different tenant - should execute", async () => {
+        const event = eventQueue.config.periodicEvents[0];
+        eventQueue.config.blockPeriodicEvent("HealthCheck", "DB", "345");
+        await checkAndInsertPeriodicEvents(context);
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+        const [open, done] = events.sort((a, b) => a.status - b.status);
+        expect(open).toEqual({
+          status: EventProcessingStatus.Open,
+          attempts: 0,
+          startAfter: new Date(new Date(done.startAfter).getTime() + event.interval * 1000).toISOString(),
+        });
+        expect(done).toEqual({
+          status: EventProcessingStatus.Done,
+          attempts: 1,
+          startAfter: new Date(done.startAfter).toISOString(),
+        });
+      });
+
+      test("blocked event should not be executed - tenant specific", async () => {
+        const event = eventQueue.config.periodicEvents[0];
+        eventQueue.config.blockPeriodicEvent("HealthCheck", "DB", "123");
+        await checkAndInsertPeriodicEvents(context);
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+      });
+
+      test("blocked event should not be executed - tenant specific - unblock and execute again", async () => {
+        const event = eventQueue.config.periodicEvents[0];
+        eventQueue.config.blockPeriodicEvent("HealthCheck", "DB", "123");
+        await checkAndInsertPeriodicEvents(context);
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+
+        eventQueue.config.unblockPeriodicEvent("HealthCheck", "DB", "123");
+
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+        const [open, done] = events.sort((a, b) => a.status - b.status);
+        expect(open).toEqual({
+          status: EventProcessingStatus.Open,
+          attempts: 0,
+          startAfter: new Date(new Date(done.startAfter).getTime() + event.interval * 1000).toISOString(),
+        });
+        expect(done).toEqual({
+          status: EventProcessingStatus.Done,
+          attempts: 1,
+          startAfter: new Date(done.startAfter).toISOString(),
+        });
+      });
+
+      test("blocked event should not be executed - all tenant - unblock tenant", async () => {
+        const event = eventQueue.config.periodicEvents[0];
+        eventQueue.config.blockPeriodicEvent("HealthCheck", "DB");
+        await checkAndInsertPeriodicEvents(context);
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+
+        eventQueue.config.unblockPeriodicEvent("HealthCheck", "DB", "123");
+
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+        const [open, done] = events.sort((a, b) => a.status - b.status);
+        expect(open).toEqual({
+          status: EventProcessingStatus.Open,
+          attempts: 0,
+          startAfter: new Date(new Date(done.startAfter).getTime() + event.interval * 1000).toISOString(),
+        });
+        expect(done).toEqual({
+          status: EventProcessingStatus.Done,
+          attempts: 1,
+          startAfter: new Date(done.startAfter).toISOString(),
+        });
       });
     });
 

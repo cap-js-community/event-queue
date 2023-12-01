@@ -124,16 +124,22 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
   return false;
 };
 
-// TODO: don't forget to release lock
 const processPeriodicEvent = async (eventTypeInstance) => {
   let queueEntry;
   let processNext = true;
 
-  if (config.isPeriodicEventBlocked(eventTypeInstance.eventType, eventTypeInstance.eventSubType)) {
+  if (
+    config.isPeriodicEventBlocked(
+      eventTypeInstance.eventType,
+      eventTypeInstance.eventSubType,
+      eventTypeInstance.context.tenant
+    )
+  ) {
     eventTypeInstance.logger.info("skipping run because periodic event is blocked by configuration", {
       type: eventTypeInstance.eventType,
       subType: eventTypeInstance.eventSubType,
     });
+    return;
   }
 
   try {

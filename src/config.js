@@ -118,11 +118,50 @@ class Config {
     });
   }
 
-  // TODO: check combi exists
   // TODO: don't forget PERIODIC suffix
-  blockPeriodicEvent(type, subType, tenant) {
-    const key = this.generateKey(type, subType);
-    this.#blockedPeriodicEvents[this.generateKey(type, subType)] = tenant;
+  blockPeriodicEvent(type, subType, tenant = "*") {
+    const typeWithSuffix = `${type}${SUFFIX_PERIODIC}`;
+    const config = this.getEventConfig(typeWithSuffix, subType);
+    if (!config) {
+      return;
+    }
+    const key = this.generateKey(typeWithSuffix, subType);
+    this.#blockedPeriodicEvents[key] ??= {};
+    this.#blockedPeriodicEvents[key][tenant] = true;
+
+    if (!this.redisEnabled) {
+      return;
+    }
+
+    redis
+      .publishMessage(REDIS_CONFIG_BLOCKLIST_CHANNEL, JSON.stringify({ command: COMMAND_BLOCK, key, tenant }))
+      .catch((error) => {
+        this.#logger.error(`publishing config block failed key: ${key}`, error);
+      });
+  }
+
+  clearPeriodicEventBlockList() {
+    this.#blockedPeriodicEvents = {};
+  }
+
+  unblockPeriodicEvent(type, subType, tenant = "*") {
+    const typeWithSuffix = `${type}${SUFFIX_PERIODIC}`;
+    const config = this.getEventConfig(typeWithSuffix, subType);
+    if (!config) {
+      return;
+    }
+    const key = this.generateKey(typeWithSuffix, subType);
+    const map = this.#blockedPeriodicEvents[key];
+    if (!map) {
+      return;
+    }
+
+    this.#blockedPeriodicEvents[key][tenant] = false;
+
+    if (!this.redisEnabled) {
+      return;
+    }
+
     redis
       .publishMessage(REDIS_CONFIG_BLOCKLIST_CHANNEL, JSON.stringify({ command: COMMAND_BLOCK, key, tenant }))
       .catch((error) => {
@@ -131,8 +170,13 @@ class Config {
   }
 
   isPeriodicEventBlocked(type, subType, tenant) {
-    const value = this.#blockedPeriodicEvents[this.generateKey(type, subType)];
-    return value === "*" || value === tenant;
+    const map = this.#blockedPeriodicEvents[this.generateKey(type, subType)];
+    if (!map) {
+      return false;
+    }
+    const tenantSpecific = map[tenant];
+    const allTenants = map["*"];
+    return tenantSpecific ?? allTenants;
   }
 
   get isRunnerDeactivated() {
