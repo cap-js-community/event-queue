@@ -15,6 +15,7 @@ const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
+const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
 
 class Config {
   #logger;
@@ -107,9 +108,9 @@ class Config {
       try {
         const { command, key, tenant } = JSON.parse(messageData);
         if (command === COMMAND_BLOCK) {
-          this.#blockedPeriodicEvents[key] = tenant;
+          this.#blockPeriodicEventLocalState(key, tenant);
         } else {
-          delete this.#blockedPeriodicEvents[key];
+          this.#unblockPeriodicEventLocalState(key, tenant);
         }
       } catch (err) {
         this.#logger.error("could not parse event blocklist change", err, {
@@ -119,7 +120,6 @@ class Config {
     });
   }
 
-  // TODO: don't forget PERIODIC suffix
   blockPeriodicEvent(type, subType, tenant = "*") {
     const typeWithSuffix = `${type}${SUFFIX_PERIODIC}`;
     const config = this.getEventConfig(typeWithSuffix, subType);
@@ -127,9 +127,7 @@ class Config {
       return;
     }
     const key = this.generateKey(typeWithSuffix, subType);
-    this.#blockedPeriodicEvents[key] ??= {};
-    this.#blockedPeriodicEvents[key][tenant] = true;
-
+    this.#blockPeriodicEventLocalState(key, tenant);
     if (!this.redisEnabled) {
       return;
     }
@@ -139,6 +137,12 @@ class Config {
       .catch((error) => {
         this.#logger.error(`publishing config block failed key: ${key}`, error);
       });
+  }
+
+  #blockPeriodicEventLocalState(key, tenant) {
+    this.#blockedPeriodicEvents[key] ??= {};
+    this.#blockedPeriodicEvents[key][tenant] = true;
+    return key;
   }
 
   clearPeriodicEventBlockList() {
@@ -147,27 +151,30 @@ class Config {
 
   unblockPeriodicEvent(type, subType, tenant = "*") {
     const typeWithSuffix = `${type}${SUFFIX_PERIODIC}`;
+    const key = this.generateKey(typeWithSuffix, subType);
     const config = this.getEventConfig(typeWithSuffix, subType);
     if (!config) {
       return;
     }
-    const key = this.generateKey(typeWithSuffix, subType);
-    const map = this.#blockedPeriodicEvents[key];
-    if (!map) {
-      return;
-    }
-
-    this.#blockedPeriodicEvents[key][tenant] = false;
-
+    this.#unblockPeriodicEventLocalState(key, tenant);
     if (!this.redisEnabled) {
       return;
     }
 
     redis
-      .publishMessage(REDIS_CONFIG_BLOCKLIST_CHANNEL, JSON.stringify({ command: COMMAND_BLOCK, key, tenant }))
+      .publishMessage(REDIS_CONFIG_BLOCKLIST_CHANNEL, JSON.stringify({ command: COMMAND_UNBLOCK, key, tenant }))
       .catch((error) => {
         this.#logger.error(`publishing config block failed key: ${key}`, error);
       });
+  }
+
+  #unblockPeriodicEventLocalState(key, tenant) {
+    const map = this.#blockedPeriodicEvents[key];
+    if (!map) {
+      return;
+    }
+    this.#blockedPeriodicEvents[key][tenant] = false;
+    return key;
   }
 
   isPeriodicEventBlocked(type, subType, tenant) {
