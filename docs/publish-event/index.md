@@ -17,8 +17,8 @@ nav_order: 6
 
 # Ad-hoc events
 
-This function `publishEvent` offered by the package helps you to publish events in an efficient way. It not only
-executes basic input validations, but also handles the insertion of the event data into the appropriate database table.
+This function `publishEvent` offered by the package helps you to publish events in an efficient way.
+Basic input validations are executed and handling the insertion of the event data into the appropriate database table is done.
 
 ```js
 "use strict";
@@ -39,24 +39,24 @@ await publishEvent(tx, {
 The `publishEvent` function takes two parameters:
 
 1. `tx` - The transaction object to be used for database operations.
-2. `events` - This can either be an array of event objects or a single event object.
+2. `events` - Either an array of event objects or a single instance of an event object.
 
 Each event object should contain the following properties:
 
-- `type` (String): Event type. This is a required field.
-- `subType` (String): Event subtype. This is a required field.
-- `referenceEntity` (String): Reference entity associated with the event.
-- `referenceEntityKey` (UUID): UUID key of the reference entity.
-- `status` (Status): Status of the event, defaults to 0.
-- `payload` (LargeString): Payload of the event.
+- `type` (String) [Required]: Event type
+- `subType` (String) [Required]: Event subtype
+- `referenceEntity` (String): Reference entity associated with the event
+- `referenceEntityKey` (UUID): UUID key of the reference entity
+- `status` (Status): Status of the event, defaults to 0
+- `payload` (String) [Required]: Event payload
 
 ## Error Handling
 
 The function throws an `EventQueueError` in the following cases:
 
-- If the configuration is not initialized.
-- If the event type is unknown.
-- If the `startAfter` field is not a valid date.
+- The configuration is not initialized
+- The event type is unknown
+- The `startAfter` field is not a valid date
 
 ## Return Value
 
@@ -75,15 +75,15 @@ the `startAfter` field contains a timestamp that is in the future, the event wil
 await publishEvent(tx, {
   type: "Notifications",
   subType: "Tasks",
-  startAfter: new Date("2022-12-31T12:00:00"), // Future timestamp
+  startAfter: new Date("2023-12-31T12:00:00"), // Future timestamp
   payload: JSON.stringify({
     recipients: ["alice@wonder.land"],
   }),
 });
 ```
 
-The `startAfter` field is optional. If it is not provided or if it contains a past or current timestamp, the event will
-be processed immediately. If it contains a future timestamp, the event will be stored in the database but will not be
+The `startAfter` field is optional. If it is not provided or if it contains a past/current timestamp, the event will
+be processed immediately. If it contains a future timestamp, the event will be stored in the database, but will not be
 processed until the specified time.
 
 Please note that the actual time of publishing may vary slightly due to the processing interval and the load on the
@@ -110,4 +110,4 @@ This enables automatic load balancing across all app instances.
 
 ## DB
 
-In this case, the event is processed directly in the app instance in which the event has been published.
+In this case, the event is processed directly in the app instance, in which the event has been published.
