@@ -148,5 +148,5 @@ config.isPeriodicEventBlockedCb = async (type, subType, tenant) => {
 ### Limitation
 
 The current implementation of config does not persistently store the information. This means that the block/unblock
-list is only available until the next restart of the application. If you want this information to be persistent, 
+list is only available until the next restart of the application. If you want this information to be persistent,
 it is recommended to use the callback API. This allows for accessing persistent information.
