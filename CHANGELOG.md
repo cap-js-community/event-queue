@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - block the run of periodic events via config [documentation](https://cap-js-community.github.io/event-queue/configure-event/#blocking-periodic-events)
+- Add a label to the workerQueue. This will help in understanding which events were throttled in case of throttling.
 
 ## v0.3.0 - 2023-11-30
 
