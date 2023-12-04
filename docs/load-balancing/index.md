@@ -13,20 +13,20 @@ nav_order: 5
 - TOC
 {: toc}
 
-Load balancing is a critical feature of the Event-Queue framework, designed to efficiently distribute asynchronous
-event processing across multiple application instances. This chapter provides an overview of how Event-Queue employs
+Load balancing is a critical feature of the event-queue framework. It is designed to efficiently distribute asynchronous
+event processing across multiple application instances. This chapter provides an overview of how event-queue employs
 load balancing to ensure optimal performance.
 
 ## Importance of Load Balancing with Event-Queue
 
-One of the key factors to use Event-Queue is its ability to balance the load of event processing across all available
+One of the key factors to use event-queue is its ability to balance the load of event processing across all available
 application instances. Load balancing helps prevent overloading any single instance, thereby avoiding CPU and memory
 peaks that could adversely affect the application's performance and stability.
 
 ## Control Over Load Distribution
 
-Event-Queue allows for precise control over the load of specific processes. This is achieved by defining the load that
-each event can handle, thus ensuring that no single event or process becomes a bottleneck. This load distribution
+Event-queue allows for precise control over the load of specific processes. This is achieved by defining the load that
+each event can handle. Thus ensuring that no single event or process becomes a bottleneck. This load distribution
 strategy not only helps in maintaining a smooth and stable performance but also contributes to the overall robustness
 of the application.
 
@@ -44,9 +44,9 @@ and efficiently, even under high load conditions.
 
 ## Event Distribution via Redis
 
-Event-Queue utilizes Redis' publish/subscribe mechanism to distribute events to different application instances.
+Event-queue utilizes Redis' publish/subscribe mechanism to distribute events to different application instances.
 This approach allows for effective load balancing and ensures that each instance processes only the events it is
-subscribed to. With Redis' reliable and fast publish/subscribe system, Event-Queue can distribute events quickly and
+subscribed to. With Redis' reliable and fast publish/subscribe system, event-queue can distribute events quickly and
 efficiently, ensuring optimal load balancing across all application instances.
 
 ## Configuration parameters
@@ -58,7 +58,7 @@ across all tenants.
 
 ## Explained on example
 
-The picture below shows an example architecture where the event-queue is used. The setup is divided into a backend designated
+The picture below shows an example architecture where the event-queue is used. The setup is divided into a backend, designated
 to purely serve frontend requests and a worker-backend for the async processing to keep the event-loop of the frontend
 facing backend responsive at any time.
 
@@ -68,8 +68,8 @@ this example, both worker-backends can do the processing depending on which inst
 load.
 <img alt="img_1.png" src="img_1.png"/>
 
-In conclusion, the load balancing feature of Event-Queue is instrumental in ensuring efficient and effective event
-processing. By controlling the load distribution, limiting the load on individual instances, and transferring the
-load between instances as needed, Event-Queue helps maintain optimal application performance. Coupled with the power
-of Redis' publish/subscribe mechanism for event distribution, Event-Queue delivers a robust solution for managing
+In conclusion, the load balancing feature of event-queue is instrumental in ensuring efficient and effective event
+processing, but keeping the optimal application performance. This is achieved by controlling the load distribution,
+limiting the load on individual instances and transferring the load between instances as needed. Coupled with the power
+of Redis' publish/subscribe mechanism for event distribution, event-queue delivers a robust solution for managing
 asynchronous event processing in high-performance applications.

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.0.0 - 2023-XX-XX
 
+### Added
+
+- block the run of periodic events via config [documentation](https://cap-js-community.github.io/event-queue/configure-event/#blocking-periodic-events)
+
+## v0.3.0 - 2023-11-30
+
 ### Changed
 
 - Removed the `instanceLoadLimit` parameter. The limit is now statically set to 100. The event load should henceforth be specified as a percentage.
@@ -15,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- fix transaction handling for periodic events
 - set cds.context correctly for periodic runner
 
 ## v0.2.5 - 2023-11-16

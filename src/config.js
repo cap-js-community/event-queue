@@ -9,10 +9,13 @@ const EventQueueError = require("./EventQueueError");
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
 const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
+const REDIS_CONFIG_BLOCKLIST_CHANNEL = "REDIS_CONFIG_BLOCKLIST_CHANNEL";
 const COMPONENT_NAME = "eventQueue/config";
 const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
 const SUFFIX_PERIODIC = "_PERIODIC";
+const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
+const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
 
 class Config {
   #logger;
@@ -34,6 +37,8 @@ class Config {
   #env;
   #eventMap;
   #updatePeriodicEvents;
+  #blockedPeriodicEvents;
+  #isPeriodicEventBlockedCb;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -52,6 +57,7 @@ class Config {
     this.#skipCsnCheck = null;
     this.#disableRedis = null;
     this.#env = getEnvInstance();
+    this.#blockedPeriodicEvents = {};
   }
 
   getEventConfig(type, subType) {
@@ -71,6 +77,7 @@ class Config {
   }
 
   attachConfigChangeHandler() {
+    this.#attachBlocklistChangeHandler();
     redis.subscribeRedisChannel(REDIS_CONFIG_CHANNEL, (messageData) => {
       try {
         const { key, value } = JSON.parse(messageData);
@@ -79,7 +86,7 @@ class Config {
           this[key] = value;
         }
       } catch (err) {
-        this.#logger.error("could not parse event config change", {
+        this.#logger.error("could not parse event config change", err, {
           messageData,
         });
       }
@@ -94,6 +101,90 @@ class Config {
     redis.publishMessage(REDIS_CONFIG_CHANNEL, JSON.stringify({ key, value })).catch((error) => {
       this.#logger.error(`publishing config change failed key: ${key}, value: ${value}`, error);
     });
+  }
+
+  #attachBlocklistChangeHandler() {
+    redis.subscribeRedisChannel(REDIS_CONFIG_BLOCKLIST_CHANNEL, (messageData) => {
+      try {
+        const { command, key, tenant } = JSON.parse(messageData);
+        if (command === COMMAND_BLOCK) {
+          this.#blockPeriodicEventLocalState(key, tenant);
+        } else {
+          this.#unblockPeriodicEventLocalState(key, tenant);
+        }
+      } catch (err) {
+        this.#logger.error("could not parse event blocklist change", err, {
+          messageData,
+        });
+      }
+    });
+  }
+
+  blockPeriodicEvent(type, subType, tenant = "*") {
+    const typeWithSuffix = `${type}${SUFFIX_PERIODIC}`;
+    const config = this.getEventConfig(typeWithSuffix, subType);
+    if (!config) {
+      return;
+    }
+    const key = this.generateKey(typeWithSuffix, subType);
+    this.#blockPeriodicEventLocalState(key, tenant);
+    if (!this.redisEnabled) {
+      return;
+    }
+
+    redis
+      .publishMessage(REDIS_CONFIG_BLOCKLIST_CHANNEL, JSON.stringify({ command: COMMAND_BLOCK, key, tenant }))
+      .catch((error) => {
+        this.#logger.error(`publishing config block failed key: ${key}`, error);
+      });
+  }
+
+  #blockPeriodicEventLocalState(key, tenant) {
+    this.#blockedPeriodicEvents[key] ??= {};
+    this.#blockedPeriodicEvents[key][tenant] = true;
+    return key;
+  }
+
+  clearPeriodicEventBlockList() {
+    this.#blockedPeriodicEvents = {};
+  }
+
+  unblockPeriodicEvent(type, subType, tenant = "*") {
+    const typeWithSuffix = `${type}${SUFFIX_PERIODIC}`;
+    const key = this.generateKey(typeWithSuffix, subType);
+    const config = this.getEventConfig(typeWithSuffix, subType);
+    if (!config) {
+      return;
+    }
+    this.#unblockPeriodicEventLocalState(key, tenant);
+    if (!this.redisEnabled) {
+      return;
+    }
+
+    redis
+      .publishMessage(REDIS_CONFIG_BLOCKLIST_CHANNEL, JSON.stringify({ command: COMMAND_UNBLOCK, key, tenant }))
+      .catch((error) => {
+        this.#logger.error(`publishing config block failed key: ${key}`, error);
+      });
+  }
+
+  #unblockPeriodicEventLocalState(key, tenant) {
+    const map = this.#blockedPeriodicEvents[key];
+    if (!map) {
+      return;
+    }
+    this.#blockedPeriodicEvents[key][tenant] = false;
+    return key;
+  }
+
+  isPeriodicEventBlocked(type, subType, tenant) {
+    const map = this.#blockedPeriodicEvents[this.generateKey(type, subType)];
+    if (!map) {
+      return false;
+    }
+    const tenantSpecific = map[tenant];
+    const allTenants = map["*"];
+    return tenantSpecific ?? allTenants;
   }
 
   get isRunnerDeactivated() {
@@ -220,6 +311,14 @@ class Config {
 
   set instanceLoadLimit(value) {
     this.#instanceLoadLimit = value;
+  }
+
+  get isPeriodicEventBlockedCb() {
+    return this.#isPeriodicEventBlockedCb;
+  }
+
+  set isPeriodicEventBlockedCb(value) {
+    this.#isPeriodicEventBlockedCb = value;
   }
 
   get tableNameEventQueue() {

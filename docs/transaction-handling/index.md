@@ -25,13 +25,12 @@ about CAP transaction handling, please refer to the [documentation](https://cap.
 # Transaction Handling
 
 The handling of a transaction for an event is determined by the event configuration, particularly the
-parameter `transactionMode`. This parameter influences heavily if transactions passed to the `processEvent` method is
-committed or rolled back after processing. Other factors which are described later are also influencing if transaction
-is committed or rolled back.
+parameter `transactionMode`. This parameter influences heavily the behaviour of transactions passed to the `processEvent` method.
+Either they are committed or rolled back after processing. Other factors, described later, can also have an impact on this behaviour.
 
 The event queue provides two types of transactions: transactions made for database read access and transactions made for
-read/write access. This is realized in such a way that every read transaction is rolled back at the end of processing,
-while read/write transactions are committed or rolled back based on the following definitions.
+read/write access. This is realized in such a way that every read transaction is rolled back at the end of processing.
+While read/write transactions are committed or rolled back based on the following definitions.
 
 The transactions available in the pre-processing steps are always read transactions. Pre-processing steps refer to
 everything considered before the `processEvent` method. However, the `processEvent` always has a read/write transaction
@@ -56,13 +55,13 @@ is processed and altered with the transaction passed to `processEvent`, the tran
     function.
     - Status `Done` will result in a commit.
     - Status `Open`,`Error`, `Exceeded` will result in a rollback. For more information about the status handling of
-      events, refer to the corresponding [wiki page](/event-queue/status-handling).
+      events, refer to the corresponding [documentation page](/event-queue/status-handling).
 
 {% include warning.html message="
 The function `setShouldRollbackTransaction` can be used to override the transaction mode `alwaysCommit`. This function
 can also be used in `isolation` mode if the event status has been reported as `Done`, which usually results in
-committing the associated transaction. However, with `setShouldRollbackTransaction`, the transaction would be rolled
-back regardless of the reported event status. The example belows shows how to use the function.
+committing the associated transaction. However, with `setShouldRollbackTransaction` the transaction would be rolled
+back, regardless of the reported event status. The example belows shows how to use the function.
 
 ```js
 class EventQueueMinimalistic extends EventQueueBaseClass {
@@ -93,6 +92,6 @@ class EventQueueMinimalistic extends EventQueueBaseClass {
   events, please refer to the dedicated [wiki page](/event-queue/status-handling).
 
 In both situations, the transaction associated with the event processing is rolled back. This means that all changes
-made within the transaction passed to `processEvent` will be undone, and the event will be reprocessed based on
-the `retryAttempts` parameter configured. For the sake of consistency, it is recommended to adhere to the transactions
+made within the transaction passed to `processEvent` will be undone and the event will be reprocessed based on
+the configured parameter`retryAttempts`. For the sake of consistency, it is recommended to adhere to the transactions
 managed by the library, as transactional safety cannot be guaranteed otherwise.

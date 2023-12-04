@@ -7,12 +7,13 @@ nav_order: 4
 <!-- prettier-ignore-start -->
 
 # Configure Events
+
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
 - TOC
-{: toc}
+  {: toc}
 
 # Ad-Hoc events
 
@@ -50,7 +51,7 @@ second example showcases the full complexity of the configuration.
 ```yaml
 events:
   - type: Notification
-    subType: EMail
+    subType: Email
     impl: ./srv/util/mail-service/EventQueueNotificationProcessor
     load: 1
     parallelEventProcessing: 5
@@ -68,27 +69,27 @@ events:
 
 # Periodic Events
 
-Periodic events in the Event-Queue framework are events processed at pre-defined intervals, similar to cron jobs.
+Periodic events in the event-queue framework are events processed at pre-defined intervals, similar to cron jobs.
 This feature is particularly useful for regular business processes such as checking if a task is overdue. Just like
 ad-hoc events, these events are managed efficiently across all available application instances, ensuring no single
 instance is overloaded.
 
 ## Parameters
 
-| Property        | Description                                                                                                                                                     | Default Value |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| type            | Specifies the type of the periodic event.                                                                                                                       | -             |
-| subType         | Specifies the subType of the periodic event.                                                                                                                    | -             |
-| impl            | Specifies the implementation file path for the periodic event.                                                                                                  | -             |
-| load            | Specifies the load value for the periodic event.                                                                                                                | 1             |
-| transactionMode | Specifies the transaction mode for the periodic event. For allowed values refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes) | isolated      |
-| interval        | Specifies the interval in seconds at which the periodic event should occur.                                                                                     | -             |
+| Property        | Description                                                                                                                                       | Default Value |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| type            | Type of the periodic event                                                                                                                        | -             |
+| subType         | SubType of the periodic event                                                                                                                     | -             |
+| impl            | Implementation file path for the periodic event                                                                                                   | -             |
+| load            | Load value for the periodic event                                                                                                                 | 1             |
+| transactionMode | Transaction mode for the periodic event. For allowed values refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes) | isolated      |
+| interval        | Interval in seconds at which the periodic event should occur                                                                                      | -             |
 
 ## Configuration
 
 The following demonstrates a configuration for a periodic event with a default load of 1 and an interval of 30 seconds.
-This means the periodic event is scheduled to execute every 30 seconds, provided there is sufficient capacity on any
-application instance. If capacity is unavailable, execution is delayed, but subsequent attempts will aim to adhere to
+This means the periodic event is scheduled to execute every 30 seconds, if the provided capacity is sufficient on any
+application instance. If capacity is unavailable, the execution is delayed, but subsequent attempts will aim to adhere to
 the originally planned schedule plus the defined interval.
 
 ```yaml
@@ -100,3 +101,52 @@ periodicEvents:
     transactionMode: alwaysRollback
     interval: 30
 ```
+
+## Blocking Periodic Events
+
+In certain scenarios, it may be necessary to prevent specific periodic events from executing regularly. This could be
+due to various reasons such as:
+
+- An event causing the application to crash
+- A specific event leading to performance issues
+- Other reasons specific to a project
+
+You can block periodic events for all or just for certain tenants. The example below demonstrates how this can be
+accomplished.
+
+### Blocking/Unblocking based on configuration
+
+```js
+const { config } = require("@cap-js-community/event-queue");
+
+// Block type: HealthCheck and subType: DB for tenant 123
+config.blockPeriodicEvent("HealthCheck", "DB", 123);
+
+// Block type: HealthCheck and subType: DB for all tenants
+config.blockPeriodicEvent("HealthCheck", "DB");
+
+// Unblock works the same way - unblock for all tenants
+config.unblockPeriodicEvent("HealthCheck", "DB");
+```
+
+Tenant-specific blockings/unblockings take precedence over the all-tenant blocking. This means if a certain event is
+blocked for all tenants, it can still be unblocked for one or more tenants.
+
+### Blocking/Unblocking based on callback
+
+For greater flexibility, the decision to block a periodic event can be determined based on the result of a callback.
+The example below shows how to register the callback.
+
+```js
+const { config } = require("@cap-js-community/event-queue");
+
+config.isPeriodicEventBlockedCb = async (type, subType, tenant) => {
+  // Perform custom check and return true or false
+};
+```
+
+### Limitation
+
+The current implementation of config does not persistently store the information. This means that the block/unblock
+list is only available until the next restart of the application. If you want this information to be persistent,
+it is recommended to use the callback API. This allows for accessing persistent information.
