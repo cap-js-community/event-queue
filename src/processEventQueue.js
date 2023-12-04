@@ -133,7 +133,7 @@ const processPeriodicEvent = async (eventTypeInstance) => {
   let eventBlocked = false;
   if (isPeriodicEventBlockedCb) {
     try {
-      eventBlocked = isPeriodicEventBlockedCb(...params);
+      eventBlocked = await isPeriodicEventBlockedCb(...params);
     } catch (err) {
       eventBlocked = true;
       eventTypeInstance.logger.error("skipping run because periodic event blocked check failed!", err, {

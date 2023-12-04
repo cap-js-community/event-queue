@@ -140,7 +140,13 @@ The example below shows how to register the callback.
 ```js
 const { config } = require("@cap-js-community/event-queue");
 
-config.isPeriodicEventBlockedCb = (type, subType, tenant) => {
+config.isPeriodicEventBlockedCb = async (type, subType, tenant) => {
   // Perform custom check and return true or false
 };
 ```
+
+### Limitation
+
+The current implementation of config does not persistently store the information. This means that the block/unblock
+list is only available until the next restart of the application. If you want this information to be persistent, 
+it is recommended to use the callback API. This allows for accessing persistent information.
