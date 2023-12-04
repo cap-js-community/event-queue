@@ -7,12 +7,13 @@ nav_order: 4
 <!-- prettier-ignore-start -->
 
 # Configure Events
+
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
 - TOC
-{: toc}
+  {: toc}
 
 # Ad-Hoc events
 
@@ -100,3 +101,52 @@ periodicEvents:
     transactionMode: alwaysRollback
     interval: 30
 ```
+
+## Blocking Periodic Events
+
+In certain scenarios, it may be necessary to prevent specific periodic events from executing regularly. This could be
+due to various reasons such as:
+
+- An event causing the application to crash
+- A specific event leading to performance issues
+- Other reasons specific to a project
+
+You can block periodic events for all or just for certain tenants. The example below demonstrates how this can be
+accomplished.
+
+### Blocking/Unblocking based on configuration
+
+```js
+const { config } = require("@cap-js-community/event-queue");
+
+// Block type: HealthCheck and subType: DB for tenant 123
+config.blockPeriodicEvent("HealthCheck", "DB", 123);
+
+// Block type: HealthCheck and subType: DB for all tenants
+config.blockPeriodicEvent("HealthCheck", "DB");
+
+// Unblock works the same way - unblock for all tenants
+config.unblockPeriodicEvent("HealthCheck", "DB");
+```
+
+Tenant-specific blockings/unblockings take precedence over the all-tenant blocking. This means if a certain event is
+blocked for all tenants, it can still be unblocked for one or more tenants.
+
+### Blocking/Unblocking based on callback
+
+For greater flexibility, the decision to block a periodic event can be determined based on the result of a callback.
+The example below shows how to register the callback.
+
+```js
+const { config } = require("@cap-js-community/event-queue");
+
+config.isPeriodicEventBlockedCb = async (type, subType, tenant) => {
+  // Perform custom check and return true or false
+};
+```
+
+### Limitation
+
+The current implementation of config does not persistently store the information. This means that the block/unblock
+list is only available until the next restart of the application. If you want this information to be persistent,
+it is recommended to use the callback API. This allows for accessing persistent information.
