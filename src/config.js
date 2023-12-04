@@ -21,9 +21,10 @@ const BASE_PERIODIC_EVENTS = [
   {
     type: "EVENT_QUEUE_BASE",
     subType: "DELETE_EVENTS",
-    impl: "./node_modules/@cap-js-community/src/housekeeping/EventQueueDeleteEvents",
+    impl: "./housekeeping/EventQueueDeleteEvents",
     load: 1,
-    interval: 86400, // 1 day
+    interval: 86400, // 1 day,
+    internalEvent: true,
   },
 ];
 

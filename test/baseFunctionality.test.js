@@ -310,7 +310,7 @@ describe("baseFunctionality", () => {
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       });
 
       test("blocked event for different tenant - should execute", async () => {
@@ -339,7 +339,7 @@ describe("baseFunctionality", () => {
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       });
 
       test("blocked event should not be executed - tenant specific - unblock and execute again", async () => {
@@ -348,7 +348,7 @@ describe("baseFunctionality", () => {
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
         eventQueue.config.unblockPeriodicEvent("HealthCheck", "DB", "123");
 
@@ -374,7 +374,7 @@ describe("baseFunctionality", () => {
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
         eventQueue.config.unblockPeriodicEvent("HealthCheck", "DB", "123");
 
@@ -401,7 +401,7 @@ describe("baseFunctionality", () => {
           await checkAndInsertPeriodicEvents(context);
           await eventQueue.processEventQueue(context, event.type, event.subType);
           expect(loggerMock.callsLengths().error).toEqual(0);
-          await testHelper.selectEventQueueAndExpectOpen(tx, 1);
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
         });
 
         test("not blocked event - should execute", async () => {

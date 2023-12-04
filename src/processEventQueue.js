@@ -20,7 +20,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
   try {
     let eventTypeInstance;
     const eventConfig = config.getEventConfig(eventType, eventSubType);
-    const [err, EventTypeClass] = resilientRequire(eventConfig?.impl);
+    const [err, EventTypeClass] = resilientRequire(eventConfig);
     if (!eventConfig || err || !(typeof EventTypeClass.constructor === "function")) {
       cds.log(COMPONENT_NAME).error("No Implementation found in the provided configuration file.", {
         eventType,
@@ -281,9 +281,11 @@ const _processEvent = async (eventTypeInstance, processContext, key, queueEntrie
   }
 };
 
-const resilientRequire = (path) => {
+const resilientRequire = (eventConfig) => {
   try {
-    const module = require(pathLib.join(process.cwd(), path));
+    const path = eventConfig?.impl;
+    const internal = eventConfig?.internalEvent;
+    const module = require(pathLib.join(internal ? __dirname : process.cwd(), path));
     return [null, module];
   } catch (err) {
     return [err, null];
