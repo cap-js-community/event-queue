@@ -109,9 +109,10 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     };
     return await cds.tx(tenantContext, async ({ context }) => {
-      return await WorkerQueue.instance.addToQueue(event.load, async () => {
+      const label = `${event.type}_${event.subType}`;
+      return await WorkerQueue.instance.addToQueue(event.load, label, async () => {
         try {
-          const lockId = `${runId}_${event.type}_${event.subType}`;
+          const lockId = `${runId}_${label}`;
           const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
             expiryTime: eventQueueConfig.runInterval * 0.95,
           });
@@ -131,7 +132,8 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
 
 const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
   tenantIds.forEach((tenantId) => {
-    WorkerQueue.instance.addToQueue(1, async () => {
+    const label = `UPDATE_PERIODIC_EVENTS_${tenantId}`;
+    WorkerQueue.instance.addToQueue(1, label, async () => {
       try {
         const subdomain = await getSubdomainForTenantId(tenantId);
         const tenantContext = {
@@ -161,7 +163,8 @@ const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
 const _singleTenantDb = async (tenantId) => {
   const events = eventQueueConfig.allEvents;
   events.forEach((event) => {
-    WorkerQueue.instance.addToQueue(event.load, async () => {
+    const label = `${event.type}_${event.subType}`;
+    WorkerQueue.instance.addToQueue(event.load, label, async () => {
       try {
         const context = new cds.EventContext({ tenant: tenantId });
         await runEventCombinationForTenant(context, event.type, event.subType, true);
@@ -238,8 +241,10 @@ const runEventCombinationForTenant = async (context, type, subType, skipWorkerPo
       return await processEventQueue(context, type, subType);
     } else {
       const config = eventQueueConfig.getEventConfig(type, subType);
+      const label = `${type}_${subType}`;
       return await WorkerQueue.instance.addToQueue(
         config.load,
+        label,
         async () => await processEventQueue(context, type, subType)
       );
     }
