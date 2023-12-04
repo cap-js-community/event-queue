@@ -11,6 +11,11 @@ exports[`baseFunctionality basic insert all new events 1`] = `
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
+        {
+          "interval": 86400,
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
       ],
     },
   ],
@@ -19,6 +24,11 @@ exports[`baseFunctionality basic insert all new events 1`] = `
 
 exports[`baseFunctionality basic insert all new events 2`] = `
 [
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
@@ -37,6 +47,11 @@ exports[`baseFunctionality delta insert 1`] = `
           "interval": 30,
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
       ],
     },
@@ -68,6 +83,11 @@ exports[`baseFunctionality delta insert 2`] = `
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
   },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
 ]
 `;
 
@@ -81,6 +101,11 @@ exports[`baseFunctionality interval changed 1`] = `
           "interval": 30,
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
       ],
     },
@@ -113,6 +138,11 @@ exports[`baseFunctionality interval changed 1`] = `
 
 exports[`baseFunctionality interval changed 2`] = `
 [
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:30.000Z",
+    "status": 0,
+  },
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
