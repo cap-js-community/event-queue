@@ -294,7 +294,7 @@ describe("integration-main", () => {
         });
       await eventQueue.processEventQueue(context, "TransactionMode", "isolated");
       expect(loggerMock.callsLengths().error).toEqual(0);
-      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 3 });
       expect(events).toMatchSnapshot();
       expect(dbCounts).toMatchSnapshot();
     });
@@ -360,7 +360,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
       expect(dbCounts).toMatchSnapshot();
-      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 3 });
       expect(events).toMatchSnapshot();
     });
 
@@ -388,7 +388,7 @@ describe("integration-main", () => {
       await eventQueue.processEventQueue(context, "TransactionMode", "alwaysCommit");
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(dbCounts).toMatchSnapshot();
-      const events = await testHelper.selectEventQueueAndReturn(tx, 1);
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 1 });
       expect(events).toMatchSnapshot();
     });
   });
@@ -416,7 +416,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
       expect(dbCounts).toMatchSnapshot();
-      const result = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const result = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
       expect(result).toMatchSnapshot();
     });
 
@@ -443,7 +443,7 @@ describe("integration-main", () => {
       await eventQueue.processEventQueue(context, "TransactionMode", "alwaysRollback");
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(dbCounts).toMatchSnapshot();
-      const result = await testHelper.selectEventQueueAndReturn(tx, 1);
+      const result = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 1 });
       expect(result).toMatchSnapshot();
     });
   });
@@ -690,7 +690,7 @@ describe("integration-main", () => {
 
       expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
       expect(loggerMock.callsLengths().error).toEqual(0);
-      const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
       const [running, done] = events.sort((a, b) => a.status - b.status);
       expect(running).toEqual({
         status: EventProcessingStatus.InProgress,
@@ -722,7 +722,7 @@ describe("integration-main", () => {
 
       expect(scheduleNextSpy).toHaveBeenCalledTimes(2);
       expect(loggerMock.callsLengths().error).toEqual(0);
-      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 3 });
       const [done, done2, open] = events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
       expect(done).toEqual({
         status: EventProcessingStatus.Done,
@@ -762,7 +762,7 @@ describe("integration-main", () => {
       expect(
         loggerMock.calls().info.find(([log]) => log === "interval adjusted because shifted more than one interval")
       ).toBeTruthy();
-      const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
       const [done, open] = events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
       expect(done).toEqual({
         status: EventProcessingStatus.Done,
@@ -791,7 +791,7 @@ describe("integration-main", () => {
       expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
       expect(scheduleEventSpy.mock.calls[0]).toEqual([undefined, "HealthCheck_PERIODIC", "DB", expect.anything()]);
       expect(loggerMock.callsLengths().error).toEqual(0);
-      const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
       const [open, done] = events.sort((a, b) => a.status - b.status);
       expect(open).toEqual({
         status: EventProcessingStatus.Open,
