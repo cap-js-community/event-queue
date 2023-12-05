@@ -31,21 +31,21 @@ class WorkerQueue {
     this.#queue = [];
   }
 
-  addToQueue(load, cb) {
+  addToQueue(load, label, cb) {
     if (load > this.#concurrencyLimit) {
-      throw EventQueueError.loadHigherThanLimit(load);
+      throw EventQueueError.loadHigherThanLimit(load, label);
     }
 
     const startTime = process.hrtime.bigint();
     const p = new Promise((resolve, reject) => {
-      this.#queue.push([load, cb, resolve, reject, startTime]);
+      this.#queue.push([load, label, cb, resolve, reject, startTime]);
     });
     this._checkForNext();
     return p;
   }
 
-  _executeFunction(load, cb, resolve, reject, startTime) {
-    this.checkAndLogWaitingTime(startTime);
+  _executeFunction(load, label, cb, resolve, reject, startTime) {
+    this.checkAndLogWaitingTime(startTime, label);
     const promise = Promise.resolve().then(() => cb());
     this.#runningPromises.push(promise);
     this.#runningLoad = this.#runningLoad + load;
@@ -59,7 +59,7 @@ class WorkerQueue {
         resolve(...results);
       })
       .catch((err) => {
-        cds.log(COMPONENT_NAME).error("Error happened in WorkQueue. Errors should be caught before!", err);
+        cds.log(COMPONENT_NAME).error("Error happened in WorkQueue. Errors should be caught before!", err, { label });
         reject(err);
       });
   }
@@ -87,7 +87,7 @@ class WorkerQueue {
     return WorkerQueue.#instance;
   }
 
-  checkAndLogWaitingTime(startTime) {
+  checkAndLogWaitingTime(startTime, label) {
     const diffMs = Math.round(Number(process.hrtime.bigint() - startTime) / NANO_TO_MS);
     let logLevel;
     if (diffMs >= THRESHOLD.ERROR) {
@@ -101,6 +101,7 @@ class WorkerQueue {
     }
     cds.log(COMPONENT_NAME)[logLevel]("Waiting time in worker queue", {
       diffMs,
+      label,
     });
   }
 }
