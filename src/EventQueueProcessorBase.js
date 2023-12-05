@@ -18,7 +18,6 @@ const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_PARALLEL_EVENT_PROCESSING = 1;
 const LIMIT_PARALLEL_EVENT_PROCESSING = 10;
 const SELECT_LIMIT_EVENTS_PER_TICK = 100;
-const DEFAULT_DELETE_FINISHED_EVENTS_AFTER = 0;
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
@@ -63,15 +62,6 @@ class EventQueueProcessorBase {
     this.__keepalivePromises = {};
     this.__outdatedCheckEnabled = this.#eventConfig.eventOutdatedCheck ?? true;
     this.__transactionMode = this.#eventConfig.transactionMode ?? TransactionMode.isolated;
-    if (this.#eventConfig.deleteFinishedEventsAfterDays) {
-      this.__deleteFinishedEventsAfter =
-        Number.isInteger(this.#eventConfig.deleteFinishedEventsAfterDays) &&
-        this.#eventConfig.deleteFinishedEventsAfterDays > 0
-          ? this.#eventConfig.deleteFinishedEventsAfterDays
-          : DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
-    } else {
-      this.__deleteFinishedEventsAfter = DEFAULT_DELETE_FINISHED_EVENTS_AFTER;
-    }
     this.__emptyChunkSelected = false;
     this.__lockAcquired = false;
     this.__txUsageAllowed = true;
@@ -423,28 +413,6 @@ class EventQueueProcessorBase {
     this.logger.debug("exiting persistEventStatus", {
       eventType: this.#eventType,
       eventSubType: this.#eventSubType,
-    });
-  }
-
-  async deleteFinishedEvents(tx) {
-    if (!this.__deleteFinishedEventsAfter) {
-      return;
-    }
-    const deleteCount = await tx.run(
-      DELETE.from(this.#config.tableNameEventQueue).where(
-        "type =",
-        this.#eventType,
-        "AND subType=",
-        this.#eventSubType,
-        "AND lastAttemptTimestamp <=",
-        new Date(Date.now() - this.__deleteFinishedEventsAfter * DAYS_TO_MS).toISOString()
-      )
-    );
-    this.logger.debug("Deleted finished events", {
-      eventType: this.#eventType,
-      eventSubType: this.#eventSubType,
-      deleteFinishedEventsAfter: this.__deleteFinishedEventsAfter,
-      deleteCount,
     });
   }
 
