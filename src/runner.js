@@ -320,5 +320,6 @@ module.exports = {
     _calculateOffsetForFirstRun,
     _acquireRunId,
     EVENT_QUEUE_RUN_TS,
+    clearHash: () => (tenantIdHash = null),
   },
 };

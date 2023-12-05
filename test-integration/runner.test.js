@@ -51,6 +51,7 @@ describe("redisRunner", () => {
     await distributedLock.releaseLock({}, "EVENT_QUEUE_RUN_ID", {
       tenantScoped: false,
     });
+    runner._.clearHash();
   });
 
   afterEach(async () => {
