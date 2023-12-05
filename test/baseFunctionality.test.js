@@ -289,7 +289,10 @@ describe("baseFunctionality", () => {
       await checkAndInsertPeriodicEvents(context);
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
-      const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 2,
+        type: "HealthCheck_PERIODIC",
+      });
       const [open, done] = events.sort((a, b) => a.status - b.status);
       expect(open).toEqual({
         status: EventProcessingStatus.Open,
@@ -310,7 +313,7 @@ describe("baseFunctionality", () => {
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1, type: "HealthCheck_PERIODIC" });
       });
 
       test("blocked event for different tenant - should execute", async () => {
@@ -319,7 +322,10 @@ describe("baseFunctionality", () => {
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+        const events = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 2,
+          type: "HealthCheck_PERIODIC",
+        });
         const [open, done] = events.sort((a, b) => a.status - b.status);
         expect(open).toEqual({
           status: EventProcessingStatus.Open,
@@ -339,7 +345,7 @@ describe("baseFunctionality", () => {
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1, type: "HealthCheck_PERIODIC" });
       });
 
       test("blocked event should not be executed - tenant specific - unblock and execute again", async () => {
@@ -348,13 +354,16 @@ describe("baseFunctionality", () => {
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1, type: "HealthCheck_PERIODIC" });
 
         eventQueue.config.unblockPeriodicEvent("HealthCheck", "DB", "123");
 
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+        const events = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 2,
+          type: "HealthCheck_PERIODIC",
+        });
         const [open, done] = events.sort((a, b) => a.status - b.status);
         expect(open).toEqual({
           status: EventProcessingStatus.Open,
@@ -374,13 +383,16 @@ describe("baseFunctionality", () => {
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1, type: "HealthCheck_PERIODIC" });
 
         eventQueue.config.unblockPeriodicEvent("HealthCheck", "DB", "123");
 
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+        const events = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 2,
+          type: "HealthCheck_PERIODIC",
+        });
         const [open, done] = events.sort((a, b) => a.status - b.status);
         expect(open).toEqual({
           status: EventProcessingStatus.Open,
@@ -401,7 +413,7 @@ describe("baseFunctionality", () => {
           await checkAndInsertPeriodicEvents(context);
           await eventQueue.processEventQueue(context, event.type, event.subType);
           expect(loggerMock.callsLengths().error).toEqual(0);
-          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1, type: "HealthCheck_PERIODIC" });
         });
 
         test("not blocked event - should execute", async () => {
@@ -410,7 +422,10 @@ describe("baseFunctionality", () => {
           await checkAndInsertPeriodicEvents(context);
           await eventQueue.processEventQueue(context, event.type, event.subType);
           expect(loggerMock.callsLengths().error).toEqual(0);
-          const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+          const events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            type: "HealthCheck_PERIODIC",
+          });
           const [open, done] = events.sort((a, b) => a.status - b.status);
           expect(open).toEqual({
             status: EventProcessingStatus.Open,
@@ -442,7 +457,10 @@ describe("baseFunctionality", () => {
       const log = loggerMock.calls().error[0];
       delete log[1].queueEntriesIds;
       expect(log).toMatchSnapshot();
-      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 3,
+        type: "HealthCheck_PERIODIC",
+      });
       const [open, done1, done2] = events.sort((a, b) => a.status - b.status);
       expect(open).toEqual({
         status: EventProcessingStatus.Open,

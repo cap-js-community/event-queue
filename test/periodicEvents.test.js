@@ -47,7 +47,7 @@ describe("baseFunctionality", () => {
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, 2)).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
   });
 
   it("delta insert", async () => {
@@ -70,7 +70,7 @@ describe("baseFunctionality", () => {
     config.fileContent = fileContent;
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, 3)).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 3 })).toMatchSnapshot();
   });
 
   it("interval changed", async () => {
@@ -87,6 +87,6 @@ describe("baseFunctionality", () => {
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, 2)).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
   });
 });
