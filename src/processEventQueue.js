@@ -20,7 +20,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
   try {
     let eventTypeInstance;
     const eventConfig = config.getEventConfig(eventType, eventSubType);
-    const [err, EventTypeClass] = resilientRequire(eventConfig?.impl);
+    const [err, EventTypeClass] = resilientRequire(eventConfig);
     if (!eventConfig || err || !(typeof EventTypeClass.constructor === "function")) {
       cds.log(COMPONENT_NAME).error("No Implementation found in the provided configuration file.", {
         eventType,
@@ -90,15 +90,6 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
         await eventTypeInstance.persistEventStatus(tx);
       });
       shouldContinue = reevaluateShouldContinue(eventTypeInstance, iterationCounter, startTime);
-      if (!shouldContinue) {
-        await executeInNewTransaction(
-          context,
-          `eventQueue-deleteFinishedEvents-${eventType}##${eventSubType}`,
-          async (tx) => {
-            await eventTypeInstance.deleteFinishedEvents(tx);
-          }
-        );
-      }
     }
   } catch (err) {
     cds.log(COMPONENT_NAME).error("Processing event queue failed with unexpected error.", err, {
@@ -281,9 +272,11 @@ const _processEvent = async (eventTypeInstance, processContext, key, queueEntrie
   }
 };
 
-const resilientRequire = (path) => {
+const resilientRequire = (eventConfig) => {
   try {
-    const module = require(pathLib.join(process.cwd(), path));
+    const path = eventConfig?.impl;
+    const internal = eventConfig?.internalEvent;
+    const module = require(pathLib.join(internal ? __dirname : process.cwd(), path));
     return [null, module];
   } catch (err) {
     return [err, null];

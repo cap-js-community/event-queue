@@ -72,7 +72,7 @@ describe("integration-main", () => {
   it("empty queue - nothing to do", async () => {
     const event = eventQueue.config.events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
-    await testHelper.selectEventQueueAndExpectDone(tx, 0);
+    await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 0 });
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(dbCounts).toMatchSnapshot();
   });
@@ -183,7 +183,7 @@ describe("integration-main", () => {
     dbCounts = {};
     await eventQueue.processEventQueue(context, "TransactionMode", "alwaysRollback");
     expect(loggerMock.callsLengths().error).toEqual(0);
-    await testHelper.selectEventQueueAndExpectDone(tx, 2);
+    await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
     expect(dbCounts).toMatchSnapshot();
   });
 
@@ -198,7 +198,7 @@ describe("integration-main", () => {
     const event = eventQueue.config.events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
-    await testHelper.selectEventQueueAndExpectExceeded(tx, 1);
+    await testHelper.selectEventQueueAndExpectExceeded(tx, { expectedLength: 1 });
     expect(dbCounts).toMatchSnapshot();
     dbCounts = {};
     expect(processSpy).toHaveBeenCalledTimes(1);
@@ -206,7 +206,7 @@ describe("integration-main", () => {
     // Event should not be processed anymore
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
-    await testHelper.selectEventQueueAndExpectExceeded(tx, 1);
+    await testHelper.selectEventQueueAndExpectExceeded(tx, { expectedLength: 1 });
     expect(dbCounts).toMatchSnapshot();
     expect(processSpy).toHaveBeenCalledTimes(1);
   });
@@ -220,22 +220,7 @@ describe("integration-main", () => {
     dbCounts = {};
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
-    await testHelper.selectEventQueueAndExpectOpen(tx, 1);
-    expect(dbCounts).toMatchSnapshot();
-  });
-
-  it("should delete event entries after 30 days", async () => {
-    await cds.tx({}, async (tx2) => {
-      const event = testHelper.getEventEntry();
-      event.lastAttemptTimestamp = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
-      event.status = eventQueue.EventProcessingStatus.Done;
-      await eventQueue.publishEvent(tx2, event);
-    });
-    dbCounts = {};
-    const event = eventQueue.config.events[0];
-    await eventQueue.processEventQueue(context, event.type, event.subType);
-    expect(loggerMock.callsLengths().error).toEqual(0);
-    await testHelper.selectEventQueueAndExpectDone(tx, 0);
+    await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
     expect(dbCounts).toMatchSnapshot();
   });
 
@@ -294,7 +279,7 @@ describe("integration-main", () => {
         });
       await eventQueue.processEventQueue(context, "TransactionMode", "isolated");
       expect(loggerMock.callsLengths().error).toEqual(0);
-      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 3 });
       expect(events).toMatchSnapshot();
       expect(dbCounts).toMatchSnapshot();
     });
@@ -332,7 +317,7 @@ describe("integration-main", () => {
         });
       await eventQueue.processEventQueue(context, "TransactionMode", "isolated");
       expect(loggerMock.callsLengths().error).toEqual(0);
-      await testHelper.selectEventQueueAndExpectDone(tx, 2);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
       expect(dbCounts).toMatchSnapshot();
     });
   });
@@ -360,7 +345,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
       expect(dbCounts).toMatchSnapshot();
-      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 3 });
       expect(events).toMatchSnapshot();
     });
 
@@ -388,7 +373,7 @@ describe("integration-main", () => {
       await eventQueue.processEventQueue(context, "TransactionMode", "alwaysCommit");
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(dbCounts).toMatchSnapshot();
-      const events = await testHelper.selectEventQueueAndReturn(tx, 1);
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 1 });
       expect(events).toMatchSnapshot();
     });
   });
@@ -416,7 +401,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
       expect(dbCounts).toMatchSnapshot();
-      const result = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const result = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
       expect(result).toMatchSnapshot();
     });
 
@@ -443,7 +428,7 @@ describe("integration-main", () => {
       await eventQueue.processEventQueue(context, "TransactionMode", "alwaysRollback");
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(dbCounts).toMatchSnapshot();
-      const result = await testHelper.selectEventQueueAndReturn(tx, 1);
+      const result = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 1 });
       expect(result).toMatchSnapshot();
     });
   });
@@ -499,7 +484,7 @@ describe("integration-main", () => {
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.callsLengths().warn).toEqual(0);
-      await testHelper.selectEventQueueAndExpectError(tx, 1, 4);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1, attempts: 4 });
       await expectLockValue(tx, undefined);
       expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(1);
       expect(dbCounts).toMatchSnapshot();
@@ -537,7 +522,7 @@ describe("integration-main", () => {
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.callsLengths().warn).toEqual(0);
-      await testHelper.selectEventQueueAndExpectError(tx, 1, 4);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1, attempts: 4 });
       await expectLockValue(tx, undefined);
       expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(1);
       loggerMock.clearCalls();
@@ -546,7 +531,7 @@ describe("integration-main", () => {
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(loggerMock.callsLengths().warn).toEqual(1);
-      await testHelper.selectEventQueueAndExpectExceeded(tx, 1, 5);
+      await testHelper.selectEventQueueAndExpectExceeded(tx, { expectedLength: 1, attempts: 5 });
       await expectLockValue(tx, code);
       expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(2);
     });
@@ -580,28 +565,28 @@ describe("integration-main", () => {
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.callsLengths().warn).toEqual(0);
-      await testHelper.selectEventQueueAndExpectError(tx, 1, 4);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1, attempts: 4 });
       await expectLockValue(tx, undefined);
       loggerMock.clearCalls();
 
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.callsLengths().warn).toEqual(0);
-      await testHelper.selectEventQueueAndExpectError(tx, 1, 5);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1, attempts: 5 });
       await expectLockValue(tx, undefined);
       loggerMock.clearCalls();
 
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.callsLengths().warn).toEqual(0);
-      await testHelper.selectEventQueueAndExpectError(tx, 1, 6);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1, attempts: 6 });
       await expectLockValue(tx, undefined);
       loggerMock.clearCalls();
 
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.callsLengths().warn).toEqual(0);
-      await testHelper.selectEventQueueAndExpectExceeded(tx, 1, 7);
+      await testHelper.selectEventQueueAndExpectExceeded(tx, { expectedLength: 1, attempts: 7 });
       await expectLockValue(tx, undefined);
       expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(3);
     });
@@ -667,7 +652,7 @@ describe("integration-main", () => {
 
       expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
       expect(loggerMock.callsLengths().error).toEqual(0);
-      await testHelper.selectEventQueueAndExpectDone(tx);
+      await testHelper.selectEventQueueAndExpectDone(tx, { type: "HealthCheck_PERIODIC" });
     });
 
     it("insert process - should handle if the event is already running - execute anyway", async () => {
@@ -690,7 +675,10 @@ describe("integration-main", () => {
 
       expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
       expect(loggerMock.callsLengths().error).toEqual(0);
-      const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 2,
+        type: "HealthCheck_PERIODIC",
+      });
       const [running, done] = events.sort((a, b) => a.status - b.status);
       expect(running).toEqual({
         status: EventProcessingStatus.InProgress,
@@ -722,7 +710,10 @@ describe("integration-main", () => {
 
       expect(scheduleNextSpy).toHaveBeenCalledTimes(2);
       expect(loggerMock.callsLengths().error).toEqual(0);
-      const events = await testHelper.selectEventQueueAndReturn(tx, 3);
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 3,
+        type: "HealthCheck_PERIODIC",
+      });
       const [done, done2, open] = events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
       expect(done).toEqual({
         status: EventProcessingStatus.Done,
@@ -762,7 +753,10 @@ describe("integration-main", () => {
       expect(
         loggerMock.calls().info.find(([log]) => log === "interval adjusted because shifted more than one interval")
       ).toBeTruthy();
-      const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 2,
+        type: "HealthCheck_PERIODIC",
+      });
       const [done, open] = events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
       expect(done).toEqual({
         status: EventProcessingStatus.Done,
@@ -791,7 +785,10 @@ describe("integration-main", () => {
       expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
       expect(scheduleEventSpy.mock.calls[0]).toEqual([undefined, "HealthCheck_PERIODIC", "DB", expect.anything()]);
       expect(loggerMock.callsLengths().error).toEqual(0);
-      const events = await testHelper.selectEventQueueAndReturn(tx, 2);
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 2,
+        type: "HealthCheck_PERIODIC",
+      });
       const [open, done] = events.sort((a, b) => a.status - b.status);
       expect(open).toEqual({
         status: EventProcessingStatus.Open,
@@ -846,7 +843,7 @@ describe("integration-main", () => {
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(dbCounts).toMatchSnapshot();
 
-        await testHelper.selectEventQueueAndExpectDone(tx);
+        await testHelper.selectEventQueueAndExpectDone(tx, { type: "HealthCheck_PERIODIC" });
       });
 
       it("always rollback - use cds.context for db interaction", async () => {
@@ -875,7 +872,7 @@ describe("integration-main", () => {
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(dbCounts).toMatchSnapshot();
 
-        await testHelper.selectEventQueueAndExpectDone(tx);
+        await testHelper.selectEventQueueAndExpectDone(tx, { type: "HealthCheck_PERIODIC" });
       });
 
       it("always commit", async () => {
@@ -906,7 +903,7 @@ describe("integration-main", () => {
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(dbCounts).toMatchSnapshot();
 
-        await testHelper.selectEventQueueAndExpectDone(tx);
+        await testHelper.selectEventQueueAndExpectDone(tx, { type: "HealthCheck_PERIODIC" });
       });
 
       it("always commit - use cds.context for db interaction", async () => {
@@ -935,7 +932,7 @@ describe("integration-main", () => {
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(dbCounts).toMatchSnapshot();
 
-        await testHelper.selectEventQueueAndExpectDone(tx);
+        await testHelper.selectEventQueueAndExpectDone(tx, { type: "HealthCheck_PERIODIC" });
       });
 
       it("no tx mode should commit if not exception", async () => {
@@ -965,7 +962,65 @@ describe("integration-main", () => {
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(dbCounts).toMatchSnapshot();
 
-        await testHelper.selectEventQueueAndExpectDone(tx);
+        await testHelper.selectEventQueueAndExpectDone(tx, { type: "HealthCheck_PERIODIC" });
+      });
+    });
+
+    describe("delete finished events", () => {
+      it("should events which are eligible for deletion -> nothing should be deleted after 30 days", async () => {
+        const event = eventQueue.config.periodicEvents[1];
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+          await tx2.run(
+            INSERT.into("sap.eventqueue.Event").entries(
+              Array(10)
+                .fill({})
+                .map(() => ({
+                  type: eventQueue.config.events[0].type,
+                  subType: eventQueue.config.events[0].subType,
+                  lastAttemptTimestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+                }))
+            )
+          );
+        });
+        const scheduleNextSpy = jest
+          .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+          .mockResolvedValueOnce();
+
+        await processEventQueue(context, event.type, event.subType);
+
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 12 });
+      });
+
+      it("should events which are eligible for deletion -> should be deleted after 7 days", async () => {
+        const event = eventQueue.config.periodicEvents[1];
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+          await tx2.run(
+            INSERT.into("sap.eventqueue.Event").entries(
+              Array(10)
+                .fill({})
+                .map(() => ({
+                  type: eventQueue.config.events[1].type,
+                  subType: eventQueue.config.events[1].subType,
+                  lastAttemptTimestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+                }))
+            )
+          );
+        });
+        const scheduleNextSpy = jest
+          .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+          .mockResolvedValueOnce();
+
+        await processEventQueue(context, event.type, event.subType);
+
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
       });
     });
   });

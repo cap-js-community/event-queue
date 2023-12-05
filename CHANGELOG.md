@@ -9,18 +9,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- block the run of periodic events via config [documentation](https://cap-js-community.github.io/event-queue/configure-event/#blocking-periodic-events)
+- block the run of periodic events via
+  config [documentation](https://cap-js-community.github.io/event-queue/configure-event/#blocking-periodic-events)
 - Add a label to the workerQueue. This will help in understanding which events were throttled in case of throttling.
 
 ### Fixed
 
 - Catch exception during Redis channel subscription
 
+### Changed
+
+- Refactored the deletion process for completed events. The default setting for deleting processed events has now been
+  updated to a 7-day timeframe.
+  [documentation](https://cap-js-community.github.io/event-queue/configure-event/#delete-processed-events)
+
 ## v0.3.0 - 2023-11-30
 
 ### Changed
 
-- Removed the `instanceLoadLimit` parameter. The limit is now statically set to 100. The event load should henceforth be specified as a percentage.
+- Removed the `instanceLoadLimit` parameter. The limit is now statically set to 100. The event load should henceforth be
+  specified as a percentage.
 - Upgrade docs dependencies
 - Adjusted workerQueue logging thresholds for waiting time
 
@@ -116,7 +124,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
-- move loggers from top-level to functions because cds 7 has different require orders. This the event-queue to use the custom project loggers
+- move loggers from top-level to functions because cds 7 has different require orders. This the event-queue to use the
+  custom project loggers
 
 ## v0.1.53 - 2023-08-07
 

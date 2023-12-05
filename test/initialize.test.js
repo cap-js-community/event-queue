@@ -87,6 +87,7 @@ describe("initialize", () => {
     }).toThrowErrorMatchingInlineSnapshot(`"Duplicate event registration, check the uniqueness of type and subType."`);
 
     fileContent.events.splice(1);
+    fileContent.periodicEvents.splice(1);
     fileContent.periodicEvents.push({ ...fileContent.events[0], interval: 30 });
     expect(() => {
       config.fileContent = fileContent;

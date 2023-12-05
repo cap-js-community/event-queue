@@ -2,20 +2,20 @@
 
 exports[`integration-main empty queue - nothing to do 1`] = `
 {
-  "BEGIN": 5,
-  "COMMIT": 4,
+  "BEGIN": 4,
+  "COMMIT": 3,
   "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 2,
 }
 `;
 
 exports[`integration-main hookForExceededEvents hookForExceededEvents throws - rollback + counter increase 1`] = `
 {
-  "BEGIN": 8,
-  "COMMIT": 6,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 3,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 3,
   "ROLLBACK": 1,
   "UPDATE": 2,
@@ -24,10 +24,10 @@ exports[`integration-main hookForExceededEvents hookForExceededEvents throws - r
 
 exports[`integration-main hookForExceededEvents if event retries is exceeded hookForExceededEvents should be called and correct event status 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 6,
+  "BEGIN": 6,
+  "COMMIT": 5,
   "CREATE": 3,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 3,
   "UPDATE": 2,
 }
@@ -64,10 +64,10 @@ exports[`integration-main if checkEventAndGeneratePayload methods throws an erro
 
 exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 2`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 5,
+  "BEGIN": 5,
+  "COMMIT": 4,
   "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 2,
   "UPDATE": 2,
 }
@@ -88,10 +88,10 @@ exports[`integration-main if cluster methods throws an error --> entry should no
 
 exports[`integration-main if cluster methods throws an error --> entry should not be processed + status should be error 3`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 6,
+  "COMMIT": 4,
   "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 3,
   "ROLLBACK": 1,
   "UPDATE": 2,
@@ -116,10 +116,10 @@ exports[`integration-main if modifyQueueEntry methods throws an error --> entry 
 
 exports[`integration-main if modifyQueueEntry methods throws an error --> entry should not be processed + status should be error 2`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 5,
+  "BEGIN": 5,
+  "COMMIT": 4,
   "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 2,
   "UPDATE": 2,
 }
@@ -127,10 +127,10 @@ exports[`integration-main if modifyQueueEntry methods throws an error --> entry 
 
 exports[`integration-main if process event returns an error --> tx should be rolled backed 1`] = `
 {
-  "BEGIN": 9,
-  "COMMIT": 6,
+  "BEGIN": 8,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 5,
   "ROLLBACK": 2,
   "UPDATE": 3,
@@ -139,10 +139,10 @@ exports[`integration-main if process event returns an error --> tx should be rol
 
 exports[`integration-main if process event throws an error --> tx should be rolled backed 2`] = `
 {
-  "BEGIN": 9,
-  "COMMIT": 6,
+  "BEGIN": 8,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 5,
   "ROLLBACK": 2,
   "UPDATE": 3,
@@ -151,20 +151,20 @@ exports[`integration-main if process event throws an error --> tx should be roll
 
 exports[`integration-main insert one delayed entry and process - should not be processed 1`] = `
 {
-  "BEGIN": 5,
-  "COMMIT": 4,
+  "BEGIN": 4,
+  "COMMIT": 3,
   "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 2,
 }
 `;
 
 exports[`integration-main insert one entry and process 1`] = `
 {
-  "BEGIN": 9,
-  "COMMIT": 6,
+  "BEGIN": 8,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 5,
   "ROLLBACK": 2,
   "UPDATE": 3,
@@ -173,10 +173,10 @@ exports[`integration-main insert one entry and process 1`] = `
 
 exports[`integration-main lock wait timeout during keepAlive 1`] = `
 {
-  "BEGIN": 8,
-  "COMMIT": 5,
+  "BEGIN": 7,
+  "COMMIT": 4,
   "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 4,
   "ROLLBACK": 2,
   "UPDATE": 2,
@@ -242,10 +242,10 @@ exports[`integration-main periodic events transactions modes no tx mode should c
 
 exports[`integration-main returning exceeded status should be allowed 1`] = `
 {
-  "BEGIN": 8,
-  "COMMIT": 6,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 4,
   "ROLLBACK": 1,
   "UPDATE": 3,
@@ -254,20 +254,10 @@ exports[`integration-main returning exceeded status should be allowed 1`] = `
 
 exports[`integration-main returning exceeded status should be allowed 2`] = `
 {
-  "BEGIN": 4,
-  "COMMIT": 4,
+  "BEGIN": 3,
+  "COMMIT": 3,
   "CREATE": 1,
-  "DELETE": 2,
-  "READ": 2,
-}
-`;
-
-exports[`integration-main should delete event entries after 30 days 1`] = `
-{
-  "BEGIN": 5,
-  "COMMIT": 4,
-  "CREATE": 1,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 2,
 }
 `;

@@ -6,14 +6,16 @@ nav_order: 4
 
 <!-- prettier-ignore-start -->
 
-# Configure Events
 
 {: .no_toc}
+
+# Configure Events
+
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
 - TOC
-  {: toc}
+{: toc}
 
 # Ad-Hoc events
 
@@ -41,7 +43,7 @@ The configuration YAML file is where all the required information regarding even
 | transactionMode               | Specifies the transaction mode for the periodic event. For allowed values refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes)                                                         | isolated      |
 | selectMaxChunkSize            | Number of events which are selected at once. If it should be checked if there are more open events available, set the parameter checkForNextChunk to true.                                                              | 100           |
 | checkForNextChunk             | Determines if after processing a chunk (the size depends on the value of selectMaxChunkSize), a next chunk is being processed if there are more open events and the processing time has not already exceeded 5 minutes. | false         |
-| deleteFinishedEventsAfterDays | This parameter determines the number of days after which events are deleted, regardless of their status. A value of 0 signifies that event entries are never deleted from the database table.                           | 0             |
+| deleteFinishedEventsAfterDays | This parameter determines the number of days after which events are deleted, regardless of their status. A value of 0 signifies that event entries are never deleted from the database table.                           | 7             |
 
 ## Configuration
 
@@ -76,20 +78,22 @@ instance is overloaded.
 
 ## Parameters
 
-| Property        | Description                                                                                                                                       | Default Value |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| type            | Type of the periodic event                                                                                                                        | -             |
-| subType         | SubType of the periodic event                                                                                                                     | -             |
-| impl            | Implementation file path for the periodic event                                                                                                   | -             |
-| load            | Load value for the periodic event                                                                                                                 | 1             |
-| transactionMode | Transaction mode for the periodic event. For allowed values refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes) | isolated      |
-| interval        | Interval in seconds at which the periodic event should occur                                                                                      | -             |
+| Property                      | Description                                                                                                                                                                                   | Default Value |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| type                          | Type of the periodic event                                                                                                                                                                    | -             |
+| subType                       | SubType of the periodic event                                                                                                                                                                 | -             |
+| impl                          | Implementation file path for the periodic event                                                                                                                                               | -             |
+| load                          | Load value for the periodic event                                                                                                                                                             | 1             |
+| transactionMode               | Transaction mode for the periodic event. For allowed values refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes)                                             | isolated      |
+| interval                      | Interval in seconds at which the periodic event should occur                                                                                                                                  | -             |
+| deleteFinishedEventsAfterDays | This parameter determines the number of days after which events are deleted, regardless of their status. A value of 0 signifies that event entries are never deleted from the database table. | 7             |
 
 ## Configuration
 
 The following demonstrates a configuration for a periodic event with a default load of 1 and an interval of 30 seconds.
 This means the periodic event is scheduled to execute every 30 seconds, if the provided capacity is sufficient on any
-application instance. If capacity is unavailable, the execution is delayed, but subsequent attempts will aim to adhere to
+application instance. If capacity is unavailable, the execution is delayed, but subsequent attempts will aim to adhere
+to
 the originally planned schedule plus the defined interval.
 
 ```yaml
@@ -150,3 +154,13 @@ config.isPeriodicEventBlockedCb = async (type, subType, tenant) => {
 The current implementation of config does not persistently store the information. This means that the block/unblock
 list is only available until the next restart of the application. If you want this information to be persistent,
 it is recommended to use the callback API. This allows for accessing persistent information.
+
+# Delete Processed Events
+
+The parameter `deleteFinishedEventsAfterDays` defines the number of days after which processed events are automatically
+deleted from the system, regardless of their processing status. Here, "processed" refers to events that have been
+processed, whether successfully or unsuccessfully. If this parameter is set to 0, it indicates that processed events
+will not be deleted from the database table.
+
+From a technical standpoint, the event queue utilizes its own periodic event to conduct a daily check for events that
+are eligible for deletion.

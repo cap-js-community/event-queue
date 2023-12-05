@@ -82,6 +82,9 @@ const _checkAndTriggerPeriodicEventUpdate = (tenantIds) => {
   const hash = hashStringTo32Bit(JSON.stringify(tenantIds));
   if (!tenantIdHash) {
     tenantIdHash = hash;
+    _multiTenancyPeriodicEvents().catch((err) => {
+      cds.log(COMPONENT_NAME).error("Error during triggering updating periodic events!", err);
+    });
     return;
   }
   if (tenantIdHash && tenantIdHash !== hash) {
@@ -317,5 +320,6 @@ module.exports = {
     _calculateOffsetForFirstRun,
     _acquireRunId,
     EVENT_QUEUE_RUN_TS,
+    clearHash: () => (tenantIdHash = null),
   },
 };

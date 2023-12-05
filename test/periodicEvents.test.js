@@ -47,7 +47,7 @@ describe("baseFunctionality", () => {
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx)).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
   });
 
   it("delta insert", async () => {
@@ -55,6 +55,7 @@ describe("baseFunctionality", () => {
 
     const fileContent = config.fileContent;
     fileContent.periodicEvents[0].type = "HealthCheck";
+    fileContent.periodicEvents = [fileContent.periodicEvents[0]];
     fileContent.periodicEvents.push({
       ...config.fileContent.periodicEvents[0],
       type: "HealthCheck",
@@ -64,12 +65,12 @@ describe("baseFunctionality", () => {
 
     await checkAndInsertPeriodicEvents(context);
 
-    fileContent.periodicEvents.splice(1, 1);
+    fileContent.periodicEvents.splice(1, 2);
     fileContent.periodicEvents[0].type = "HealthCheck";
     config.fileContent = fileContent;
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, 2)).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 3 })).toMatchSnapshot();
   });
 
   it("interval changed", async () => {
@@ -86,6 +87,6 @@ describe("baseFunctionality", () => {
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, 1)).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
   });
 });

@@ -17,6 +17,17 @@ const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
 
+const BASE_PERIODIC_EVENTS = [
+  {
+    type: "EVENT_QUEUE_BASE",
+    subType: "DELETE_EVENTS",
+    impl: "./housekeeping/EventQueueDeleteEvents",
+    load: 1,
+    interval: 86400, // 1 day,
+    internalEvent: true,
+  },
+];
+
 class Config {
   #logger;
   #config;
@@ -198,7 +209,7 @@ class Config {
   set fileContent(config) {
     this.#config = config;
     config.events = config.events ?? [];
-    config.periodicEvents = config.periodicEvents ?? [];
+    config.periodicEvents = (config.periodicEvents ?? []).concat(BASE_PERIODIC_EVENTS.map((event) => ({ ...event })));
     this.#eventMap = config.events.reduce((result, event) => {
       event.load = event.load ?? DEFAULT_LOAD;
       this.validateAdHocEvents(result, event);
