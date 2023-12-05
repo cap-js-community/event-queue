@@ -70,6 +70,7 @@ describe("redisRunner", () => {
     getAllTenantIdsSpy
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
+      .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds);
     const p1 = runner._._multiTenancyRedis();
     const p2 = runner._._multiTenancyRedis();
@@ -80,20 +81,29 @@ describe("redisRunner", () => {
 
     expect(setValueWithExpireSpy).toHaveBeenCalledTimes(3);
     expect(checkLockExistsAndReturnValueSpy).toHaveBeenCalledTimes(1);
-    expect(acquireLockSpy).toHaveBeenCalledTimes(6);
-    expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
+    // 3 tenants * 1 acquire lock for periodic run (happens only once per instance [tenant hash] +
+    // 3 tenants * 2 fn calls * 2 events (1 ad hoc and 1 periodic)
+    expect(acquireLockSpy).toHaveBeenCalledTimes(15);
+    // 3 tenants * 1 ad hoc and 1 periodic
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
 
     const acquireLockMock = acquireLockSpy.mock;
-    const runId = acquireLockMock.calls[0][1];
-
     const tenantChecks = tenantIds.reduce((result, tenantId) => {
       result[tenantId] = { numberOfChecks: 0, values: [] };
       return result;
     }, {});
+    const acquireLocksAdhocResults = [];
+    const acquireLocksAdhocCalls = acquireLockMock.calls.filter((call, index) => {
+      if (call[1].includes("Task")) {
+        acquireLocksAdhocResults.push(acquireLockMock.results[index]);
+        return true;
+      }
+    });
+    const runId = acquireLocksAdhocCalls[0][1];
     for (let i = 0; i < 6; i++) {
-      const tenantId = acquireLockMock.calls[i][0].tenant;
-      expect(runId).toEqual(acquireLockMock.calls[i][1]);
-      const result = await acquireLockMock.results[i].value;
+      const tenantId = acquireLocksAdhocCalls[i][0].tenant;
+      expect(runId).toEqual(acquireLocksAdhocCalls[i][1]);
+      const result = await acquireLocksAdhocResults[i].value;
       tenantChecks[tenantId].numberOfChecks++;
       tenantChecks[tenantId].values.push(result);
     }
@@ -103,14 +113,17 @@ describe("redisRunner", () => {
     const promises = await runner._._multiTenancyRedis();
     await Promise.allSettled(promises);
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
-    expect(acquireLockSpy).toHaveBeenCalledTimes(9);
-    expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
+    expect(acquireLockSpy).toHaveBeenCalledTimes(21);
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
   });
 
   it("db", async () => {
     configInstance.redisEnabled = false;
     const originalCdsTx = cds.tx;
     jest.spyOn(cds, "tx").mockImplementation(async function (context, fn) {
+      if (!fn) {
+        return originalCdsTx.call(this, context);
+      }
       if (!fn.toString().toLowerCase().includes("worker")) {
         context.tenant = null;
       }
@@ -118,6 +131,7 @@ describe("redisRunner", () => {
     });
     const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
     getAllTenantIdsSpy
+      .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
@@ -129,20 +143,30 @@ describe("redisRunner", () => {
     await Promise.allSettled(promises1.value.concat(promises2.value));
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
 
-    expect(acquireLockSpy).toHaveBeenCalledTimes(6);
-    expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
+    // 3 tenants * 1 acquire lock for periodic run (happens only once per instance [tenant hash] +
+    // 3 tenants * 2 fn calls * 2 events (1 ad hoc and 1 periodic)
+    expect(acquireLockSpy).toHaveBeenCalledTimes(15);
+    // 3 tenants * 1 ad hoc and 1 periodic
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
 
     const acquireLockMock = acquireLockSpy.mock;
-    const runId = acquireLockMock.calls[0][1];
 
     const tenantChecks = tenantIds.reduce((result, tenantId) => {
       result[tenantId] = { numberOfChecks: 0, values: {} };
       return result;
     }, {});
+    const acquireLocksAdhocResults = [];
+    const acquireLocksAdhocCalls = acquireLockMock.calls.filter((call, index) => {
+      if (call[1].includes("Task")) {
+        acquireLocksAdhocResults.push(acquireLockMock.results[index]);
+        return true;
+      }
+    });
+    const runId = acquireLocksAdhocCalls[0][1];
     for (let i = 0; i < 6; i++) {
-      const tenantId = acquireLockMock.calls[i][0].tenant;
-      expect(runId).toEqual(acquireLockMock.calls[i][1]);
-      const result = await acquireLockMock.results[i].value;
+      const tenantId = acquireLocksAdhocCalls[i][0].tenant;
+      expect(runId).toEqual(acquireLocksAdhocCalls[i][1]);
+      const result = await acquireLocksAdhocResults[i].value;
       tenantChecks[tenantId].numberOfChecks++;
       tenantChecks[tenantId].values[result] = 1;
     }
@@ -152,8 +176,8 @@ describe("redisRunner", () => {
     const promises = await runner._._multiTenancyDb();
     await Promise.allSettled(promises);
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
-    expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
-    expect(acquireLockSpy).toHaveBeenCalledTimes(9);
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
+    expect(acquireLockSpy).toHaveBeenCalledTimes(21);
 
     // 5 min's later the tenants should be processed again
     await cds.tx({}, (tx2) =>
@@ -167,8 +191,8 @@ describe("redisRunner", () => {
     const promises3 = await runner._._multiTenancyDb();
     await Promise.allSettled(promises3);
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
-    expect(acquireLockSpy).toHaveBeenCalledTimes(12);
-    expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
+    expect(acquireLockSpy).toHaveBeenCalledTimes(27);
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(12);
     jest.spyOn(cds, "tx").mockRestore();
   });
 
