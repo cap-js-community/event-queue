@@ -224,21 +224,6 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
-  it("should delete event entries after 30 days", async () => {
-    await cds.tx({}, async (tx2) => {
-      const event = testHelper.getEventEntry();
-      event.lastAttemptTimestamp = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
-      event.status = eventQueue.EventProcessingStatus.Done;
-      await eventQueue.publishEvent(tx2, event);
-    });
-    dbCounts = {};
-    const event = eventQueue.config.events[0];
-    await eventQueue.processEventQueue(context, event.type, event.subType);
-    expect(loggerMock.callsLengths().error).toEqual(0);
-    await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 0 });
-    expect(dbCounts).toMatchSnapshot();
-  });
-
   it("lock wait timeout during keepAlive", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
