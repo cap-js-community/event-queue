@@ -9,16 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- block the run of periodic events via
-  config [documentation](https://cap-js-community.github.io/event-queue/configure-event/#blocking-periodic-events)
-
-### Changed
-
-- Refactored the deletion process for completed events. The default setting for deleting processed events has now been
-  updated to a 7-day timeframe.
-  [documentation](https://cap-js-community.github.io/event-queue/configure-event/#delete-processed-events)
-
-## v0.3.0 - 2023-11-30
+- block the run of periodic events via config [documentation](https://cap-js-community.github.io/event-queue/configure-event/#blocking-periodic-events)
+- Add a label to the workerQueue. This will help in understanding which events were throttled in case of throttling.
 
 ### Changed
 
@@ -26,6 +18,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   specified as a percentage.
 - Upgrade docs dependencies
 - Adjusted workerQueue logging thresholds for waiting time
+
+### Fixed
+
+- Catch exception during Redis channel subscription
+
+## v0.3.0 - 2023-11-30
 
 ### Fixed
 

@@ -8,7 +8,7 @@ describe("workerQueue", () => {
   it("straight forward - limit one and one function", async () => {
     const workerQueue = new WorkerQueue(1);
     const jestFn = jest.fn();
-    await workerQueue.addToQueue(1, jestFn);
+    await workerQueue.addToQueue(1, "label", jestFn);
     expect(jestFn).toHaveBeenCalledTimes(1);
     expect(workerQueue.runningPromises).toHaveLength(0);
   });
@@ -18,7 +18,7 @@ describe("workerQueue", () => {
     const jestFn = jest.fn();
 
     expect(() => {
-      workerQueue.addToQueue(2, jestFn);
+      workerQueue.addToQueue(2, "label", jestFn);
     }).toThrowErrorMatchingInlineSnapshot(
       `"The defined load of an event is higher than the maximum defined limit. Check your configuration!"`
     );
@@ -41,8 +41,8 @@ describe("workerQueue", () => {
     const fn1 = () => {
       result["fn1"] = { called: true, done: true };
     };
-    const p1 = workerQueue.addToQueue(1, fn);
-    const p2 = workerQueue.addToQueue(1, fn1);
+    const p1 = workerQueue.addToQueue(1, "label", fn);
+    const p2 = workerQueue.addToQueue(1, "label", fn1);
 
     // NOTE: get the work queue the chance to start working
     await promisify(setTimeout)(1);
@@ -75,8 +75,8 @@ describe("workerQueue", () => {
     const fn1 = () => {
       result["fn1"] = { called: true, done: true };
     };
-    const p1 = workerQueue.addToQueue(3, fn);
-    const p2 = workerQueue.addToQueue(2, fn1);
+    const p1 = workerQueue.addToQueue(3, "label", fn);
+    const p2 = workerQueue.addToQueue(2, "label", fn1);
 
     // NOTE: get the work queue the chance to start working
     await promisify(setTimeout)(1);
@@ -110,8 +110,8 @@ describe("workerQueue", () => {
     const fn1 = () => {
       result["fn1"] = { called: true, done: true };
     };
-    const p1 = workerQueue.addToQueue(1, fn);
-    const p2 = workerQueue.addToQueue(1, fn1);
+    const p1 = workerQueue.addToQueue(1, "label", fn);
+    const p2 = workerQueue.addToQueue(1, "label", fn1);
     await promisify(setTimeout)(1);
 
     // NOTE: get the work queue the chance to start working

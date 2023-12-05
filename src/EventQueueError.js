@@ -210,12 +210,12 @@ class EventQueueError extends VError {
       message
     );
   }
-  static loadHigherThanLimit(load) {
+  static loadHigherThanLimit(load, label) {
     const { message } = ERROR_CODES_META[ERROR_CODES.LOAD_HIGHER_THAN_LIMIT];
     return new EventQueueError(
       {
         name: ERROR_CODES.LOAD_HIGHER_THAN_LIMIT,
-        info: { load },
+        info: { load, label },
       },
       message
     );
