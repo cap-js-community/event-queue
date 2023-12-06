@@ -655,6 +655,59 @@ describe("integration-main", () => {
       await testHelper.selectEventQueueAndExpectDone(tx, { type: "HealthCheck_PERIODIC" });
     });
 
+    it("exception should be handled and no retry should be done", async () => {
+      const event = eventQueue.config.periodicEvents[0];
+      await cds.tx({}, async (tx2) => {
+        checkAndInsertPeriodicEventsMock.mockRestore();
+        await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+      });
+      const scheduleNextSpy = jest
+        .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+        .mockResolvedValueOnce();
+      const processPeriodicEventSpy = jest
+        .spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent")
+        .mockRejectedValueOnce(new Error("failed"));
+
+      await processEventQueue(context, event.type, event.subType);
+
+      expect(processPeriodicEventSpy).toHaveBeenCalledTimes(1);
+      expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      await testHelper.selectEventQueueAndExpectError(tx, { type: "HealthCheck_PERIODIC" });
+
+      await processEventQueue(context, event.type, event.subType);
+      expect(processPeriodicEventSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("stock periodic events should be set to error", async () => {
+      const event = eventQueue.config.periodicEvents[0];
+      await cds.tx({}, async (tx2) => {
+        checkAndInsertPeriodicEventsMock.mockRestore();
+        await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        await tx2.run(
+          UPDATE.entity("sap.eventqueue.Event").set({
+            status: 1,
+            lastAttemptTimestamp: new Date(Date.now() - 31 * 60 * 1000),
+            attempts: 1,
+          })
+        );
+      });
+      const scheduleNextSpy = jest
+        .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+        .mockResolvedValueOnce();
+      const processPeriodicEventSpy = jest.spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent");
+
+      await processEventQueue(context, event.type, event.subType);
+
+      expect(processPeriodicEventSpy).toHaveBeenCalledTimes(0);
+      expect(scheduleNextSpy).toHaveBeenCalledTimes(0);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectError(tx, { type: "HealthCheck_PERIODIC" });
+
+      await processEventQueue(context, event.type, event.subType);
+      expect(processPeriodicEventSpy).toHaveBeenCalledTimes(0);
+    });
+
     it("insert process - should handle if the event is already running - execute anyway", async () => {
       const event = eventQueue.config.periodicEvents[0];
       await cds.tx({}, async (tx2) => {
@@ -1021,6 +1074,155 @@ describe("integration-main", () => {
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
+      });
+    });
+
+    describe("lastSuccessfulRunTimestamp", () => {
+      beforeAll(() => {
+        const event = eventQueue.config.periodicEvents[0];
+        event.lastSuccessfulRunTimestamp = true;
+      });
+
+      afterAll(() => {
+        const event = eventQueue.config.periodicEvents[0];
+        event.lastSuccessfulRunTimestamp = false;
+      });
+
+      it("first run should return null", async () => {
+        const event = eventQueue.config.periodicEvents[0];
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        });
+        const scheduleNextSpy = jest
+          .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+          .mockResolvedValueOnce();
+
+        let lastTs;
+        jest.spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent").mockImplementationOnce(async function () {
+          lastTs = this.lastSuccessfulRunTimestamp;
+        });
+
+        await processEventQueue(context, event.type, event.subType);
+
+        expect(lastTs).toEqual(null);
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectDone(tx, { type: "HealthCheck_PERIODIC" });
+      });
+
+      it("second run should return ts of last run", async () => {
+        const event = eventQueue.config.periodicEvents[0];
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        });
+        const scheduleNextSpy = jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent");
+
+        let lastTs;
+        jest
+          .spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent")
+          .mockImplementationOnce(async function () {
+            lastTs = this.lastSuccessfulRunTimestamp;
+          })
+          .mockImplementationOnce(async function () {
+            lastTs = this.lastSuccessfulRunTimestamp;
+          });
+
+        await processEventQueue(context, event.type, event.subType);
+        expect(lastTs).toEqual(null);
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        const events = await testHelper.selectEventQueueAndReturn(tx, {
+          type: "HealthCheck_PERIODIC",
+          expectedLength: 2,
+          additionalColumns: ["lastAttemptTimestamp"],
+        });
+        const [open, done] = events.sort((a, b) => a.status - b.status);
+        expect(open).toEqual({
+          status: EventProcessingStatus.Open,
+          attempts: 0,
+          startAfter: expect.any(String),
+          lastAttemptTimestamp: null,
+        });
+        expect(done).toEqual({
+          status: EventProcessingStatus.Done,
+          attempts: 1,
+          startAfter: expect.any(String),
+          lastAttemptTimestamp: expect.any(String),
+        });
+
+        await cds.tx({}, async (tx2) => {
+          await tx2.run(
+            UPDATE.entity("sap.eventqueue.Event").set({
+              startAfter: new Date(),
+            })
+          );
+        });
+
+        jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent").mockResolvedValueOnce();
+
+        await processEventQueue(context, event.type, event.subType);
+        expect(lastTs).toEqual(done.lastAttemptTimestamp.slice(0, 23));
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(2);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("second run should return null if first run failed", async () => {
+        const event = eventQueue.config.periodicEvents[0];
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        });
+        const scheduleNextSpy = jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent");
+
+        let lastTs;
+        jest
+          .spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent")
+          .mockImplementationOnce(async function () {
+            throw new Error("sth bad happened");
+          })
+          .mockImplementationOnce(async function () {
+            lastTs = this.lastSuccessfulRunTimestamp;
+          });
+
+        await processEventQueue(context, event.type, event.subType);
+        expect(lastTs).toEqual(undefined);
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(1);
+        const events = await testHelper.selectEventQueueAndReturn(tx, {
+          type: "HealthCheck_PERIODIC",
+          expectedLength: 2,
+          additionalColumns: ["lastAttemptTimestamp"],
+        });
+        const [open, done] = events.sort((a, b) => a.status - b.status);
+        expect(open).toEqual({
+          status: EventProcessingStatus.Open,
+          attempts: 0,
+          startAfter: expect.any(String),
+          lastAttemptTimestamp: null,
+        });
+        expect(done).toEqual({
+          status: EventProcessingStatus.Error,
+          attempts: 1,
+          startAfter: expect.any(String),
+          lastAttemptTimestamp: expect.any(String),
+        });
+
+        await cds.tx({}, async (tx2) => {
+          await tx2.run(
+            UPDATE.entity("sap.eventqueue.Event").set({
+              startAfter: new Date(),
+            })
+          );
+        });
+
+        jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent").mockResolvedValueOnce();
+
+        await processEventQueue(context, event.type, event.subType);
+        expect(lastTs).toEqual(null);
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(2);
+        expect(loggerMock.callsLengths().error).toEqual(1);
       });
     });
   });

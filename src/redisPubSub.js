@@ -1,5 +1,7 @@
 "use strict";
 
+const cds = require("@sap/cds");
+
 const redis = require("./shared/redis");
 const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
 const config = require("./config");
@@ -27,6 +29,14 @@ const messageHandlerProcessEvents = async (messageData) => {
       type,
       subType,
     });
+    if (config.isRunnerDeactivated) {
+      cds.log(COMPONENT_NAME).info("Skipping processing because runner is deactivated!", {
+        type,
+        subType,
+      });
+      return;
+    }
+
     const subdomain = await getSubdomainForTenantId(tenantId);
     const tenantContext = {
       tenant: tenantId,
@@ -46,6 +56,13 @@ const messageHandlerProcessEvents = async (messageData) => {
 const broadcastEvent = async (tenantId, type, subType) => {
   const logger = cds.log(COMPONENT_NAME);
   try {
+    if (config.isRunnerDeactivated) {
+      cds.log(COMPONENT_NAME).info("Skipping processing because runner is deactivated!", {
+        type,
+        subType,
+      });
+      return;
+    }
     if (!config.redisEnabled) {
       if (config.registerAsEventProcessor) {
         let context = {};

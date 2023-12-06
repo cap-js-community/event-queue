@@ -5,7 +5,7 @@ const pathLib = require("path");
 const cds = require("@sap/cds");
 
 const config = require("./config");
-const { TransactionMode } = require("./constants");
+const { TransactionMode, EventProcessingStatus } = require("./constants");
 const { limiter } = require("./shared/common");
 
 const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
@@ -14,14 +14,6 @@ const COMPONENT_NAME = "eventQueue/processEventQueue";
 const MAX_EXECUTION_TIME = 5 * 60 * 1000;
 
 const processEventQueue = async (context, eventType, eventSubType, startTime = new Date()) => {
-  if (config.isRunnerDeactivated) {
-    cds.log(COMPONENT_NAME).info("Skipping processing because runner is deactivated!", {
-      eventType,
-      eventSubType,
-    });
-    return;
-  }
-
   let iterationCounter = 0;
   let shouldContinue = true;
   let baseInstance;
@@ -176,6 +168,7 @@ const processPeriodicEvent = async (eventTypeInstance) => {
         return;
       }
 
+      let status = EventProcessingStatus.Done;
       await executeInNewTransaction(
         eventTypeInstance.context,
         `eventQueue-periodic-process-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
@@ -185,6 +178,7 @@ const processPeriodicEvent = async (eventTypeInstance) => {
           try {
             await eventTypeInstance.processPeriodicEvent(tx.context, queueEntry.ID, queueEntry);
           } catch (err) {
+            status = EventProcessingStatus.Error;
             eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
             throw new TriggerRollback();
           }
@@ -202,7 +196,7 @@ const processPeriodicEvent = async (eventTypeInstance) => {
         `eventQueue-periodic-setStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
         async (tx) => {
           eventTypeInstance.processEventContext = tx.context;
-          await eventTypeInstance.setPeriodicEventStatus(queueEntry.ID);
+          await eventTypeInstance.setPeriodicEventStatus(queueEntry.ID, status);
         }
       );
     }
