@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - block the run of periodic events via
   config [documentation](https://cap-js-community.github.io/event-queue/configure-event/#blocking-periodic-events)
 - Add a label to the workerQueue. This will help in understanding which events were throttled in case of throttling.
-- The "isRunnerDeactivated" configuration can now be used to deactivate the runtime processing of all events.
+- The "`isRunnerDeactivated` configuration can now be used to deactivate the runtime processing of all events.
 
 ### Fixed
 
