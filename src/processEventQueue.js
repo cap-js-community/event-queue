@@ -14,6 +14,14 @@ const COMPONENT_NAME = "eventQueue/processEventQueue";
 const MAX_EXECUTION_TIME = 5 * 60 * 1000;
 
 const processEventQueue = async (context, eventType, eventSubType, startTime = new Date()) => {
+  if (config.isRunnerDeactivated) {
+    cds.log(COMPONENT_NAME).info("Skipping processing because runner is deactivated!", {
+      eventType,
+      eventSubType,
+    });
+    return;
+  }
+
   let iterationCounter = 0;
   let shouldContinue = true;
   let baseInstance;
