@@ -39,7 +39,7 @@
     "upgrade-lock": "npx shx rm -rf package-lock.json node_modules && npm i --package-lock"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   },
   "dependencies": {
     "redis": "4.6.11",
