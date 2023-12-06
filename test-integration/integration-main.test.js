@@ -692,9 +692,7 @@ describe("integration-main", () => {
           })
         );
       });
-      const scheduleNextSpy = jest
-        .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
-        .mockResolvedValueOnce();
+      const scheduleNextSpy = jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent");
       const processPeriodicEventSpy = jest.spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent");
 
       await processEventQueue(context, event.type, event.subType);
