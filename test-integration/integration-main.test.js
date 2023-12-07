@@ -1153,7 +1153,7 @@ describe("integration-main", () => {
         jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent").mockResolvedValueOnce();
 
         await processEventQueue(context, event.type, event.subType);
-        expect(lastTs).toEqual(done.lastAttemptTimestamp.slice(0, 23));
+        expect(new Date(`${lastTs}Z`).toISOString()).toEqual(new Date(done.lastAttemptTimestamp).toISOString());
         expect(scheduleNextSpy).toHaveBeenCalledTimes(2);
         expect(loggerMock.callsLengths().error).toEqual(0);
       });
