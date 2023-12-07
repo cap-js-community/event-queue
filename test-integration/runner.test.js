@@ -118,6 +118,7 @@ describe("redisRunner", () => {
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(21);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
+    expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
     expect(loggerMock.callsLengths().error).toEqual(0);
   });
 
@@ -195,6 +196,7 @@ describe("redisRunner", () => {
     const promises3 = await runner._._multiTenancyDb();
     await Promise.allSettled(promises3);
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
+    expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
     expect(acquireLockSpy).toHaveBeenCalledTimes(27);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(12);
     expect(loggerMock.callsLengths().error).toEqual(0);
@@ -221,6 +223,7 @@ describe("redisRunner", () => {
 
     expect(processEventQueueSpy).toHaveBeenCalledTimes(2);
     expect(acquireLockSpy).toHaveBeenCalledTimes(4);
+    expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
     expect(loggerMock.callsLengths().error).toEqual(0);
   });
 
