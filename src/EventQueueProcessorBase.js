@@ -936,7 +936,10 @@ class EventQueueProcessorBase {
         obsoleteEntries.push(queueEntry);
       }
     }
-    await this.setPeriodicEventStatus(obsoleteEntries.map(({ ID }) => ID));
+    await this.setPeriodicEventStatus(
+      obsoleteEntries.map(({ ID }) => ID),
+      EventProcessingStatus.Done
+    );
     return queueEntryToUse;
   }
 
