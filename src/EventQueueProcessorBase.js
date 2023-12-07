@@ -32,6 +32,7 @@ class EventQueueProcessorBase {
   #eventSchedulerInstance = null;
   #eventConfig;
   #isPeriodic;
+  #lastSuccessfulRunTimestamp;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -55,7 +56,7 @@ class EventQueueProcessorBase {
     // NOTE: keep the feature, this might be needed again
     this.__concurrentEventProcessing = false;
     this.__startTime = this.#eventConfig.startTime ?? new Date();
-    this.__retryAttempts = this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
+    this.__retryAttempts = this.#isPeriodic ? 1 : this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
     this.__selectMaxChunkSize = this.#eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
     this.__selectNextChunk = !!this.#eventConfig.checkForNextChunk;
     this.__keepalivePromises = {};
@@ -321,11 +322,11 @@ class EventQueueProcessorBase {
     });
   }
 
-  async setPeriodicEventStatus(queueEntryIds) {
+  async setPeriodicEventStatus(queueEntryIds, status) {
     await this.tx.run(
       UPDATE.entity(this.#config.tableNameEventQueue)
         .set({
-          status: EventProcessingStatus.Done,
+          status: status,
         })
         .where({
           ID: queueEntryIds,
@@ -516,15 +517,25 @@ class EventQueueProcessorBase {
             refDateStartAfter.toISOString(),
             " ) AND ( status =",
             EventProcessingStatus.Open,
-            "OR ( status =",
-            EventProcessingStatus.Error,
-            "AND lastAttemptTimestamp <=",
-            this.__startTime.toISOString(),
-            ") OR ( status =",
-            EventProcessingStatus.InProgress,
-            "AND lastAttemptTimestamp <=",
-            new Date(new Date().getTime() - this.#config.globalTxTimeout).toISOString(),
-            ") )"
+            ...(this.isPeriodicEvent
+              ? [
+                  "OR ( status =",
+                  EventProcessingStatus.InProgress,
+                  "AND lastAttemptTimestamp <=",
+                  new Date(new Date().getTime() - this.#config.globalTxTimeout).toISOString(),
+                  ") )",
+                ]
+              : [
+                  "OR ( status =",
+                  EventProcessingStatus.Error,
+                  "AND lastAttemptTimestamp <=",
+                  this.__startTime.toISOString(),
+                  ") OR ( status =",
+                  EventProcessingStatus.InProgress,
+                  "AND lastAttemptTimestamp <=",
+                  new Date(new Date().getTime() - this.#config.globalTxTimeout).toISOString(),
+                  ") )",
+                ])
           )
           .orderBy("createdAt", "ID")
       );
@@ -542,9 +553,11 @@ class EventQueueProcessorBase {
         entries,
         refDateStartAfter
       );
-      const eventsForProcessing = exceededTries.concat(openEvents).concat(exceededTriesExceeded);
+      const eventsForProcessing = openEvents
+        .concat(exceededTriesExceeded)
+        .concat(this.#isPeriodic ? [] : exceededTries);
       this.#selectedEventMap = arrayToFlatMap(eventsForProcessing);
-      if (exceededTries.length) {
+      if (!this.#isPeriodic && exceededTries.length) {
         this.#eventsWithExceededTries = exceededTries;
       }
       if (exceededTriesExceeded.length) {
@@ -560,6 +573,20 @@ class EventQueueProcessorBase {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
       });
+
+      if (this.#isPeriodic && exceededTries.length) {
+        await tx.run(
+          UPDATE.entity(this.#config.tableNameEventQueue)
+            .set({
+              status: EventProcessingStatus.Error,
+              lastAttemptTimestamp: new Date(),
+            })
+            .where(
+              "ID IN",
+              exceededTries.map(({ ID }) => ID)
+            )
+        );
+      }
 
       if (!eventsForProcessing.length) {
         this.__emptyChunkSelected = true;
@@ -590,8 +617,24 @@ class EventQueueProcessorBase {
       });
       this.__queueEntries = result;
       this.__queueEntriesMap = arrayToFlatMap(result);
+
+      if (this.#isPeriodic && this.#eventConfig.lastSuccessfulRunTimestamp) {
+        this.#lastSuccessfulRunTimestamp = await this.#selectLastSuccessfulPeriodicTimestamp(tx);
+      }
     });
     return result;
+  }
+
+  async #selectLastSuccessfulPeriodicTimestamp() {
+    const entry = await SELECT.one
+      .from(this.#config.tableNameEventQueue)
+      .where({
+        type: this.#eventType,
+        subType: this.#eventSubType,
+        status: EventProcessingStatus.Done,
+      })
+      .columns("max (lastAttemptTimestamp) as lastAttemptsTs");
+    return entry.lastAttemptsTs;
   }
 
   #handleDelayedEvents(delayedEvents) {
@@ -891,8 +934,35 @@ class EventQueueProcessorBase {
         obsoleteEntries.push(queueEntry);
       }
     }
-    await this.setPeriodicEventStatus(obsoleteEntries.map(({ ID }) => ID));
+    await this.setPeriodicEventStatus(
+      obsoleteEntries.map(({ ID }) => ID),
+      EventProcessingStatus.Done
+    );
     return queueEntryToUse;
+  }
+
+  /**
+   * Asynchronously gets the timestamp of the last successful run.
+   *
+   * @returns {Promise<string|null>} A Promise that resolves to a string representation of the timestamp
+   * of the last successful run (in ISO 8601 format: YYYY-MM-DDTHH:mm:ss.sss),
+   * or null if there has been no successful run yet.
+   *
+   * @example
+   * const timestamp = await instance.getLastSuccessfulRunTimestamp();
+   * console.log(timestamp);  // Outputs: 2023-12-07T09:15:44.237
+   *
+   * @throws {Error} If an error occurs while fetching the timestamp.
+   */
+  async getLastSuccessfulRunTimestamp() {
+    if (!this.#isPeriodic) {
+      return null;
+    }
+    if (this.#lastSuccessfulRunTimestamp === undefined) {
+      this.#lastSuccessfulRunTimestamp = await this.#selectLastSuccessfulPeriodicTimestamp();
+    }
+
+    return this.#lastSuccessfulRunTimestamp;
   }
 
   statusMapContainsError(statusMap) {

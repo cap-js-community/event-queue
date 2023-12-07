@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   config [documentation](https://cap-js-community.github.io/event-queue/configure-event/#blocking-periodic-events)
 - Add a label to the workerQueue. This will help in understanding which events were throttled in case of throttling.
 - The "`isRunnerDeactivated` configuration can now be used to deactivate the runtime processing of all events.
+- with the function `getLastSuccessfulRunTimestamp` the timestamp of the last successful run for a periodic event can be
+  requested. [documentation](https://cap-js-community.github.io/event-queue/implement-event/#using-the-timestamp-of-the-last-successful-run-for-the-next-run)
 
 ### Fixed
 

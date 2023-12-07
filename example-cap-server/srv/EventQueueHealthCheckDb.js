@@ -9,8 +9,10 @@ class EventQueueMail extends eventQueue.EventQueueProcessorBase {
 
   // eslint-disable-next-line no-unused-vars
   async processPeriodicEvent(processContext, key, queueEntry) {
+    const timestampLastRun = await this.getLastSuccessfulRunTimestamp();
     this.logger.info("doing db health check...", {
       id: queueEntry.ID,
+      timestampLastRun,
       now: new Date().toISOString(),
     });
   }
