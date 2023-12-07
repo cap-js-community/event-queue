@@ -169,6 +169,13 @@ const _singleTenantDb = async (tenantId) => {
     return WorkerQueue.instance.addToQueue(event.load, label, async () => {
       try {
         const context = new cds.EventContext({ tenant: tenantId });
+        const lockId = `${EVENT_QUEUE_RUN_ID}_${label}`;
+        const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+          expiryTime: eventQueueConfig.runInterval * 0.95,
+        });
+        if (!couldAcquireLock) {
+          return;
+        }
         await runEventCombinationForTenant(context, event.type, event.subType, true);
       } catch (err) {
         cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {

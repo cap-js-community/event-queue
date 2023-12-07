@@ -209,11 +209,13 @@ describe("redisRunner", () => {
       }
       return originalCdsTx.call(this, context, fn);
     });
-    const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+    // const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
 
-    const p1 = await Promise.allSettled(await runner._._singleTenantDb());
+    await Promise.all([runner._._singleTenantDb(), runner._._singleTenantDb()]).then((promises) =>
+      Promise.all(promises.flat())
+    );
 
-    debugger;
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(4);
   });
 
   describe("_calculateOffsetForFirstRun", () => {
