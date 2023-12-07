@@ -1078,16 +1078,6 @@ describe("integration-main", () => {
     });
 
     describe("lastSuccessfulRunTimestamp", () => {
-      beforeAll(() => {
-        const event = eventQueue.config.periodicEvents[0];
-        event.lastSuccessfulRunTimestamp = true;
-      });
-
-      afterAll(() => {
-        const event = eventQueue.config.periodicEvents[0];
-        event.lastSuccessfulRunTimestamp = false;
-      });
-
       it("first run should return null", async () => {
         const event = eventQueue.config.periodicEvents[0];
         await cds.tx({}, async (tx2) => {
@@ -1100,7 +1090,7 @@ describe("integration-main", () => {
 
         let lastTs;
         jest.spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent").mockImplementationOnce(async function () {
-          lastTs = this.lastSuccessfulRunTimestamp;
+          lastTs = await this.getLastSuccessfulRunTimestamp();
         });
 
         await processEventQueue(context, event.type, event.subType);
@@ -1123,10 +1113,10 @@ describe("integration-main", () => {
         jest
           .spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent")
           .mockImplementationOnce(async function () {
-            lastTs = this.lastSuccessfulRunTimestamp;
+            lastTs = await this.getLastSuccessfulRunTimestamp();
           })
           .mockImplementationOnce(async function () {
-            lastTs = this.lastSuccessfulRunTimestamp;
+            lastTs = await this.getLastSuccessfulRunTimestamp();
           });
 
         await processEventQueue(context, event.type, event.subType);
@@ -1183,7 +1173,7 @@ describe("integration-main", () => {
             throw new Error("sth bad happened");
           })
           .mockImplementationOnce(async function () {
-            lastTs = this.lastSuccessfulRunTimestamp;
+            lastTs = await this.getLastSuccessfulRunTimestamp();
           });
 
         await processEventQueue(context, event.type, event.subType);

@@ -625,17 +625,15 @@ class EventQueueProcessorBase {
     return result;
   }
 
-  async #selectLastSuccessfulPeriodicTimestamp(tx) {
-    const entry = await tx.run(
-      SELECT.one
-        .from(this.#config.tableNameEventQueue)
-        .where({
-          type: this.#eventType,
-          subType: this.#eventSubType,
-          status: EventProcessingStatus.Done,
-        })
-        .columns("max (lastAttemptTimestamp) as lastAttemptsTs")
-    );
+  async #selectLastSuccessfulPeriodicTimestamp() {
+    const entry = await SELECT.one
+      .from(this.#config.tableNameEventQueue)
+      .where({
+        type: this.#eventType,
+        subType: this.#eventSubType,
+        status: EventProcessingStatus.Done,
+      })
+      .columns("max (lastAttemptTimestamp) as lastAttemptsTs");
     return entry.lastAttemptsTs;
   }
 
@@ -943,6 +941,30 @@ class EventQueueProcessorBase {
     return queueEntryToUse;
   }
 
+  /**
+   * Asynchronously gets the timestamp of the last successful run.
+   *
+   * @returns {Promise<string|null>} A Promise that resolves to a string representation of the timestamp
+   * of the last successful run (in ISO 8601 format: YYYY-MM-DDTHH:mm:ss.sss),
+   * or null if there has been no successful run yet.
+   *
+   * @example
+   * const timestamp = await instance.getLastSuccessfulRunTimestamp();
+   * console.log(timestamp);  // Outputs: 2023-12-07T09:15:44.237
+   *
+   * @throws {Error} If an error occurs while fetching the timestamp.
+   */
+  async getLastSuccessfulRunTimestamp() {
+    if (!this.#isPeriodic) {
+      return null;
+    }
+    if (this.#lastSuccessfulRunTimestamp === undefined) {
+      this.#lastSuccessfulRunTimestamp = await this.#selectLastSuccessfulPeriodicTimestamp();
+    }
+
+    return this.#lastSuccessfulRunTimestamp;
+  }
+
   statusMapContainsError(statusMap) {
     return Object.values(statusMap).includes(EventProcessingStatus.Error);
   }
@@ -1058,10 +1080,6 @@ class EventQueueProcessorBase {
 
   get isPeriodicEvent() {
     return this.#eventConfig.isPeriodic;
-  }
-
-  get lastSuccessfulRunTimestamp() {
-    return this.#lastSuccessfulRunTimestamp;
   }
 }
 

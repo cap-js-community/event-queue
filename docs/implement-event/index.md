@@ -12,12 +12,13 @@ nav_order: 7
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
-- TOC
-  {: toc}
+- TOC 
+{: toc}
 
 # Overview
 
-Events are implemented through an event processor. Each processor must be a class that inherits from the `EventQueueProcessorBase`.
+Events are implemented through an event processor. Each processor must be a class that inherits from
+the `EventQueueProcessorBase`.
 
 # Basic Implementation
 
@@ -37,7 +38,8 @@ publication.
 
 The `processEvent` function is utilized to process the published ad-hoc events. It is designed to
 return an array of tuples. Each tuple consists of the ID of the processed event entry and its respective status.
-Under normal circumstances, the `queueEntries` parameter of the `processEvent` function is always an array with a length of one.
+Under normal circumstances, the `queueEntries` parameter of the `processEvent` function is always an array with a length
+of one.
 
 However, this behavior can be altered by overriding the [clusterQueueEntries](#clusterqueueentries)
 function in the base class `EventQueueProcessorBase`. This adjustment becomes beneficial when
@@ -47,7 +49,8 @@ each queueEntry.
 
 Please note that each queueEntry can have a different status. If multiple events are processed in
 one batch, the transaction handling gets more complex. The event-queue uses worst status aggregation.
-Meaning in transaction mode `isolated` the transaction would be rolled back if one of the reported event status is `error`.
+Meaning in transaction mode `isolated` the transaction would be rolled back if one of the reported event status
+is `error`.
 This is described in detail in below [section](#example-if-multiple-events-are-clustered).
 
 ```js
@@ -82,8 +85,10 @@ scenarios in which transactions are committed or rolled back, please refer to th
 
 # Advanced implementation
 
-The following paragraph outlines the most common methods that can be overridden in the base class (EventQueueProcessorBase).
-For detailed descriptions of each function, please refer to the JSDoc documentation in the base class (EventQueueProcessorBase).
+The following paragraph outlines the most common methods that can be overridden in the base class (
+EventQueueProcessorBase).
+For detailed descriptions of each function, please refer to the JSDoc documentation in the base class (
+EventQueueProcessorBase).
 
 ## checkEventAndGeneratePayload
 
@@ -167,12 +172,14 @@ been rolled back from the previous transaction. This could potentially lead to d
 suggests that the events were processed successfully, but the business data associated with these events was not
 committed due to the transaction rollback.
 
-This scenario highlights the importance of careful error handling and status management in batch processing of events, to
+This scenario highlights the importance of careful error handling and status management in batch processing of events,
+to
 ensure data integrity and consistency.
 
 ## Minimal implementation for periodic events
 
-The `processPeriodicEvent` function is utilized to process periodic events. In comparison to ad-hoc events periodic events
+The `processPeriodicEvent` function is utilized to process periodic events. In comparison to ad-hoc events periodic
+events
 should not return a processing status. The process function for periodic events also does not get passed a payload for
 processing.
 
@@ -199,3 +206,32 @@ module.exports = EventQueueMinimalistic;
 ```
 
 For periodic events there are no more class methods which can be overridden to customize any logic.
+
+### Using the Timestamp of the Last Successful Run for the Next Run
+
+When dealing with periodic events, you may find it helpful to use the timestamp of the last successful run to choose the
+next chunk or execute delta processing. To get this timestamp, the base class provides the `getLastSuccessfulRunTimestamp`
+function. If no successful run has occurred yet, the function will return null.
+
+```js
+"use strict";
+
+const { EventQueueBaseClass } = require("@cap-js-community/event-queue");
+
+class EventQueueMinimalistic extends EventQueueBaseClass {
+  constructor(context, eventType, eventSubType, config) {
+    super(context, eventType, eventSubType, config);
+  }
+
+  async processPeriodicEvent(processContext, key, eventEntry) {
+    try {
+      const tsLastRun = await this.getLastSuccessfulRunTimestamp(); // 2023-12-07T09:15:44.237
+      await doHeavyProcessing(queueEntries, payload);
+    } catch {
+      this.logger.error("Error during processing periodic event!", err);
+    }
+  }
+}
+
+module.exports = EventQueueMinimalistic;
+```
