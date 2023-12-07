@@ -1235,7 +1235,7 @@ describe("integration-main", () => {
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: true,
-        isRunnerDeactivated: true,
+        isRunnerDeactivated: false,
       });
     });
 
