@@ -164,10 +164,9 @@ const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
 };
 
 const _singleTenantDb = async (tenantId) => {
-  const events = eventQueueConfig.allEvents;
-  events.forEach((event) => {
+  return eventQueueConfig.allEvents.map((event) => {
     const label = `${event.type}_${event.subType}`;
-    WorkerQueue.instance.addToQueue(event.load, label, async () => {
+    return WorkerQueue.instance.addToQueue(event.load, label, async () => {
       try {
         const context = new cds.EventContext({ tenant: tenantId });
         await runEventCombinationForTenant(context, event.type, event.subType, true);
@@ -315,6 +314,7 @@ module.exports = {
   multiTenancyRedis,
   runEventCombinationForTenant,
   _: {
+    _singleTenantDb,
     _multiTenancyRedis,
     _multiTenancyDb,
     _calculateOffsetForFirstRun,

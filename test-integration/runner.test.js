@@ -197,6 +197,25 @@ describe("redisRunner", () => {
     jest.spyOn(cds, "tx").mockRestore();
   });
 
+  it("db - single tenant", async () => {
+    configInstance.redisEnabled = false;
+    const originalCdsTx = cds.tx;
+    jest.spyOn(cds, "tx").mockImplementation(async function (context, fn) {
+      if (!fn) {
+        return originalCdsTx.call(this, context);
+      }
+      if (!fn.toString().toLowerCase().includes("worker")) {
+        context.tenant = null;
+      }
+      return originalCdsTx.call(this, context, fn);
+    });
+    const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+
+    const p1 = await Promise.allSettled(await runner._._singleTenantDb());
+
+    debugger;
+  });
+
   describe("_calculateOffsetForFirstRun", () => {
     beforeEach(() => {
       configInstance.redisEnabled = true;
