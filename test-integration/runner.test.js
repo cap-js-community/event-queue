@@ -10,6 +10,7 @@ const WorkerQueue = require("../src/shared/WorkerQueue");
 const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
 jest.spyOn(cdsHelper, "getSubdomainForTenantId").mockResolvedValue("dummy");
 const processEventQueue = require("../src/processEventQueue");
+const { Logger: mockLogger } = require("../test/mocks/logger");
 
 const processEventQueueSpy = jest.spyOn(processEventQueue, "processEventQueue").mockImplementation(
   async () =>
@@ -30,7 +31,7 @@ const tenantIds = [
 ];
 
 describe("redisRunner", () => {
-  let context, tx, configInstance;
+  let context, tx, configInstance, loggerMock;
 
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "..", "./test", "asset", "configSmall.yml");
@@ -41,6 +42,7 @@ describe("redisRunner", () => {
     });
     configInstance = eventQueue.config;
     configInstance.redisEnabled = true;
+    loggerMock = mockLogger();
     jest.clearAllMocks();
   });
 
@@ -55,7 +57,7 @@ describe("redisRunner", () => {
   });
 
   afterEach(async () => {
-    await tx.rollback();
+    await tx?.rollback?.();
     jest.clearAllMocks();
   });
 
@@ -116,6 +118,8 @@ describe("redisRunner", () => {
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(21);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
+    expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
+    expect(loggerMock.callsLengths().error).toEqual(0);
   });
 
   it("db", async () => {
@@ -192,9 +196,35 @@ describe("redisRunner", () => {
     const promises3 = await runner._._multiTenancyDb();
     await Promise.allSettled(promises3);
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
+    expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
     expect(acquireLockSpy).toHaveBeenCalledTimes(27);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(12);
+    expect(loggerMock.callsLengths().error).toEqual(0);
     jest.spyOn(cds, "tx").mockRestore();
+  });
+
+  it("db - single tenant", async () => {
+    configInstance.redisEnabled = false;
+    const originalCdsTx = cds.tx;
+    jest.spyOn(cds, "tx").mockImplementation(async function (context, fn) {
+      if (!fn) {
+        return originalCdsTx.call(this, context);
+      }
+      if (!fn.toString().toLowerCase().includes("worker")) {
+        context.tenant = null;
+      }
+      return originalCdsTx.call(this, context, fn);
+    });
+    const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+
+    await Promise.all([runner._._singleTenantDb(), runner._._singleTenantDb()]).then((promises) =>
+      Promise.all(promises.flat())
+    );
+
+    expect(processEventQueueSpy).toHaveBeenCalledTimes(2);
+    expect(acquireLockSpy).toHaveBeenCalledTimes(4);
+    expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
+    expect(loggerMock.callsLengths().error).toEqual(0);
   });
 
   describe("_calculateOffsetForFirstRun", () => {
@@ -206,6 +236,7 @@ describe("redisRunner", () => {
     it("should have default offset with no previous run", async () => {
       const result = await runner._._calculateOffsetForFirstRun();
       expect(result).toEqual(5 * 60 * 1000);
+      expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
     it("acquireRunId should set ts", async () => {
@@ -218,6 +249,7 @@ describe("redisRunner", () => {
         tenantScoped: false,
       });
       expect(runTs).toBeDefined();
+      expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
     it("should calculate correct offset", async () => {
@@ -231,6 +263,7 @@ describe("redisRunner", () => {
       const expectedTs = new Date(runTs).getTime() + configInstance.runInterval - systemTime;
       const result = await runner._._calculateOffsetForFirstRun();
       expect(result).toEqual(expectedTs);
+      expect(loggerMock.callsLengths().error).toEqual(0);
       jest.useRealTimers();
     });
 
@@ -246,6 +279,7 @@ describe("redisRunner", () => {
       const expectedTs = new Date(runTs).getTime() + configInstance.runInterval - systemTime;
       const result = await runner._._calculateOffsetForFirstRun();
       expect(result).toEqual(expectedTs);
+      expect(loggerMock.callsLengths().error).toEqual(0);
       jest.useRealTimers();
     });
   });
