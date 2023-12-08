@@ -39,7 +39,7 @@ class Config {
   #instanceLoadLimit;
   #tableNameEventQueue;
   #tableNameEventLock;
-  #isRunnerDeactivated;
+  #isEventQueueActive;
   #configFilePath;
   #processEventsAfterPublish;
   #skipCsnCheck;
@@ -62,7 +62,7 @@ class Config {
     this.#instanceLoadLimit = 100;
     this.#tableNameEventQueue = null;
     this.#tableNameEventLock = null;
-    this.#isRunnerDeactivated = false;
+    this.#isEventQueueActive = true;
     this.#configFilePath = null;
     this.#processEventsAfterPublish = null;
     this.#skipCsnCheck = null;
@@ -198,12 +198,12 @@ class Config {
     return tenantSpecific ?? allTenants;
   }
 
-  get isRunnerDeactivated() {
-    return this.#isRunnerDeactivated;
+  get isEventQueueActive() {
+    return this.#isEventQueueActive;
   }
 
-  set isRunnerDeactivated(value) {
-    this.#isRunnerDeactivated = value;
+  set isEventQueueActive(value) {
+    this.#isEventQueueActive = value;
   }
 
   set fileContent(config) {

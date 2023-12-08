@@ -37,7 +37,7 @@ const _scheduleFunction = async (singleRunFn, periodicFn) => {
 
   const fnWithRunningCheck = () => {
     const logger = cds.log(COMPONENT_NAME);
-    if (eventQueueConfig.isRunnerDeactivated) {
+    if (!eventQueueConfig.isEventQueueActive) {
       logger.info("runner is deactivated via config variable. Skipping this run.");
       return;
     }
