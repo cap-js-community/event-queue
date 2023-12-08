@@ -33,7 +33,7 @@ describe("integration-main", () => {
       configFilePath,
       processEventsAfterPublish: false,
       registerAsEventProcessor: false,
-      isRunnerDeactivated: true,
+      isEventQueueActive: false,
     });
     loggerMock = mockLogger();
     jest.spyOn(cds, "log").mockImplementation((layer) => {
@@ -634,7 +634,7 @@ describe("integration-main", () => {
         configFilePath,
         processEventsAfterPublish: false,
         registerAsEventProcessor: false,
-        isRunnerDeactivated: true,
+        isEventQueueActive: false,
       });
     });
 
@@ -856,7 +856,7 @@ describe("integration-main", () => {
     it("insert one delayed entry and process - should be processed after timeout", async () => {
       await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 5 }));
       const event = eventQueue.config.events[0];
-      eventQueue.config.isRunnerDeactivated = false;
+      eventQueue.config.isEventQueueActive = true;
       eventQueue.config.registerAsEventProcessor = true;
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -864,7 +864,7 @@ describe("integration-main", () => {
       await waitEntryIsDone();
       await testHelper.selectEventQueueAndExpectDone(tx);
       eventQueue.config.registerAsEventProcessor = false;
-      eventQueue.config.isRunnerDeactivated = true;
+      eventQueue.config.isEventQueueActive = false;
     });
 
     describe("transactions modes", () => {
@@ -1225,7 +1225,7 @@ describe("integration-main", () => {
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: true,
-        isRunnerDeactivated: false,
+        isEventQueueActive: true,
       });
     });
 

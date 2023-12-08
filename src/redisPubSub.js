@@ -29,7 +29,7 @@ const messageHandlerProcessEvents = async (messageData) => {
       type,
       subType,
     });
-    if (config.isRunnerDeactivated) {
+    if (!config.isEventQueueActive) {
       cds.log(COMPONENT_NAME).info("Skipping processing because runner is deactivated!", {
         type,
         subType,
@@ -56,7 +56,7 @@ const messageHandlerProcessEvents = async (messageData) => {
 const broadcastEvent = async (tenantId, type, subType) => {
   const logger = cds.log(COMPONENT_NAME);
   try {
-    if (config.isRunnerDeactivated) {
+    if (!config.isEventQueueActive) {
       cds.log(COMPONENT_NAME).info("Skipping processing because runner is deactivated!", {
         type,
         subType,
