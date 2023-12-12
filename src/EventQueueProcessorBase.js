@@ -106,12 +106,26 @@ class EventQueueProcessorBase {
     this.__performanceLoggerEvents = new PerformanceTracer(this.logger, "Processing events");
   }
 
+  startPerformanceTracerPeriodicEvents() {
+    this.__performanceLoggerPeriodicEvents = new PerformanceTracer(this.logger, "Processing periodic event");
+  }
+
   startPerformanceTracerPreprocessing() {
     this.__performanceLoggerPreprocessing = new PerformanceTracer(this.logger, "Preprocessing events");
   }
 
   endPerformanceTracerEvents() {
     this.__performanceLoggerEvents?.endPerformanceTrace(
+      { threshold: 50 },
+      {
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
+      }
+    );
+  }
+
+  endPerformanceTracerPeriodicEvents() {
+    this.__performanceLoggerPeriodicEvents?.endPerformanceTrace(
       { threshold: 50 },
       {
         eventType: this.#eventType,
@@ -566,13 +580,16 @@ class EventQueueProcessorBase {
       this.#handleDelayedEvents(delayedEvents);
 
       result = openEvents;
-      this.logger[eventsForProcessing.length ? "info" : "debug"]("Selected event queue entries for processing", {
-        openEvents: openEvents.length,
-        ...(delayedEvents.length && { delayedEvents: delayedEvents.length }),
-        ...(exceededTries.length && { exceededTries: exceededTries.length }),
-        eventType: this.#eventType,
-        eventSubType: this.#eventSubType,
-      });
+      this.logger[eventsForProcessing.length && !this.isPeriodicEvent ? "info" : "debug"](
+        "Selected event queue entries for processing",
+        {
+          openEvents: openEvents.length,
+          ...(delayedEvents.length && { delayedEvents: delayedEvents.length }),
+          ...(exceededTries.length && { exceededTries: exceededTries.length }),
+          eventType: this.#eventType,
+          eventSubType: this.#eventSubType,
+        }
+      );
 
       if (this.#isPeriodic && exceededTries.length) {
         await tx.run(

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - The `isEventQueueActive` configuration can now be used to deactivate the runtime processing of all events.
 - with the function `getLastSuccessfulRunTimestamp` the timestamp of the last successful run for a periodic event can be
   requested. [documentation](https://cap-js-community.github.io/event-queue/implement-event/#using-the-timestamp-of-the-last-successful-run-for-the-next-run)
+- Added a performance tracer for periodic events. This will log any processing that takes longer than 50ms.
 
 ### Fixed
 
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   updated to a 7-day timeframe.
   [documentation](https://cap-js-community.github.io/event-queue/configure-event/#delete-processed-events)
 - the configuration variable `isRunnerDeactivated` is renamed to `isEventQueueActive`.
+- Reduced the log severity to debug for "Selected event queue entries for processing" during periodic events.
 
 ## v0.3.0 - 2023-11-30
 
