@@ -138,10 +138,9 @@ class EventQueueProcessorBase {
     });
   }
 
-  logStartMessage(queueEntries) {
-    // TODO: how to handle custom fields
+  logStartMessage() {
     this.logger.info("Processing queue event", {
-      numberQueueEntries: queueEntries.length,
+      numberClusterEntries: Object.keys(this.eventProcessingMap).length,
       eventType: this.#eventType,
       eventSubType: this.#eventSubType,
     });

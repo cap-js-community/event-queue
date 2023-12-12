@@ -213,6 +213,7 @@ const processPeriodicEvent = async (eventTypeInstance) => {
 const processEventMap = async (eventTypeInstance) => {
   eventTypeInstance.startPerformanceTracerEvents();
   await eventTypeInstance.beforeProcessingEvents();
+  eventTypeInstance.logStartMessage();
   if (eventTypeInstance.commitOnEventLevel) {
     eventTypeInstance.txUsageAllowed = false;
   }
@@ -261,7 +262,6 @@ const processEventMap = async (eventTypeInstance) => {
 
 const _processEvent = async (eventTypeInstance, processContext, key, queueEntries, payload) => {
   try {
-    eventTypeInstance.logStartMessage(queueEntries);
     const eventOutdated = await eventTypeInstance.isOutdatedAndKeepalive(queueEntries);
     if (eventOutdated) {
       return;
