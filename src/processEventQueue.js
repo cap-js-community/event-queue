@@ -176,11 +176,14 @@ const processPeriodicEvent = async (eventTypeInstance) => {
           eventTypeInstance.processEventContext = tx.context;
           eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
           try {
+            eventTypeInstance.startPerformanceTracerPeriodicEvents();
             await eventTypeInstance.processPeriodicEvent(tx.context, queueEntry.ID, queueEntry);
           } catch (err) {
             status = EventProcessingStatus.Error;
             eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
             throw new TriggerRollback();
+          } finally {
+            eventTypeInstance.endPerformanceTracerPeriodicEvents();
           }
           if (
             eventTypeInstance.transactionMode === TransactionMode.alwaysRollback ||
