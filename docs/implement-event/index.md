@@ -6,13 +6,15 @@ nav_order: 7
 
 <!-- prettier-ignore-start -->
 
-# Implement Event
 
 {: .no_toc}
+
+# Implement Event
+
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
-- TOC 
+- TOC
 {: toc}
 
 # Overview
@@ -77,6 +79,37 @@ class EventQueueMinimalistic extends EventQueueBaseClass {
 module.exports = EventQueueMinimalistic;
 ```
 
+## Minimal implementation for periodic events
+
+The `processPeriodicEvent` function is utilized to process periodic events. In comparison to ad-hoc events periodic
+events
+should not return a processing status. The process function for periodic events also does not get passed a payload for
+processing.
+
+```js
+"use strict";
+
+const { EventQueueBaseClass } = require("@cap-js-community/event-queue");
+
+class EventQueueMinimalistic extends EventQueueBaseClass {
+  constructor(context, eventType, eventSubType, config) {
+    super(context, eventType, eventSubType, config);
+  }
+
+  async processPeriodicEvent(processContext, key, eventEntry) {
+    try {
+      await doHeavyProcessing(queueEntries, payload);
+    } catch {
+      this.logger.error("Error during processing periodic event!", err);
+    }
+  }
+}
+
+module.exports = EventQueueMinimalistic;
+```
+
+For periodic events there are no more class methods which can be overridden to customize any logic.
+
 # Managed Transactions and CDS Context
 
 During event processing, the library manages transaction handling. To gain a more comprehensive understanding of the
@@ -90,7 +123,11 @@ EventQueueProcessorBase).
 For detailed descriptions of each function, please refer to the JSDoc documentation in the base class (
 EventQueueProcessorBase).
 
-## checkEventAndGeneratePayload
+## Ad-hoc events
+
+TBD
+
+### checkEventAndGeneratePayload
 
 The function `checkEventAndGeneratePayload` is called for each event that will be processed. This function is used to
 validate whether the event still needs to be processed and to fetch additional data that cannot be fetched in bulk
@@ -125,7 +162,7 @@ class EventQueueAdvanced extends EventQueueBaseClass {
 module.exports = EventQueueAdvanced;
 ```
 
-## clusterQueueEntries
+### clusterQueueEntries
 
 The function `clusterQueueEntries` is designed to bundle the processing of multiple events into a single batch. This
 approach means the `processEvent` method is invoked only once for all events that have been grouped or "clustered"
@@ -151,7 +188,7 @@ clusterQueueEntries(queueEntriesWithPayloadMap);
 However, it is important to note that when using this function, transaction handling can become more complex. See the
 example [below](#example-if-multiple-events-are-clustered) for that.
 
-### Example if multiple events are clustered
+#### Example if multiple events are clustered
 
 Given the following example where `processEvent` is processing three events: A, B, and C.
 
@@ -176,12 +213,12 @@ This scenario highlights the importance of careful error handling and status man
 to
 ensure data integrity and consistency.
 
-## Minimal implementation for periodic events
+### beforeProcessingEvents
 
-The `processPeriodicEvent` function is utilized to process periodic events. In comparison to ad-hoc events periodic
-events
-should not return a processing status. The process function for periodic events also does not get passed a payload for
-processing.
+This function, `beforeProcessingEvents`, is used to read data in bulk that is required for processing all selected 
+events. The key distinction between this and the `processEvent` function is that `beforeProcessingEvents` is invoked
+only once with all events, rather than being called repeatedly for each cluster entry. To retrieve all clustered events,
+you can use the getter function of `eventProcessingMap`. The example below demonstrates how to use this function.
 
 ```js
 "use strict";
@@ -193,24 +230,26 @@ class EventQueueMinimalistic extends EventQueueBaseClass {
     super(context, eventType, eventSubType, config);
   }
 
-  async processPeriodicEvent(processContext, key, eventEntry) {
-    try {
-      await doHeavyProcessing(queueEntries, payload);
-    } catch {
-      this.logger.error("Error during processing periodic event!", err);
-    }
+  async beforeProcessingEvents() {
+    this.__cache = await loadCache(this.eventProcessingMap);
   }
 }
 
 module.exports = EventQueueMinimalistic;
 ```
 
-For periodic events there are no more class methods which can be overridden to customize any logic.
+
+## Periodic events
+
+Periodic events have a few functions that are designed to be overridden from the base class. The current design allows
+for the `processPeriodicEvent` function only to be reimplemented. However, there's a specific function for periodic 
+events that retrieves the timestamp of the last successful run for an event within the given context.
 
 ### Using the Timestamp of the Last Successful Run for the Next Run
 
 When dealing with periodic events, you may find it helpful to use the timestamp of the last successful run to choose the
-next chunk or execute delta processing. To get this timestamp, the base class provides the `getLastSuccessfulRunTimestamp`
+next chunk or execute delta processing. To get this timestamp, the base class provides
+the `getLastSuccessfulRunTimestamp`
 function. If no successful run has occurred yet, the function will return null.
 
 ```js
