@@ -215,7 +215,7 @@ ensure data integrity and consistency.
 
 ### beforeProcessingEvents
 
-This function, `beforeProcessingEvents`, is used to read data in bulk that is required for processing all selected 
+This function, `beforeProcessingEvents`, is used to read data in bulk that is required for processing all selected
 events. The key distinction between this and the `processEvent` function is that `beforeProcessingEvents` is invoked
 only once with all events, rather than being called repeatedly for each cluster entry. To retrieve all clustered events,
 you can use the getter function of `eventProcessingMap`. The example below demonstrates how to use this function.
@@ -238,11 +238,10 @@ class EventQueueMinimalistic extends EventQueueBaseClass {
 module.exports = EventQueueMinimalistic;
 ```
 
-
 ## Periodic events
 
 Periodic events have a few functions that are designed to be overridden from the base class. The current design allows
-for the `processPeriodicEvent` function only to be reimplemented. However, there's a specific function for periodic 
+for the `processPeriodicEvent` function only to be reimplemented. However, there's a specific function for periodic
 events that retrieves the timestamp of the last successful run for an event within the given context.
 
 ### Using the Timestamp of the Last Successful Run for the Next Run
