@@ -530,16 +530,18 @@ class EventQueueProcessorBase {
             refDateStartAfter.toISOString(),
             " ) AND ( status =",
             EventProcessingStatus.Open,
+            "AND ( lastAttemptTimestamp <=",
+            this.__startTime.toISOString(),
             ...(this.isPeriodicEvent
               ? [
-                  "OR ( status =",
+                  "OR lastAttemptTimestamp IS NULL ) OR ( status =",
                   EventProcessingStatus.InProgress,
                   "AND lastAttemptTimestamp <=",
                   new Date(new Date().getTime() - this.#config.globalTxTimeout).toISOString(),
                   ") )",
                 ]
               : [
-                  "OR ( status =",
+                  "OR lastAttemptTimestamp IS NULL ) OR ( status =",
                   EventProcessingStatus.Error,
                   "AND lastAttemptTimestamp <=",
                   this.__startTime.toISOString(),
