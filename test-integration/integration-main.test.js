@@ -246,6 +246,26 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
+  it("insert one entry witch checkForNext but return status 0", async () => {
+    await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
+    dbCounts = {};
+    const event = eventQueue.config.events[0];
+    event.checkForNextChunk = true;
+    const processSpy = jest
+      .spyOn(EventQueueTest.prototype, "processEvent")
+      .mockImplementation((_, __, queueEntries) =>
+        queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Open])
+      );
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    expect(processSpy).toHaveBeenCalledTimes(1);
+    await testHelper.selectEventQueueAndExpectOpen(tx);
+    expect(dbCounts).toMatchSnapshot();
+
+    jest.spyOn(EventQueueTest.prototype, "processEvent").mockRestore();
+    event.checkForNextChunk = false;
+  });
+
   describe("transactionMode=isolated", () => {
     it("first processed register tx rollback - only first should be rolled back", async () => {
       await cds.tx({}, (tx2) =>
