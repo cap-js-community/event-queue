@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 - Catch exception during Redis channel subscription
+- Endless running if event status open is returned and checkForNextChunk is activated
 
 ### Changed
 
