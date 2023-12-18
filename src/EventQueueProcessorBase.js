@@ -103,15 +103,30 @@ class EventQueueProcessorBase {
   }
 
   startPerformanceTracerEvents() {
-    this.__performanceLoggerEvents = new PerformanceTracer(this.logger, "Processing events");
+    this.__performanceLoggerEvents = new PerformanceTracer(this.logger, "Processing events", {
+      properties: {
+        type: this.eventType,
+        subType: this.eventSubType,
+      },
+    });
   }
 
   startPerformanceTracerPeriodicEvents() {
-    this.__performanceLoggerPeriodicEvents = new PerformanceTracer(this.logger, "Processing periodic event");
+    this.__performanceLoggerPeriodicEvents = new PerformanceTracer(this.logger, "Processing periodic event", {
+      properties: {
+        type: this.eventType,
+        subType: this.eventSubType,
+      },
+    });
   }
 
   startPerformanceTracerPreprocessing() {
-    this.__performanceLoggerPreprocessing = new PerformanceTracer(this.logger, "Preprocessing events");
+    this.__performanceLoggerPreprocessing = new PerformanceTracer(this.logger, "Preprocessing events", {
+      properties: {
+        type: this.eventType,
+        subType: this.eventSubType,
+      },
+    });
   }
 
   endPerformanceTracerEvents() {

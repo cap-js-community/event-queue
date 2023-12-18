@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - with the function `getLastSuccessfulRunTimestamp` the timestamp of the last successful run for a periodic event can be
   requested. [documentation](https://cap-js-community.github.io/event-queue/implement-event/#using-the-timestamp-of-the-last-successful-run-for-the-next-run)
 - Added a performance tracer for periodic events. This will log any processing that takes longer than 50ms.
+- Added type and subtype to all performance traces.
 
 ### Fixed
 

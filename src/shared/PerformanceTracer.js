@@ -17,6 +17,7 @@ class PerformanceTracer {
     this.__start = new Date();
     this.__logger = logger;
     this.__name = name;
+    this.__properties = options.properties ??= {};
     options.startMessage &&
       logger.info("Performance measurement started", {
         name: name,
@@ -64,6 +65,7 @@ class PerformanceTracer {
     this.__logger.info("Performance measurement executed", {
       name: this.__name,
       milliseconds: executionTime,
+      ...this.__properties,
       customFields,
     });
   }
