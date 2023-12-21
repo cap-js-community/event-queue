@@ -47,6 +47,8 @@
     "yaml": "2.3.4"
   },
   "devDependencies": {
+    "@cap-js/sqlite": "1.4.0",
+    "@cap-js/hana": "0.0.3",
     "@sap/cds": "7.4.2",
     "@sap/cds-dk": "7.4.1",
     "eslint": "8.55.0",
