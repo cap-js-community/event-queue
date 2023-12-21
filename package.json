@@ -42,16 +42,16 @@
     "node": ">=18"
   },
   "dependencies": {
-    "redis": "4.6.11",
+    "redis": "4.6.12",
     "verror": "1.10.1",
     "yaml": "2.3.4"
   },
   "devDependencies": {
     "@cap-js/sqlite": "1.4.0",
     "@cap-js/hana": "0.0.3",
-    "@sap/cds": "7.4.2",
-    "@sap/cds-dk": "7.4.1",
-    "eslint": "8.55.0",
+    "@sap/cds": "7.5.0",
+    "@sap/cds-dk": "7.5.0",
+    "eslint": "8.56.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-jest": "27.6.0",
     "eslint-plugin-node": "11.1.0",
