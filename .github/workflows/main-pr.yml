@@ -15,7 +15,7 @@ jobs:
         node-version: [18, 20]
         cds-new-db-service: [true, false]
 
-    name: test - node.js ${{ matrix.node-version }} - new cds db service enabled ${{ cds-new-db-service }}
+    name: test - node.js ${{ matrix.node-version }} - new cds db service enabled ${{ matrix.cds-new-db-service }}
     steps:
       - name: "unique id for hana schema"
         id: generateId
