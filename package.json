@@ -36,7 +36,8 @@
     "prepareRelease": "npm prune --production",
     "docs": "cd docs && bundle exec jekyll serve",
     "docs:install": "cd docs && npx shx rm -rf vendor Gemfile.lock && bundle install",
-    "upgrade-lock": "npx shx rm -rf package-lock.json node_modules && npm i --package-lock"
+    "upgrade-lock": "npx shx rm -rf package-lock.json node_modules && npm i --package-lock",
+    "test:add-new-cds-db-service": "node test/addNewCDSService"
   },
   "engines": {
     "node": ">=18"
@@ -47,8 +48,6 @@
     "yaml": "2.3.4"
   },
   "devDependencies": {
-    "@cap-js/sqlite": "1.4.0",
-    "@cap-js/hana": "0.0.3",
     "@sap/cds": "7.5.0",
     "@sap/cds-dk": "7.5.0",
     "eslint": "8.56.0",

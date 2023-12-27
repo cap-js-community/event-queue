@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         node-version: [18, 20]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        cds-new-db-service: [true, false]
 
     name: test - node.js ${{ matrix.node-version }}
     steps:
@@ -26,6 +26,9 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
       - run: npm ci --package-lock
+      - name: Install new db-service cds
+        if: matrix.cds-new-db-service == true
+        run: npm run test:add-new-cds-db-service && npm run upgrade-lock
       - run: npm run test:deploySchema
         env:
           SCHEMA_GUID: ${{steps.generateId.outputs.id}}
