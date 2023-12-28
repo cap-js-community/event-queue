@@ -40,6 +40,7 @@ jobs:
           GITHUB_ACTION_HANA: true
           SCHEMA_GUID: ${{steps.generateId.outputs.id}}
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
+          NEW_DB_SERVICE: ${{ matrix.cds-new-db-service }}
 
   lint:
     runs-on: ubuntu-latest

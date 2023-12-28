@@ -18,8 +18,8 @@ try {
   // Nothing to do
 }
 
-cds.log("/server").info("running on hana schema: ", credentials.schema);
 cds.env.requires.db = {
+  ...(process.env.NEW_DB_SERVICE && { impl: "@cap-js/hana" }),
   kind: "hana",
   credentials,
 };
