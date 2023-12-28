@@ -49,7 +49,10 @@ describe("redisRunner", () => {
   beforeEach(async () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
-    await cds.tx({}, (tx2) => tx2.run(DELETE.from("sap.eventqueue.Lock")));
+    await cds.tx({}, async (tx2) => {
+      await tx2.run(DELETE.from("sap.eventqueue.Lock"));
+      await tx2.run(DELETE.from("sap.eventqueue.Event"));
+    });
     await distributedLock.releaseLock({}, "EVENT_QUEUE_RUN_ID", {
       tenantScoped: false,
     });
@@ -221,10 +224,10 @@ describe("redisRunner", () => {
       Promise.all(promises.flat())
     );
 
+    expect(loggerMock.callsLengths().error).toEqual(0);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(2);
     expect(acquireLockSpy).toHaveBeenCalledTimes(4);
     expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
-    expect(loggerMock.callsLengths().error).toEqual(0);
   });
 
   describe("_calculateOffsetForFirstRun", () => {

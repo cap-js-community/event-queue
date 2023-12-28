@@ -23,11 +23,11 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
       kind: "hana",
       credentials,
     };
+    await cds.connect.to("db");
     logger.info("db settings", {
       kind: cds.env.requires.db.kind,
       impl: cds.env.requires.db.impl,
     });
-    await cds.connect.to("db");
     logger.info("Preparing test schema");
     await helper.deployToHana(csn);
     logger.info("Schema setup complete");
