@@ -14,6 +14,10 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
     logger.error("process.env.SCHEMA_GUID not provided!");
     process.exit(-1);
   }
+  logger.info("db settings", {
+    kind: cds.env.requires.db.kind,
+    impl: cds.env.requires.db.impl,
+  });
   logger.info("Loading csn");
   const csn = await cds.load("*");
   try {
