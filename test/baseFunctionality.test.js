@@ -41,6 +41,7 @@ describe("baseFunctionality", () => {
       processEventsAfterPublish: false,
       registerAsEventProcessor: false,
     });
+    console.log(cds.db.options);
     loggerMock = mockLogger();
     jest.spyOn(cds, "log").mockImplementation((layer) => {
       return mockLogger(layer);
