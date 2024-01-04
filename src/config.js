@@ -50,6 +50,7 @@ class Config {
   #updatePeriodicEvents;
   #blockedPeriodicEvents;
   #isPeriodicEventBlockedCb;
+  #thresholdLoggingEventProcessing;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -394,6 +395,14 @@ class Config {
 
   get registerAsEventProcessor() {
     return this.#registerAsEventProcessor;
+  }
+
+  set thresholdLoggingEventProcessing(value) {
+    this.#thresholdLoggingEventProcessing = value;
+  }
+
+  get thresholdLoggingEventProcessing() {
+    return this.#thresholdLoggingEventProcessing;
   }
 
   get isMultiTenancy() {

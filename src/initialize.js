@@ -34,6 +34,7 @@ const CONFIG_VARS = [
   ["disableRedis", false],
   ["skipCsnCheck", false],
   ["updatePeriodicEvents", true],
+  ["thresholdLoggingEventProcessing", 50],
 ];
 
 const initialize = async ({
@@ -47,6 +48,7 @@ const initialize = async ({
   disableRedis,
   skipCsnCheck,
   updatePeriodicEvents,
+  thresholdLoggingEventProcessing,
 } = {}) => {
   // TODO: initialize check:
   // - content of yaml check
@@ -67,7 +69,8 @@ const initialize = async ({
     tableNameEventLock,
     disableRedis,
     skipCsnCheck,
-    updatePeriodicEvents
+    updatePeriodicEvents,
+    thresholdLoggingEventProcessing
   );
 
   const logger = cds.log(COMPONENT);
