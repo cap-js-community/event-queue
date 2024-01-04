@@ -131,7 +131,7 @@ class EventQueueProcessorBase {
 
   endPerformanceTracerEvents() {
     this.__performanceLoggerEvents?.endPerformanceTrace(
-      { threshold: 50 },
+      { threshold: this.#config.thresholdLoggingEventProcessing },
       {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
@@ -141,7 +141,7 @@ class EventQueueProcessorBase {
 
   endPerformanceTracerPeriodicEvents() {
     this.__performanceLoggerPeriodicEvents?.endPerformanceTrace(
-      { threshold: 50 },
+      { threshold: this.#config.thresholdLoggingEventProcessing },
       {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
