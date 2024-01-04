@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.0.0 - 2023-XX-XX
+## v1.0.1 - 2024-01-04
+
+### Added
+
+- introduced `thresholdLoggingEventProcessing` config variable to adjust logging threshold for event processing [documentation](https://cap-js-community.github.io/event-queue/setup/#initialization-parameters)
+
+
+## v1.0.0 - 2023-12-20
 
 ### Added
 
