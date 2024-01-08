@@ -88,6 +88,7 @@ const _checkAndTriggerPeriodicEventUpdate = (tenantIds) => {
     return;
   }
   if (tenantIdHash && tenantIdHash !== hash) {
+    tenantIdHash = hash;
     cds.log(COMPONENT_NAME).info("tenant id hash changed, triggering updating periodic events!");
     _multiTenancyPeriodicEvents().catch((err) => {
       cds.log(COMPONENT_NAME).error("Error during triggering updating periodic events!", err);
