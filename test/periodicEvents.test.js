@@ -45,8 +45,6 @@ describe("baseFunctionality", () => {
 
   it("basic insert all new events", async () => {
     await checkAndInsertPeriodicEvents(context);
-    const events = await tx.run(SELECT.from("sap.eventqueue.Event"));
-    debugger;
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
