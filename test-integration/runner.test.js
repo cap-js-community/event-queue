@@ -304,7 +304,7 @@ describe("redisRunner", () => {
       const p1 = runner._._multiTenancyDb();
       await p1.then((p) => Promise.allSettled(p));
       await promise;
-      acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT");
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
 
       acquireLockSpy.mockRestore();
     });

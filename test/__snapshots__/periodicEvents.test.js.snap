@@ -98,7 +98,7 @@ exports[`baseFunctionality if periodic event is in progress - no insert should h
     {
       "events": [
         {
-          "interval": 30,
+          "interval": 10,
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
