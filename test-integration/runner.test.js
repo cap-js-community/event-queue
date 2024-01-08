@@ -1,5 +1,7 @@
 "use strict";
 
+const { promisify } = require("util");
+
 const cds = require("@sap/cds");
 cds.test(__dirname + "/_env");
 
@@ -281,6 +283,161 @@ describe("redisRunner", () => {
       expect(result).toEqual(expectedTs);
       expect(loggerMock.callsLengths().error).toEqual(0);
       jest.useRealTimers();
+    });
+  });
+
+  describe("tenant hash", () => {
+    it("should trigger update periodic events once per tenant", async () => {
+      let counter = 0;
+      let acquireLockSpy;
+      const promise = new Promise((resolve) => {
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds).mockResolvedValueOnce(tenantIds);
+      const p1 = runner._._multiTenancyDb();
+      await p1.then((p) => Promise.allSettled(p));
+      await promise;
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
+
+      acquireLockSpy.mockRestore();
+    });
+
+    it("should not trigger update again if tenant ids have not been changed", async () => {
+      let counter = 0;
+      let acquireLockSpy;
+      const promise = new Promise((resolve) => {
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds).mockResolvedValueOnce(tenantIds);
+      const p1 = runner._._multiTenancyDb();
+      await p1.then((p) => Promise.allSettled(p));
+      await promise;
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
+
+      // second run
+      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds);
+      const p2 = runner._._multiTenancyDb();
+      await p2.then((p) => Promise.allSettled(p));
+      await promisify(setTimeout)(500);
+
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
+      acquireLockSpy.mockRestore();
+    });
+
+    it("should trigger update again if tenant ids have been changed", async () => {
+      let counter = 0;
+      let acquireLockSpy;
+      const promise = new Promise((resolve) => {
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds).mockResolvedValueOnce(tenantIds);
+      const p1 = runner._._multiTenancyDb();
+      await p1.then((p) => Promise.allSettled(p));
+      await promise;
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
+
+      // second run with changed tenant ids
+      getAllTenantIdsSpy
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"))
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
+
+      const promise2 = new Promise((resolve) => {
+        counter = 0;
+        acquireLockSpy.mockRestore();
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+
+      const p2 = runner._._multiTenancyDb();
+      await p2.then((p) => Promise.allSettled(p));
+      await promise2;
+
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(4);
+      acquireLockSpy.mockRestore();
+    });
+
+    it("should trigger update again if tenant ids have been changed and third run should not trigger an update", async () => {
+      let counter = 0;
+      let acquireLockSpy;
+      const promise = new Promise((resolve) => {
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds).mockResolvedValueOnce(tenantIds);
+      const p1 = runner._._multiTenancyDb();
+      await p1.then((p) => Promise.allSettled(p));
+      await promise;
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
+
+      // second run with changed tenant ids
+      getAllTenantIdsSpy
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"))
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
+
+      const promise2 = new Promise((resolve) => {
+        counter = 0;
+        acquireLockSpy.mockRestore();
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+
+      const p2 = runner._._multiTenancyDb();
+      await p2.then((p) => Promise.allSettled(p));
+      await promise2;
+
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(4);
+      acquireLockSpy.mockReset();
+
+      // thirds run with same tenant ids
+      getAllTenantIdsSpy
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"))
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
+
+      const p3 = runner._._multiTenancyDb();
+      await p3.then((p) => Promise.allSettled(p));
+      await promisify(setTimeout)(500);
+
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(0);
+      acquireLockSpy.mockRestore();
     });
   });
 });
