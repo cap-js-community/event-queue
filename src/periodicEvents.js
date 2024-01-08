@@ -22,8 +22,10 @@ const checkAndInsertPeriodicEvents = async (context) => {
       },
       "AND",
       { ref: ["status"] },
-      "=",
-      { val: EventProcessingStatus.Open },
+      "IN",
+      {
+        list: [{ val: EventProcessingStatus.Open }, { val: EventProcessingStatus.InProgress }],
+      },
     ])
     .columns(["ID", "type", "subType", "startAfter"]);
   const currentPeriodEvents = await tx.run(baseCqn);

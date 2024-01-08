@@ -9,6 +9,7 @@ const { Logger: mockLogger } = require("./mocks/logger");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const config = require("../src/config");
 const { selectEventQueueAndReturn } = require("./helper");
+const { EventProcessingStatus } = require("../src/constants");
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
@@ -44,6 +45,8 @@ describe("baseFunctionality", () => {
 
   it("basic insert all new events", async () => {
     await checkAndInsertPeriodicEvents(context);
+    const events = await tx.run(SELECT.from("sap.eventqueue.Event"));
+    debugger;
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
@@ -81,6 +84,21 @@ describe("baseFunctionality", () => {
     await tx.run(
       UPDATE.entity("sap.eventqueue.Event").set({
         startAfter: new Date(1699873200000 + 30 * 1000),
+      })
+    );
+    await checkAndInsertPeriodicEvents(context);
+
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    expect(loggerMock.calls().info).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
+  });
+
+  it("if periodic event is in progress - no insert should happen", async () => {
+    await checkAndInsertPeriodicEvents(context);
+
+    await tx.run(
+      UPDATE.entity("sap.eventqueue.Event").set({
+        status: EventProcessingStatus.InProgress,
       })
     );
     await checkAndInsertPeriodicEvents(context);

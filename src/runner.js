@@ -301,7 +301,7 @@ const _checkPeriodicEventsSingleTenant = async (context = {}) => {
     return;
   }
   try {
-    logger.info("executing updating periotic events", {
+    logger.info("executing updating periodic events", {
       tenantId: context.tenant,
       subdomain: context.http?.req.authInfo.getSubdomain(),
     });
