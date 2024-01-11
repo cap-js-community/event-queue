@@ -91,6 +91,43 @@ exports[`baseFunctionality delta insert 2`] = `
 ]
 `;
 
+exports[`baseFunctionality if periodic event is in progress - no insert should happen 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 10,
+          "subType": "DB",
+          "type": "HealthCheck_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality if periodic event is in progress - no insert should happen 2`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+]
+`;
+
 exports[`baseFunctionality interval changed 1`] = `
 [
   [
