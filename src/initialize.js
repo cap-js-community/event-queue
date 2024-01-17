@@ -14,6 +14,7 @@ const dbHandler = require("./dbHandler");
 const config = require("./config");
 const { initEventQueueRedisSubscribe, closeSubscribeClient } = require("./redisPubSub");
 const { closeMainClient } = require("./shared/redis");
+const eventQueueAsOutbox = require("./outbox/eventQueueAsOutbox");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -35,6 +36,7 @@ const CONFIG_VARS = [
   ["skipCsnCheck", false],
   ["updatePeriodicEvents", true],
   ["thresholdLoggingEventProcessing", 50],
+  ["useAsCAPOutbox", false],
 ];
 
 const initialize = async ({
@@ -49,6 +51,7 @@ const initialize = async ({
   skipCsnCheck,
   updatePeriodicEvents,
   thresholdLoggingEventProcessing,
+  useAsCAPOutbox,
 } = {}) => {
   // TODO: initialize check:
   // - content of yaml check
@@ -70,7 +73,8 @@ const initialize = async ({
     disableRedis,
     skipCsnCheck,
     updatePeriodicEvents,
-    thresholdLoggingEventProcessing
+    thresholdLoggingEventProcessing,
+    useAsCAPOutbox
   );
 
   const logger = cds.log(COMPONENT);
@@ -84,6 +88,7 @@ const initialize = async ({
     dbHandler.registerEventQueueDbHandler(dbService);
   }
 
+  monkeyPatchCAPOutbox();
   registerEventProcessors();
   registerCdsShutdown();
   logger.info("event queue initialized", {
@@ -130,6 +135,14 @@ const registerEventProcessors = () => {
     runner.multiTenancyRedis().catch(errorHandler);
   } else {
     runner.multiTenancyDb().catch(errorHandler);
+  }
+};
+
+const monkeyPatchCAPOutbox = () => {
+  if (config.useAsCAPOutbox) {
+    Object.defineProperty(cds, "outboxed", {
+      get: () => eventQueueAsOutbox,
+    });
   }
 };
 

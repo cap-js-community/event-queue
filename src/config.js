@@ -16,6 +16,7 @@ const DEFAULT_LOAD = 1;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
+const CAP_EVENT_TYPE = "CAP_OUTBOX";
 
 const BASE_PERIODIC_EVENTS = [
   {
@@ -51,6 +52,7 @@ class Config {
   #blockedPeriodicEvents;
   #isPeriodicEventBlockedCb;
   #thresholdLoggingEventProcessing;
+  #useAsCAPOutbox;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -180,6 +182,32 @@ class Config {
       });
   }
 
+  addCAPOutboxEvent(serviceName, config) {
+    if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)]) {
+      return;
+    }
+
+    // TODO: add more config
+    const eventConfig = {
+      type: CAP_EVENT_TYPE,
+      subType: serviceName,
+      load: config.load ?? 1,
+      impl: "./outbox/EventQueueGenericOutboxHandler",
+      internalEvent: true,
+      retryAttempts: config.maxAttempts,
+    };
+    this.#config.events.push(eventConfig);
+    this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
+  }
+
+  // type: Fiori
+  // subType: Task
+  // impl: ./test/asset/EventQueueTest
+  // load: 1
+  // parallelEventProcessing: 5
+  // processAfterCommit: true
+  // transactionMode: alwaysRollback
+
   #unblockPeriodicEventLocalState(key, tenant) {
     const map = this.#blockedPeriodicEvents[key];
     if (!map) {
@@ -214,7 +242,7 @@ class Config {
     this.#eventMap = config.events.reduce((result, event) => {
       event.load = event.load ?? DEFAULT_LOAD;
       this.validateAdHocEvents(result, event);
-      result[[event.type, event.subType].join("##")] = event;
+      result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
@@ -222,7 +250,7 @@ class Config {
       event.type = `${event.type}${SUFFIX_PERIODIC}`;
       event.isPeriodic = true;
       this.validatePeriodicConfig(result, event);
-      result[[event.type, event.subType].join("##")] = event;
+      result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, this.#eventMap);
   }
@@ -403,6 +431,14 @@ class Config {
 
   get thresholdLoggingEventProcessing() {
     return this.#thresholdLoggingEventProcessing;
+  }
+
+  set useAsCAPOutbox(value) {
+    this.#useAsCAPOutbox = value;
+  }
+
+  get useAsCAPOutbox() {
+    return this.#useAsCAPOutbox;
   }
 
   get isMultiTenancy() {
