@@ -142,6 +142,7 @@ describe("event-queue outbox", () => {
       tx = cds.tx({});
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
   });
