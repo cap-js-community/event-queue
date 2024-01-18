@@ -52,7 +52,9 @@ function outboxed(srv, customOpts) {
         }
       } catch (e) {
         logger.error("In memory processing failed", { event: req.event, cause: e });
-        // TODO: add isUnrecoverable from CAP
+        if (isUnrecoverable(originalSrv, e) && outboxOpts.crashOnError !== false) {
+          cds.exit(1);
+        }
       }
     });
   };
@@ -61,7 +63,6 @@ function outboxed(srv, customOpts) {
 }
 
 const _mapToEventAndPublish = async (context, name, msg) => {
-  // TODO: add to eventqueue config
   const event = {
     contextUser: context.user.id,
     ...(msg._fromSend || (msg.reply && { _fromSend: true })), // send or emit
@@ -77,6 +78,24 @@ const _mapToEventAndPublish = async (context, name, msg) => {
     subType: name,
     payload: JSON.stringify(event),
   });
+};
+
+const isUnrecoverable = (service, error) => {
+  let unrecoverable = service.isUnrecoverableError && service.isUnrecoverableError(error);
+  if (unrecoverable === undefined) {
+    unrecoverable = error.unrecoverable;
+  }
+  return unrecoverable || isStandardError(error);
+};
+
+const isStandardError = (err) => {
+  return (
+    err instanceof TypeError ||
+    err instanceof ReferenceError ||
+    err instanceof SyntaxError ||
+    err instanceof RangeError ||
+    err instanceof URIError
+  );
 };
 
 module.exports = outboxed;

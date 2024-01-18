@@ -94,6 +94,7 @@ describe("event-queue outbox", () => {
   describe("monkeyPatchCAPOutbox=true", () => {
     beforeAll(async () => {
       const configFilePath = path.join(__dirname, "asset", "config.yml");
+      eventQueue.config.initialized = false;
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -113,6 +114,8 @@ describe("event-queue outbox", () => {
       const outboxEvent = await tx.run(SELECT.from("cds.outbox.Messages"));
       expect(outboxEvent).toHaveLength(0);
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 0 });
+      expect(loggerMock.calls().info[0][0]).toEqual("sendFiori action triggered");
+      expect(loggerMock).sendFioriActionCalled();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
@@ -128,6 +131,7 @@ describe("event-queue outbox", () => {
       const outboxEvent = await tx.run(SELECT.from("cds.outbox.Messages"));
       expect(outboxEvent).toHaveLength(0);
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
@@ -141,9 +145,23 @@ describe("event-queue outbox", () => {
       });
       tx = cds.tx({});
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
       await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+      expect(loggerMock).sendFioriActionCalled();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
   });
+});
+
+expect.extend({
+  sendFioriActionCalled: (lockerMock) => {
+    return {
+      message: () => `sendFiori Action not called`,
+      pass: lockerMock
+        .calls()
+        .info.map((call) => call[0])
+        .includes("sendFiori action triggered"),
+    };
+  },
 });

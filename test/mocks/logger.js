@@ -7,7 +7,10 @@ const logger = LOG_LEVELS.reduce((result, logLevel) => {
   return result;
 }, {});
 
-const Logger = () => logger;
+const Logger = () => {
+  jest.spyOn(cds, "log").mockReturnValue(logger);
+  return logger;
+};
 
 logger.callsLengths = () =>
   LOG_LEVELS.reduce((result, logLevel) => {
