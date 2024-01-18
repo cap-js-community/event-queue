@@ -193,8 +193,10 @@ class Config {
       subType: serviceName,
       load: config.load ?? 1,
       impl: "./outbox/EventQueueGenericOutboxHandler",
-      internalEvent: true,
+      selectMaxChunkSize: config.chunkSize,
+      parallelEventProcessing: config.parallel ? 5 : 1,
       retryAttempts: config.maxAttempts,
+      internalEvent: true,
     };
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
@@ -283,6 +285,14 @@ class Config {
 
   generateKey(type, subType) {
     return [type, subType].join("##");
+  }
+
+  removeEvent(type, subType) {
+    const index = this.#config.events.findIndex((event) => event.type === "CAP_OUTBOX");
+    if (index >= 0) {
+      this.#config.events.splice(index, 1);
+    }
+    delete this.#eventMap[this.generateKey(type, subType)];
   }
 
   get fileContent() {

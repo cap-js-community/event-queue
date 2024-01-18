@@ -151,6 +151,32 @@ describe("event-queue outbox", () => {
       expect(loggerMock).sendFioriActionCalled();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
+
+    it("map config to event-queue config", async () => {
+      eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      const config = eventQueue.config.events.find((event) => event.type === "CAP_OUTBOX");
+      expect(config).toMatchInlineSnapshot(`
+        {
+          "impl": "./outbox/EventQueueGenericOutboxHandler",
+          "internalEvent": true,
+          "load": 1,
+          "parallelEventProcessing": 5,
+          "retryAttempts": 20,
+          "selectMaxChunkSize": 100,
+          "subType": "NotificationService",
+          "type": "CAP_OUTBOX",
+        }
+      `);
+    });
   });
 });
 
