@@ -24,7 +24,7 @@
     "test:integration": "jest --testPathIgnorePatterns=\"/test/\" --runInBand --forceExit",
     "test": "npm run test:unit && npm run test:integration",
     "test:all:coverage": "jest --runInBand --forceExit --collect-coverage",
-    "test:prepare": "npm run build:ci --prefix=./test-integration/_env && cd test/asset/outboxProject/srv && cds-indexer",
+    "test:prepare": "npm run build:ci --prefix=./test-integration/_env",
     "test:deploySchema": "node test-integration/_env/srv/hana/deploy.js",
     "test:cleanSchemas": "node test-integration/_env/srv/hana/cleanObsoletSchemas.js",
     "lint": "npm run eslint && npm run prettier",
