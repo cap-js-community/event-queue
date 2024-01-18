@@ -127,7 +127,7 @@ describe("redisRunner", () => {
   it("db", async () => {
     configInstance.redisEnabled = false;
     const originalCdsTx = cds.tx;
-    jest.spyOn(cds, "tx").mockImplementation(async function (context, fn) {
+    jest.spyOn(cds, "tx").mockImplementation(function (context, fn) {
       if (!fn) {
         return originalCdsTx.call(this, context);
       }
