@@ -187,7 +187,6 @@ class Config {
       return;
     }
 
-    // TODO: add more config
     const eventConfig = {
       type: CAP_EVENT_TYPE,
       subType: serviceName,
@@ -201,14 +200,6 @@ class Config {
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
   }
-
-  // type: Fiori
-  // subType: Task
-  // impl: ./test/asset/EventQueueTest
-  // load: 1
-  // parallelEventProcessing: 5
-  // processAfterCommit: true
-  // transactionMode: alwaysRollback
 
   #unblockPeriodicEventLocalState(key, tenant) {
     const map = this.#blockedPeriodicEvents[key];
