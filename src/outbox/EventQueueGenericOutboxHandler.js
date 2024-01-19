@@ -26,7 +26,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       await cds.unboxed(service).tx(processContext)[invocationFn](msg);
     } catch (err) {
       status = EventProcessingStatus.Error;
-      this.logger("error processing outboxed service call", err, {
+      this.logger.error("error processing outboxed service call", err, {
         serviceName: this.eventSubType,
       });
     }

@@ -13,6 +13,8 @@ cds.test(project);
 
 const executeInNewTransactionSpy = jest.spyOn(cdsHelper, "executeInNewTransaction");
 
+//TODO: add test for error handling --> logger
+
 describe("event-queue outbox", () => {
   let context, tx, loggerMock;
 
