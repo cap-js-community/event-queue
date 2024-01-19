@@ -1,1 +1,2 @@
-using from './service';
+using from './notificationService';
+using from './notificationServiceOutboxedByConfig';

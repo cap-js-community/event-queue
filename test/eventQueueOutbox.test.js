@@ -169,6 +169,27 @@ describe("event-queue outbox", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
+    it("should work for outboxed services by require", async () => {
+      const outboxedService = await cds.connect.to("NotificationServiceOutboxedByConfig", {
+        impl: "./srv/service/service.js",
+        outbox: {
+          kind: "persistent-outbox",
+        },
+      });
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
+      await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+      expect(loggerMock).sendFioriActionCalled();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
     it("map all available outbox fields", async () => {
       const service = await cds.connect.to("NotificationService");
       const outboxedService = cds.outboxed(service);
@@ -243,7 +264,7 @@ describe("event-queue outbox", () => {
       });
       tx = cds.tx({});
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
-      const config = eventQueue.config.events.find((event) => event.type === "CAP_OUTBOX");
+      const config = eventQueue.config.events.find((event) => event.subType === "NotificationService");
       expect(config).toMatchInlineSnapshot(`
         {
           "impl": "./outbox/EventQueueGenericOutboxHandler",
