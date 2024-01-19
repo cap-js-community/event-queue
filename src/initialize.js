@@ -141,7 +141,10 @@ const registerEventProcessors = () => {
 const monkeyPatchCAPOutbox = () => {
   if (config.useAsCAPOutbox) {
     Object.defineProperty(cds, "outboxed", {
-      get: () => eventQueueAsOutbox,
+      get: () => eventQueueAsOutbox.outboxed,
+    });
+    Object.defineProperty(cds, "unboxed", {
+      get: () => eventQueueAsOutbox.unboxed,
     });
   }
 };

@@ -119,6 +119,23 @@ describe("event-queue outbox", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
+    it("the unboxed version should not use the event-queue", async () => {
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await cds.unboxed(outboxedService).send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      const outboxEvent = await tx.run(SELECT.from("cds.outbox.Messages"));
+      expect(outboxEvent).toHaveLength(0);
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 0 });
+      expect(loggerMock.calls().info[0][0]).toEqual("sendFiori action triggered");
+      expect(loggerMock).sendFioriActionCalled();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
     it("if the service is outboxed the event-queue outbox should be used", async () => {
       const service = await cds.connect.to("NotificationService");
       const outboxedService = cds.outboxed(service);

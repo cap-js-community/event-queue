@@ -65,6 +65,10 @@ function outboxed(srv, customOpts) {
   return outboxedSrv;
 }
 
+function unboxed(srv) {
+  return srv[UNBOXED] || srv;
+}
+
 const _mapToEventAndPublish = async (context, name, msg) => {
   const event = {
     contextUser: context.user.id,
@@ -101,4 +105,7 @@ const isStandardError = (err) => {
   );
 };
 
-module.exports = outboxed;
+module.exports = {
+  outboxed,
+  unboxed,
+};
