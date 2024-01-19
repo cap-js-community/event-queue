@@ -192,7 +192,7 @@ class Config {
     const eventConfig = {
       type: CAP_EVENT_TYPE,
       subType: serviceName,
-      load: config.load,
+      load: config.load ?? DEFAULT_LOAD,
       impl: "./outbox/EventQueueGenericOutboxHandler",
       selectMaxChunkSize: config.chunkSize,
       parallelEventProcessing: config.parallel && CAP_PARALLEL_DEFAULT,

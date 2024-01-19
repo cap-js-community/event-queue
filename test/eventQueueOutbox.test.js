@@ -185,7 +185,7 @@ describe("event-queue outbox", () => {
         {
           "impl": "./outbox/EventQueueGenericOutboxHandler",
           "internalEvent": true,
-          "load": undefined,
+          "load": 1,
           "parallelEventProcessing": 5,
           "retryAttempts": 20,
           "selectMaxChunkSize": 100,
