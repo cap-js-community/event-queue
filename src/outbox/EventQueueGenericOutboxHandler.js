@@ -1,5 +1,7 @@
 "use strict";
 
+const cds = require("@sap/cds");
+
 const EventQueueBaseClass = require("../EventQueueProcessorBase");
 const { EventProcessingStatus } = require("../constants");
 
@@ -17,11 +19,11 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       const service = await cds.connect.to(this.eventSubType);
       const userId = payload.contextUser;
       const msg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
+      const invocationFn = payload._fromSend ? "send" : "emit";
       delete msg._fromSend;
       delete msg.contextUser;
-      Object.defineProperty(msg, "_fromOutbox", { value: true, enumerable: false });
       processContext.user = new cds.User.Privileged(userId);
-      await service.handle(msg);
+      await service.tx(processContext)[invocationFn](msg);
     } catch (err) {
       status = EventProcessingStatus.Error;
       this.logger("error processing outboxed service call", err, {

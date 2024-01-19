@@ -169,6 +169,69 @@ describe("event-queue outbox", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
+    it("map all available outbox fields", async () => {
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      const event = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 1,
+        additionalColumns: ["payload"],
+      });
+      const payload = JSON.stringify(event[0].payload);
+      expect(loggerMock).not.sendFioriActionCalled();
+      expect(payload).toMatchSnapshot();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1])
+        .toMatchInlineSnapshot(`
+        {
+          "data": {
+            "body": "body",
+            "subject": "subject",
+            "to": "to",
+          },
+          "user": "anonymous",
+        }
+      `);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("should store correct user of original context", async () => {
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      tx = cds.tx({});
+      tx.context.user = { id: "badman" };
+      await outboxedService.tx(tx.context).send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      const event = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 1,
+        additionalColumns: ["payload"],
+      });
+      const payload = JSON.parse(event[0].payload);
+      expect(loggerMock).not.sendFioriActionCalled();
+      expect(payload).toMatchSnapshot();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1])
+        .toMatchInlineSnapshot(`
+        {
+          "data": {
+            "body": "body",
+            "subject": "subject",
+            "to": "to",
+          },
+          "user": "badman",
+        }
+      `);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
     it("map config to event-queue config", async () => {
       eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");
       const service = await cds.connect.to("NotificationService");

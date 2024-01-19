@@ -76,8 +76,8 @@ const _mapToEventAndPublish = async (context, name, msg) => {
     ...(msg.inbound && { inbound: msg.inbound }),
     ...(msg.event && { event: msg.event }),
     ...(msg.data && { data: msg.data }),
-    ...(msg.headers && { data: msg.headers }),
-    ...(msg.query && { data: msg.query }),
+    ...(msg.headers && { headers: msg.headers }),
+    ...(msg.query && { query: msg.query }),
   };
 
   await publishEvent(cds.tx(context), {
