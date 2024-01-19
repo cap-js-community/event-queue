@@ -198,6 +198,11 @@ class Config {
       parallelEventProcessing: config.parallel && CAP_PARALLEL_DEFAULT,
       retryAttempts: config.maxAttempts,
       internalEvent: true,
+      transactionMode: config.transactionMode,
+      processAfterCommit: config.processAfterCommit,
+      eventOutdatedCheck: config.eventOutdatedCheck,
+      checkForNextChunk: config.checkForNextChunk,
+      deleteFinishedEventsAfterDays: config.deleteFinishedEventsAfterDays,
     };
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;

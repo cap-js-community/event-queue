@@ -169,11 +169,12 @@ describe("event-queue outbox", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
-    it("should work for outboxed services by require", async () => {
+    it("should work for outboxed services by require with transactionMode config", async () => {
       const outboxedService = await cds.connect.to("NotificationServiceOutboxedByConfig", {
         impl: "./srv/service/service.js",
         outbox: {
           kind: "persistent-outbox",
+          transactionMode: "alwaysRollback",
         },
       });
       await outboxedService.send("sendFiori", {
@@ -187,6 +188,25 @@ describe("event-queue outbox", () => {
       await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
       await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
       expect(loggerMock).sendFioriActionCalled();
+      const config = eventQueue.config.events.find((event) => event.subType === "NotificationServiceOutboxedByConfig");
+      expect(config).toMatchInlineSnapshot(`
+        {
+          "checkForNextChunk": undefined,
+          "deleteFinishedEventsAfterDays": undefined,
+          "eventOutdatedCheck": undefined,
+          "impl": "./outbox/EventQueueGenericOutboxHandler",
+          "internalEvent": true,
+          "load": 1,
+          "parallelEventProcessing": 5,
+          "processAfterCommit": undefined,
+          "retryAttempts": 20,
+          "selectMaxChunkSize": 100,
+          "startTime": 2024-01-19T16:28:12.327Z,
+          "subType": "NotificationServiceOutboxedByConfig",
+          "transactionMode": "alwaysRollback",
+          "type": "CAP_OUTBOX",
+        }
+      `);
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
@@ -267,13 +287,18 @@ describe("event-queue outbox", () => {
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationService");
       expect(config).toMatchInlineSnapshot(`
         {
+          "checkForNextChunk": undefined,
+          "deleteFinishedEventsAfterDays": undefined,
+          "eventOutdatedCheck": undefined,
           "impl": "./outbox/EventQueueGenericOutboxHandler",
           "internalEvent": true,
           "load": 1,
           "parallelEventProcessing": 5,
+          "processAfterCommit": undefined,
           "retryAttempts": 20,
           "selectMaxChunkSize": 100,
           "subType": "NotificationService",
+          "transactionMode": undefined,
           "type": "CAP_OUTBOX",
         }
       `);
