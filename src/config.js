@@ -18,6 +18,8 @@ const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
 const CAP_EVENT_TYPE = "CAP_OUTBOX";
 
+const CAP_PARALLEL_DEFAULT = 5;
+
 const BASE_PERIODIC_EVENTS = [
   {
     type: "EVENT_QUEUE_BASE",
@@ -190,10 +192,10 @@ class Config {
     const eventConfig = {
       type: CAP_EVENT_TYPE,
       subType: serviceName,
-      load: config.load ?? 1,
+      load: config.load,
       impl: "./outbox/EventQueueGenericOutboxHandler",
       selectMaxChunkSize: config.chunkSize,
-      parallelEventProcessing: config.parallel ? 5 : 1,
+      parallelEventProcessing: config.parallel && CAP_PARALLEL_DEFAULT,
       retryAttempts: config.maxAttempts,
       internalEvent: true,
     };
