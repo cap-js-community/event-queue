@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Event Status Handling
-nav_order: 9
+nav_order: 10
 ---
 
 <!-- prettier-ignore-start -->
