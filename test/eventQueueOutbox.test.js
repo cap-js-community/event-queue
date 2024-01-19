@@ -191,6 +191,7 @@ describe("event-queue outbox", () => {
       await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
       expect(loggerMock).sendFioriActionCalled();
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationServiceOutboxedByConfig");
+      delete config.startTime;
       expect(config).toMatchInlineSnapshot(`
         {
           "checkForNextChunk": undefined,
@@ -203,7 +204,6 @@ describe("event-queue outbox", () => {
           "processAfterCommit": undefined,
           "retryAttempts": 20,
           "selectMaxChunkSize": 100,
-          "startTime": 2024-01-19T16:28:12.327Z,
           "subType": "NotificationServiceOutboxedByConfig",
           "transactionMode": "alwaysRollback",
           "type": "CAP_OUTBOX",
