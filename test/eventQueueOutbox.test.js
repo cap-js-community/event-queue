@@ -183,7 +183,7 @@ describe("event-queue outbox", () => {
 expect.extend({
   sendFioriActionCalled: (lockerMock) => {
     return {
-      message: () => `sendFiori Action not called`,
+      message: () => "sendFiori Action not called",
       pass: lockerMock
         .calls()
         .info.map((call) => call[0])

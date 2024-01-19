@@ -1,8 +1,11 @@
 "use strict";
 
 const cds = require("@sap/cds");
+
 const { publishEvent } = require("../publishEvent");
 const config = require("../config");
+
+// TODO: cds unboxed
 
 const OUTBOXED = Symbol("outboxed");
 const UNBOXED = Symbol("unboxed");
@@ -50,9 +53,9 @@ function outboxed(srv, customOpts) {
         } else {
           await originalSrv.emit(req);
         }
-      } catch (e) {
-        logger.error("In memory processing failed", { event: req.event, cause: e });
-        if (isUnrecoverable(originalSrv, e) && outboxOpts.crashOnError !== false) {
+      } catch (err) {
+        logger.error("In memory processing failed", { event: req.event, cause: err });
+        if (isUnrecoverable(originalSrv, err) && outboxOpts.crashOnError !== false) {
           cds.exit(1);
         }
       }

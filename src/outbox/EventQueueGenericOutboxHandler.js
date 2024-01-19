@@ -18,8 +18,8 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       const userId = payload.contextUser;
       const msg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
       delete msg._fromSend;
-      Object.defineProperty(msg, "_fromOutbox", { value: true, enumerable: false });
       delete msg.contextUser;
+      Object.defineProperty(msg, "_fromOutbox", { value: true, enumerable: false });
       processContext.user = new cds.User.Privileged(userId);
       await service.handle(msg);
     } catch (err) {
