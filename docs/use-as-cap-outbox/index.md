@@ -6,17 +6,14 @@ nav_order: 5
 
 <!-- prettier-ignore-start -->
 
-
 {: .no_toc}
 
 # Use as CAP Outbox
 
-<!-- prettier-ignore-end -->
-
 <!-- prettier-ignore -->
-
 - TOC
 {: toc}
+<!-- prettier-ignore-end -->
 
 The event-queue can be used to replace the CAP outbox solution to achieve a unified and streamlined architecture for
 asynchronous processing. If this feature is activated, the event-queue replaces the outbox implementation of CAP with
@@ -36,7 +33,7 @@ default parameters of the CAP outbox and the event-queue. Currently, the CAP out
 following parameters, which are mapped to the corresponding configuration parameters of the event-queue:
 
 | CAP outbox  | event-queue             |
-|-------------|-------------------------|
+| ----------- | ----------------------- |
 | chunkSize   | selectMaxChunkSize      |
 | maxAttempts | retryAttempts           |
 | parallel    | parallelEventProcessing |
