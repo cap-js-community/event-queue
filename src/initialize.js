@@ -78,7 +78,7 @@ const initialize = async ({
   config.checkRedisEnabled();
 
   const dbService = await cds.connect.to("db");
-  await (cds.model ? Promise.resolve() : new Promise((resolve) => cds.on("serving", resolve)));
+  await (cds.model ? Promise.resolve() : new Promise((resolve) => cds.on("loaded", resolve)));
   !config.skipCsnCheck && (await csnCheck());
   if (config.processEventsAfterPublish) {
     dbHandler.registerEventQueueDbHandler(dbService);
