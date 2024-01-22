@@ -14,6 +14,7 @@ nav_order: 5
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
+
 - TOC
 {: toc}
 
@@ -35,7 +36,7 @@ default parameters of the CAP outbox and the event-queue. Currently, the CAP out
 following parameters, which are mapped to the corresponding configuration parameters of the event-queue:
 
 | CAP outbox  | event-queue             |
-| ----------- | ----------------------- |
+|-------------|-------------------------|
 | chunkSize   | selectMaxChunkSize      |
 | maxAttempts | retryAttempts           |
 | parallel    | parallelEventProcessing |
@@ -70,5 +71,6 @@ using the event-queue to outbox the `@cap-js/audit-logging` service:
 
 The parameters in the outbox section of a service are passed as configuration to the event-queue.
 The `persistent-outbox` kind allows the event-queue to persist events instead of executing them in memory, mirroring the
-behavior of the CAP outbox. The parameters `transactionMode`, `checkForNextChunk`, and `parallelEventProcessing` are
+behavior of the [CAP outbox](https://cap.cloud.sap/docs/node.js/outbox). The
+parameters `transactionMode`, `checkForNextChunk`, and `parallelEventProcessing` are
 exclusive to the event-queue.
