@@ -5,7 +5,7 @@ const cds = require("@sap/cds");
 const redis = require("./shared/redis");
 const { checkLockExistsAndReturnValue } = require("./shared/distributedLock");
 const config = require("./config");
-const { runEventCombinationForTenant } = require("./runner");
+const runner = require("./runner");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
@@ -17,10 +17,10 @@ const initEventQueueRedisSubscribe = () => {
   if (subscriberClientPromise || !config.redisEnabled) {
     return;
   }
-  redis.subscribeRedisChannel(EVENT_MESSAGE_CHANNEL, messageHandlerProcessEvents);
+  redis.subscribeRedisChannel(EVENT_MESSAGE_CHANNEL, _messageHandlerProcessEvents);
 };
 
-const messageHandlerProcessEvents = async (messageData) => {
+const _messageHandlerProcessEvents = async (messageData) => {
   const logger = cds.log(COMPONENT_NAME);
   try {
     const { tenantId, type, subType } = JSON.parse(messageData);
@@ -43,8 +43,30 @@ const messageHandlerProcessEvents = async (messageData) => {
       // NOTE: we need this because of logging otherwise logs would not contain the subdomain
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     };
+
+    if (!config.getEventConfig(type, subType)) {
+      if (config.isCapOutboxEvent(type)) {
+        try {
+          const service = await cds.connect.to(subType);
+          cds.outboxed(service);
+        } catch (err) {
+          logger.error("could not connect to outboxed service", err, {
+            type,
+            subType,
+          });
+          return;
+        }
+      } else {
+        logger.error("cannot find configuration for published event. Event won't be processed", {
+          type,
+          subType,
+        });
+        return;
+      }
+    }
+
     return await cds.tx(tenantContext, async ({ context }) => {
-      return await runEventCombinationForTenant(context, type, subType);
+      return await runner.runEventCombinationForTenant(context, type, subType);
     });
   } catch (err) {
     logger.error("could not parse event information", {
@@ -76,7 +98,7 @@ const broadcastEvent = async (tenantId, type, subType) => {
         }
 
         return await cds.tx(context, async ({ context }) => {
-          return await runEventCombinationForTenant(context, type, subType);
+          return await runner.runEventCombinationForTenant(context, type, subType);
         });
       }
       return;
@@ -122,4 +144,7 @@ module.exports = {
   initEventQueueRedisSubscribe,
   broadcastEvent,
   closeSubscribeClient,
+  __: {
+    _messageHandlerProcessEvents,
+  },
 };

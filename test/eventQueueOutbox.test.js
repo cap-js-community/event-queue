@@ -7,6 +7,8 @@ const cdsHelper = require("../src/shared/cdsHelper");
 const testHelper = require("./helper");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { processEventQueue } = require("../src/processEventQueue");
+const redisPubSub = require("../src/redisPubSub");
+const runner = require("../src/runner");
 
 const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
@@ -371,6 +373,50 @@ describe("event-queue outbox", () => {
           ],
         ]
       `);
+    });
+
+    describe("not connected service should lazily connect and create configuration", () => {
+      beforeEach(() => {
+        eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");
+      });
+
+      it("redisPubSub", async () => {
+        const type = "CAP_OUTBOX";
+        const subType = "NotificationService";
+        let config = eventQueue.config.getEventConfig(type, subType);
+        expect(config).toBeUndefined();
+        const runEventCombinationForTenantSpy = jest
+          .spyOn(runner, "runEventCombinationForTenant")
+          .mockResolvedValueOnce();
+        await redisPubSub.__._messageHandlerProcessEvents(
+          JSON.stringify({
+            type,
+            subType,
+          })
+        );
+        config = eventQueue.config.getEventConfig(type, subType);
+        expect(config).toBeDefined();
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(runEventCombinationForTenantSpy).toHaveBeenCalledTimes(1);
+      });
+
+      it("should log an error for not CAP outboxed services", async () => {
+        const type = "NOT_CAP_OUTBOX";
+        const subType = "NotificationService";
+        let config = eventQueue.config.getEventConfig(type, subType);
+        expect(config).toBeUndefined();
+        const runEventCombinationForTenantSpy = jest.spyOn(runner, "runEventCombinationForTenant");
+        await redisPubSub.__._messageHandlerProcessEvents(
+          JSON.stringify({
+            type,
+            subType,
+          })
+        );
+        config = eventQueue.config.getEventConfig(type, subType);
+        expect(config).toBeUndefined();
+        expect(loggerMock.callsLengths().error).toEqual(1);
+        expect(runEventCombinationForTenantSpy).toHaveBeenCalledTimes(0);
+      });
     });
   });
 });

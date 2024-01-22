@@ -321,7 +321,7 @@ module.exports = {
   multiTenancyDb,
   multiTenancyRedis,
   runEventCombinationForTenant,
-  _: {
+  __: {
     _singleTenantDb,
     _multiTenancyRedis,
     _multiTenancyDb,

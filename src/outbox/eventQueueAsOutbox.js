@@ -39,10 +39,10 @@ function outboxed(srv, customOpts) {
     customOpts || {}
   );
 
+  config.addCAPOutboxEvent(srv.name, outboxOpts);
   outboxedSrv.handle = async function (req) {
     const context = req.context || cds.context;
     if (outboxOpts.kind === "persistent-outbox") {
-      config.addCAPOutboxEvent(srv.name, outboxOpts);
       await _mapToEventAndPublish(context, srv.name, req);
       return;
     }

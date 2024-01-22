@@ -1,5 +1,7 @@
 "use strict";
 
+const path = require("path");
+
 const distributedLock = require("../src/shared/distributedLock");
 const config = require("../src/config");
 const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExistsAndReturnValue");
@@ -8,7 +10,6 @@ const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
 const eventQueue = require("../src");
-const path = require("path");
 const { insertEventEntry, getEventEntry } = require("./helper");
 const { Logger: mockLogger } = require("./mocks/logger");
 
@@ -44,9 +45,6 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   let loggerMock;
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
-    jest.spyOn(cds, "log").mockImplementation((layer) => {
-      return mockLogger(layer);
-    });
     await eventQueue.initialize({
       configFilePath,
       processEventsAfterPublish: true,

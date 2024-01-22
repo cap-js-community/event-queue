@@ -80,6 +80,10 @@ class Config {
     return this.#eventMap[this.generateKey(type, subType)];
   }
 
+  isCapOutboxEvent(type) {
+    return type === CAP_EVENT_TYPE;
+  }
+
   hasEventAfterCommitFlag(type, subType) {
     return this.#eventMap[this.generateKey(type, subType)]?.processAfterCommit ?? true;
   }
@@ -197,12 +201,12 @@ class Config {
       selectMaxChunkSize: config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.maxAttempts,
-      internalEvent: true,
       transactionMode: config.transactionMode,
       processAfterCommit: config.processAfterCommit,
       eventOutdatedCheck: config.eventOutdatedCheck,
       checkForNextChunk: config.checkForNextChunk,
       deleteFinishedEventsAfterDays: config.deleteFinishedEventsAfterDays,
+      internalEvent: true,
     };
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
