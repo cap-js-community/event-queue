@@ -10,7 +10,7 @@ const { limiter } = require("./shared/common");
 
 const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
 
-const COMPONENT_NAME = "eventQueue/processEventQueue";
+const COMPONENT_NAME = "/eventQueue/processEventQueue";
 const MAX_EXECUTION_TIME = 5 * 60 * 1000;
 
 const processEventQueue = async (context, eventType, eventSubType, startTime = new Date()) => {
@@ -29,7 +29,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       return;
     }
     baseInstance = new EventTypeClass(context, eventType, eventSubType, eventConfig);
-    const continueProcessing = await baseInstance.handleDistributedLock();
+    const continueProcessing = await baseInstance.acquireDistributedLock();
     if (!continueProcessing) {
       return;
     }

@@ -1,0 +1,42 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored for emit 1`] = `
+{
+  "_fromSend": true,
+  "contextUser": "anonymous",
+  "data": {
+    "body": "body",
+    "subject": "subject",
+    "to": "to",
+  },
+  "event": "sendFiori",
+  "headers": {},
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored for sent 1`] = `
+{
+  "contextUser": "anonymous",
+  "data": {
+    "body": "body",
+    "subject": "subject",
+    "to": "to",
+  },
+  "event": "sendFiori",
+  "headers": {},
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true should store correct user of original context 1`] = `
+{
+  "_fromSend": true,
+  "contextUser": "badman",
+  "data": {
+    "body": "body",
+    "subject": "subject",
+    "to": "to",
+  },
+  "event": "sendFiori",
+  "headers": {},
+}
+`;

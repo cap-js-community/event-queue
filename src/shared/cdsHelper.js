@@ -8,7 +8,7 @@ const config = require("../config");
 const subdomainCache = {};
 
 const VERROR_CLUSTER_NAME = "ExecuteInNewTransactionError";
-const COMPONENT_NAME = "eventQueue/cdsHelper";
+const COMPONENT_NAME = "/eventQueue/cdsHelper";
 
 /**
  * Execute logic in a new managed CDS transaction context, auto-handling commit, rollback and error/exception situations.

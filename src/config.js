@@ -10,12 +10,15 @@ const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
 const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
 const REDIS_CONFIG_BLOCKLIST_CHANNEL = "REDIS_CONFIG_BLOCKLIST_CHANNEL";
-const COMPONENT_NAME = "eventQueue/config";
+const COMPONENT_NAME = "/eventQueue/config";
 const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
+const CAP_EVENT_TYPE = "CAP_OUTBOX";
+
+const CAP_PARALLEL_DEFAULT = 5;
 
 const BASE_PERIODIC_EVENTS = [
   {
@@ -51,6 +54,7 @@ class Config {
   #blockedPeriodicEvents;
   #isPeriodicEventBlockedCb;
   #thresholdLoggingEventProcessing;
+  #useAsCAPOutbox;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -74,6 +78,10 @@ class Config {
 
   getEventConfig(type, subType) {
     return this.#eventMap[this.generateKey(type, subType)];
+  }
+
+  isCapOutboxEvent(type) {
+    return type === CAP_EVENT_TYPE;
   }
 
   hasEventAfterCommitFlag(type, subType) {
@@ -180,6 +188,30 @@ class Config {
       });
   }
 
+  addCAPOutboxEvent(serviceName, config) {
+    if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)]) {
+      return;
+    }
+
+    const eventConfig = {
+      type: CAP_EVENT_TYPE,
+      subType: serviceName,
+      load: config.load ?? DEFAULT_LOAD,
+      impl: "./outbox/EventQueueGenericOutboxHandler",
+      selectMaxChunkSize: config.chunkSize,
+      parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
+      retryAttempts: config.maxAttempts,
+      transactionMode: config.transactionMode,
+      processAfterCommit: config.processAfterCommit,
+      eventOutdatedCheck: config.eventOutdatedCheck,
+      checkForNextChunk: config.checkForNextChunk,
+      deleteFinishedEventsAfterDays: config.deleteFinishedEventsAfterDays,
+      internalEvent: true,
+    };
+    this.#config.events.push(eventConfig);
+    this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
+  }
+
   #unblockPeriodicEventLocalState(key, tenant) {
     const map = this.#blockedPeriodicEvents[key];
     if (!map) {
@@ -214,7 +246,7 @@ class Config {
     this.#eventMap = config.events.reduce((result, event) => {
       event.load = event.load ?? DEFAULT_LOAD;
       this.validateAdHocEvents(result, event);
-      result[[event.type, event.subType].join("##")] = event;
+      result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
@@ -222,7 +254,7 @@ class Config {
       event.type = `${event.type}${SUFFIX_PERIODIC}`;
       event.isPeriodic = true;
       this.validatePeriodicConfig(result, event);
-      result[[event.type, event.subType].join("##")] = event;
+      result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, this.#eventMap);
   }
@@ -255,6 +287,14 @@ class Config {
 
   generateKey(type, subType) {
     return [type, subType].join("##");
+  }
+
+  removeEvent(type, subType) {
+    const index = this.#config.events.findIndex((event) => event.type === "CAP_OUTBOX");
+    if (index >= 0) {
+      this.#config.events.splice(index, 1);
+    }
+    delete this.#eventMap[this.generateKey(type, subType)];
   }
 
   get fileContent() {
@@ -403,6 +443,14 @@ class Config {
 
   get thresholdLoggingEventProcessing() {
     return this.#thresholdLoggingEventProcessing;
+  }
+
+  set useAsCAPOutbox(value) {
+    this.#useAsCAPOutbox = value;
+  }
+
+  get useAsCAPOutbox() {
+    return this.#useAsCAPOutbox;
   }
 
   get isMultiTenancy() {

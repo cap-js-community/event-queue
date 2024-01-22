@@ -5,7 +5,7 @@ const cds = require("@sap/cds");
 const config = require("../config");
 const EventQueueError = require("../EventQueueError");
 
-const COMPONENT_NAME = "eventQueue/WorkerQueue";
+const COMPONENT_NAME = "/eventQueue/WorkerQueue";
 const NANO_TO_MS = 1e6;
 const THRESHOLD = {
   INFO: 35 * 1000,

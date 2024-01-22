@@ -5,7 +5,7 @@ const redis = require("redis");
 const { getEnvInstance } = require("./env");
 const EventQueueError = require("../EventQueueError");
 
-const COMPONENT_NAME = "eventQueue/shared/redis";
+const COMPONENT_NAME = "/eventQueue/shared/redis";
 
 let mainClientPromise;
 const subscriberChannelClientPromise = {};

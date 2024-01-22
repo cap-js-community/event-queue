@@ -5,7 +5,7 @@ const cds = require("@sap/cds");
 const { broadcastEvent } = require("./redisPubSub");
 const config = require("./config");
 
-const COMPONENT_NAME = "eventQueue/dbHandler";
+const COMPONENT_NAME = "/eventQueue/dbHandler";
 
 const registerEventQueueDbHandler = (dbService) => {
   const def = dbService.model.definitions[config.tableNameEventQueue];
