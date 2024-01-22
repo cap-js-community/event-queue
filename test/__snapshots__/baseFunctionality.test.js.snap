@@ -1,5 +1,18 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`baseFunctionality ad-hoc events error handling handle acquireDistributedLock fails 1`] = `
+[
+  [
+    "Processing event queue failed with unexpected error.",
+    [Error: lock require failed],
+    {
+      "eventSubType": "Task",
+      "eventType": "Notifications",
+    },
+  ],
+]
+`;
+
 exports[`baseFunctionality ad-hoc events error handling handle checkEventAndGeneratePayload fails 1`] = `
 [
   [
@@ -34,19 +47,6 @@ exports[`baseFunctionality ad-hoc events error handling handle getQueueEntriesAn
   [
     "Processing event queue failed with unexpected error.",
     [Error: db error],
-    {
-      "eventSubType": "Task",
-      "eventType": "Notifications",
-    },
-  ],
-]
-`;
-
-exports[`baseFunctionality ad-hoc events error handling handle handleDistributedLock fails 1`] = `
-[
-  [
-    "Processing event queue failed with unexpected error.",
-    [Error: lock require failed],
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
