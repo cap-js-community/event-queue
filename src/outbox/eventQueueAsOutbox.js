@@ -5,8 +5,6 @@ const cds = require("@sap/cds");
 const { publishEvent } = require("../publishEvent");
 const config = require("../config");
 
-// TODO: cds unboxed
-
 const OUTBOXED = Symbol("outboxed");
 const UNBOXED = Symbol("unboxed");
 
