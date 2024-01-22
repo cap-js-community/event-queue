@@ -13,8 +13,6 @@ cds.test(project);
 
 const executeInNewTransactionSpy = jest.spyOn(cdsHelper, "executeInNewTransaction");
 
-//TODO: add test for error handling --> logger
-
 describe("event-queue outbox", () => {
   let context, tx, loggerMock;
 
@@ -171,48 +169,38 @@ describe("event-queue outbox", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
-    it("should work for outboxed services by require with transactionMode config", async () => {
-      const outboxedService = await cds.connect.to("NotificationServiceOutboxedByConfig", {
-        impl: "./srv/service/service.js",
-        outbox: {
-          kind: "persistent-outbox",
-          transactionMode: "alwaysRollback",
-        },
-      });
-      await outboxedService.send("sendFiori", {
+    it("req.data should be stored for sent", async () => {
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.emit("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
       tx = cds.tx({});
-      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      const event = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 1,
+        additionalColumns: ["payload"],
+      });
+      const payload = JSON.parse(event[0].payload);
       expect(loggerMock).not.sendFioriActionCalled();
-      await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
-      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
-      expect(loggerMock).sendFioriActionCalled();
-      const config = eventQueue.config.events.find((event) => event.subType === "NotificationServiceOutboxedByConfig");
-      delete config.startTime;
-      expect(config).toMatchInlineSnapshot(`
+      expect(payload).toMatchSnapshot();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1])
+        .toMatchInlineSnapshot(`
         {
-          "checkForNextChunk": undefined,
-          "deleteFinishedEventsAfterDays": undefined,
-          "eventOutdatedCheck": undefined,
-          "impl": "./outbox/EventQueueGenericOutboxHandler",
-          "internalEvent": true,
-          "load": 1,
-          "parallelEventProcessing": 5,
-          "processAfterCommit": undefined,
-          "retryAttempts": 20,
-          "selectMaxChunkSize": 100,
-          "subType": "NotificationServiceOutboxedByConfig",
-          "transactionMode": "alwaysRollback",
-          "type": "CAP_OUTBOX",
+          "data": {
+            "body": "body",
+            "subject": "subject",
+            "to": "to",
+          },
+          "user": "anonymous",
         }
       `);
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
-    it("map all available outbox fields", async () => {
+    it("req.data should be stored for emit", async () => {
       const service = await cds.connect.to("NotificationService");
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("sendFiori", {
@@ -225,7 +213,7 @@ describe("event-queue outbox", () => {
         expectedLength: 1,
         additionalColumns: ["payload"],
       });
-      const payload = JSON.stringify(event[0].payload);
+      const payload = JSON.parse(event[0].payload);
       expect(loggerMock).not.sendFioriActionCalled();
       expect(payload).toMatchSnapshot();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
@@ -303,6 +291,85 @@ describe("event-queue outbox", () => {
           "transactionMode": undefined,
           "type": "CAP_OUTBOX",
         }
+      `);
+    });
+
+    it("should work for outboxed services by require with transactionMode config", async () => {
+      const outboxedService = await cds.connect.to("NotificationServiceOutboxedByConfig", {
+        impl: "./srv/service/service.js",
+        outbox: {
+          kind: "persistent-outbox",
+          transactionMode: "alwaysRollback",
+        },
+      });
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
+      await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+      expect(loggerMock).sendFioriActionCalled();
+      const config = eventQueue.config.events.find((event) => event.subType === "NotificationServiceOutboxedByConfig");
+      delete config.startTime;
+      expect(config).toMatchInlineSnapshot(`
+        {
+          "checkForNextChunk": undefined,
+          "deleteFinishedEventsAfterDays": undefined,
+          "eventOutdatedCheck": undefined,
+          "impl": "./outbox/EventQueueGenericOutboxHandler",
+          "internalEvent": true,
+          "load": 1,
+          "parallelEventProcessing": 5,
+          "processAfterCommit": undefined,
+          "retryAttempts": 20,
+          "selectMaxChunkSize": 100,
+          "subType": "NotificationServiceOutboxedByConfig",
+          "transactionMode": "alwaysRollback",
+          "type": "CAP_OUTBOX",
+        }
+      `);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("should catch errors and log them", async () => {
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+
+      const mock = () => {
+        jest.spyOn(cds, "log").mockImplementationOnce((...args) => {
+          if (args[0] === "sendFiori") {
+            throw new Error("service error - sendFiori");
+          }
+          const instance = cds.log(...args);
+          mock();
+          return instance;
+        });
+      };
+      mock();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchInlineSnapshot(`
+        [
+          [
+            "error processing outboxed service call",
+            [Error: service error - sendFiori],
+            {
+              "serviceName": "NotificationService",
+            },
+          ],
+        ]
       `);
     });
   });
