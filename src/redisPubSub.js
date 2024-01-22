@@ -9,7 +9,7 @@ const runner = require("./runner");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
-const COMPONENT_NAME = "eventQueue/redisPubSub";
+const COMPONENT_NAME = "/eventQueue/redisPubSub";
 
 let subscriberClientPromise;
 

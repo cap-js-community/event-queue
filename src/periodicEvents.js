@@ -6,7 +6,7 @@ const { EventProcessingStatus } = require("./constants");
 const { processChunkedSync } = require("./shared/common");
 const eventConfig = require("./config");
 
-const COMPONENT_NAME = "eventQueue/periodicEvents";
+const COMPONENT_NAME = "/eventQueue/periodicEvents";
 const CHUNK_SIZE_INSERT_PERIODIC_EVENTS = 4;
 
 const checkAndInsertPeriodicEvents = async (context) => {

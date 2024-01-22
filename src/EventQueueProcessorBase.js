@@ -12,7 +12,7 @@ const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
-const COMPONENT_NAME = "eventQueue/EventQueueProcessorBase";
+const COMPONENT_NAME = "/eventQueue/EventQueueProcessorBase";
 
 const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_PARALLEL_EVENT_PROCESSING = 1;
@@ -869,7 +869,7 @@ class EventQueueProcessorBase {
     return await checkAndUpdatePromise;
   }
 
-  async handleDistributedLock() {
+  async acquireDistributedLock() {
     if (this.concurrentEventProcessing) {
       return true;
     }

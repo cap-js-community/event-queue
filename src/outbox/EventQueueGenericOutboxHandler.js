@@ -5,7 +5,7 @@ const cds = require("@sap/cds");
 const EventQueueBaseClass = require("../EventQueueProcessorBase");
 const { EventProcessingStatus } = require("../constants");
 
-const COMPONENT_NAME = "eventQueue/outbox/generic";
+const COMPONENT_NAME = "/eventQueue/outbox/generic";
 
 class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   constructor(context, eventType, eventSubType, config) {

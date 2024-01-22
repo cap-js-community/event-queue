@@ -10,7 +10,7 @@ const UNBOXED = Symbol("unboxed");
 
 const CDS_EVENT_TYPE = "CAP_OUTBOX";
 
-const COMPONENT_NAME = "eventQueue/eventQueueAsOutbox";
+const COMPONENT_NAME = "/eventQueue/eventQueueAsOutbox";
 
 function outboxed(srv, customOpts) {
   // outbox max. once
