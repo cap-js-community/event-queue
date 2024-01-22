@@ -382,7 +382,7 @@ describe("event-queue outbox", () => {
 
       it("redisPubSub", async () => {
         const type = "CAP_OUTBOX";
-        const subType = "NotificationService";
+        const subType = "NotificationServiceLazyInitTest";
         let config = eventQueue.config.getEventConfig(type, subType);
         expect(config).toBeUndefined();
         const runEventCombinationForTenantSpy = jest
@@ -402,7 +402,7 @@ describe("event-queue outbox", () => {
 
       it("should log an error for not CAP outboxed services", async () => {
         const type = "NOT_CAP_OUTBOX";
-        const subType = "NotificationService";
+        const subType = "NotificationServiceLaizyInitTest";
         let config = eventQueue.config.getEventConfig(type, subType);
         expect(config).toBeUndefined();
         const runEventCombinationForTenantSpy = jest.spyOn(runner, "runEventCombinationForTenant");
