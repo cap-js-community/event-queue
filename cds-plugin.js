@@ -7,7 +7,7 @@ const eventQueue = require("./src");
 
 const activate = async () => {
   const eventQueueConfig = cds.env.eventQueue;
-  if (!eventQueueConfig?.config && !eventQueueConfig?.configFilePath) {
+  if ((!eventQueueConfig?.config && !eventQueueConfig?.configFilePath) || cds.build?.register) {
     return;
   }
 
