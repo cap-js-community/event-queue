@@ -195,7 +195,7 @@ class Config {
       load: config.load ?? DEFAULT_LOAD,
       impl: "./outbox/EventQueueGenericOutboxHandler",
       selectMaxChunkSize: config.chunkSize,
-      parallelEventProcessing: config.parallel && CAP_PARALLEL_DEFAULT,
+      parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.maxAttempts,
       internalEvent: true,
       transactionMode: config.transactionMode,
