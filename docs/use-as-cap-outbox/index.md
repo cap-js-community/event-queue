@@ -15,7 +15,7 @@ nav_order: 5
 
 <!-- prettier-ignore -->
 - TOC
-  {: toc}
+{: toc}
 
 The event-queue can be used to replace the CAP outbox solution to achieve a unified and streamlined architecture for
 asynchronous processing. If this feature is activated, the event-queue replaces the outbox implementation of CAP with
