@@ -2,7 +2,6 @@
 
 const { promisify } = require("util");
 const fs = require("fs");
-const path = require("path");
 
 const cds = require("@sap/cds");
 const yaml = require("yaml");
@@ -84,7 +83,7 @@ const initialize = async ({
   if (config.processEventsAfterPublish) {
     cds.on("connect", (service) => {
       if (service.name === "db ") {
-        dbHandler.registerEventQueueDbHandler(dbService);
+        dbHandler.registerEventQueueDbHandler(service);
       }
     });
   }
