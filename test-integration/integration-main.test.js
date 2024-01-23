@@ -36,9 +36,6 @@ describe("integration-main", () => {
       isEventQueueActive: false,
     });
     loggerMock = mockLogger();
-    jest.spyOn(cds, "log").mockImplementation((layer) => {
-      return mockLogger(layer);
-    });
     const db = await cds.connect.to("db");
     db.before("*", (cdsContext) => {
       if (dbCounts[cdsContext.event]) {
