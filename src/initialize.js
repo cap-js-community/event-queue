@@ -81,12 +81,14 @@ const initialize = async ({
   config.fileContent = await readConfigFromFile(config.configFilePath);
   config.checkRedisEnabled();
 
-  const dbService = await cds.connect.to("db");
-  await (cds.model ? Promise.resolve() : new Promise((resolve) => cds.on("loaded", resolve)));
-  !config.skipCsnCheck && (await csnCheck());
   if (config.processEventsAfterPublish) {
-    dbHandler.registerEventQueueDbHandler(dbService);
+    cds.on("connect", (service) => {
+      if (service.name === "db ") {
+        dbHandler.registerEventQueueDbHandler(dbService);
+      }
+    });
   }
+  !config.skipCsnCheck && (await csnCheck());
 
   monkeyPatchCAPOutbox();
   registerEventProcessors();
@@ -150,26 +152,27 @@ const monkeyPatchCAPOutbox = () => {
 };
 
 const csnCheck = async () => {
-  const eventCsn = cds.model.definitions[config.tableNameEventQueue];
-  if (!eventCsn) {
-    throw EventQueueError.missingTableInCsn(config.tableNameEventQueue);
-  }
+  cds.on("loaded", async (csn) => {
+    const eventCsn = csn.definitions[config.tableNameEventQueue];
+    if (!eventCsn) {
+      throw EventQueueError.missingTableInCsn(config.tableNameEventQueue);
+    }
 
-  const lockCsn = cds.model.definitions[config.tableNameEventLock];
-  if (!lockCsn) {
-    throw EventQueueError.missingTableInCsn(config.tableNameEventLock);
-  }
+    const lockCsn = csn.definitions[config.tableNameEventLock];
+    if (!lockCsn) {
+      throw EventQueueError.missingTableInCsn(config.tableNameEventLock);
+    }
 
-  if (config.tableNameEventQueue === BASE_TABLES.EVENT && config.tableNameEventLock === BASE_TABLES.LOCK) {
-    return; // no need to check base tables
-  }
+    if (config.tableNameEventQueue === BASE_TABLES.EVENT && config.tableNameEventLock === BASE_TABLES.LOCK) {
+      return; // no need to check base tables
+    }
 
-  const csn = await cds.load(path.join(__dirname, "..", "db"));
-  const baseEvent = csn.definitions["sap.eventqueue.Event"];
-  const baseLock = csn.definitions["sap.eventqueue.Lock"];
+    const baseEvent = csn.definitions["sap.eventqueue.Event"];
+    const baseLock = csn.definitions["sap.eventqueue.Lock"];
 
-  checkCustomTable(baseEvent, eventCsn);
-  checkCustomTable(baseLock, lockCsn);
+    checkCustomTable(baseEvent, eventCsn);
+    checkCustomTable(baseLock, lockCsn);
+  });
 };
 
 const checkCustomTable = (baseCsn, customCsn) => {

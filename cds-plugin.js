@@ -1,26 +1,11 @@
 "use strict";
 
 const cds = require("@sap/cds");
-const cdsPackage = require("@sap/cds/package.json");
 
 const eventQueue = require("./src");
+const COMPONENT_NAME = "/eventQueue/plugin";
 
-const activate = async () => {
-  const eventQueueConfig = cds.env.eventQueue;
-  if ((!eventQueueConfig?.config && !eventQueueConfig?.configFilePath) || cds.build?.register) {
-    return;
-  }
-
-  await eventQueue.initialize();
-};
-
-// NOTE: for sap/cds < 7.3.0 it was expected to export activate as function property, otherwise export the promise of
-//   running activate
-const doExportActivateAsProperty =
-  cdsPackage.version.localeCompare("7.3.0", undefined, { numeric: true, sensitivity: "base" }) < 0;
-
-module.exports = doExportActivateAsProperty
-  ? {
-      activate,
-    }
-  : activate();
+const eventQueueConfig = cds.env.eventQueue;
+if (!(cds.build.register || (!eventQueueConfig?.config && !eventQueueConfig?.configFilePath))) {
+  eventQueue.initialize().catch((err) => cds.log(COMPONENT_NAME).error(err));
+}
