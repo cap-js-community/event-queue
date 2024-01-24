@@ -152,6 +152,9 @@ const monkeyPatchCAPOutbox = () => {
 
 const csnCheck = async () => {
   cds.on("loaded", async (csn) => {
+    if (csn.namespace === "cds.xt") {
+      return;
+    }
     const eventCsn = csn.definitions[config.tableNameEventQueue];
     if (!eventCsn) {
       throw EventQueueError.missingTableInCsn(config.tableNameEventQueue);
