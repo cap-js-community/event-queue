@@ -56,6 +56,7 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
           async (tx) => fn(tx, ...parameters)
         );
       } else {
+        contextTx.context.user = user;
         await fn(contextTx, ...parameters);
       }
     }
