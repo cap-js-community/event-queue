@@ -55,6 +55,7 @@ class Config {
   #isPeriodicEventBlockedCb;
   #thresholdLoggingEventProcessing;
   #useAsCAPOutbox;
+  #dbUser;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -451,6 +452,14 @@ class Config {
 
   get useAsCAPOutbox() {
     return this.#useAsCAPOutbox;
+  }
+
+  set dbUser(value) {
+    this.#dbUser = value;
+  }
+
+  get dbUser() {
+    return this.#dbUser;
   }
 
   get isMultiTenancy() {

@@ -11,6 +11,8 @@ const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const periodicEvents = require("./periodicEvents");
 const { hashStringTo32Bit } = require("./shared/common");
+const cds = require("@sap/cds");
+const config = require("./config");
 
 const COMPONENT_NAME = "/eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
@@ -107,8 +109,10 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
 
   return product.map(async ([tenantId, event]) => {
     const subdomain = await getSubdomainForTenantId(tenantId);
+    const user = new cds.User.Privileged(config.dbUser);
     const tenantContext = {
       tenant: tenantId,
+      user,
       // NOTE: we need this because of logging otherwise logs would not contain the subdomain
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     };
@@ -140,8 +144,10 @@ const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
     WorkerQueue.instance.addToQueue(1, label, async () => {
       try {
         const subdomain = await getSubdomainForTenantId(tenantId);
+        const user = new cds.User.Privileged(config.dbUser);
         const tenantContext = {
           tenant: tenantId,
+          user,
           // NOTE: we need this because of logging otherwise logs would not contain the subdomain
           http: { req: { authInfo: { getSubdomain: () => subdomain } } },
         };

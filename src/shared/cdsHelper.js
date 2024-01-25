@@ -24,13 +24,14 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
   try {
+    const user = new cds.User.Privileged(config.dbUser);
     if (cds.db.kind === "hana") {
       await cds.tx(
         {
           id: context.id,
           tenant: context.tenant,
           locale: context.locale,
-          user: context.user,
+          user,
           headers: context.headers,
           http: context.http,
         },
@@ -48,7 +49,7 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
             id: context.id,
             tenant: context.tenant,
             locale: context.locale,
-            user: context.user,
+            user,
             headers: context.headers,
             http: context.http,
           },
