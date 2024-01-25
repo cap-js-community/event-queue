@@ -2,6 +2,8 @@
 
 const { randomUUID } = require("crypto");
 
+const cds = require("@sap/cds");
+
 const eventQueueConfig = require("./config");
 const { processEventQueue } = require("./processEventQueue");
 const WorkerQueue = require("./shared/WorkerQueue");
@@ -11,7 +13,6 @@ const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const periodicEvents = require("./periodicEvents");
 const { hashStringTo32Bit } = require("./shared/common");
-const cds = require("@sap/cds");
 const config = require("./config");
 
 const COMPONENT_NAME = "/eventQueue/runner";
