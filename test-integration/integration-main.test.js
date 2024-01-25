@@ -221,6 +221,33 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
+  it("should set db user correctly", async () => {
+    const event = eventQueue.config.events.find((e) => e.subType === "isolated");
+    await cds.tx({}, async (tx2) => {
+      await testHelper.insertEventEntry(tx2, { type: "TransactionMode", subType: "isolated" });
+    });
+    dbCounts = {};
+    const id = cds.utils.uuid();
+    jest.spyOn(EventQueueTest.prototype, "processEvent").mockImplementation(async function (_, key, queueEntries) {
+      await this.getTxForEventProcessing(key).run(
+        INSERT.into("sap.eventqueue.Lock").entries({
+          code: id,
+        })
+      );
+      return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+    });
+    eventQueue.config.dbUser = "badman";
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await cds.tx({}, async (tx2) => {
+      const { createdBy } = await tx2.run(SELECT.one.from("sap.eventqueue.Lock").where({ code: id }));
+      expect(createdBy).toEqual("badman");
+    });
+    await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+    expect(dbCounts).toMatchSnapshot();
+    eventQueue.config.dbUser = null;
+  });
+
   it("lock wait timeout during keepAlive", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
