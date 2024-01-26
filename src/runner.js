@@ -110,7 +110,7 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
 
   return product.map(async ([tenantId, event]) => {
     const subdomain = await getSubdomainForTenantId(tenantId);
-    const user = new cds.User.Privileged(config.dbUser);
+    const user = new cds.User.Privileged(config.userId);
     const tenantContext = {
       tenant: tenantId,
       user,
@@ -145,7 +145,7 @@ const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
     WorkerQueue.instance.addToQueue(1, label, async () => {
       try {
         const subdomain = await getSubdomainForTenantId(tenantId);
-        const user = new cds.User.Privileged(config.dbUser);
+        const user = new cds.User.Privileged(config.userId);
         const tenantContext = {
           tenant: tenantId,
           user,
