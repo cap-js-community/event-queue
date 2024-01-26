@@ -54,7 +54,7 @@ such as the configuration file path, event processing behavior, load balancing, 
 The table includes the parameter name, a description of its purpose, and the default value if not specified.
 
 | Name                                 | Description                                                                                                                                                                       | Default              |
-| :----------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------- |
+|:-------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------|
 | configFilePath                       | Path to the configuration file.                                                                                                                                                   | null                 |
 | registerAsEventProcessor             | Whether or not to register as an event processor. If false, the app can publish events but doesn't process events.                                                                | true                 |
 | processEventsAfterPublish            | Whether or not to process events immediately after publish. Events are distributed via Redis to all available app instances.                                                      | true                 |
@@ -67,3 +67,4 @@ The table includes the parameter name, a description of its purpose, and the def
 | updatePeriodicEvents                 | Whether or not to update periodic events.                                                                                                                                         | true                 |
 | thresholdLoggingEventProcessing [ms] | Threshold after how many milliseconds the processing of a event or periodic event is logged for observability.                                                                    | 50                   |
 | useAsCAPOutbox                       | Uses the event-queue as the [outbox](https://cap.cloud.sap/docs/node.js/outbox) of CAP. Outbox called are stored and processed in the event-queue instead of the outbox of CAP.   | false                |
+| userId                               | User id for all created cds contexts. This influences the value for updated managed database fields like createdBy and modifiedBy.                                                | false                |
