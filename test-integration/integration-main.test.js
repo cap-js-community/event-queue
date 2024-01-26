@@ -236,7 +236,7 @@ describe("integration-main", () => {
       );
       return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
     });
-    eventQueue.config.dbUser = "badman";
+    eventQueue.config.userId = "badman";
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     await cds.tx({}, async (tx2) => {
