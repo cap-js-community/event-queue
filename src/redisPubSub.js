@@ -38,8 +38,10 @@ const _messageHandlerProcessEvents = async (messageData) => {
     }
 
     const subdomain = await getSubdomainForTenantId(tenantId);
+    const user = new cds.User.Privileged(config.userId);
     const tenantContext = {
       tenant: tenantId,
+      user,
       // NOTE: we need this because of logging otherwise logs would not contain the subdomain
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     };
@@ -90,9 +92,11 @@ const broadcastEvent = async (tenantId, type, subType) => {
         let context = {};
         if (tenantId) {
           const subdomain = await getSubdomainForTenantId(tenantId);
+          const user = new cds.User.Privileged(config.userId);
           context = {
             // NOTE: we need this because of logging otherwise logs would not contain the subdomain
             tenant: tenantId,
+            user,
             http: { req: { authInfo: { getSubdomain: () => subdomain } } },
           };
         }
