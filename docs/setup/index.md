@@ -29,7 +29,6 @@ Extend the cds section of your package.json. Reference to the cds-plugin section
 {
   "cds": {
     "eventQueue": {
-      "plugin": true,
       "configFilePath": "./srv/eventQueueConfig.yml"
     }
   }
