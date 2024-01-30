@@ -85,7 +85,7 @@ const initialize = async ({
 
   if (config.processEventsAfterPublish) {
     cds.on("connect", (service) => {
-      if (service.name === "db") {
+      if (service.name === "db ") {
         dbHandler.registerEventQueueDbHandler(service);
       }
     });
