@@ -58,9 +58,9 @@ This is described in detail in below [section](#example-if-multiple-events-are-c
 ```js
 "use strict";
 
-const { EventQueueBaseClass, EventProcessingStatus } = require("@cap-js-community/event-queue");
+const { EventQueueProcessorBase, EventProcessingStatus } = require("@cap-js-community/event-queue");
 
-class EventQueueMinimalistic extends EventQueueBaseClass {
+class EventQueueMinimalistic extends EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
     super(context, eventType, eventSubType, config);
   }
@@ -89,9 +89,9 @@ processing.
 ```js
 "use strict";
 
-const { EventQueueBaseClass } = require("@cap-js-community/event-queue");
+const { EventQueueProcessorBase } = require("@cap-js-community/event-queue");
 
-class EventQueueMinimalistic extends EventQueueBaseClass {
+class EventQueueMinimalistic extends EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
     super(context, eventType, eventSubType, config);
   }
@@ -137,9 +137,9 @@ Mass-enabled data reading is possible in the `beforeProcessingEvents` function.
 ```js
 "use strict";
 
-const { EventQueueBaseClass } = require("@cap-js-community/event-queue");
+const { EventQueueProcessorBase } = require("@cap-js-community/event-queue");
 
-class EventQueueAdvanced extends EventQueueBaseClass {
+class EventQueueAdvanced extends EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
     super(context, eventType, eventSubType, config);
   }
@@ -223,9 +223,9 @@ you can use the getter function of `eventProcessingMap`. The example below demon
 ```js
 "use strict";
 
-const { EventQueueBaseClass } = require("@cap-js-community/event-queue");
+const { EventQueueProcessorBase } = require("@cap-js-community/event-queue");
 
-class EventQueueMinimalistic extends EventQueueBaseClass {
+class EventQueueMinimalistic extends EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
     super(context, eventType, eventSubType, config);
   }
@@ -254,9 +254,9 @@ function. If no successful run has occurred yet, the function will return null.
 ```js
 "use strict";
 
-const { EventQueueBaseClass } = require("@cap-js-community/event-queue");
+const { EventQueueProcessorBase } = require("@cap-js-community/event-queue");
 
-class EventQueueMinimalistic extends EventQueueBaseClass {
+class EventQueueMinimalistic extends EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
     super(context, eventType, eventSubType, config);
   }
