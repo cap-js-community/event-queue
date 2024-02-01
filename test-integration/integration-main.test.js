@@ -9,6 +9,9 @@ const cdsHelper = require("../src/shared/cdsHelper");
 jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValue(null);
 
 const eventQueue = require("../src");
+const runners = require("../src/runner");
+const dbHandler = require("../src/dbHandler");
+jest.spyOn(runners, "singleTenant").mockResolvedValue();
 const testHelper = require("../test/helper");
 const EventQueueTest = require("../test/asset/EventQueueTest");
 const EventQueueHealthCheckDb = require("../test/asset/EventQueueHealthCheckDb");
@@ -1262,18 +1265,22 @@ describe("integration-main", () => {
   });
 
   describe("end-to-end", () => {
+    let dbHandlerSpy;
     beforeAll(async () => {
       checkAndInsertPeriodicEventsMock = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
       eventQueue.config.initialized = false;
       const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
+      dbHandlerSpy = jest.spyOn(dbHandler, "registerEventQueueDbHandler");
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: true,
         isEventQueueActive: true,
       });
+      cds.emit("connect", await cds.connect.to("db"));
     });
 
     it("insert entry, entry should be automatically processed", async () => {
+      expect(dbHandlerSpy).toHaveBeenCalledTimes(1);
       await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
       await waitEntryIsDone();
       expect(loggerMock.callsLengths().error).toEqual(0);
