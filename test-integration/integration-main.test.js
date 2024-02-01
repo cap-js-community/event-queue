@@ -1273,6 +1273,7 @@ describe("integration-main", () => {
         processEventsAfterPublish: true,
         isEventQueueActive: true,
       });
+      cds.emit("connect", await cds.connect.to("db"));
     });
 
     it("insert entry, entry should be automatically processed", async () => {
