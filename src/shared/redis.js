@@ -76,8 +76,7 @@ const subscribeRedisChannel = (channel, subscribeCb) => {
     subscriberChannelClientPromise[channel] = null;
     setTimeout(() => subscribeRedisChannel(channel, subscribeCb), 5 * 1000).unref();
   };
-  subscriberChannelClientPromise[channel] = createClientAndConnect(errorHandlerCreateClient);
-  subscriberChannelClientPromise[channel]
+  subscriberChannelClientPromise[channel] = createClientAndConnect(errorHandlerCreateClient)
     .then((client) => {
       cds.log(COMPONENT_NAME).info("subscribe redis client connected channel", { channel });
       client.subscribe(channel, subscribeCb).catch(errorHandlerCreateClient);
