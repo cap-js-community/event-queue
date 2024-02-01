@@ -116,9 +116,6 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
 };
 
 const processPeriodicEvent = async (eventTypeInstance) => {
-  let queueEntry;
-  let processNext = true;
-
   const isPeriodicEventBlockedCb = config.isPeriodicEventBlockedCb;
   const params = [eventTypeInstance.eventType, eventTypeInstance.eventSubType, eventTypeInstance.context.tenant];
   let eventBlocked = false;
@@ -145,6 +142,8 @@ const processPeriodicEvent = async (eventTypeInstance) => {
   }
 
   try {
+    let queueEntry;
+    let processNext = true;
     while (processNext) {
       await executeInNewTransaction(
         eventTypeInstance.context,
