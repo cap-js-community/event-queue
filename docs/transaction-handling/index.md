@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Transactional Handling
-nav_order: 8
+nav_order: 9
 ---
 
 <!-- prettier-ignore-start -->
@@ -64,7 +64,7 @@ committing the associated transaction. However, with `setShouldRollbackTransacti
 back, regardless of the reported event status. The example belows shows how to use the function.
 
 ```js
-class EventQueueMinimalistic extends EventQueueBaseClass {
+class EventQueueMinimalistic extends EventQueueProcessorBase {
   constructor(context, eventType, eventSubType, config) {
     super(context, eventType, eventSubType, config);
   }

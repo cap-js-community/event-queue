@@ -2,6 +2,8 @@
 
 const { randomUUID } = require("crypto");
 
+const cds = require("@sap/cds");
+
 const eventQueueConfig = require("./config");
 const { processEventQueue } = require("./processEventQueue");
 const WorkerQueue = require("./shared/WorkerQueue");
@@ -11,8 +13,9 @@ const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const periodicEvents = require("./periodicEvents");
 const { hashStringTo32Bit } = require("./shared/common");
+const config = require("./config");
 
-const COMPONENT_NAME = "eventQueue/runner";
+const COMPONENT_NAME = "/eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
 const EVENT_QUEUE_RUN_TS = "EVENT_QUEUE_RUN_TS";
 const EVENT_QUEUE_RUN_PERIODIC_EVENT = "EVENT_QUEUE_RUN_PERIODIC_EVENT";
@@ -88,6 +91,7 @@ const _checkAndTriggerPeriodicEventUpdate = (tenantIds) => {
     return;
   }
   if (tenantIdHash && tenantIdHash !== hash) {
+    tenantIdHash = hash;
     cds.log(COMPONENT_NAME).info("tenant id hash changed, triggering updating periodic events!");
     _multiTenancyPeriodicEvents().catch((err) => {
       cds.log(COMPONENT_NAME).error("Error during triggering updating periodic events!", err);
@@ -106,8 +110,10 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
 
   return product.map(async ([tenantId, event]) => {
     const subdomain = await getSubdomainForTenantId(tenantId);
+    const user = new cds.User.Privileged(config.userId);
     const tenantContext = {
       tenant: tenantId,
+      user,
       // NOTE: we need this because of logging otherwise logs would not contain the subdomain
       http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     };
@@ -139,8 +145,10 @@ const _executePeriodicEventsAllTenants = (tenantIds, runId) => {
     WorkerQueue.instance.addToQueue(1, label, async () => {
       try {
         const subdomain = await getSubdomainForTenantId(tenantId);
+        const user = new cds.User.Privileged(config.userId);
         const tenantContext = {
           tenant: tenantId,
+          user,
           // NOTE: we need this because of logging otherwise logs would not contain the subdomain
           http: { req: { authInfo: { getSubdomain: () => subdomain } } },
         };
@@ -300,7 +308,7 @@ const _checkPeriodicEventsSingleTenant = async (context = {}) => {
     return;
   }
   try {
-    logger.info("executing updating periotic events", {
+    logger.info("executing updating periodic events", {
       tenantId: context.tenant,
       subdomain: context.http?.req.authInfo.getSubdomain(),
     });
@@ -320,7 +328,7 @@ module.exports = {
   multiTenancyDb,
   multiTenancyRedis,
   runEventCombinationForTenant,
-  _: {
+  __: {
     _singleTenantDb,
     _multiTenancyRedis,
     _multiTenancyDb,

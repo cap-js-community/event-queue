@@ -39,9 +39,9 @@ for HTTP use cases, where multiple events are treated as a single transaction. T
 rollback of transactions based on the event status, i.e., whether it's done or resulted in an error. More information on
 these transaction modes can be found in the [transaction handling section](/event-queue/transaction-handling).
 
-## CAP events with SAP Event-Mash
+## CAP events with SAP Event-Mesh
 
-The SAP Event-Mash is particularly suitable for cross-application or cross-product communication, making it an excellent
+The SAP Event-Mesh is particularly suitable for cross-application or cross-product communication, making it an excellent
 choice for projects that require interactions across multiple platforms. This contrasts with the event-queue, which is
 primarily designed for asynchronous processing and load balancing within the same application or product. Notably,
 the event-queue offers full CAP support and DB-transaction management, underscoring its specialization in maintaining

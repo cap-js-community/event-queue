@@ -5,7 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.0.0 - 2023-XX-XX
+## v1.2.1 - 2024-01-30
+
+### Fixed
+
+- fix registration of db-handler
+
+## v1.2.0 - 2024-01-26
+
+### Added
+
+- option to set user for all created cds contexts and with that the user for updating the managed database fields.
+
+### Changed
+
+- rework initialization via cds-plugin.
+
+## v1.1.0 - 2024-01-22
+
+### Added
+
+- enable event-queue to work as CAP outbox. The flag `useAsCAPOutbox` replaces the CAP implementation by
+  the event-queue.
+
+## v1.0.3 - 2024-01-08
+
+### Fixed
+
+- update tenant hash for newly onboarded tenants
+- consider running periodic events during update of periodic events
+
+## v1.0.2 - 2024-01-05
+
+### Added
+
+- filter out not invalid tenant ids during processing
+
+## v1.0.1 - 2024-01-04
+
+### Added
+
+- introduced `thresholdLoggingEventProcessing` config variable to adjust logging threshold for event
+  processing [documentation](https://cap-js-community.github.io/event-queue/setup/#initialization-parameters)
+
+## v1.0.0 - 2023-12-20
 
 ### Added
 

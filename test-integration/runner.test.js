@@ -1,5 +1,7 @@
 "use strict";
 
+const { promisify } = require("util");
+
 const cds = require("@sap/cds");
 cds.test(__dirname + "/_env");
 
@@ -56,7 +58,7 @@ describe("redisRunner", () => {
     await distributedLock.releaseLock({}, "EVENT_QUEUE_RUN_ID", {
       tenantScoped: false,
     });
-    runner._.clearHash();
+    runner.__.clearHash();
   });
 
   afterEach(async () => {
@@ -78,8 +80,8 @@ describe("redisRunner", () => {
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds);
-    const p1 = runner._._multiTenancyRedis();
-    const p2 = runner._._multiTenancyRedis();
+    const p1 = runner.__._multiTenancyRedis();
+    const p2 = runner.__._multiTenancyRedis();
 
     const [promises1, promises2] = await Promise.allSettled([p1, p2]);
     await Promise.allSettled(promises1.value.concat(promises2.value));
@@ -116,7 +118,7 @@ describe("redisRunner", () => {
     expect(tenantChecks).toMatchSnapshot();
 
     // another run within 5 minutes should do nothing
-    const promises = await runner._._multiTenancyRedis();
+    const promises = await runner.__._multiTenancyRedis();
     await Promise.allSettled(promises);
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
     expect(acquireLockSpy).toHaveBeenCalledTimes(21);
@@ -128,7 +130,7 @@ describe("redisRunner", () => {
   it("db", async () => {
     configInstance.redisEnabled = false;
     const originalCdsTx = cds.tx;
-    jest.spyOn(cds, "tx").mockImplementation(async function (context, fn) {
+    jest.spyOn(cds, "tx").mockImplementation(function (context, fn) {
       if (!fn) {
         return originalCdsTx.call(this, context);
       }
@@ -145,8 +147,8 @@ describe("redisRunner", () => {
       .mockResolvedValueOnce(tenantIds)
       .mockResolvedValueOnce(tenantIds);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
-    const p1 = runner._._multiTenancyDb();
-    const p2 = runner._._multiTenancyDb();
+    const p1 = runner.__._multiTenancyDb();
+    const p2 = runner.__._multiTenancyDb();
     const [promises1, promises2] = await Promise.allSettled([p1, p2]);
     await Promise.allSettled(promises1.value.concat(promises2.value));
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
@@ -181,7 +183,7 @@ describe("redisRunner", () => {
     expect(tenantChecks).toMatchSnapshot();
 
     // another run within 5 minutes should do nothing
-    const promises = await runner._._multiTenancyDb();
+    const promises = await runner.__._multiTenancyDb();
     await Promise.allSettled(promises);
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
@@ -196,7 +198,7 @@ describe("redisRunner", () => {
       )
     );
 
-    const promises3 = await runner._._multiTenancyDb();
+    const promises3 = await runner.__._multiTenancyDb();
     await Promise.allSettled(promises3);
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
     expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
@@ -220,7 +222,7 @@ describe("redisRunner", () => {
     });
     const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
 
-    await Promise.all([runner._._singleTenantDb(), runner._._singleTenantDb()]).then((promises) =>
+    await Promise.all([runner.__._singleTenantDb(), runner.__._singleTenantDb()]).then((promises) =>
       Promise.all(promises.flat())
     );
 
@@ -237,18 +239,18 @@ describe("redisRunner", () => {
     });
 
     it("should have default offset with no previous run", async () => {
-      const result = await runner._._calculateOffsetForFirstRun();
+      const result = await runner.__._calculateOffsetForFirstRun();
       expect(result).toEqual(5 * 60 * 1000);
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
     it("acquireRunId should set ts", async () => {
-      let runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner._.EVENT_QUEUE_RUN_TS, {
+      let runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
       });
       expect(runTs).toBeNull();
-      await runner._._acquireRunId();
-      runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner._.EVENT_QUEUE_RUN_TS, {
+      await runner.__._acquireRunId();
+      runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
       });
       expect(runTs).toBeDefined();
@@ -256,15 +258,15 @@ describe("redisRunner", () => {
     });
 
     it("should calculate correct offset", async () => {
-      await runner._._acquireRunId();
+      await runner.__._acquireRunId();
       jest.useFakeTimers();
       const systemTime = Date.now();
       jest.setSystemTime(systemTime);
-      const runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner._.EVENT_QUEUE_RUN_TS, {
+      const runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
       });
       const expectedTs = new Date(runTs).getTime() + configInstance.runInterval - systemTime;
-      const result = await runner._._calculateOffsetForFirstRun();
+      const result = await runner.__._calculateOffsetForFirstRun();
       expect(result).toEqual(expectedTs);
       expect(loggerMock.callsLengths().error).toEqual(0);
       jest.useRealTimers();
@@ -272,18 +274,173 @@ describe("redisRunner", () => {
 
     it("should calculate correct offset - manuel set", async () => {
       const ts = new Date(Date.now() - 3 * 60 * 1000).toISOString();
-      await distributedLock.setValueWithExpire({}, runner._.EVENT_QUEUE_RUN_TS, ts, { tenantScoped: false });
+      await distributedLock.setValueWithExpire({}, runner.__.EVENT_QUEUE_RUN_TS, ts, { tenantScoped: false });
       jest.useFakeTimers();
       const systemTime = Date.now();
       jest.setSystemTime(systemTime);
-      const runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner._.EVENT_QUEUE_RUN_TS, {
+      const runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
       });
       const expectedTs = new Date(runTs).getTime() + configInstance.runInterval - systemTime;
-      const result = await runner._._calculateOffsetForFirstRun();
+      const result = await runner.__._calculateOffsetForFirstRun();
       expect(result).toEqual(expectedTs);
       expect(loggerMock.callsLengths().error).toEqual(0);
       jest.useRealTimers();
+    });
+  });
+
+  describe("tenant hash", () => {
+    it("should trigger update periodic events once per tenant", async () => {
+      let counter = 0;
+      let acquireLockSpy;
+      const promise = new Promise((resolve) => {
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds).mockResolvedValueOnce(tenantIds);
+      const p1 = runner.__._multiTenancyDb();
+      await p1.then((p) => Promise.allSettled(p));
+      await promise;
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
+
+      acquireLockSpy.mockRestore();
+    });
+
+    it("should not trigger update again if tenant ids have not been changed", async () => {
+      let counter = 0;
+      let acquireLockSpy;
+      const promise = new Promise((resolve) => {
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds).mockResolvedValueOnce(tenantIds);
+      const p1 = runner.__._multiTenancyDb();
+      await p1.then((p) => Promise.allSettled(p));
+      await promise;
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
+
+      // second run
+      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds);
+      const p2 = runner.__._multiTenancyDb();
+      await p2.then((p) => Promise.allSettled(p));
+      await promisify(setTimeout)(500);
+
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
+      acquireLockSpy.mockRestore();
+    });
+
+    it("should trigger update again if tenant ids have been changed", async () => {
+      let counter = 0;
+      let acquireLockSpy;
+      const promise = new Promise((resolve) => {
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds).mockResolvedValueOnce(tenantIds);
+      const p1 = runner.__._multiTenancyDb();
+      await p1.then((p) => Promise.allSettled(p));
+      await promise;
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
+
+      // second run with changed tenant ids
+      getAllTenantIdsSpy
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"))
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
+
+      const promise2 = new Promise((resolve) => {
+        counter = 0;
+        acquireLockSpy.mockRestore();
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+
+      const p2 = runner.__._multiTenancyDb();
+      await p2.then((p) => Promise.allSettled(p));
+      await promise2;
+
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(4);
+      acquireLockSpy.mockRestore();
+    });
+
+    it("should trigger update again if tenant ids have been changed and third run should not trigger an update", async () => {
+      let counter = 0;
+      let acquireLockSpy;
+      const promise = new Promise((resolve) => {
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds).mockResolvedValueOnce(tenantIds);
+      const p1 = runner.__._multiTenancyDb();
+      await p1.then((p) => Promise.allSettled(p));
+      await promise;
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(3);
+
+      // second run with changed tenant ids
+      getAllTenantIdsSpy
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"))
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
+
+      const promise2 = new Promise((resolve) => {
+        counter = 0;
+        acquireLockSpy.mockRestore();
+        acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
+          if (key === "EVENT_QUEUE_RUN_PERIODIC_EVENT") {
+            counter++;
+          }
+          if (counter === tenantIds.length) {
+            resolve();
+          }
+        });
+      });
+
+      const p2 = runner.__._multiTenancyDb();
+      await p2.then((p) => Promise.allSettled(p));
+      await promise2;
+
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(4);
+      acquireLockSpy.mockReset();
+
+      // thirds run with same tenant ids
+      getAllTenantIdsSpy
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"))
+        .mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
+
+      const p3 = runner.__._multiTenancyDb();
+      await p3.then((p) => Promise.allSettled(p));
+      await promisify(setTimeout)(500);
+
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_RUN_PERIODIC_EVENT")).toHaveLength(0);
+      acquireLockSpy.mockRestore();
     });
   });
 });

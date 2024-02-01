@@ -108,7 +108,7 @@ describe("baseFunctionality", () => {
 
     test("should do nothing if no lock is available", async () => {
       await testHelper.insertEventEntry(tx);
-      jest.spyOn(eventQueue.EventQueueProcessorBase.prototype, "handleDistributedLock").mockResolvedValueOnce(false);
+      jest.spyOn(eventQueue.EventQueueProcessorBase.prototype, "acquireDistributedLock").mockResolvedValueOnce(false);
       const event = eventQueue.config.events[0];
       await eventQueue.processEventQueue(context, event.type, event.subType);
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -124,10 +124,10 @@ describe("baseFunctionality", () => {
         await testHelper.selectEventQueueAndExpectOpen(tx);
       });
 
-      test("handle handleDistributedLock fails", async () => {
+      test("handle acquireDistributedLock fails", async () => {
         await testHelper.insertEventEntry(tx);
         jest
-          .spyOn(eventQueue.EventQueueProcessorBase.prototype, "handleDistributedLock")
+          .spyOn(eventQueue.EventQueueProcessorBase.prototype, "acquireDistributedLock")
           .mockRejectedValueOnce(new Error("lock require failed"));
         const event = eventQueue.config.events[0];
         await eventQueue.processEventQueue(context, event.type, event.subType);

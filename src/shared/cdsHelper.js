@@ -8,7 +8,7 @@ const config = require("../config");
 const subdomainCache = {};
 
 const VERROR_CLUSTER_NAME = "ExecuteInNewTransactionError";
-const COMPONENT_NAME = "eventQueue/cdsHelper";
+const COMPONENT_NAME = "/eventQueue/cdsHelper";
 
 /**
  * Execute logic in a new managed CDS transaction context, auto-handling commit, rollback and error/exception situations.
@@ -24,13 +24,14 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
   try {
+    const user = new cds.User.Privileged(config.userId);
     if (cds.db.kind === "hana") {
       await cds.tx(
         {
           id: context.id,
           tenant: context.tenant,
           locale: context.locale,
-          user: context.user,
+          user,
           headers: context.headers,
           http: context.http,
         },
@@ -48,13 +49,14 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
             id: context.id,
             tenant: context.tenant,
             locale: context.locale,
-            user: context.user,
+            user,
             headers: context.headers,
             http: context.http,
           },
           async (tx) => fn(tx, ...parameters)
         );
       } else {
+        contextTx.context.user = user;
         await fn(contextTx, ...parameters);
       }
     }
@@ -116,8 +118,12 @@ const getAllTenantIds = async () => {
   }
   const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
   const response = await ssp.get("/tenant");
-  return response.map((tenant) => tenant.subscribedTenantId ?? tenant.tenant);
+  return response
+    .map((tenant) => tenant.subscribedTenantId ?? tenant.tenant)
+    .filter((tenantId) => !isFakeTenant(tenantId));
 };
+
+const isFakeTenant = (tenantId) => /00000000-0000-4000-8000-\d{12}/.test(tenantId);
 
 module.exports = {
   executeInNewTransaction,

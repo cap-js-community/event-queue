@@ -283,6 +283,18 @@ exports[`integration-main should do nothing if lock for event combination cannot
 }
 `;
 
+exports[`integration-main should set db user correctly 1`] = `
+{
+  "BEGIN": 9,
+  "COMMIT": 7,
+  "CREATE": 2,
+  "DELETE": 1,
+  "READ": 5,
+  "ROLLBACK": 1,
+  "UPDATE": 3,
+}
+`;
+
 exports[`integration-main transactionMode=alwaysCommit one green with register rollback in processEvent --> tx rollback even mode alwaysCommit 1`] = `
 {
   "BEGIN": 7,

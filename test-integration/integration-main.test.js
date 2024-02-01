@@ -9,6 +9,9 @@ const cdsHelper = require("../src/shared/cdsHelper");
 jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValue(null);
 
 const eventQueue = require("../src");
+const runners = require("../src/runner");
+const dbHandler = require("../src/dbHandler");
+jest.spyOn(runners, "singleTenant").mockResolvedValue();
 const testHelper = require("../test/helper");
 const EventQueueTest = require("../test/asset/EventQueueTest");
 const EventQueueHealthCheckDb = require("../test/asset/EventQueueHealthCheckDb");
@@ -36,9 +39,6 @@ describe("integration-main", () => {
       isEventQueueActive: false,
     });
     loggerMock = mockLogger();
-    jest.spyOn(cds, "log").mockImplementation((layer) => {
-      return mockLogger(layer);
-    });
     const db = await cds.connect.to("db");
     db.before("*", (cdsContext) => {
       if (dbCounts[cdsContext.event]) {
@@ -222,6 +222,33 @@ describe("integration-main", () => {
     expect(loggerMock.callsLengths().error).toEqual(0);
     await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
     expect(dbCounts).toMatchSnapshot();
+  });
+
+  it("should set db user correctly", async () => {
+    const event = eventQueue.config.events.find((e) => e.subType === "isolated");
+    await cds.tx({}, async (tx2) => {
+      await testHelper.insertEventEntry(tx2, { type: "TransactionMode", subType: "isolated" });
+    });
+    dbCounts = {};
+    const id = cds.utils.uuid();
+    jest.spyOn(EventQueueTest.prototype, "processEvent").mockImplementation(async function (_, key, queueEntries) {
+      await this.getTxForEventProcessing(key).run(
+        INSERT.into("sap.eventqueue.Lock").entries({
+          code: id,
+        })
+      );
+      return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+    });
+    eventQueue.config.userId = "badman";
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await cds.tx({}, async (tx2) => {
+      const { createdBy } = await tx2.run(SELECT.one.from("sap.eventqueue.Lock").where({ code: id }));
+      expect(createdBy).toEqual("badman");
+    });
+    await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+    expect(dbCounts).toMatchSnapshot();
+    eventQueue.config.dbUser = null;
   });
 
   it("lock wait timeout during keepAlive", async () => {
@@ -1238,18 +1265,22 @@ describe("integration-main", () => {
   });
 
   describe("end-to-end", () => {
+    let dbHandlerSpy;
     beforeAll(async () => {
       checkAndInsertPeriodicEventsMock = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
       eventQueue.config.initialized = false;
       const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
+      dbHandlerSpy = jest.spyOn(dbHandler, "registerEventQueueDbHandler");
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: true,
         isEventQueueActive: true,
       });
+      cds.emit("connect", await cds.connect.to("db"));
     });
 
     it("insert entry, entry should be automatically processed", async () => {
+      expect(dbHandlerSpy).toHaveBeenCalledTimes(1);
       await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
       await waitEntryIsDone();
       expect(loggerMock.callsLengths().error).toEqual(0);
