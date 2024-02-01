@@ -164,7 +164,7 @@ const processPeriodicEvent = async (eventTypeInstance) => {
       );
 
       if (!queueEntry) {
-        break;
+        return;
       }
 
       let status = EventProcessingStatus.Done;
