@@ -1277,6 +1277,7 @@ describe("integration-main", () => {
     });
 
     it("insert entry, entry should be automatically processed", async () => {
+      expect(jest.spyOn(eventQueue, "registerEventQueueDbHandler")).toHaveBeenCalledTimes(1);
       await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
       await waitEntryIsDone();
       expect(loggerMock.callsLengths().error).toEqual(0);
