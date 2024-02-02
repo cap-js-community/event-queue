@@ -306,6 +306,17 @@ describe("baseFunctionality", () => {
       });
     });
 
+    test("should release lock if no entries is present", async () => {
+      const event = eventQueue.config.periodicEvents[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 0,
+      });
+      const locks = await tx.run(SELECT.from("sap.eventqueue.Lock"));
+      expect(locks).toHaveLength(0);
+    });
+
     describe("block and unblock periodic tenants", () => {
       test("blocked event should not be executed", async () => {
         const event = eventQueue.config.periodicEvents[0];
