@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "scripts": {
     "start": "cds-serve",
-    "dev": "npm run copy-library && npm start",
+    "subscribeTenants": "node bin/subscribteTenants.js",
+    "dev": "npm run copy-library && npm run subscribeTenants && npm start",
     "copy-library": "npx shx rm -rf node_modules/@cap-js-community/event-queue && npx shx mkdir -p node_modules/@cap-js-community/event-queue && npx shx cp -R ../package.json ../index.cds ../cds-plugin.js ../src ../db node_modules/@cap-js-community/event-queue"
   },
   "dependencies": {
@@ -27,7 +28,8 @@
     "eventQueue": {
       "plugin": true,
       "configFilePath": "./srv/eventConfig.yml",
-      "runInterval": 30000
+      "runInterval": 30000,
+      "useAsCAPOutbox": true
     },
     "requires": {
       "outbox": true,
@@ -40,9 +42,17 @@
         "[development]": {
           "kind": "sqlite",
           "credentials": {
-            "database": ":memory:"
-          }
+            "database": "data/afc.sqlite"
+          },
+          "schema_evolution": ""
         }
+      },
+      "task-service": {
+        "outbox": {
+          "kind": "persistent-outbox",
+          "load": 10
+        },
+        "impl": "./example-cap-server/srv/facade/task-service.js"
       }
     }
   }

@@ -1,0 +1,25 @@
+### Create Task
+POST http://localhost:4004/odata/v4/process/C_ClosingTask
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+{
+  "description": "testTask"
+}
+
+### Process Task
+POST http://localhost:4004/odata/v4/process/C_ClosingTask(e6ac44cb-1fc2-4dcf-bd00-58463deaa0ca)/process
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+{
+}
+
+### Get Task
+GET http://localhost:4004/odata/v4/process/C_ClosingTask(88cde0d2-c482-49fa-8185-7e89d5ab9041)
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+{
+  "description": "testTask"
+}
