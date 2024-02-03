@@ -9,11 +9,16 @@ module.exports = class ProcessService extends cds.ApplicationService {
     this.on("process", async (req) => {
       const task = await req.query;
       if (!task.length) {
-        req.reject("task does not exist");
+        req.reject(404, "task does not exist");
       }
+
+      if (task[0].status === "done") {
+        req.reject(422, "task already processed");
+      }
+
       const srv = await cds.connect.to("task-service");
       await srv.emit("process", { ID: req.params[0] });
-      debugger;
+      await UPDATE.entity("sap.eventqueue.sample.Task").set({ status: "in progress" }).where({ ID: req.params[0] });
     });
   }
 };

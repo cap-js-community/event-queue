@@ -8,7 +8,7 @@ Authorization: Basic alice@wonderland.com alice
 }
 
 ### Process Task
-POST http://localhost:4004/odata/v4/process/C_ClosingTask(e6ac44cb-1fc2-4dcf-bd00-58463deaa0ca)/process
+POST http://localhost:4004/odata/v4/process/C_ClosingTask(b039d6bd-7861-4d72-9246-cc244485cd2a)/process
 Content-Type: application/json
 Authorization: Basic alice@wonderland.com alice
 
@@ -16,7 +16,7 @@ Authorization: Basic alice@wonderland.com alice
 }
 
 ### Get Task
-GET http://localhost:4004/odata/v4/process/C_ClosingTask(88cde0d2-c482-49fa-8185-7e89d5ab9041)
+GET http://localhost:4004/odata/v4/process/C_ClosingTask(4bee739c-398c-4620-ae0d-4b451d2dd227)
 Content-Type: application/json
 Authorization: Basic alice@wonderland.com alice
 
