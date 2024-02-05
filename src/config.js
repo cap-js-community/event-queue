@@ -56,6 +56,7 @@ class Config {
   #thresholdLoggingEventProcessing;
   #useAsCAPOutbox;
   #userId;
+  #enableTxConsistencyCheck;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -460,6 +461,14 @@ class Config {
 
   get userId() {
     return this.#userId;
+  }
+
+  set enableTxConsistencyCheck(value) {
+    this.#enableTxConsistencyCheck = value;
+  }
+
+  get enableTxConsistencyCheck() {
+    return this.#enableTxConsistencyCheck;
   }
 
   get isMultiTenancy() {

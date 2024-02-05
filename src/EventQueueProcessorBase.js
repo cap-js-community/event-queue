@@ -532,6 +532,7 @@ class EventQueueProcessorBase {
     let result = [];
     const refDateStartAfter = new Date(Date.now() + this.#config.runInterval * 1.2);
     await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
+      await this.checkTxConsistency(tx);
       const entries = await tx.run(
         SELECT.from(this.#config.tableNameEventQueue)
           .forUpdate({ wait: this.#config.forUpdateTimeout })
@@ -656,6 +657,42 @@ class EventQueueProcessorBase {
       }
     });
     return result;
+  }
+
+  async checkTxConsistency(tx) {
+    const errorHandler = (err) =>
+      this.logger.error("tx consistency check failed!", err, {
+        type: this.eventType,
+        subType: this.eventSubType,
+        txTenant: tx.context.tenant,
+        globalCdsTenant: cds.context.tenant,
+      });
+    let txSchema, serviceManagerSchema;
+    try {
+      const mtxServiceManager = require("@sap/cds-mtxs/srv/plugins/hana/srv-mgr");
+      const schemaPromise = tx.run("SELECT CURRENT_SCHEMA FROM DUMMY");
+      const serviceManagerBindingsPromise = mtxServiceManager.getAll();
+      const [schema, serviceManagerBindings] = await Promise.allSettled([schemaPromise, serviceManagerBindingsPromise]);
+      if (schema.reason) {
+        errorHandler(schema.reason);
+        return;
+      }
+      if (serviceManagerBindings.reason) {
+        errorHandler(schema.reason);
+        return;
+      }
+
+      txSchema = schema[0].CURRENT_SCHEMA;
+      serviceManagerSchema = serviceManagerBindings.find((t) => t.labels.tenant_id[0] === tx.context.tenant).credentials
+        .schema;
+    } catch (err) {
+      this.logger.error("");
+    }
+    if (txSchema !== serviceManagerSchema) {
+      const err = EventQueueError.dbClientSchemaMismatch(tx.context.tenant, txSchema, serviceManagerSchema);
+      errorHandler(err);
+      throw err;
+    }
   }
 
   async #selectLastSuccessfulPeriodicTimestamp() {
