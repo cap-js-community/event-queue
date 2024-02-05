@@ -8,7 +8,7 @@ Authorization: Basic alice@wonderland.com alice
 }
 
 ### Process Task
-POST http://localhost:4004/odata/v4/process/C_ClosingTask(6ec33a4d-5ac4-434f-8da5-b9385e4772ec)/process
+POST http://localhost:4004/odata/v4/process/C_ClosingTask(88c2a7b8-5e1b-43f1-b96a-ef78cdf0f165)/process
 Content-Type: application/json
 Authorization: Basic alice@wonderland.com alice
 
