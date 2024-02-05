@@ -1,25 +1,52 @@
-### Create Task
+### Create Task - T1
 POST http://localhost:4004/odata/v4/process/C_ClosingTask
 Content-Type: application/json
 Authorization: Basic alice@wonderland.com alice
 
 {
-  "description": "testTask"
+  "description": "CAP_PRODUCT_DAY-2"
 }
 
-### Process Task
-POST http://localhost:4004/odata/v4/process/C_ClosingTask(88c2a7b8-5e1b-43f1-b96a-ef78cdf0f165)/process
+> {%
+    client.global.set("t1TaskId", response.body.ID);
+%}
+
+### Process Task - T1
+POST http://localhost:4004/odata/v4/process/C_ClosingTask({{t1TaskId}})/process
 Content-Type: application/json
 Authorization: Basic alice@wonderland.com alice
 
 {
 }
 
-### Get Task
-GET http://localhost:4004/odata/v4/process/C_ClosingTask(4bee739c-398c-4620-ae0d-4b451d2dd227)
+### Get Task - T1
+GET http://localhost:4004/odata/v4/process/C_ClosingTask({{t1TaskId}})
 Content-Type: application/json
 Authorization: Basic alice@wonderland.com alice
 
+### Create Task - T2
+POST http://localhost:4004/odata/v4/process/C_ClosingTask
+Content-Type: application/json
+Authorization: Basic bob@builder.com bob
+
 {
-  "description": "testTask"
+  "description": "CAP_PRODUCT_DAY-2"
 }
+
+> {%
+    client.global.set("t2TaskId", response.body.ID);
+    %}
+
+
+### Process Task - T2
+POST http://localhost:4004/odata/v4/process/C_ClosingTask({{t2TaskId}})/process
+Content-Type: application/json
+Authorization: Basic bob@builder.com bob
+
+{
+}
+
+### Get Task - T2
+GET http://localhost:4004/odata/v4/process/C_ClosingTask({{t2TaskId}})
+Content-Type: application/json
+Authorization: Basic bob@builder.com bob
