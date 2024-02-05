@@ -103,7 +103,7 @@ const getSubdomainForTenantId = async (tenantId) => {
   if (subdomainCache[tenantId]) {
     return subdomainCache[tenantId];
   }
-  subdomainCache[tenantId] = new Promise(() => {
+  subdomainCache[tenantId] = new Promise((resolve, reject) => {
     cds.connect
       .to("cds.xt.SaasProvisioningService")
       .then((ssp) => {
