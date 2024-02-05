@@ -100,7 +100,7 @@ const getSubdomainForTenantId = async (tenantId) => {
     return null;
   }
   if (subdomainCache[tenantId]) {
-    return subdomainCache[tenantId];
+    return await subdomainCache[tenantId];
   }
   subdomainCache[tenantId] = new Promise((resolve) => {
     cds.connect
