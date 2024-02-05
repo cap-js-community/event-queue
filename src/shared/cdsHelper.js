@@ -4,6 +4,7 @@ const VError = require("verror");
 const cds = require("@sap/cds");
 
 const config = require("../config");
+const { resolve } = require("@sap/cds");
 
 const subdomainCache = {};
 
@@ -102,14 +103,20 @@ const getSubdomainForTenantId = async (tenantId) => {
   if (subdomainCache[tenantId]) {
     return subdomainCache[tenantId];
   }
-  try {
-    const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
-    const response = await ssp.get("/tenant", { subscribedTenantId: tenantId });
-    subdomainCache[tenantId] = response.subscribedSubdomain;
-    return response.subscribedSubdomain;
-  } catch (err) {
-    return null;
-  }
+  subdomainCache[tenantId] = new Promise(() => {
+    cds.connect
+      .to("cds.xt.SaasProvisioningService")
+      .then((ssp) => {
+        ssp
+          .get("/tenant", { subscribedTenantId: tenantId })
+          .then((response) => {
+            resolve(response.subscribedSubdomain);
+          })
+          .catch(() => resolve(null));
+      })
+      .catch(() => resolve(null));
+  });
+  return await subdomainCache[tenantId];
 };
 
 const getAllTenantIds = async () => {
