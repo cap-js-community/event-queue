@@ -47,6 +47,7 @@ test/e2e/util/chromeDriverVersion.json
 test/e2e/pageobjects/index.js
 
 example-cap-server/data
+example-cap-server/package-lock.json
 
 # sqlite
 *.db-journal
