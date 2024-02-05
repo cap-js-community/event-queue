@@ -4,7 +4,6 @@ const VError = require("verror");
 const cds = require("@sap/cds");
 
 const config = require("../config");
-const { resolve } = require("@sap/cds");
 
 const subdomainCache = {};
 
