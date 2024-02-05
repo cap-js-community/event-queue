@@ -8,6 +8,9 @@ exports[`baseFunctionality ad-hoc events error handling handle acquireDistribute
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
+      "globalTenantId": undefined,
+      "tenantId": 123,
+      "tenantIdBase": 123,
     },
   ],
 ]
@@ -50,6 +53,9 @@ exports[`baseFunctionality ad-hoc events error handling handle getQueueEntriesAn
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
+      "globalTenantId": undefined,
+      "tenantId": 123,
+      "tenantIdBase": 123,
     },
   ],
 ]

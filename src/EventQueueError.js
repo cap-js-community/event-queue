@@ -17,6 +17,7 @@ const ERROR_CODES = {
   DUPLICATE_EVENT_REGISTRATION: "DUPLICATE_EVENT_REGISTRATION",
   NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
   LOAD_HIGHER_THAN_LIMIT: "LOAD_HIGHER_THAN_LIMIT",
+  SCHEMA_TENANT_MISMATCH: "SCHEMA_TENANT_MISMATCH",
 };
 
 const ERROR_CODES_META = {
@@ -62,6 +63,9 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.LOAD_HIGHER_THAN_LIMIT]: {
     message: "The defined load of an event is higher than the maximum defined limit. Check your configuration!",
+  },
+  [ERROR_CODES.SCHEMA_TENANT_MISMATCH]: {
+    message: "The db client associated to the tenant context does not match! Processing will be skipped.",
   },
 };
 
@@ -216,6 +220,17 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.LOAD_HIGHER_THAN_LIMIT,
         info: { load, label },
+      },
+      message
+    );
+  }
+
+  static dbClientSchemaMismatch(tenantId, dbClientSchema, serviceManagerSchema) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.SCHEMA_TENANT_MISMATCH];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.SCHEMA_TENANT_MISMATCH,
+        info: { tenantId, dbClientSchema, serviceManagerSchema },
       },
       message
     );
