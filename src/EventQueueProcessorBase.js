@@ -660,6 +660,10 @@ class EventQueueProcessorBase {
   }
 
   async checkTxConsistency(tx) {
+    if (!this.#config.enableTxConsistencyCheck) {
+      return;
+    }
+
     const errorHandler = (err) =>
       this.logger.error("tx consistency check failed!", err, {
         type: this.eventType,

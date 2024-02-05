@@ -93,9 +93,9 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
     }
   } catch (err) {
     cds.log(COMPONENT_NAME).error("Processing event queue failed with unexpected error.", err, {
-      tenantId: context.tenant,
-      tenantIdBase: baseInstance?.context.tenant,
-      globalTenantId: cds.context.tenant,
+      tenantId: context?.tenant,
+      tenantIdBase: baseInstance?.context?.tenant,
+      globalTenantId: cds.context?.tenant,
       eventType,
       eventSubType,
     });
