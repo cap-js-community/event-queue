@@ -686,11 +686,11 @@ class EventQueueProcessorBase {
         return;
       }
 
-      txSchema = schema[0].CURRENT_SCHEMA;
-      serviceManagerSchema = serviceManagerBindings.find((t) => t.labels.tenant_id[0] === tx.context.tenant).credentials
-        .schema;
+      txSchema = schema.value[0].CURRENT_SCHEMA;
+      serviceManagerSchema = serviceManagerBindings.value.find((t) => t.labels.tenant_id[0] === tx.context.tenant)
+        .credentials.schema;
     } catch (err) {
-      this.logger.error("");
+      errorHandler(err);
     }
     if (txSchema !== serviceManagerSchema) {
       const err = EventQueueError.dbClientSchemaMismatch(tx.context.tenant, txSchema, serviceManagerSchema);
