@@ -19,10 +19,10 @@ events:
     parallelEventProcessing: 2
     checkForNextChunk: true
 
-periodicEvents:
-  - type: HealthCheck
-    subType: DB
-    impl: ./srv/EventQueueHealthCheckDb
-    load: 80
-    transactionMode: alwaysRollback
-    interval: 15
+#periodicEvents:
+#  - type: HealthCheck
+#    subType: DB
+#    impl: ./srv/EventQueueHealthCheckDb
+#    load: 80
+#    transactionMode: alwaysRollback
+#    interval: 15
