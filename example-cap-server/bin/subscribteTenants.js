@@ -1,18 +1,21 @@
 "use strict";
 
 const cds = require("@sap/cds");
+const cdsServe = require("@sap/cds/bin/serve");
+const TENANTS = ["t1", "t2", "t3"];
 
 const LOGGER = cds.log("/server");
 
-cds.on("listening", () => {
-  subscribeTenants().catch(LOGGER);
-});
+(async function () {
+  await cdsServe([], { port: "0" });
+  await subscribeTenants();
+  process.exit(0);
+})();
 
 async function subscribeTenants() {
   LOGGER.info("Setup of tenants started - Some more patience...");
   const ds = await cds.connect.to("cds.xt.DeploymentService");
-  const tenants = ["t1", "t2"];
-  for (const tenant of tenants) {
+  for (const tenant of TENANTS) {
     try {
       await ds.unsubscribe(tenant);
     } catch {
@@ -30,5 +33,3 @@ async function subscribeTenants() {
 
   LOGGER.info("Setup of tenants finished - You can start testing now!");
 }
-
-module.exports = cds.server;

@@ -46,6 +46,9 @@ test/e2e/util/chromeDriverVersion.json
 # created via pageIndexer.js
 test/e2e/pageobjects/index.js
 
+example-cap-server/data
+example-cap-server/package-lock.json
+
 # sqlite
 *.db-journal
 *.sqlite-journal
