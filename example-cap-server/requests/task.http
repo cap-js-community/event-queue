@@ -4,7 +4,7 @@ Content-Type: application/json
 Authorization: Basic alice@wonderland.com alice
 
 {
-  "description": "CAP_PRODUCT_DAY-2"
+  "description": "CAP_PRODUCT_DAY-T1"
 }
 
 > {%
@@ -30,7 +30,7 @@ Content-Type: application/json
 Authorization: Basic bob@builder.com bob
 
 {
-  "description": "CAP_PRODUCT_DAY-2"
+  "description": "CAP_PRODUCT_DAY-T2"
 }
 
 > {%
