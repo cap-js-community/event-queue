@@ -5,24 +5,10 @@ events:
     load: 10
     parallelEventProcessing: 5
 
-  - type: Mail
-    subType: Cluster
-    impl: ./srv/EventQueueClusteredMail
-    processAfterCommit: false
-    load: 10
-    parallelEventProcessing: 5
-
-  - type: Crypto
-    subType: Hash
-    impl: ./srv/EventQueueCryptoHash
+periodicEvents:
+  - type: HealthCheck
+    subType: DB
+    impl: ./srv/EventQueueHealthCheckDb
     load: 80
-    parallelEventProcessing: 2
-    checkForNextChunk: true
-
-#periodicEvents:
-#  - type: HealthCheck
-#    subType: DB
-#    impl: ./srv/EventQueueHealthCheckDb
-#    load: 80
-#    transactionMode: alwaysRollback
-#    interval: 15
+    transactionMode: alwaysRollback
+    interval: 15
