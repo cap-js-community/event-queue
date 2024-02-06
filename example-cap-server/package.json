@@ -29,7 +29,7 @@
     "eventQueue": {
       "plugin": true,
       "configFilePath": "./srv/eventConfig.yml",
-      "runInterval": 30000,
+      "runInterval": 300000,
       "useAsCAPOutbox": true
     },
     "requires": {
@@ -52,7 +52,7 @@
         "outbox": {
           "kind": "persistent-outbox",
           "load": 60,
-           "checkForNextChunk": true,
+          "checkForNextChunk": true,
           "transactionMode": "isolated"
         },
         "impl": "./example-cap-server/srv/facade/task-service.js"
