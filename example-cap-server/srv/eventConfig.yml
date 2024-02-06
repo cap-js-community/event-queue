@@ -23,6 +23,6 @@ events:
 #  - type: HealthCheck
 #    subType: DB
 #    impl: ./srv/EventQueueHealthCheckDb
-#    load: 40
+#    load: 80
 #    transactionMode: alwaysRollback
 #    interval: 15
