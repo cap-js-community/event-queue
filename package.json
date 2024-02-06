@@ -42,7 +42,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "redis": "4.6.12",
+    "redis": "4.6.13",
     "verror": "1.10.1",
     "yaml": "2.3.4"
   },
