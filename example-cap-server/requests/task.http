@@ -1,0 +1,52 @@
+### Create Task - T1
+POST http://localhost:4004/odata/v4/process/C_ClosingTask
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+{
+  "description": "CAP_PRODUCT_DAY-T1"
+}
+
+> {%
+    client.global.set("t1TaskId", response.body.ID);
+%}
+
+### Process Task - T1
+POST http://localhost:4004/odata/v4/process/C_ClosingTask({{t1TaskId}})/process
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+{
+}
+
+### Get Task - T1
+GET http://localhost:4004/odata/v4/process/C_ClosingTask({{t1TaskId}})
+Content-Type: application/json
+Authorization: Basic alice@wonderland.com alice
+
+### Create Task - T2
+POST http://localhost:4004/odata/v4/process/C_ClosingTask
+Content-Type: application/json
+Authorization: Basic bob@builder.com bob
+
+{
+  "description": "CAP_PRODUCT_DAY-T2"
+}
+
+> {%
+    client.global.set("t2TaskId", response.body.ID);
+    %}
+
+
+### Process Task - T2
+POST http://localhost:4004/odata/v4/process/C_ClosingTask({{t2TaskId}})/process
+Content-Type: application/json
+Authorization: Basic bob@builder.com bob
+
+{
+}
+
+### Get Task - T2
+GET http://localhost:4004/odata/v4/process/C_ClosingTask({{t2TaskId}})
+Content-Type: application/json
+Authorization: Basic bob@builder.com bob

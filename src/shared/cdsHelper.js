@@ -100,16 +100,22 @@ const getSubdomainForTenantId = async (tenantId) => {
     return null;
   }
   if (subdomainCache[tenantId]) {
-    return subdomainCache[tenantId];
+    return await subdomainCache[tenantId];
   }
-  try {
-    const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
-    const response = await ssp.get("/tenant", { subscribedTenantId: tenantId });
-    subdomainCache[tenantId] = response.subscribedSubdomain;
-    return response.subscribedSubdomain;
-  } catch (err) {
-    return null;
-  }
+  subdomainCache[tenantId] = new Promise((resolve) => {
+    cds.connect
+      .to("cds.xt.SaasProvisioningService")
+      .then((ssp) => {
+        ssp
+          .get("/tenant", { subscribedTenantId: tenantId })
+          .then((response) => {
+            resolve(response.subscribedSubdomain);
+          })
+          .catch(() => resolve(null));
+      })
+      .catch(() => resolve(null));
+  });
+  return await subdomainCache[tenantId];
 };
 
 const getAllTenantIds = async () => {

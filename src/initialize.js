@@ -37,6 +37,7 @@ const CONFIG_VARS = [
   ["thresholdLoggingEventProcessing", 50],
   ["useAsCAPOutbox", false],
   ["userId", null],
+  ["enableTxConsistencyCheck", false],
 ];
 
 const initialize = async ({
@@ -53,6 +54,7 @@ const initialize = async ({
   thresholdLoggingEventProcessing,
   useAsCAPOutbox,
   userId,
+  enableTxConsistencyCheck,
 } = {}) => {
   // TODO: initialize check:
   // - content of yaml check
@@ -76,7 +78,8 @@ const initialize = async ({
     updatePeriodicEvents,
     thresholdLoggingEventProcessing,
     useAsCAPOutbox,
-    userId
+    userId,
+    enableTxConsistencyCheck
   );
 
   const logger = cds.log(COMPONENT);

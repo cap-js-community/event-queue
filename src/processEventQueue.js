@@ -34,7 +34,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       return;
     }
     if (baseInstance.isPeriodicEvent) {
-      return await processPeriodicEvent(baseInstance);
+      return await processPeriodicEvent(context, baseInstance);
     }
     eventConfig.startTime = startTime;
     while (shouldContinue) {
@@ -93,6 +93,9 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
     }
   } catch (err) {
     cds.log(COMPONENT_NAME).error("Processing event queue failed with unexpected error.", err, {
+      tenantId: context?.tenant,
+      tenantIdBase: baseInstance?.context?.tenant,
+      globalTenantId: cds.context?.tenant,
       eventType,
       eventSubType,
     });
@@ -115,7 +118,7 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
   return false;
 };
 
-const processPeriodicEvent = async (eventTypeInstance) => {
+const processPeriodicEvent = async (context, eventTypeInstance) => {
   const isPeriodicEventBlockedCb = config.isPeriodicEventBlockedCb;
   const params = [eventTypeInstance.eventType, eventTypeInstance.eventSubType, eventTypeInstance.context.tenant];
   let eventBlocked = false;
@@ -206,6 +209,9 @@ const processPeriodicEvent = async (eventTypeInstance) => {
     cds.log(COMPONENT_NAME).error("Processing periodic events failed with unexpected error.", err, {
       eventType: eventTypeInstance?.eventType,
       eventSubType: eventTypeInstance?.eventSubType,
+      tenantId: context?.tenant,
+      tenantIdBase: eventTypeInstance?.context?.tenant,
+      globalTenantId: cds.context?.tenant,
     });
   } finally {
     await eventTypeInstance?.handleReleaseLock();
