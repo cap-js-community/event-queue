@@ -21,7 +21,7 @@ const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 
-let serviceBindingCache = {};
+let serviceBindingCache = null;
 
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
@@ -700,13 +700,16 @@ class EventQueueProcessorBase {
   }
 
   async #getServiceBindings() {
-    if (serviceBindingCache && serviceBindingCache.exipreTs >= Date.now()) {
-      return serviceBindingCache.value;
+    if (!(serviceBindingCache && serviceBindingCache.expireTs >= Date.now())) {
+      const mtxServiceManager = require("@sap/cds-mtxs/srv/plugins/hana/srv-mgr");
+      serviceBindingCache = {
+        expireTs: Date.now() + 10 * 60 * 1000,
+        value: mtxServiceManager.getAll().catch(() => {
+          serviceBindingCache = null;
+        }),
+      };
     }
-    const mtxServiceManager = require("@sap/cds-mtxs/srv/plugins/hana/srv-mgr");
-    serviceBindingCache.value = await mtxServiceManager.getAll();
-    serviceBindingCache.exipreTs = Date.now() + 10 * 60 * 1000;
-    return serviceBindingCache.value;
+    return await serviceBindingCache.value;
   }
 
   async #selectLastSuccessfulPeriodicTimestamp() {
