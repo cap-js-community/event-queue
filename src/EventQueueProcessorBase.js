@@ -21,6 +21,8 @@ const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 
+let serviceBindingCache = {};
+
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
   #exceededTriesExceeded = [];
@@ -673,16 +675,14 @@ class EventQueueProcessorBase {
       });
     let txSchema, serviceManagerSchema;
     try {
-      const mtxServiceManager = require("@sap/cds-mtxs/srv/plugins/hana/srv-mgr");
       const schemaPromise = tx.run("SELECT CURRENT_SCHEMA FROM DUMMY");
-      const serviceManagerBindingsPromise = mtxServiceManager.getAll();
-      const [schema, serviceManagerBindings] = await Promise.allSettled([schemaPromise, serviceManagerBindingsPromise]);
+      const [schema, serviceManagerBindings] = await Promise.allSettled([schemaPromise, this.#getServiceBindings()]);
       if (schema.reason) {
         errorHandler(schema.reason);
         return;
       }
       if (serviceManagerBindings.reason) {
-        errorHandler(schema.reason);
+        errorHandler(serviceManagerBindings.reason);
         return;
       }
 
@@ -697,6 +697,16 @@ class EventQueueProcessorBase {
       errorHandler(err);
       throw err;
     }
+  }
+
+  async #getServiceBindings() {
+    if (serviceBindingCache && serviceBindingCache.exipreTs >= Date.now()) {
+      return serviceBindingCache.value;
+    }
+    const mtxServiceManager = require("@sap/cds-mtxs/srv/plugins/hana/srv-mgr");
+    serviceBindingCache.value = await mtxServiceManager.getAll();
+    serviceBindingCache.exipreTs = Date.now() + 10 * 60 * 1000;
+    return serviceBindingCache.value;
   }
 
   async #selectLastSuccessfulPeriodicTimestamp() {
