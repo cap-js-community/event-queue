@@ -375,6 +375,30 @@ describe("event-queue outbox", () => {
       `);
     });
 
+    it("init event-queue without yml", async () => {
+      eventQueue.config.initialized = false;
+      await eventQueue.initialize({
+        processEventsAfterPublish: false,
+        registerAsEventProcessor: false,
+        useAsCAPOutbox: true,
+      });
+
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+      expect(loggerMock).sendFioriActionCalled();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
     describe("not connected service should lazily connect and create configuration", () => {
       beforeEach(() => {
         eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.2.5 - 2024-02-XX
+
+### Fixed
+
+- Allow to initialize event-queue without config.yml in case of usage as CAP outbox
+
 ## v1.2.4 - 2024-02-07
 
 ### Changed
