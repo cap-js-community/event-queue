@@ -108,20 +108,28 @@ const initialize = async ({
 };
 
 const readConfigFromFile = async (configFilepath) => {
-  const fileData = await readFileAsync(configFilepath);
-  if (/\.ya?ml$/i.test(configFilepath)) {
-    return yaml.parse(fileData.toString());
+  try {
+    const fileData = await readFileAsync(configFilepath);
+    if (/\.ya?ml$/i.test(configFilepath)) {
+      return yaml.parse(fileData.toString());
+    }
+    if (/\.json$/i.test(configFilepath)) {
+      return JSON.parse(fileData.toString());
+    }
+
+    throw new VError(
+      {
+        name: VERROR_CLUSTER_NAME,
+        info: { configFilepath },
+      },
+      "configFilepath with unsupported extension, allowed extensions are .yaml and .json"
+    );
+  } catch (err) {
+    if (config.useAsCAPOutbox) {
+      return {};
+    }
+    throw err;
   }
-  if (/\.json$/i.test(configFilepath)) {
-    return JSON.parse(fileData.toString());
-  }
-  throw new VError(
-    {
-      name: VERROR_CLUSTER_NAME,
-      info: { configFilepath },
-    },
-    "configFilepath with unsupported extension, allowed extensions are .yaml and .json"
-  );
 };
 
 const registerEventProcessors = () => {
@@ -149,9 +157,11 @@ const monkeyPatchCAPOutbox = () => {
   if (config.useAsCAPOutbox) {
     Object.defineProperty(cds, "outboxed", {
       get: () => eventQueueAsOutbox.outboxed,
+      configurable: true,
     });
     Object.defineProperty(cds, "unboxed", {
       get: () => eventQueueAsOutbox.unboxed,
+      configurable: true,
     });
   }
 };
