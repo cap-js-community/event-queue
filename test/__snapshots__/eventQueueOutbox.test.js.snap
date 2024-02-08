@@ -1,5 +1,53 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true req error should be caught for emit 1`] = `
+[
+  [
+    "error processing outboxed service call",
+    [TypeError: req.error is not a function],
+    {
+      "serviceName": "NotificationService",
+    },
+  ],
+]
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true req error should be caught for send 1`] = `
+[
+  [
+    "error processing outboxed service call",
+    [Error: error occured],
+    {
+      "serviceName": "NotificationService",
+    },
+  ],
+]
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true req reject should be caught for send 1`] = `
+[
+  [
+    "error processing outboxed service call",
+    [Error: error occured],
+    {
+      "serviceName": "NotificationService",
+    },
+  ],
+]
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true req reject should cause an error for emit 1`] = `
+[
+  [
+    "error processing outboxed service call",
+    [TypeError: req.reject is not a function],
+    {
+      "serviceName": "NotificationService",
+    },
+  ],
+]
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored for emit 1`] = `
 {
   "_fromSend": true,
