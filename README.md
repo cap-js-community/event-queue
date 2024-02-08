@@ -28,7 +28,6 @@ For detailed information check out the [documentation](https://cap-js-community.
 {
   "cds": {
     "eventQueue": {
-      "plugin": true,
       "configFilePath": "./srv/eventQueueConfig.yml"
     }
   }
