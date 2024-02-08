@@ -375,6 +375,51 @@ describe("event-queue outbox", () => {
       `);
     });
 
+    it("init event-queue without yml", async () => {
+      eventQueue.config.initialized = false;
+      await eventQueue.initialize({
+        processEventsAfterPublish: false,
+        registerAsEventProcessor: false,
+        useAsCAPOutbox: true,
+      });
+
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+
+      const mock = () => {
+        jest.spyOn(cds, "log").mockImplementationOnce((...args) => {
+          if (args[0] === "sendFiori") {
+            throw new Error("service error - sendFiori");
+          }
+          const instance = cds.log(...args);
+          mock();
+          return instance;
+        });
+      };
+      mock();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchInlineSnapshot(`
+        [
+          [
+            "error processing outboxed service call",
+            [Error: service error - sendFiori],
+            {
+              "serviceName": "NotificationService",
+            },
+          ],
+        ]
+      `);
+    });
+
     describe("not connected service should lazily connect and create configuration", () => {
       beforeEach(() => {
         eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");
