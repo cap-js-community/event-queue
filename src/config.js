@@ -57,6 +57,7 @@ class Config {
   #useAsCAPOutbox;
   #userId;
   #enableTxConsistencyCheck;
+  #cleanupLocksAndEventsForDev;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -469,6 +470,14 @@ class Config {
 
   get enableTxConsistencyCheck() {
     return this.#enableTxConsistencyCheck;
+  }
+
+  set cleanupLocksAndEventsForDev(value) {
+    this.#cleanupLocksAndEventsForDev = value;
+  }
+
+  get cleanupLocksAndEventsForDev() {
+    return this.#cleanupLocksAndEventsForDev;
   }
 
   get isMultiTenancy() {

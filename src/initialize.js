@@ -14,6 +14,8 @@ const config = require("./config");
 const { initEventQueueRedisSubscribe, closeSubscribeClient } = require("./redisPubSub");
 const { closeMainClient } = require("./shared/redis");
 const eventQueueAsOutbox = require("./outbox/eventQueueAsOutbox");
+const { getAllTenantIds } = require("./shared/cdsHelper");
+const { EventProcessingStatus } = require("./constants");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -38,6 +40,7 @@ const CONFIG_VARS = [
   ["useAsCAPOutbox", false],
   ["userId", null],
   ["enableTxConsistencyCheck", false],
+  ["registerCleanupForDev", false],
 ];
 
 const initialize = async ({
@@ -55,6 +58,7 @@ const initialize = async ({
   useAsCAPOutbox,
   userId,
   enableTxConsistencyCheck,
+  cleanupLocksAndEventsForDev,
 } = {}) => {
   // TODO: initialize check:
   // - content of yaml check
@@ -79,7 +83,8 @@ const initialize = async ({
     thresholdLoggingEventProcessing,
     useAsCAPOutbox,
     userId,
-    enableTxConsistencyCheck
+    enableTxConsistencyCheck,
+    cleanupLocksAndEventsForDev
   );
 
   const logger = cds.log(COMPONENT);
@@ -90,6 +95,7 @@ const initialize = async ({
     cds.on("connect", (service) => {
       if (service.name === "db") {
         dbHandler.registerEventQueueDbHandler(service);
+        config.cleanupLocksAndEventsForDev && registerCleanupForDevDb().catch(() => {});
       }
     });
   }
@@ -221,6 +227,25 @@ const registerCdsShutdown = () => {
   cds.on("shutdown", async () => {
     await Promise.allSettled([closeMainClient(), closeSubscribeClient()]);
   });
+};
+
+const registerCleanupForDevDb = async () => {
+  const profile = cds.env.profiles.find((profile) => profile === "development");
+  if (!profile) {
+    return;
+  }
+
+  const tenantIds = await getAllTenantIds();
+  for (const tenantId of tenantIds) {
+    await cds.tx({ tenant: tenantId }, async (tx) => {
+      await tx.run(DELETE.from(config.tableNameEventLock));
+      await tx.run(
+        UPDATE.entity(config.tableNameEventQueue).where({ status: EventProcessingStatus.InProgress }).set({
+          status: EventProcessingStatus.Error,
+        })
+      );
+    });
+  }
 };
 
 module.exports = {
