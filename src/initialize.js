@@ -40,7 +40,7 @@ const CONFIG_VARS = [
   ["useAsCAPOutbox", false],
   ["userId", null],
   ["enableTxConsistencyCheck", false],
-  ["registerCleanupForDev", false],
+  ["registerCleanupForDev", true],
 ];
 
 const initialize = async ({
