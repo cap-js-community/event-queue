@@ -60,10 +60,6 @@ const initialize = async ({
   enableTxConsistencyCheck,
   cleanupLocksAndEventsForDev,
 } = {}) => {
-  // TODO: initialize check:
-  // - content of yaml check
-  // - betweenRuns
-
   if (config.initialized) {
     return;
   }

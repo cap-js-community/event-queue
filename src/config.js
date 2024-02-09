@@ -341,6 +341,9 @@ class Config {
   }
 
   set runInterval(value) {
+    if (!Number.isInteger(value) || value <= 10 * 1000) {
+      throw EventQueueError.invalidInterval();
+    }
     this.#runInterval = value;
   }
 
