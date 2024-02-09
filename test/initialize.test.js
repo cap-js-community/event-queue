@@ -89,7 +89,7 @@ describe("initialize", () => {
     }).toThrowErrorMatchingInlineSnapshot(`"Invalid interval, the value needs to greater than 10 seconds."`);
 
     expect(() => {
-      config.runInterval = null;
+      config.runInterval = "200000";
     }).toThrowErrorMatchingInlineSnapshot(`"Invalid interval, the value needs to greater than 10 seconds."`);
 
     fileContent.periodicEvents.splice(1);
