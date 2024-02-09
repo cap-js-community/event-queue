@@ -29,7 +29,7 @@
     "eventQueue": {
       "plugin": true,
       "configFilePath": "./srv/eventConfig.yml",
-      "runInterval": 1,
+      "runInterval": 300000,
       "useAsCAPOutbox": true
     },
     "requires": {
