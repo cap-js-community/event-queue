@@ -80,6 +80,18 @@ describe("initialize", () => {
       config.fileContent = fileContent;
     }).toThrowErrorMatchingInlineSnapshot(`"Duplicate event registration, check the uniqueness of type and subType."`);
 
+    expect(() => {
+      config.runInterval = 2;
+    }).toThrowErrorMatchingInlineSnapshot(`"Invalid interval, the value needs to greater than 10 seconds."`);
+
+    expect(() => {
+      config.runInterval = null;
+    }).toThrowErrorMatchingInlineSnapshot(`"Invalid interval, the value needs to greater than 10 seconds."`);
+
+    expect(() => {
+      config.runInterval = null;
+    }).toThrowErrorMatchingInlineSnapshot(`"Invalid interval, the value needs to greater than 10 seconds."`);
+
     fileContent.periodicEvents.splice(1);
     fileContent.events.push({ ...fileContent.events[0] });
     expect(() => {
