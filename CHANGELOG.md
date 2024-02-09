@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Allow to initialize event-queue without config.yml in case of usage as CAP outbox
 
+### Changed
+
+- The parameter `runInterval` is checked during init. Only values greater than 10 seconds are allowed.
+
 ## v1.2.4 - 2024-02-07
 
 ### Changed
