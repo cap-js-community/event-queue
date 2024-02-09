@@ -32,11 +32,11 @@ Services can be outboxed without any additional configuration. In this scenario,
 default parameters of the CAP outbox and the event-queue. Currently, the CAP outbox implementation supports the
 following parameters, which are mapped to the corresponding configuration parameters of the event-queue:
 
-| CAP outbox  | event-queue             |
-| ----------- | ----------------------- |
-| chunkSize   | selectMaxChunkSize      |
-| maxAttempts | retryAttempts           |
-| parallel    | parallelEventProcessing |
+| CAP outbox  | event-queue             | CAP default       |
+| ----------- | ----------------------- |-------------------|
+| chunkSize   | selectMaxChunkSize      | 100               |
+| maxAttempts | retryAttempts           | 20                |
+| parallel    | parallelEventProcessing | yes (mapped to 5) |
 
 The `parallel` parameter is treated specially. The CAP outbox supports `true` or `false` as values for this parameter.
 Since the event-queue allows specifying concurrency with a number, `parallel=true` is mapped
@@ -72,13 +72,12 @@ behavior of the [CAP outbox](https://cap.cloud.sap/docs/node.js/outbox). The
 parameters `transactionMode`, `checkForNextChunk`, and `parallelEventProcessing` are
 exclusive to the event-queue.
 
-## Example for an outboxed service
+## Example for a custom outboxed service
 
-The implementation below shows a basic cds service which can be unboxed. If there outboxing should be configured via
-`cds.requires`
+### Internal Service with `cds.Service`
 
-The importance here is that the service inherits
-from `cds.Service`. 
+The implementation below shows a basic cds service which can be unboxed. If the outboxing should be configured via
+`cds.env.requires` the service needs to inherit from `cds.Service`.
 
 ```js
 class TaskService extends cds.Service {
@@ -89,5 +88,69 @@ class TaskService extends cds.Service {
         });
     }
 }
-
 ```
+
+Enabling outboxing via config can be archived via `cds.env.requires`, e.g. via package.json.
+
+```json
+{
+  "cds": {
+    "requires": {
+      "task-service": {
+        "impl": "./srv/PATH_SERVICE/taskService.js",
+        "outbox": {
+          "kind": "persistent-outbox",
+          "transactionMode": "alwaysRollback",
+          "maxAttempts": 5,
+          "checkForNextChunk": true,
+          "parallelEventProcessing": 5
+        }
+      }
+    }
+  }
+}
+```
+
+### Application Service with `cds.ApplicationService`
+
+In comparison `cds.ApplicationService` which are served based on a protocol like odata-v4 can't be outboxed via
+configuration (`cds.env.requires`). However the outboxing can be done manually as showed in the example below:
+
+```js
+const service = await cds.connect.to("task-service");
+const outboxedService = cds.outboxed(service, {
+    kind: "persitent-outbox",
+    transactionMode: "alwaysRollback",
+    checkForNextChun: true,
+});
+await outboxedService.send("process", {
+    ID: 1,
+    comment: "done"
+})
+```
+
+
+### Error handling in a custom outboxed service
+
+If the custom service is called via `service.send()` errors can be raised with `req.reject()` and `req.error()`.
+The functions `reject` and `error` can't be used if the service call is done via `service.emit()`.
+See the example below for a reference implementation.
+
+```js
+class TaskService extends cds.Service {
+    async init() {
+        await super.init();
+        this.on("rejectEvent", (req) => {
+            req.reject(404, "error occured");
+        });
+
+        this.on("errorEvent", (req) => {
+            req.error(404, "error occured");
+        });
+    }
+}
+```
+
+Errors raised in custom outboxed service are thrown and will be logged from the event-queue. The event entry will be set
+to error and will be retried based on the event configuration.
+
