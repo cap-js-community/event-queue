@@ -11,6 +11,14 @@ class NotificationService extends cds.Service {
         user: req.user.id,
       });
     });
+
+    this.on("rejectEvent", (req) => {
+      req.reject(404, "error occured");
+    });
+
+    this.on("errorEvent", (req) => {
+      req.error(404, "error occured");
+    });
   }
 }
 
