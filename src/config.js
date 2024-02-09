@@ -57,6 +57,7 @@ class Config {
   #useAsCAPOutbox;
   #userId;
   #enableTxConsistencyCheck;
+  #cleanupLocksAndEventsForDev;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -340,6 +341,9 @@ class Config {
   }
 
   set runInterval(value) {
+    if (!Number.isInteger(value) || value <= 10 * 1000) {
+      throw EventQueueError.invalidInterval();
+    }
     this.#runInterval = value;
   }
 
@@ -469,6 +473,14 @@ class Config {
 
   get enableTxConsistencyCheck() {
     return this.#enableTxConsistencyCheck;
+  }
+
+  set cleanupLocksAndEventsForDev(value) {
+    this.#cleanupLocksAndEventsForDev = value;
+  }
+
+  get cleanupLocksAndEventsForDev() {
+    return this.#cleanupLocksAndEventsForDev;
   }
 
   get isMultiTenancy() {
