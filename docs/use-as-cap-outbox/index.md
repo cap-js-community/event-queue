@@ -33,7 +33,7 @@ default parameters of the CAP outbox and the event-queue. Currently, the CAP out
 following parameters, which are mapped to the corresponding configuration parameters of the event-queue:
 
 | CAP outbox  | event-queue             | CAP default       |
-| ----------- | ----------------------- |-------------------|
+| ----------- | ----------------------- | ----------------- |
 | chunkSize   | selectMaxChunkSize      | 100               |
 | maxAttempts | retryAttempts           | 20                |
 | parallel    | parallelEventProcessing | yes (mapped to 5) |
@@ -81,12 +81,12 @@ The implementation below shows a basic cds service which can be unboxed. If the 
 
 ```js
 class TaskService extends cds.Service {
-    async init() {
-        await super.init();
-        this.on("process", async function (req) {
-            // add your code here
-        });
-    }
+  async init() {
+    await super.init();
+    this.on("process", async function (req) {
+      // add your code here
+    });
+  }
 }
 ```
 
@@ -119,16 +119,15 @@ configuration (`cds.env.requires`). However the outboxing can be done manually a
 ```js
 const service = await cds.connect.to("task-service");
 const outboxedService = cds.outboxed(service, {
-    kind: "persitent-outbox",
-    transactionMode: "alwaysRollback",
-    checkForNextChun: true,
+  kind: "persitent-outbox",
+  transactionMode: "alwaysRollback",
+  checkForNextChun: true,
 });
 await outboxedService.send("process", {
-    ID: 1,
-    comment: "done"
-})
+  ID: 1,
+  comment: "done",
+});
 ```
-
 
 ### Error handling in a custom outboxed service
 
@@ -138,19 +137,18 @@ See the example below for a reference implementation.
 
 ```js
 class TaskService extends cds.Service {
-    async init() {
-        await super.init();
-        this.on("rejectEvent", (req) => {
-            req.reject(404, "error occured");
-        });
+  async init() {
+    await super.init();
+    this.on("rejectEvent", (req) => {
+      req.reject(404, "error occured");
+    });
 
-        this.on("errorEvent", (req) => {
-            req.error(404, "error occured");
-        });
-    }
+    this.on("errorEvent", (req) => {
+      req.error(404, "error occured");
+    });
+  }
 }
 ```
 
 Errors raised in custom outboxed service are thrown and will be logged from the event-queue. The event entry will be set
 to error and will be retried based on the event configuration.
-
