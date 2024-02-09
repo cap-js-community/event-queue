@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.2.5 - 2024-02-XX
 
+### Added
+
+- The `cleanupLocksAndEventsForDev` parameter allows for the cleanup of all locks and events in progress during server
+  start. This option is intended for development purposes.
+
 ### Fixed
 
 - Allow to initialize event-queue without config.yml in case of usage as CAP outbox
