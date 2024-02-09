@@ -11,8 +11,10 @@ nav_order: 5
 # Use as CAP Outbox
 
 <!-- prettier-ignore -->
+
 - TOC
-{: toc}
+  {: toc}
+
 <!-- prettier-ignore-end -->
 
 The event-queue can be used to replace the CAP outbox solution to achieve a unified and streamlined architecture for
@@ -72,12 +74,12 @@ behavior of the [CAP outbox](https://cap.cloud.sap/docs/node.js/outbox). The
 parameters `transactionMode`, `checkForNextChunk`, and `parallelEventProcessing` are
 exclusive to the event-queue.
 
-## Example for a custom outboxed service
+## Example of a Custom Outboxed Service
 
 ### Internal Service with `cds.Service`
 
-The implementation below shows a basic cds service which can be unboxed. If the outboxing should be configured via
-`cds.env.requires` the service needs to inherit from `cds.Service`.
+The implementation below demonstrates a basic `cds.Service` that can be outboxed. If you want to configure outboxing
+via `cds.env.requires`, the service needs to inherit from `cds.Service`.
 
 ```js
 class TaskService extends cds.Service {
@@ -90,7 +92,7 @@ class TaskService extends cds.Service {
 }
 ```
 
-Enabling outboxing via config can be archived via `cds.env.requires`, e.g. via package.json.
+Outboxing can be enabled via configuration using `cds.env.requires`, for example, through `package.json`.
 
 ```json
 {
@@ -113,8 +115,8 @@ Enabling outboxing via config can be archived via `cds.env.requires`, e.g. via p
 
 ### Application Service with `cds.ApplicationService`
 
-In comparison `cds.ApplicationService` which are served based on a protocol like odata-v4 can't be outboxed via
-configuration (`cds.env.requires`). However the outboxing can be done manually as showed in the example below:
+In contrast, `cds.ApplicationService`, which is served based on protocols like odata-v4, cannot be outboxed via
+configuration (`cds.env.requires`). Nevertheless, outboxing can be performed manually as shown in the example below:
 
 ```js
 const service = await cds.connect.to("task-service");
@@ -129,11 +131,11 @@ await outboxedService.send("process", {
 });
 ```
 
-### Error handling in a custom outboxed service
+### Error Handling in a Custom Outboxed Service
 
-If the custom service is called via `service.send()` errors can be raised with `req.reject()` and `req.error()`.
-The functions `reject` and `error` can't be used if the service call is done via `service.emit()`.
-See the example below for a reference implementation.
+If the custom service is invoked via `service.send()`, errors can be raised with `req.reject()` and `req.error()`.
+The `reject` and `error` functions cannot be used if the service call is made via `service.emit()`. Refer to the example
+below for an implementation reference.
 
 ```js
 class TaskService extends cds.Service {
@@ -150,5 +152,5 @@ class TaskService extends cds.Service {
 }
 ```
 
-Errors raised in custom outboxed service are thrown and will be logged from the event-queue. The event entry will be set
-to error and will be retried based on the event configuration.
+Errors raised in a custom outboxed service are thrown and will be logged from the event queue. The event entry will be
+marked as an error and will be retried based on the event configuration.
