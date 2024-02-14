@@ -717,9 +717,6 @@ class EventQueueProcessorBase {
   }
 
   async #selectLastSuccessfulPeriodicTimestamp() {
-    if (!this.#config.enableTxConsistencyCheck) {
-      return;
-    }
     const entry = await SELECT.one
       .from(this.#config.tableNameEventQueue)
       .where({
@@ -732,6 +729,9 @@ class EventQueueProcessorBase {
   }
 
   #checkGlobalContextToLocalContext() {
+    if (!this.#config.enableTxConsistencyCheck) {
+      return;
+    }
     if (this.__context.tenant !== cds.context.tenant) {
       throw EventQueueError.globalCdsContextNotMatchingLocal(
         JSON.stringify(
