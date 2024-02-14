@@ -80,8 +80,7 @@ describe("redisRunner", () => {
     const p1 = runner.__._multiTenancyRedis();
     const p2 = runner.__._multiTenancyRedis();
 
-    const [promises1, promises2] = await Promise.allSettled([p1, p2]);
-    await Promise.allSettled(promises1.value.concat(promises2.value));
+    await Promise.allSettled([p1, p2]);
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
 
     expect(setValueWithExpireSpy).toHaveBeenCalledTimes(3);
@@ -146,8 +145,7 @@ describe("redisRunner", () => {
     expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
     const p1 = runner.__._multiTenancyDb();
     const p2 = runner.__._multiTenancyDb();
-    const [promises1, promises2] = await Promise.allSettled([p1, p2]);
-    await Promise.allSettled(promises1.value.concat(promises2.value));
+    await Promise.allSettled([p1, p2]);
     await Promise.allSettled(WorkerQueue.instance.runningPromises);
 
     // 3 tenants * 1 acquire lock for periodic run (happens only once per instance [tenant hash] +

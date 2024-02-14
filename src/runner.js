@@ -69,7 +69,7 @@ const _multiTenancyRedis = async () => {
   const emptyContext = new cds.EventContext({});
   logger.info("executing event queue run for multi instance and tenant");
   const tenantIds = await cdsHelper.getAllTenantIds();
-  await _executePeriodicEventsAllTenants(tenantIds);
+  await _checkPeriodicEventUpdate(tenantIds);
 
   const runId = await _acquireRunId(emptyContext);
 
@@ -78,7 +78,7 @@ const _multiTenancyRedis = async () => {
     return;
   }
 
-  return _executeEventsAllTenants(tenantIds, runId);
+  return await _executeEventsAllTenants(tenantIds, runId);
 };
 
 const _checkPeriodicEventUpdate = async (tenantIds) => {
