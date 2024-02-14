@@ -717,6 +717,9 @@ class EventQueueProcessorBase {
   }
 
   async #selectLastSuccessfulPeriodicTimestamp() {
+    if (!this.#config.enableTxConsistencyCheck) {
+      return;
+    }
     const entry = await SELECT.one
       .from(this.#config.tableNameEventQueue)
       .where({
