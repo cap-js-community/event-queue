@@ -178,23 +178,29 @@ const _singleTenantDb = async (tenantId) => {
   return Promise.allSettled(
     eventQueueConfig.allEvents.map(async (event) => {
       const label = `${event.type}_${event.subType}`;
+      const user = new cds.User.Privileged(config.userId);
+      const tenantContext = {
+        tenant: tenantId,
+        user,
+      };
       return await WorkerQueue.instance.addToQueue(event.load, label, async () => {
-        try {
-          const context = new cds.EventContext({ tenant: tenantId });
-          const lockId = `${EVENT_QUEUE_RUN_ID}_${label}`;
-          const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
-            expiryTime: eventQueueConfig.runInterval * 0.95,
-          });
-          if (!couldAcquireLock) {
-            return;
+        return await cds.tx(tenantContext, async ({ context }) => {
+          try {
+            const lockId = `${EVENT_QUEUE_RUN_ID}_${label}`;
+            const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+              expiryTime: eventQueueConfig.runInterval * 0.95,
+            });
+            if (!couldAcquireLock) {
+              return;
+            }
+            await runEventCombinationForTenant(context, event.type, event.subType, true);
+          } catch (err) {
+            cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
+              tenantId,
+              redisEnabled: eventQueueConfig.redisEnabled,
+            });
           }
-          await runEventCombinationForTenant(context, event.type, event.subType, true);
-        } catch (err) {
-          cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
-            tenantId,
-            redisEnabled: eventQueueConfig.redisEnabled,
-          });
-        }
+        });
       });
     })
   );
