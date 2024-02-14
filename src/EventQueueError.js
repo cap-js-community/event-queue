@@ -18,6 +18,7 @@ const ERROR_CODES = {
   NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
   LOAD_HIGHER_THAN_LIMIT: "LOAD_HIGHER_THAN_LIMIT",
   SCHEMA_TENANT_MISMATCH: "SCHEMA_TENANT_MISMATCH",
+  GLOBAL_CDS_CONTEXT_MISSMATCH: "GLOBAL_CDS_CONTEXT_MISSMATCH",
 };
 
 const ERROR_CODES_META = {
@@ -66,6 +67,9 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.SCHEMA_TENANT_MISMATCH]: {
     message: "The db client associated to the tenant context does not match! Processing will be skipped.",
+  },
+  [ERROR_CODES.GLOBAL_CDS_CONTEXT_MISSMATCH]: {
+    message: "The global cds context does not match the local cds context.",
   },
 };
 
@@ -231,6 +235,17 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.SCHEMA_TENANT_MISMATCH,
         info: { tenantId, dbClientSchema, serviceManagerSchema },
+      },
+      message
+    );
+  }
+
+  static globalCdsContextNotMatchingLocal(globalProperties, localProperties) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.GLOBAL_CDS_CONTEXT_MISSMATCH];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.GLOBAL_CDS_CONTEXT_MISSMATCH,
+        info: { globalProperties, localProperties },
       },
       message
     );
