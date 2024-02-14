@@ -70,6 +70,8 @@ class EventQueueProcessorBase {
     this.__txMap = {};
     this.__txRollback = {};
     this.__queueEntries = [];
+
+    this.#checkGlobalContextToLocalContext();
   }
 
   /**
@@ -533,7 +535,9 @@ class EventQueueProcessorBase {
   async getQueueEntriesAndSetToInProgress() {
     let result = [];
     const refDateStartAfter = new Date(Date.now() + this.#config.runInterval * 1.2);
+    this.#checkGlobalContextToLocalContext();
     await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
+      this.#checkGlobalContextToLocalContext();
       await this.checkTxConsistency(tx);
       const entries = await tx.run(
         SELECT.from(this.#config.tableNameEventQueue)
@@ -692,7 +696,7 @@ class EventQueueProcessorBase {
     } catch (err) {
       errorHandler(err);
     }
-    if (txSchema !== serviceManagerSchema) {
+    if (serviceManagerSchema && txSchema !== serviceManagerSchema) {
       const err = EventQueueError.dbClientSchemaMismatch(tx.context.tenant, txSchema, serviceManagerSchema);
       errorHandler(err);
       throw err;
@@ -722,6 +726,45 @@ class EventQueueProcessorBase {
       })
       .columns("max (lastAttemptTimestamp) as lastAttemptsTs");
     return entry.lastAttemptsTs;
+  }
+
+  #checkGlobalContextToLocalContext() {
+    if (this.__context.tenant !== cds.context.tenant) {
+      throw EventQueueError.globalCdsContextNotMatchingLocal(
+        JSON.stringify(
+          {
+            correlationId: cds.context.id,
+            tenantId: cds.context.tenant,
+            timestamp: cds.context.timestamp,
+            base: JSON.stringify(
+              {
+                correlationId: cds.context.context?.id,
+                tenantId: cds.context.context?.tenant,
+                timestamp: cds.context.context?.timestamp,
+              },
+              null,
+              2
+            ),
+          },
+          null,
+          2
+        ),
+        JSON.stringify(
+          {
+            correlationId: this.__context.id,
+            tenantId: this.__context.tenant,
+            timestamp: this.__context.timestamp,
+            base: JSON.stringify({
+              correlationId: this.__context.context?.id,
+              tenantId: this.__context.context?.tenant,
+              timestamp: this.__context.context?.timestamp,
+            }),
+          },
+          null,
+          2
+        )
+      );
+    }
   }
 
   #handleDelayedEvents(delayedEvents) {
