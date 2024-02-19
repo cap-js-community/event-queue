@@ -45,7 +45,7 @@ class WorkerQueue {
   }
 
   _executeFunction(load, label, cb, resolve, reject, startTime) {
-    this.checkAndLogWaitingTime(startTime, label);
+    this.#checkAndLogWaitingTime(startTime, label);
     const promise = Promise.resolve().then(() => cb());
     this.#runningPromises.push(promise);
     this.#runningLoad = this.#runningLoad + load;
@@ -65,12 +65,18 @@ class WorkerQueue {
   }
 
   _checkForNext() {
-    const load = this.#queue[0]?.[0];
-    if (!this.#queue.length || this.#runningLoad + load > this.#concurrencyLimit) {
+    if (!this.#queue.length && this.#runningLoad === this.#concurrencyLimit) {
       return;
     }
-    const args = this.#queue.shift();
-    this._executeFunction(...args);
+
+    for (let i = 0; i < this.#queue.length; i++) {
+      const [load] = this.#queue[i];
+      if (this.#runningLoad + load <= this.#concurrencyLimit) {
+        const [args] = this.#queue.splice(i, 1);
+        this._executeFunction(...args);
+        break;
+      }
+    }
   }
 
   get runningPromises() {
@@ -87,7 +93,11 @@ class WorkerQueue {
     return WorkerQueue.#instance;
   }
 
-  checkAndLogWaitingTime(startTime, label) {
+  get queue() {
+    return this.#queue;
+  }
+
+  #checkAndLogWaitingTime(startTime, label) {
     const diffMs = Math.round(Number(process.hrtime.bigint() - startTime) / NANO_TO_MS);
     let logLevel;
     if (diffMs >= THRESHOLD.ERROR) {

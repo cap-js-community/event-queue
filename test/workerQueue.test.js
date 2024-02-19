@@ -94,6 +94,42 @@ describe("workerQueue", () => {
     expect(workerQueue.runningPromises).toHaveLength(0);
   });
 
+  it("3 items - should process different item if next item in huge doesn't fit", async () => {
+    const workerQueue = new WorkerQueue(4);
+
+    let resolve1, resolve2, resolve3;
+    const fn = async () => new Promise((resolve) => (resolve1 = resolve));
+    const fn1 = async () => new Promise((resolve) => (resolve2 = resolve));
+    const fn2 = async () => new Promise((resolve) => (resolve3 = resolve));
+    const p1 = workerQueue.addToQueue(3, "label", fn);
+    const p2 = workerQueue.addToQueue(2, "label", fn1);
+    const p3 = workerQueue.addToQueue(1, "label", fn2);
+
+    expect(workerQueue.runningPromises).toHaveLength(2);
+    expect(workerQueue.queue).toHaveLength(1);
+    expect(workerQueue.queue[0][0]).toEqual(2);
+
+    // still not enough free load after p3 is finished
+    await promisify(setTimeout)(1);
+    resolve3();
+    await p3;
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue).toHaveLength(1);
+    expect(workerQueue.queue[0][0]).toEqual(2);
+
+    // resolve p1 to have enough free load for p2
+    resolve1();
+    await p1;
+    await promisify(setTimeout)(1);
+
+    resolve2();
+    await p2;
+
+    expect(workerQueue.runningPromises).toHaveLength(0);
+    expect(workerQueue.queue).toHaveLength(0);
+  });
+
   it("rejecting promises should not block the queue", async () => {
     cds.context = { id: "123" };
     const workerQueue = new WorkerQueue(1);
