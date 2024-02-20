@@ -4,6 +4,9 @@ const cds = require("@sap/cds");
 
 const config = require("../config");
 const EventQueueError = require("../EventQueueError");
+const { Priorities } = require("../constants");
+
+const PRIORITIES = Object.values(Priorities).reverse();
 
 const COMPONENT_NAME = "/eventQueue/WorkerQueue";
 const NANO_TO_MS = 1e6;
@@ -28,17 +31,24 @@ class WorkerQueue {
     }
     this.#runningPromises = [];
     this.#runningLoad = 0;
-    this.#queue = [];
+    this.#queue = PRIORITIES.reduce((result, priority) => {
+      result[priority] = [];
+      return result;
+    }, {});
   }
 
-  addToQueue(load, label, cb) {
+  addToQueue(load, label, priority = Priorities.Medium, cb) {
     if (load > this.#concurrencyLimit) {
       throw EventQueueError.loadHigherThanLimit(load, label);
     }
 
+    if (!PRIORITIES.includes(priority)) {
+      throw EventQueueError.priorityNotAllowed(priority, label);
+    }
+
     const startTime = process.hrtime.bigint();
     const p = new Promise((resolve, reject) => {
-      this.#queue.push([load, label, cb, resolve, reject, startTime]);
+      this.#queue[priority].push([load, label, cb, resolve, reject, startTime]);
     });
     this._checkForNext();
     return p;
@@ -69,11 +79,18 @@ class WorkerQueue {
       return;
     }
 
-    for (let i = 0; i < this.#queue.length; i++) {
-      const [load] = this.#queue[i];
-      if (this.#runningLoad + load <= this.#concurrencyLimit) {
-        const [args] = this.#queue.splice(i, 1);
-        this._executeFunction(...args);
+    let entryFound = false;
+    for (const priority of PRIORITIES) {
+      for (let i = 0; i < this.#queue[priority].length; i++) {
+        const [load] = this.#queue[priority][i];
+        if (this.#runningLoad + load <= this.#concurrencyLimit) {
+          const [args] = this.#queue[priority].splice(i, 1);
+          this._executeFunction(...args);
+          entryFound = true;
+          break;
+        }
+      }
+      if (entryFound) {
         break;
       }
     }
