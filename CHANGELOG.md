@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.3.0 - 2024-02-XX
+
+### Fixed
+
+- In more cases the global cds.context was not set correctly because the async-chain could break in high load scenarios.
+
 ## v1.2.6 - 2024-02-15
 
 ### Fixed
