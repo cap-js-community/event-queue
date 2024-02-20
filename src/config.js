@@ -5,6 +5,7 @@ const cds = require("@sap/cds");
 const { getEnvInstance } = require("./shared/env");
 const redis = require("./shared/redis");
 const EventQueueError = require("./EventQueueError");
+const { Priorities } = require("./constants");
 
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
@@ -13,6 +14,7 @@ const REDIS_CONFIG_BLOCKLIST_CHANNEL = "REDIS_CONFIG_BLOCKLIST_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/config";
 const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
+const DEFAULT_PRIORITY = Priorities.Medium;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
@@ -248,12 +250,14 @@ class Config {
     config.periodicEvents = (config.periodicEvents ?? []).concat(BASE_PERIODIC_EVENTS.map((event) => ({ ...event })));
     this.#eventMap = config.events.reduce((result, event) => {
       event.load = event.load ?? DEFAULT_LOAD;
+      event.priority = event.priority ?? DEFAULT_PRIORITY;
       this.validateAdHocEvents(result, event);
       result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
       event.load = event.load ?? DEFAULT_LOAD;
+      event.priority = event.priority ?? DEFAULT_PRIORITY;
       event.type = `${event.type}${SUFFIX_PERIODIC}`;
       event.isPeriodic = true;
       this.validatePeriodicConfig(result, event);
