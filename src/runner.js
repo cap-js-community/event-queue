@@ -1,6 +1,7 @@
 "use strict";
 
 const { randomUUID } = require("crypto");
+const { AsyncResource } = require("async_hooks");
 
 const cds = require("@sap/cds");
 
@@ -273,7 +274,7 @@ const runEventCombinationForTenant = async (context, type, subType, skipWorkerPo
       return await WorkerQueue.instance.addToQueue(
         config.load,
         label,
-        async () => await processEventQueue(context, type, subType)
+        AsyncResource.bind(async () => await processEventQueue(context, type, subType))
       );
     }
   } catch (err) {
