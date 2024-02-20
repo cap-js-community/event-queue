@@ -17,5 +17,6 @@ module.exports = {
     Low: "LOW",
     Medium: "MEDIUM",
     High: "HIGH",
+    VeryHigh: "VERY_HIGH",
   },
 };

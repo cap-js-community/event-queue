@@ -43,7 +43,7 @@ class WorkerQueue {
     }, {});
 
     const runner = new SetIntervalDriftSafe(CHECK_INTERVAL_QUEUE);
-    runner.run(this.#checkQueue.bind(this));
+    runner.run(this.#adjustPriority.bind(this));
   }
 
   addToQueue(load, label, priority = Priorities.Medium, cb) {
@@ -59,11 +59,11 @@ class WorkerQueue {
     const p = new Promise((resolve, reject) => {
       this.#queue[priority].push([load, label, cb, resolve, reject, startTime]);
     });
-    this._checkForNext();
+    this.#checkForNext();
     return p;
   }
 
-  #checkQueue() {
+  #adjustPriority() {
     const checkTime = process.hrtime.bigint();
     const priorityValues = Object.values(Priorities);
 
@@ -91,7 +91,7 @@ class WorkerQueue {
       .finally(() => {
         this.#runningLoad = this.#runningLoad - load;
         this.#runningPromises.splice(this.#runningPromises.indexOf(promise), 1);
-        this._checkForNext();
+        this.#checkForNext();
       })
       .then((...results) => {
         resolve(...results);
@@ -100,9 +100,13 @@ class WorkerQueue {
         cds.log(COMPONENT_NAME).error("Error happened in WorkQueue. Errors should be caught before!", err, { label });
         reject(err);
       });
+
+    if (this.#runningLoad !== this.#concurrencyLimit) {
+      this.#checkForNext();
+    }
   }
 
-  _checkForNext() {
+  #checkForNext() {
     if (!this.#queue.length && this.#runningLoad === this.#concurrencyLimit) {
       return;
     }
