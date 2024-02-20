@@ -56,7 +56,8 @@ describe("workerQueue", () => {
     const p2 = workerQueue.addToQueue(1, "label", "MEDIUM", fn1);
 
     // NOTE: get the work queue the chance to start working
-    await promisify(setTimeout)(1);
+    await promisify(setImmediate)();
+
     expect(result.fn.called).toBeTruthy();
     expect(result.fn.done).toBeFalsy();
     expect(result.fn1).toBeFalsy();
@@ -90,7 +91,8 @@ describe("workerQueue", () => {
     const p2 = workerQueue.addToQueue(2, "label", "MEDIUM", fn1);
 
     // NOTE: get the work queue the chance to start working
-    await promisify(setTimeout)(1);
+    await promisify(setImmediate)();
+
     expect(result.fn.called).toBeTruthy();
     expect(result.fn.done).toBeFalsy();
     expect(result.fn1).toBeFalsy();
@@ -121,7 +123,8 @@ describe("workerQueue", () => {
     expect(workerQueue.queue["MEDIUM"][0][0]).toEqual(2);
 
     // still not enough free load after p3 is finished
-    await promisify(setTimeout)(1);
+    await promisify(setImmediate)();
+
     resolve3();
     await p3;
 
@@ -132,7 +135,7 @@ describe("workerQueue", () => {
     // resolve p1 to have enough free load for p2
     resolve1();
     await p1;
-    await promisify(setTimeout)(1);
+    await promisify(setImmediate)();
 
     resolve2();
     await p2;
@@ -156,7 +159,8 @@ describe("workerQueue", () => {
     expect(workerQueue.queue["MEDIUM"]).toHaveLength(1);
     expect(workerQueue.queue["HIGH"]).toHaveLength(1);
 
-    await promisify(setTimeout)(1);
+    await promisify(setImmediate)();
+
     resolve1();
     await p1;
 
@@ -166,14 +170,72 @@ describe("workerQueue", () => {
 
     resolve3();
     await p3;
-    await promisify(setTimeout)(1);
+    await promisify(setImmediate)();
 
     expect(workerQueue.runningPromises).toHaveLength(1);
     expect(workerQueue.queue["MEDIUM"]).toHaveLength(0);
 
     resolve2();
     await p2;
-    await promisify(setTimeout)(1);
+    await promisify(setImmediate)();
+
+    expect(workerQueue.runningPromises).toHaveLength(0);
+    expect(workerQueue.queue["MEDIUM"]).toHaveLength(0);
+  });
+
+  it("3 items - low should be shifted to medium after interval", async () => {
+    jest.useFakeTimers();
+    const workerQueue = new WorkerQueue(4);
+
+    let resolve1, resolve2, resolve3;
+    const fn = async () => new Promise((resolve) => (resolve1 = resolve));
+    const fn1 = async () => new Promise((resolve) => (resolve2 = resolve));
+    const fn2 = async () => new Promise((resolve) => (resolve3 = resolve));
+    const p1 = workerQueue.addToQueue(4, "label", "LOW", fn);
+    const p2 = workerQueue.addToQueue(3, "label", "MEDIUM", fn1);
+    const p3 = workerQueue.addToQueue(1, "label", "HIGH", fn2);
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue["MEDIUM"]).toHaveLength(1);
+    expect(workerQueue.queue["HIGH"]).toHaveLength(1);
+
+    jest.spyOn(process.hrtime, "bigint").mockReturnValueOnce(3n * 61n * 1000000000n);
+    jest.advanceTimersByTime(61 * 1000);
+    jest.useRealTimers();
+
+    await promisify(setImmediate)();
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue["MEDIUM"]).toHaveLength(0);
+    expect(workerQueue.queue["HIGH"]).toHaveLength(2);
+    expect(workerQueue.queue["HIGH"][1]).toEqual([
+      3,
+      "label",
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      0n,
+      183000000000n,
+    ]);
+
+    resolve1();
+    await p1;
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue["MEDIUM"]).toHaveLength(0);
+    expect(workerQueue.queue["HIGH"]).toHaveLength(1);
+
+    resolve3();
+    await p3;
+    await promisify(setImmediate)();
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue["MEDIUM"]).toHaveLength(0);
+    expect(workerQueue.queue["HIGH"]).toHaveLength(0);
+
+    resolve2();
+    await p2;
+    await promisify(setImmediate)();
 
     expect(workerQueue.runningPromises).toHaveLength(0);
     expect(workerQueue.queue["MEDIUM"]).toHaveLength(0);
@@ -197,7 +259,7 @@ describe("workerQueue", () => {
     };
     const p1 = workerQueue.addToQueue(1, "label", "MEDIUM", fn);
     const p2 = workerQueue.addToQueue(1, "label", "MEDIUM", fn1);
-    await promisify(setTimeout)(1);
+    await promisify(setImmediate)();
 
     // NOTE: get the work queue the chance to start working
     expect(result.fn.called).toBeTruthy();

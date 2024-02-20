@@ -5,16 +5,22 @@ const cds = require("@sap/cds");
 const config = require("../config");
 const EventQueueError = require("../EventQueueError");
 const { Priorities } = require("../constants");
+const SetIntervalDriftSafe = require("./SetIntervalDriftSafe");
 
 const PRIORITIES = Object.values(Priorities).reverse();
 
 const COMPONENT_NAME = "/eventQueue/WorkerQueue";
 const NANO_TO_MS = 1e6;
+const MIN_TO_MS = 60 * 1000;
+const INCREASE_PRIORITY_AFTER = 3;
+
 const THRESHOLD = {
   INFO: 35 * 1000,
   WARN: 55 * 1000,
   ERROR: 75 * 1000,
 };
+
+const CHECK_INTERVAL_QUEUE = 60 * 1000;
 
 class WorkerQueue {
   #concurrencyLimit;
@@ -35,6 +41,9 @@ class WorkerQueue {
       result[priority] = [];
       return result;
     }, {});
+
+    const runner = new SetIntervalDriftSafe(CHECK_INTERVAL_QUEUE);
+    runner.run(this.#checkQueue.bind(this));
   }
 
   addToQueue(load, label, priority = Priorities.Medium, cb) {
@@ -52,6 +61,25 @@ class WorkerQueue {
     });
     this._checkForNext();
     return p;
+  }
+
+  #checkQueue() {
+    const checkTime = process.hrtime.bigint();
+    const priorityValues = Object.values(Priorities);
+
+    for (let i = 0; i < priorityValues.length - 1; i++) {
+      const priority = priorityValues[i];
+      const nextPriority = priorityValues[i + 1];
+      for (let i = 0; i < this.queue[priority].length; i++) {
+        const queueEntry = this.queue[priority][i];
+        const startTime = queueEntry[6] ?? queueEntry[5];
+        if (Math.round(Number(checkTime - startTime) / NANO_TO_MS) > INCREASE_PRIORITY_AFTER * MIN_TO_MS) {
+          const [entry] = this.queue[priority].splice(i, 1);
+          entry.push(checkTime);
+          this.queue[nextPriority].push(entry);
+        }
+      }
+    }
   }
 
   _executeFunction(load, label, cb, resolve, reject, startTime) {
