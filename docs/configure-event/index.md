@@ -108,7 +108,7 @@ periodicEvents:
 
 # Blocking Events
 
-In certain scenarios, it may be necessary to prevent specific events from executing. This could be due to various 
+In certain scenarios, it may be necessary to prevent specific events from executing. This could be due to various
 reasons such as:
 
 - An event causing the application to crash
