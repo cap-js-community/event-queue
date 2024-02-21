@@ -8,11 +8,17 @@ const { Priorities } = require("../constants");
 const SetIntervalDriftSafe = require("./SetIntervalDriftSafe");
 
 const PRIORITIES = Object.values(Priorities).reverse();
+const PRIORITY_MULTIPLICATOR = PRIORITIES.reduce((result, element, index) => {
+  result[element] = index + 1;
+  return result;
+}, {});
 
 const COMPONENT_NAME = "/eventQueue/WorkerQueue";
 const NANO_TO_MS = 1e6;
 const MIN_TO_MS = 60 * 1000;
 const INCREASE_PRIORITY_AFTER = 3;
+
+let lastLogTs;
 
 const THRESHOLD = {
   INFO: 35 * 1000,
@@ -82,8 +88,8 @@ class WorkerQueue {
     }
   }
 
-  _executeFunction(load, label, cb, resolve, reject, startTime) {
-    this.#checkAndLogWaitingTime(startTime, label);
+  _executeFunction(load, label, cb, resolve, reject, startTime, priority) {
+    this.#checkAndLogWaitingTime(startTime, label, priority);
     const promise = Promise.resolve().then(() => cb());
     this.#runningPromises.push(promise);
     this.#runningLoad = this.#runningLoad + load;
@@ -117,7 +123,7 @@ class WorkerQueue {
         const [load] = this.#queue[priority][i];
         if (this.#runningLoad + load <= this.#concurrencyLimit) {
           const [args] = this.#queue[priority].splice(i, 1);
-          this._executeFunction(...args);
+          this._executeFunction(...args, priority);
           entryFound = true;
           break;
         }
@@ -146,14 +152,20 @@ class WorkerQueue {
     return this.#queue;
   }
 
-  #checkAndLogWaitingTime(startTime, label) {
+  #checkAndLogWaitingTime(startTime, label, priority) {
+    const ts = Date.now();
+    if (ts - lastLogTs <= 1000) {
+      return;
+    }
+    lastLogTs = ts;
     const diffMs = Math.round(Number(process.hrtime.bigint() - startTime) / NANO_TO_MS);
+    const priorityMultiplication = PRIORITY_MULTIPLICATOR[priority];
     let logLevel;
-    if (diffMs >= THRESHOLD.ERROR) {
+    if (diffMs >= THRESHOLD.ERROR * priorityMultiplication) {
       logLevel = "error";
-    } else if (diffMs >= THRESHOLD.WARN) {
+    } else if (diffMs >= THRESHOLD.WARN * priorityMultiplication) {
       logLevel = "warn";
-    } else if (diffMs >= THRESHOLD.INFO) {
+    } else if (diffMs >= THRESHOLD.INFO * priorityMultiplication) {
       logLevel = "info";
     } else {
       logLevel = "debug";

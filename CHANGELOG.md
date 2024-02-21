@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.3.0 - 2024-02-XX
 
+### Added
+
+- Define priorities for event types. More information in [documentation](https://cap-js-community.github.io/event-queue/configure-event/#priority-of-events).
+
 ### Fixed
 
 - In more cases the global cds.context was not set correctly because the async-chain could break in high load scenarios.
