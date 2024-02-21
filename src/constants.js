@@ -14,9 +14,9 @@ module.exports = {
     alwaysRollback: "alwaysRollback",
   },
   Priorities: {
-    Low: "Low",
-    Medium: "Medium",
-    High: "High",
-    VeryHigh: "VeryHigh",
+    Low: "low",
+    Medium: "medium",
+    High: "high",
+    VeryHigh: "veryHigh",
   },
 };
