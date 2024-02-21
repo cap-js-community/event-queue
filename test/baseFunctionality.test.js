@@ -427,6 +427,15 @@ describe("baseFunctionality", () => {
           await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1, type: "HealthCheck_PERIODIC" });
         });
 
+        test("blocked ad-hoc event should not be executed", async () => {
+          const event = eventQueue.config.events[0];
+          eventQueue.config.isEventBlockedCb = () => true;
+          await testHelper.insertEventEntry(tx);
+          await eventQueue.processEventQueue(context, event.type, event.subType);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        });
+
         test("not blocked event - should execute", async () => {
           const event = eventQueue.config.periodicEvents[0];
           eventQueue.config.isEventBlockedCb = () => false;
