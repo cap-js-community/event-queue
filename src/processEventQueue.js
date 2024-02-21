@@ -249,11 +249,15 @@ const processEventMap = async (eventTypeInstance) => {
 
 const _checkEventIsBlocked = async (baseInstance) => {
   const isEventBlockedCb = config.isEventBlockedCb;
-  const params = [baseInstance.eventType, baseInstance.eventSubType, baseInstance.context.tenant];
   let eventBlocked;
   if (isEventBlockedCb) {
     try {
-      eventBlocked = await isEventBlockedCb(...params);
+      eventBlocked = await isEventBlockedCb(
+        baseInstance.eventType,
+        baseInstance.eventSubType,
+        baseInstance.isPeriodicEvent,
+        baseInstance.context.tenant
+      );
     } catch (err) {
       eventBlocked = true;
       baseInstance.logger.error("skipping run because periodic event blocked check failed!", err, {
@@ -262,7 +266,11 @@ const _checkEventIsBlocked = async (baseInstance) => {
       });
     }
   } else {
-    eventBlocked = config.isEventBlocked(...params);
+    eventBlocked = config.isEventBlocked(
+      baseInstance.eventType,
+      baseInstance.eventSubType,
+      baseInstance.context.tenant
+    );
   }
 
   if (eventBlocked) {
