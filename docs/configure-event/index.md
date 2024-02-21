@@ -118,7 +118,7 @@ reasons such as:
 You can block events for all or just for certain tenants. The example below demonstrates how this can be
 accomplished.
 
-### Blocking/Unblocking based on configuration
+## Blocking/Unblocking based on configuration
 
 ```js
 const { config } = require("@cap-js-community/event-queue");
@@ -137,7 +137,7 @@ config.unblockPeriodicEvent("HealthCheck", "DB", isPeriodicEvent);
 Tenant-specific blockings/unblockings take precedence over the all-tenant blocking. This means if a certain event is
 blocked for all tenants, it can still be unblocked for one or more tenants.
 
-### Blocking/Unblocking based on callback
+## Blocking/Unblocking based on callback
 
 For greater flexibility, the decision to block an event can be determined based on the result of a callback.
 The example below shows how to register the callback.
@@ -150,7 +150,7 @@ config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
 };
 ```
 
-### Limitation
+## Limitation
 
 The current implementation of config does not persistently store the information. This means that the block/unblock
 list is only available until the next restart of the application. If you want this information to be persistent,
