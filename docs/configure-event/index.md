@@ -107,50 +107,51 @@ periodicEvents:
     interval: 30
 ```
 
-## Blocking Periodic Events
+# Blocking Events
 
-In certain scenarios, it may be necessary to prevent specific periodic events from executing regularly. This could be
-due to various reasons such as:
+In certain scenarios, it may be necessary to prevent specific events from executing. This could be due to various
+reasons such as:
 
 - An event causing the application to crash
 - A specific event leading to performance issues
 - Other reasons specific to a project
 
-You can block periodic events for all or just for certain tenants. The example below demonstrates how this can be
+You can block events for all or just for certain tenants. The example below demonstrates how this can be
 accomplished.
 
-### Blocking/Unblocking based on configuration
+## Blocking/Unblocking based on configuration
 
 ```js
 const { config } = require("@cap-js-community/event-queue");
 
 // Block type: HealthCheck and subType: DB for tenant 123
-config.blockPeriodicEvent("HealthCheck", "DB", 123);
+const isPeriodicEvent = true;
+config.blockEvent("HealthCheck", "DB", isPeriodicEvent, 123);
 
 // Block type: HealthCheck and subType: DB for all tenants
-config.blockPeriodicEvent("HealthCheck", "DB");
+config.blockEvent("HealthCheck", "DB", isPeriodicEvent);
 
 // Unblock works the same way - unblock for all tenants
-config.unblockPeriodicEvent("HealthCheck", "DB");
+config.unblockPeriodicEvent("HealthCheck", "DB", isPeriodicEvent);
 ```
 
 Tenant-specific blockings/unblockings take precedence over the all-tenant blocking. This means if a certain event is
 blocked for all tenants, it can still be unblocked for one or more tenants.
 
-### Blocking/Unblocking based on callback
+## Blocking/Unblocking based on callback
 
-For greater flexibility, the decision to block a periodic event can be determined based on the result of a callback.
+For greater flexibility, the decision to block an event can be determined based on the result of a callback.
 The example below shows how to register the callback.
 
 ```js
 const { config } = require("@cap-js-community/event-queue");
 
-config.isPeriodicEventBlockedCb = async (type, subType, tenant) => {
+config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
   // Perform custom check and return true or false
 };
 ```
 
-### Limitation
+## Limitation
 
 The current implementation of config does not persistently store the information. This means that the block/unblock
 list is only available until the next restart of the application. If you want this information to be persistent,

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
+- add option to block ad-hoc events. More information in [documentation](https://cap-js-community.github.io/event-queue/configure-event/##blocking-events).
 - Define priorities for event types. More information in [documentation](https://cap-js-community.github.io/event-queue/configure-event/#priority-of-events).
 
 ### Fixed
