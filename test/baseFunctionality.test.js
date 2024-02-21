@@ -53,7 +53,7 @@ describe("baseFunctionality", () => {
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
     await tx.run(DELETE.from("sap.eventqueue.Event"));
     eventQueue.config.clearPeriodicEventBlockList();
-    eventQueue.config.isPeriodicEventBlockedCb = null;
+    eventQueue.config.isEventBlockedCb = null;
   });
 
   afterEach(async () => {
@@ -320,7 +320,7 @@ describe("baseFunctionality", () => {
     describe("block and unblock periodic tenants", () => {
       test("blocked event should not be executed", async () => {
         const event = eventQueue.config.periodicEvents[0];
-        eventQueue.config.blockPeriodicEvent("HealthCheck", "DB");
+        eventQueue.config.blockEvent("HealthCheck", "DB", true);
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
@@ -329,7 +329,7 @@ describe("baseFunctionality", () => {
 
       test("blocked event for different tenant - should execute", async () => {
         const event = eventQueue.config.periodicEvents[0];
-        eventQueue.config.blockPeriodicEvent("HealthCheck", "DB", "345");
+        eventQueue.config.blockEvent("HealthCheck", "DB", true, "345");
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
@@ -352,7 +352,7 @@ describe("baseFunctionality", () => {
 
       test("blocked event should not be executed - tenant specific", async () => {
         const event = eventQueue.config.periodicEvents[0];
-        eventQueue.config.blockPeriodicEvent("HealthCheck", "DB", "123");
+        eventQueue.config.blockEvent("HealthCheck", "DB", true, "123");
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
@@ -361,13 +361,13 @@ describe("baseFunctionality", () => {
 
       test("blocked event should not be executed - tenant specific - unblock and execute again", async () => {
         const event = eventQueue.config.periodicEvents[0];
-        eventQueue.config.blockPeriodicEvent("HealthCheck", "DB", "123");
+        eventQueue.config.blockEvent("HealthCheck", "DB", true, "123");
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1, type: "HealthCheck_PERIODIC" });
 
-        eventQueue.config.unblockPeriodicEvent("HealthCheck", "DB", "123");
+        eventQueue.config.unblockEvent("HealthCheck", "DB", true, "123");
 
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
@@ -390,13 +390,13 @@ describe("baseFunctionality", () => {
 
       test("blocked event should not be executed - all tenant - unblock tenant", async () => {
         const event = eventQueue.config.periodicEvents[0];
-        eventQueue.config.blockPeriodicEvent("HealthCheck", "DB");
+        eventQueue.config.blockEvent("HealthCheck", "DB", true);
         await checkAndInsertPeriodicEvents(context);
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1, type: "HealthCheck_PERIODIC" });
 
-        eventQueue.config.unblockPeriodicEvent("HealthCheck", "DB", "123");
+        eventQueue.config.unblockEvent("HealthCheck", "DB", true, "123");
 
         await eventQueue.processEventQueue(context, event.type, event.subType);
         expect(loggerMock.callsLengths().error).toEqual(0);
@@ -420,7 +420,7 @@ describe("baseFunctionality", () => {
       describe("cb api", () => {
         test("blocked event should not be executed", async () => {
           const event = eventQueue.config.periodicEvents[0];
-          eventQueue.config.isPeriodicEventBlockedCb = () => true;
+          eventQueue.config.isEventBlockedCb = () => true;
           await checkAndInsertPeriodicEvents(context);
           await eventQueue.processEventQueue(context, event.type, event.subType);
           expect(loggerMock.callsLengths().error).toEqual(0);
@@ -429,7 +429,7 @@ describe("baseFunctionality", () => {
 
         test("not blocked event - should execute", async () => {
           const event = eventQueue.config.periodicEvents[0];
-          eventQueue.config.isPeriodicEventBlockedCb = () => false;
+          eventQueue.config.isEventBlockedCb = () => false;
           await checkAndInsertPeriodicEvents(context);
           await eventQueue.processEventQueue(context, event.type, event.subType);
           expect(loggerMock.callsLengths().error).toEqual(0);
