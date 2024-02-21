@@ -26,6 +26,7 @@ const BASE_PERIODIC_EVENTS = [
   {
     type: "EVENT_QUEUE_BASE",
     subType: "DELETE_EVENTS",
+    priority: Priorities.Low,
     impl: "./housekeeping/EventQueueDeleteEvents",
     load: 1,
     interval: 86400, // 1 day,
