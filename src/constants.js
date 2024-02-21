@@ -13,4 +13,10 @@ module.exports = {
     alwaysCommit: "alwaysCommit",
     alwaysRollback: "alwaysRollback",
   },
+  Priorities: {
+    Low: "Low",
+    Medium: "Medium",
+    High: "High",
+    VeryHigh: "VeryHigh",
+  },
 };

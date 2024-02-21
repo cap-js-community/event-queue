@@ -15,7 +15,7 @@ nav_order: 4
 
 <!-- prettier-ignore -->
 - TOC
-{: toc}
+  {: toc}
 
 # Ad-Hoc events
 
@@ -44,6 +44,7 @@ The configuration YAML file is where all the required information regarding even
 | selectMaxChunkSize            | Number of events which are selected at once. If it should be checked if there are more open events available, set the parameter checkForNextChunk to true.                                                              | 100           |
 | checkForNextChunk             | Determines if after processing a chunk (the size depends on the value of selectMaxChunkSize), a next chunk is being processed if there are more open events and the processing time has not already exceeded 5 minutes. | false         |
 | deleteFinishedEventsAfterDays | This parameter determines the number of days after which events are deleted, regardless of their status. A value of 0 signifies that event entries are never deleted from the database table.                           | 7             |
+| priority                      | This parameter determines the priority of an event. More details [here](#priority-of-events).                                                                                                                           | Medium        |
 
 ## Configuration
 
@@ -164,3 +165,18 @@ will not be deleted from the database table.
 
 From a technical standpoint, the event queue utilizes its own periodic event to conduct a daily check for events that
 are eligible for deletion.
+
+# Priority of Events
+
+The assignment of priorities to events determines the order in which different event types are processed. The available
+priority levels are as follows:
+
+- Low
+- Medium (Default)
+- High
+- Very High
+
+To ensure that event types with low priorities are not left unprocessed during periods of high system load, an automatic
+adjustment is made for event types in the queue for more than three minutes. The pre-defined rule is: if an event type
+remains in the queue for more than three minutes, its priority is temporarily bumped up by one level (i.e., from Low to
+Medium).
