@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.3.1 - 2024-02-21
+
+### Fixed
+
+- Log message for blocked events
+
+### Changed
+
+- Reduce log severity for skip publish redis event as no lock is available to debug
+- Only do etag checks after a processing time of 10 minutes to improve performance
+
+## v1.3.0 - 2024-02-21
+
+### Added
+
+- add option to block ad-hoc events. More information in [documentation](https://cap-js-community.github.io/event-queue/configure-event/##blocking-events).
+- Define priorities for event types. More information in [documentation](https://cap-js-community.github.io/event-queue/configure-event/#priority-of-events).
+
+### Fixed
+
+- In more cases the global cds.context was not set correctly because the async-chain could break in high load scenarios.
+
 ## v1.2.6 - 2024-02-15
 
 ### Fixed

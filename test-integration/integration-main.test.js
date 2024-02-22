@@ -251,7 +251,8 @@ describe("integration-main", () => {
     eventQueue.config.dbUser = null;
   });
 
-  it("lock wait timeout during keepAlive", async () => {
+  const onlyOldDbService = process.env.NEW_DB_SERVICE ? it.skip : it;
+  onlyOldDbService("lock wait timeout during keepAlive", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
     const event = eventQueue.config.events[0];
@@ -266,10 +267,18 @@ describe("integration-main", () => {
         return await next();
       });
     });
+    jest
+      .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
+      .mockImplementationOnce(async function (queueEntry) {
+        this.__startTime = new Date(Date.now() - 11 * 60 * 1000);
+        return queueEntry.payload;
+      });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     doCheck = false;
+    // eslint-disable-next-line jest/no-standalone-expect
     expect(loggerMock.callsLengths().error).toEqual(1);
     await testHelper.selectEventQueueAndExpectError(tx);
+    // eslint-disable-next-line jest/no-standalone-expect
     expect(dbCounts).toMatchSnapshot();
   });
 

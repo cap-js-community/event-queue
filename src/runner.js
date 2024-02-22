@@ -1,6 +1,7 @@
 "use strict";
 
 const { randomUUID } = require("crypto");
+const { AsyncResource } = require("async_hooks");
 
 const cds = require("@sap/cds");
 
@@ -14,6 +15,7 @@ const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 const periodicEvents = require("./periodicEvents");
 const { hashStringTo32Bit } = require("./shared/common");
 const config = require("./config");
+const { Priorities } = require("./constants");
 
 const COMPONENT_NAME = "/eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
@@ -108,7 +110,7 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
   }, []);
 
   return Promise.allSettled(
-    product.map(async ([tenantId, event]) => {
+    product.map(async ([tenantId, eventConfig]) => {
       const subdomain = await getSubdomainForTenantId(tenantId);
       const user = new cds.User.Privileged(config.userId);
       const tenantContext = {
@@ -117,8 +119,8 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
         // NOTE: we need this because of logging otherwise logs would not contain the subdomain
         http: { req: { authInfo: { getSubdomain: () => subdomain } } },
       };
-      const label = `${event.type}_${event.subType}`;
-      return await WorkerQueue.instance.addToQueue(event.load, label, async () => {
+      const label = `${eventConfig.type}_${eventConfig.subType}`;
+      return await WorkerQueue.instance.addToQueue(eventConfig.load, label, eventConfig.priority, async () => {
         return await cds.tx(tenantContext, async ({ context }) => {
           try {
             const lockId = `${runId}_${label}`;
@@ -128,7 +130,7 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
             if (!couldAcquireLock) {
               return;
             }
-            await runEventCombinationForTenant(context, event.type, event.subType, true);
+            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, true);
           } catch (err) {
             cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
               tenantId,
@@ -144,7 +146,7 @@ const _executePeriodicEventsAllTenants = async (tenantIds, runId) => {
   return await Promise.allSettled(
     tenantIds.map(async (tenantId) => {
       const label = `UPDATE_PERIODIC_EVENTS_${tenantId}`;
-      return await WorkerQueue.instance.addToQueue(1, label, async () => {
+      return await WorkerQueue.instance.addToQueue(1, label, Priorities.Low, async () => {
         try {
           const subdomain = await getSubdomainForTenantId(tenantId);
           const user = new cds.User.Privileged(config.userId);
@@ -176,14 +178,14 @@ const _executePeriodicEventsAllTenants = async (tenantIds, runId) => {
 
 const _singleTenantDb = async (tenantId) => {
   return Promise.allSettled(
-    eventQueueConfig.allEvents.map(async (event) => {
-      const label = `${event.type}_${event.subType}`;
+    eventQueueConfig.allEvents.map(async (eventConfig) => {
+      const label = `${eventConfig.type}_${eventConfig.subType}`;
       const user = new cds.User.Privileged(config.userId);
       const tenantContext = {
         tenant: tenantId,
         user,
       };
-      return await WorkerQueue.instance.addToQueue(event.load, label, async () => {
+      return await WorkerQueue.instance.addToQueue(eventConfig.load, label, eventConfig.priority, async () => {
         return await cds.tx(tenantContext, async ({ context }) => {
           try {
             const lockId = `${EVENT_QUEUE_RUN_ID}_${label}`;
@@ -193,7 +195,7 @@ const _singleTenantDb = async (tenantId) => {
             if (!couldAcquireLock) {
               return;
             }
-            await runEventCombinationForTenant(context, event.type, event.subType, true);
+            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, true);
           } catch (err) {
             cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
               tenantId,
@@ -268,12 +270,13 @@ const runEventCombinationForTenant = async (context, type, subType, skipWorkerPo
     if (skipWorkerPool) {
       return await processEventQueue(context, type, subType);
     } else {
-      const config = eventQueueConfig.getEventConfig(type, subType);
+      const eventConfig = eventQueueConfig.getEventConfig(type, subType);
       const label = `${type}_${subType}`;
       return await WorkerQueue.instance.addToQueue(
-        config.load,
+        eventConfig.load,
         label,
-        async () => await processEventQueue(context, type, subType)
+        eventConfig.priority,
+        AsyncResource.bind(async () => await processEventQueue(context, type, subType))
       );
     }
   } catch (err) {

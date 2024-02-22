@@ -6,9 +6,9 @@ nav_order: 3
 
 <!-- prettier-ignore-start -->
 
-# Setup
 
 {: .no_toc}
+# Setup
 
 - TOC
 {: toc}
@@ -19,6 +19,14 @@ nav_order: 3
 
 - Run `npm add @cap-js-community/event-queue` in `@sap/cds` project
 - Initialize the event queue as CAP-Plugin or manually in your server.js
+
+## Using CDS Outbox with config.yaml
+
+The simplest way to utilize the event-queue is by allowing it to manage the CDS outbox and outbox services via the
+outbox method in conjunction with the event-queue. To accomplish this, the event-queue needs to be set up as a CDS
+outbox. Refer to the following guides
+on [how to configure the event-queue](/event-queue/use-as-cap-outbox/#how-to-enable-the-event-queue-as-outbox-mechanism-for-cap)
+and [how to implement a CDS service](/event-queue/use-as-cap-outbox/#example-of-a-custom-outboxed-service)..
 
 ## As cds-plugin
 
@@ -68,3 +76,9 @@ The table includes the parameter name, a description of its purpose, and the def
 | useAsCAPOutbox                       | Uses the event-queue as the [outbox](https://cap.cloud.sap/docs/node.js/outbox) of CAP. Outbox called are stored and processed in the event-queue instead of the outbox of CAP.         | false                |
 | userId                               | User id for all created cds contexts. This influences the value for updated managed database fields like createdBy and modifiedBy.                                                      | false                |
 | cleanupLocksAndEventsForDev          | Deletes all semantic locks and sets all events that are in progress to error during server start. This is used to clean up leftovers from server crashes or restarts during processing. | false                |
+
+# Configure Redis
+
+To take advantage of the event-queue capabilities that come with Redis, you simply need to bind a Redis instance to the
+app where the event-queue will be used. No additional steps are required. Please note that the event-queue supports both
+single and cluster Redis instances.

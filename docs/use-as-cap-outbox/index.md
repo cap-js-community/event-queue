@@ -13,7 +13,7 @@ nav_order: 5
 <!-- prettier-ignore -->
 
 - TOC
-  {: toc}
+{: toc}
 
 <!-- prettier-ignore-end -->
 
@@ -27,6 +27,16 @@ transaction modes, load balancing, and others, with outboxed CDS services.
 The initialization parameter `useAsCAPOutbox` enables the event-queue to act as a CAP outbox. To set this parameter,
 refer to the [setup](/event-queue/setup/#initialization-parameters) part of the documentation. This is the only
 configuration needed to enable the event-queue as a CAP outbox.
+
+```json
+{
+  "cds": {
+    "eventQueue": {
+      "useAsCAPOutbox": true
+    }
+  }
+}
+```
 
 ## How to Configure an Outboxed Service
 

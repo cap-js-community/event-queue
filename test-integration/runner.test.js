@@ -218,10 +218,10 @@ describe("redisRunner", () => {
       Promise.all(promises.flat())
     );
 
+    expect(loggerMock.callsLengths().error).toEqual(0);
     expect(processEventQueueSpy).toHaveBeenCalledTimes(2);
     expect(acquireLockSpy).toHaveBeenCalledTimes(4);
     expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
-    expect(loggerMock.callsLengths().error).toEqual(0);
   });
 
   describe("_calculateOffsetForFirstRun", () => {

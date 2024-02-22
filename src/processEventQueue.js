@@ -29,6 +29,10 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       return;
     }
     baseInstance = new EventTypeClass(context, eventType, eventSubType, eventConfig);
+    if (await _checkEventIsBlocked(baseInstance)) {
+      return;
+    }
+
     const continueProcessing = await baseInstance.acquireDistributedLock();
     if (!continueProcessing) {
       return;
@@ -119,31 +123,6 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
 };
 
 const processPeriodicEvent = async (context, eventTypeInstance) => {
-  const isPeriodicEventBlockedCb = config.isPeriodicEventBlockedCb;
-  const params = [eventTypeInstance.eventType, eventTypeInstance.eventSubType, eventTypeInstance.context.tenant];
-  let eventBlocked = false;
-  if (isPeriodicEventBlockedCb) {
-    try {
-      eventBlocked = await isPeriodicEventBlockedCb(...params);
-    } catch (err) {
-      eventBlocked = true;
-      eventTypeInstance.logger.error("skipping run because periodic event blocked check failed!", err, {
-        type: eventTypeInstance.eventType,
-        subType: eventTypeInstance.eventSubType,
-      });
-    }
-  } else {
-    eventBlocked = config.isPeriodicEventBlocked(...params);
-  }
-
-  if (eventBlocked) {
-    eventTypeInstance.logger.info("skipping run because periodic event is blocked by configuration", {
-      type: eventTypeInstance.eventType,
-      subType: eventTypeInstance.eventSubType,
-    });
-    return;
-  }
-
   try {
     let queueEntry;
     let processNext = true;
@@ -266,6 +245,41 @@ const processEventMap = async (eventTypeInstance) => {
     }
   });
   eventTypeInstance.endPerformanceTracerEvents();
+};
+
+const _checkEventIsBlocked = async (baseInstance) => {
+  const isEventBlockedCb = config.isEventBlockedCb;
+  let eventBlocked;
+  if (isEventBlockedCb) {
+    try {
+      eventBlocked = await isEventBlockedCb(
+        baseInstance.eventType,
+        baseInstance.eventSubType,
+        baseInstance.isPeriodicEvent,
+        baseInstance.context.tenant
+      );
+    } catch (err) {
+      eventBlocked = true;
+      baseInstance.logger.error("skipping run because periodic event blocked check failed!", err, {
+        type: baseInstance.eventType,
+        subType: baseInstance.eventSubType,
+      });
+    }
+  } else {
+    eventBlocked = config.isEventBlocked(
+      baseInstance.eventType,
+      baseInstance.eventSubType,
+      baseInstance.context.tenant
+    );
+  }
+
+  if (eventBlocked) {
+    baseInstance.logger.info("skipping run because event is blocked by configuration", {
+      type: baseInstance.eventType,
+      subType: baseInstance.eventSubType,
+    });
+  }
+  return eventBlocked;
 };
 
 const _processEvent = async (eventTypeInstance, processContext, key, queueEntries, payload) => {
