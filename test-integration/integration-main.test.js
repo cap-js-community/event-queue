@@ -267,6 +267,12 @@ describe("integration-main", () => {
         return await next();
       });
     });
+    jest
+      .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
+      .mockImplementationOnce(async function (queueEntry) {
+        this.__startTime = new Date(Date.now() - 11 * 60 * 1000);
+        return queueEntry.payload;
+      });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     doCheck = false;
     // eslint-disable-next-line jest/no-standalone-expect
