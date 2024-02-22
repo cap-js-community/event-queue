@@ -127,25 +127,25 @@ exports[`integration-main if modifyQueueEntry methods throws an error --> entry 
 
 exports[`integration-main if process event returns an error --> tx should be rolled backed 1`] = `
 {
-  "BEGIN": 8,
-  "COMMIT": 5,
+  "BEGIN": 7,
+  "COMMIT": 4,
   "CREATE": 1,
   "DELETE": 1,
-  "READ": 5,
+  "READ": 4,
   "ROLLBACK": 2,
-  "UPDATE": 3,
+  "UPDATE": 2,
 }
 `;
 
 exports[`integration-main if process event throws an error --> tx should be rolled backed 2`] = `
 {
-  "BEGIN": 8,
-  "COMMIT": 5,
+  "BEGIN": 7,
+  "COMMIT": 4,
   "CREATE": 1,
   "DELETE": 1,
-  "READ": 5,
+  "READ": 4,
   "ROLLBACK": 2,
-  "UPDATE": 3,
+  "UPDATE": 2,
 }
 `;
 
@@ -161,36 +161,36 @@ exports[`integration-main insert one delayed entry and process - should not be p
 
 exports[`integration-main insert one entry and process 1`] = `
 {
-  "BEGIN": 8,
-  "COMMIT": 5,
-  "CREATE": 1,
-  "DELETE": 1,
-  "READ": 5,
-  "ROLLBACK": 2,
-  "UPDATE": 3,
-}
-`;
-
-exports[`integration-main insert one entry witch checkForNext but return status 0 1`] = `
-{
-  "BEGIN": 8,
-  "COMMIT": 6,
-  "CREATE": 1,
-  "DELETE": 1,
-  "READ": 5,
-  "ROLLBACK": 1,
-  "UPDATE": 3,
-}
-`;
-
-exports[`integration-main lock wait timeout during keepAlive 1`] = `
-{
   "BEGIN": 7,
   "COMMIT": 4,
   "CREATE": 1,
   "DELETE": 1,
   "READ": 4,
   "ROLLBACK": 2,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main insert one entry witch checkForNext but return status 0 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main lock wait timeout during keepAlive 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 3,
+  "ROLLBACK": 1,
   "UPDATE": 2,
 }
 `;
@@ -254,13 +254,13 @@ exports[`integration-main periodic events transactions modes no tx mode should c
 
 exports[`integration-main returning exceeded status should be allowed 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 6,
+  "COMMIT": 4,
   "CREATE": 1,
   "DELETE": 1,
-  "READ": 4,
+  "READ": 3,
   "ROLLBACK": 1,
-  "UPDATE": 3,
+  "UPDATE": 2,
 }
 `;
 
@@ -285,25 +285,25 @@ exports[`integration-main should do nothing if lock for event combination cannot
 
 exports[`integration-main should set db user correctly 1`] = `
 {
-  "BEGIN": 9,
-  "COMMIT": 7,
+  "BEGIN": 8,
+  "COMMIT": 6,
   "CREATE": 2,
   "DELETE": 1,
-  "READ": 5,
+  "READ": 4,
   "ROLLBACK": 1,
-  "UPDATE": 3,
+  "UPDATE": 2,
 }
 `;
 
 exports[`integration-main transactionMode=alwaysCommit one green with register rollback in processEvent --> tx rollback even mode alwaysCommit 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 6,
+  "COMMIT": 4,
   "CREATE": 2,
   "DELETE": 1,
-  "READ": 3,
+  "READ": 2,
   "ROLLBACK": 2,
-  "UPDATE": 3,
+  "UPDATE": 2,
 }
 `;
 
@@ -319,13 +319,13 @@ exports[`integration-main transactionMode=alwaysCommit one green with register r
 
 exports[`integration-main transactionMode=alwaysCommit one with error + one without error --> tx no rollback because mode alwaysCommit 2`] = `
 {
-  "BEGIN": 8,
-  "COMMIT": 7,
+  "BEGIN": 6,
+  "COMMIT": 5,
   "CREATE": 2,
   "DELETE": 1,
-  "READ": 6,
+  "READ": 4,
   "ROLLBACK": 1,
-  "UPDATE": 5,
+  "UPDATE": 3,
 }
 `;
 
@@ -351,13 +351,13 @@ exports[`integration-main transactionMode=alwaysCommit one with error + one with
 
 exports[`integration-main transactionMode=alwaysRollback one green --> tx rollback even all green 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 6,
+  "COMMIT": 4,
   "CREATE": 2,
   "DELETE": 1,
-  "READ": 3,
+  "READ": 2,
   "ROLLBACK": 2,
-  "UPDATE": 3,
+  "UPDATE": 2,
 }
 `;
 
@@ -373,13 +373,13 @@ exports[`integration-main transactionMode=alwaysRollback one green --> tx rollba
 
 exports[`integration-main transactionMode=alwaysRollback one with error + one without error --> tx rollback because mode alwaysRollback 2`] = `
 {
-  "BEGIN": 8,
-  "COMMIT": 6,
+  "BEGIN": 6,
+  "COMMIT": 4,
   "CREATE": 2,
   "DELETE": 1,
-  "READ": 6,
+  "READ": 4,
   "ROLLBACK": 2,
-  "UPDATE": 5,
+  "UPDATE": 3,
 }
 `;
 
@@ -400,13 +400,13 @@ exports[`integration-main transactionMode=alwaysRollback one with error + one wi
 
 exports[`integration-main transactionMode=isolated both processed register tx rollback - both should be roll back 1`] = `
 {
-  "BEGIN": 11,
-  "COMMIT": 7,
+  "BEGIN": 9,
+  "COMMIT": 5,
   "CREATE": 3,
   "DELETE": 1,
-  "READ": 6,
+  "READ": 4,
   "ROLLBACK": 3,
-  "UPDATE": 5,
+  "UPDATE": 3,
 }
 `;
 
@@ -432,24 +432,24 @@ exports[`integration-main transactionMode=isolated first processed register tx r
 
 exports[`integration-main transactionMode=isolated first processed register tx rollback - only first should be rolled back 2`] = `
 {
-  "BEGIN": 11,
-  "COMMIT": 8,
+  "BEGIN": 9,
+  "COMMIT": 6,
   "CREATE": 3,
   "DELETE": 1,
-  "READ": 6,
+  "READ": 4,
   "ROLLBACK": 2,
-  "UPDATE": 5,
+  "UPDATE": 3,
 }
 `;
 
 exports[`integration-main two entries with no commit on event level 1`] = `
 {
-  "BEGIN": 9,
-  "COMMIT": 6,
+  "BEGIN": 7,
+  "COMMIT": 4,
   "CREATE": 1,
   "DELETE": 1,
-  "READ": 8,
+  "READ": 6,
   "ROLLBACK": 2,
-  "UPDATE": 4,
+  "UPDATE": 2,
 }
 `;
