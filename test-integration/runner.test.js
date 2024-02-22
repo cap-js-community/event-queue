@@ -52,10 +52,7 @@ describe("redisRunner", () => {
   beforeEach(async () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
-    await cds.tx({}, async (tx2) => {
-      await tx2.run(DELETE.from("sap.eventqueue.Lock"));
-      await tx2.run(DELETE.from("sap.eventqueue.Event"));
-    });
+    await cds.tx({}, (tx2) => tx2.run(DELETE.from("sap.eventqueue.Lock")));
     await distributedLock.releaseLock({}, "EVENT_QUEUE_RUN_ID", {
       tenantScoped: false,
     });
