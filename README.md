@@ -15,24 +15,9 @@ allowing for processing at defined intervals. This feature further extends its c
 transaction management, ensuring that even regularly occurring tasks are handled efficiently and effectively without
 overloading any single instance. This makes it an ideal solution for applications needing consistent, reliable event processing.
 
-## Getting started
+## Getting Started
 
-- Run `npm add @cap-js-community/event-queue` in `@sap/cds` project
-- Activate the cds-plugin in the cds section of the package.json.
-
-### As cds-plugin
-
-For detailed information check out the [documentation](https://cap-js-community.github.io/event-queue/setup).
-
-```json
-{
-  "cds": {
-    "eventQueue": {
-      "configFilePath": "./srv/eventQueueConfig.yml"
-    }
-  }
-}
-```
+Dive right in and check out the getting started [documentation](https://cap-js-community.github.io/event-queue/setup).
 
 ## Features
 
