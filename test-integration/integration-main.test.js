@@ -251,7 +251,8 @@ describe("integration-main", () => {
     eventQueue.config.dbUser = null;
   });
 
-  it("lock wait timeout during keepAlive", async () => {
+  const onlyOldDbService = process.env.NEW_DB_SERVICE ? it.skip : it;
+  onlyOldDbService("lock wait timeout during keepAlive", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
     const event = eventQueue.config.events[0];
