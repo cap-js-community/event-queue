@@ -269,8 +269,10 @@ describe("integration-main", () => {
     });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     doCheck = false;
+    // eslint-disable-next-line jest/no-standalone-expect
     expect(loggerMock.callsLengths().error).toEqual(1);
     await testHelper.selectEventQueueAndExpectError(tx);
+    // eslint-disable-next-line jest/no-standalone-expect
     expect(dbCounts).toMatchSnapshot();
   });
 
