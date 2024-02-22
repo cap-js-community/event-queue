@@ -20,6 +20,13 @@ nav_order: 3
 - Run `npm add @cap-js-community/event-queue` in `@sap/cds` project
 - Initialize the event queue as CAP-Plugin or manually in your server.js
 
+## As cds outbox without config.yaml
+
+The easiest way to use the event-queue is to let the event-queue take over the cds outbox and outbox services via the 
+outbox technique and the event-queue together. For this the event-queue simply needs to be configured as cds outbox. Check
+out the following on how to [configure](/event-queue/use-as-cap-outbox/#how-to-enable-the-event-queue-as-outbox-mechanism-for-cap)
+the event-queue and [implement a cds-service](/event-queue/use-as-cap-outbox/#example-of-a-custom-outboxed-service).
+
 ## As cds-plugin
 
 Extend the cds section of your package.json. Reference to the cds-plugin section in the capire documentation about the
