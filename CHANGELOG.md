@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.3.0 - 2024-02-21
 
+### Fixed
+
+- Log message for blocked events
+
+## v1.3.0 - 2024-02-21
+
 ### Added
 
 - add option to block ad-hoc events. More information in [documentation](https://cap-js-community.github.io/event-queue/configure-event/##blocking-events).

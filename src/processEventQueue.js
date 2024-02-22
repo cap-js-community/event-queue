@@ -274,7 +274,7 @@ const _checkEventIsBlocked = async (baseInstance) => {
   }
 
   if (eventBlocked) {
-    baseInstance.logger.info("skipping run because periodic event is blocked by configuration", {
+    baseInstance.logger.info("skipping run because event is blocked by configuration", {
       type: baseInstance.eventType,
       subType: baseInstance.eventSubType,
     });
