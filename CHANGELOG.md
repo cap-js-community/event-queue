@@ -5,7 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.2.3 - 2024-02-XX
+## v1.3.0 - 2024-02-21
+
+### Fixed
+
+- Log message for blocked events
+
+### Changed
+
+- Reduce log severity for skip publish redis event as no lock is available to debug
+
+## v1.3.0 - 2024-02-21
+
+### Added
+
+- add option to block ad-hoc events. More information in [documentation](https://cap-js-community.github.io/event-queue/configure-event/##blocking-events).
+- Define priorities for event types. More information in [documentation](https://cap-js-community.github.io/event-queue/configure-event/#priority-of-events).
+
+### Fixed
+
+- In more cases the global cds.context was not set correctly because the async-chain could break in high load scenarios.
+
+## v1.2.6 - 2024-02-15
+
+### Fixed
+
+- In some cases the global cds.context was not set correctly because the async-chain could break in high load scenarios.
+
+## v1.2.5 - 2024-02-13
+
+### Added
+
+- The `cleanupLocksAndEventsForDev` parameter allows for the cleanup of all locks and events in progress during server
+  start. This option is intended for development purposes.
+
+### Fixed
+
+- Allow to initialize event-queue without config.yml in case of usage as CAP outbox
+
+### Changed
+
+- The parameter `runInterval` is checked during init. Only values greater than 10 seconds are allowed.
+
+## v1.2.4 - 2024-02-07
+
+### Changed
+
+- Optimize promise handling
+
+## v1.2.3 - 2024-02-07
 
 ### Changed
 

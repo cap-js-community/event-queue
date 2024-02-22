@@ -5,6 +5,7 @@ const cds = require("@sap/cds");
 const { getEnvInstance } = require("./shared/env");
 const redis = require("./shared/redis");
 const EventQueueError = require("./EventQueueError");
+const { Priorities } = require("./constants");
 
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
@@ -13,6 +14,7 @@ const REDIS_CONFIG_BLOCKLIST_CHANNEL = "REDIS_CONFIG_BLOCKLIST_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/config";
 const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
+const DEFAULT_PRIORITY = Priorities.Medium;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
@@ -24,6 +26,7 @@ const BASE_PERIODIC_EVENTS = [
   {
     type: "EVENT_QUEUE_BASE",
     subType: "DELETE_EVENTS",
+    priority: Priorities.Low,
     impl: "./housekeeping/EventQueueDeleteEvents",
     load: 1,
     interval: 86400, // 1 day,
@@ -51,12 +54,13 @@ class Config {
   #env;
   #eventMap;
   #updatePeriodicEvents;
-  #blockedPeriodicEvents;
-  #isPeriodicEventBlockedCb;
+  #blockedEvents;
+  #isEventBlockedCb;
   #thresholdLoggingEventProcessing;
   #useAsCAPOutbox;
   #userId;
   #enableTxConsistencyCheck;
+  #cleanupLocksAndEventsForDev;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -75,7 +79,7 @@ class Config {
     this.#skipCsnCheck = null;
     this.#disableRedis = null;
     this.#env = getEnvInstance();
-    this.#blockedPeriodicEvents = {};
+    this.#blockedEvents = {};
   }
 
   getEventConfig(type, subType) {
@@ -99,7 +103,7 @@ class Config {
   }
 
   attachConfigChangeHandler() {
-    this.#attachBlocklistChangeHandler();
+    this.#attachBlockListChangeHandler();
     redis.subscribeRedisChannel(REDIS_CONFIG_CHANNEL, (messageData) => {
       try {
         const { key, value } = JSON.parse(messageData);
@@ -125,14 +129,14 @@ class Config {
     });
   }
 
-  #attachBlocklistChangeHandler() {
+  #attachBlockListChangeHandler() {
     redis.subscribeRedisChannel(REDIS_CONFIG_BLOCKLIST_CHANNEL, (messageData) => {
       try {
         const { command, key, tenant } = JSON.parse(messageData);
         if (command === COMMAND_BLOCK) {
-          this.#blockPeriodicEventLocalState(key, tenant);
+          this.#blockEventLocalState(key, tenant);
         } else {
-          this.#unblockPeriodicEventLocalState(key, tenant);
+          this.#unblockEventLocalState(key, tenant);
         }
       } catch (err) {
         this.#logger.error("could not parse event blocklist change", err, {
@@ -142,14 +146,14 @@ class Config {
     });
   }
 
-  blockPeriodicEvent(type, subType, tenant = "*") {
-    const typeWithSuffix = `${type}${SUFFIX_PERIODIC}`;
+  blockEvent(type, subType, isPeriodic, tenant = "*") {
+    const typeWithSuffix = `${type}${isPeriodic ? SUFFIX_PERIODIC : ""}`;
     const config = this.getEventConfig(typeWithSuffix, subType);
     if (!config) {
       return;
     }
     const key = this.generateKey(typeWithSuffix, subType);
-    this.#blockPeriodicEventLocalState(key, tenant);
+    this.#blockEventLocalState(key, tenant);
     if (!this.redisEnabled) {
       return;
     }
@@ -161,24 +165,24 @@ class Config {
       });
   }
 
-  #blockPeriodicEventLocalState(key, tenant) {
-    this.#blockedPeriodicEvents[key] ??= {};
-    this.#blockedPeriodicEvents[key][tenant] = true;
+  #blockEventLocalState(key, tenant) {
+    this.#blockedEvents[key] ??= {};
+    this.#blockedEvents[key][tenant] = true;
     return key;
   }
 
   clearPeriodicEventBlockList() {
-    this.#blockedPeriodicEvents = {};
+    this.#blockedEvents = {};
   }
 
-  unblockPeriodicEvent(type, subType, tenant = "*") {
-    const typeWithSuffix = `${type}${SUFFIX_PERIODIC}`;
+  unblockEvent(type, subType, isPeriodic, tenant = "*") {
+    const typeWithSuffix = `${type}${isPeriodic ? SUFFIX_PERIODIC : ""}`;
     const key = this.generateKey(typeWithSuffix, subType);
     const config = this.getEventConfig(typeWithSuffix, subType);
     if (!config) {
       return;
     }
-    this.#unblockPeriodicEventLocalState(key, tenant);
+    this.#unblockEventLocalState(key, tenant);
     if (!this.redisEnabled) {
       return;
     }
@@ -214,17 +218,17 @@ class Config {
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
   }
 
-  #unblockPeriodicEventLocalState(key, tenant) {
-    const map = this.#blockedPeriodicEvents[key];
+  #unblockEventLocalState(key, tenant) {
+    const map = this.#blockedEvents[key];
     if (!map) {
       return;
     }
-    this.#blockedPeriodicEvents[key][tenant] = false;
+    this.#blockedEvents[key][tenant] = false;
     return key;
   }
 
-  isPeriodicEventBlocked(type, subType, tenant) {
-    const map = this.#blockedPeriodicEvents[this.generateKey(type, subType)];
+  isEventBlocked(type, subType, tenant) {
+    const map = this.#blockedEvents[this.generateKey(type, subType)];
     if (!map) {
       return false;
     }
@@ -247,12 +251,14 @@ class Config {
     config.periodicEvents = (config.periodicEvents ?? []).concat(BASE_PERIODIC_EVENTS.map((event) => ({ ...event })));
     this.#eventMap = config.events.reduce((result, event) => {
       event.load = event.load ?? DEFAULT_LOAD;
+      event.priority = event.priority ?? DEFAULT_PRIORITY;
       this.validateAdHocEvents(result, event);
       result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
       event.load = event.load ?? DEFAULT_LOAD;
+      event.priority = event.priority ?? DEFAULT_PRIORITY;
       event.type = `${event.type}${SUFFIX_PERIODIC}`;
       event.isPeriodic = true;
       this.validatePeriodicConfig(result, event);
@@ -340,6 +346,9 @@ class Config {
   }
 
   set runInterval(value) {
+    if (!Number.isInteger(value) || value <= 10 * 1000) {
+      throw EventQueueError.invalidInterval();
+    }
     this.#runInterval = value;
   }
 
@@ -367,12 +376,12 @@ class Config {
     this.#instanceLoadLimit = value;
   }
 
-  get isPeriodicEventBlockedCb() {
-    return this.#isPeriodicEventBlockedCb;
+  get isEventBlockedCb() {
+    return this.#isEventBlockedCb;
   }
 
-  set isPeriodicEventBlockedCb(value) {
-    this.#isPeriodicEventBlockedCb = value;
+  set isEventBlockedCb(value) {
+    this.#isEventBlockedCb = value;
   }
 
   get tableNameEventQueue() {
@@ -469,6 +478,14 @@ class Config {
 
   get enableTxConsistencyCheck() {
     return this.#enableTxConsistencyCheck;
+  }
+
+  set cleanupLocksAndEventsForDev(value) {
+    this.#cleanupLocksAndEventsForDev = value;
+  }
+
+  get cleanupLocksAndEventsForDev() {
+    return this.#cleanupLocksAndEventsForDev;
   }
 
   get isMultiTenancy() {

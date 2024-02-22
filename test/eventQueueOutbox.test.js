@@ -41,7 +41,7 @@ describe("event-queue outbox", () => {
     await tx.run(DELETE.from("sap.eventqueue.Event"));
     await tx.run(DELETE.from("cds.outbox.Messages"));
     eventQueue.config.clearPeriodicEventBlockList();
-    eventQueue.config.isPeriodicEventBlockedCb = null;
+    eventQueue.config.isEventBlockedCb = null;
     await tx.commit();
     jest.clearAllMocks();
   });
@@ -373,6 +373,98 @@ describe("event-queue outbox", () => {
           ],
         ]
       `);
+    });
+
+    it("init event-queue without yml", async () => {
+      eventQueue.config.initialized = false;
+      await eventQueue.initialize({
+        processEventsAfterPublish: false,
+        registerAsEventProcessor: false,
+        useAsCAPOutbox: true,
+      });
+
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+      expect(loggerMock).sendFioriActionCalled();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("req reject should be caught for send", async () => {
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.send("rejectEvent", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchSnapshot();
+    });
+
+    it("req reject should cause an error for emit", async () => {
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.emit("rejectEvent", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchSnapshot();
+    });
+
+    it("req error should be caught for send", async () => {
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.send("errorEvent", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchSnapshot();
+    });
+
+    it("req error should be caught for emit", async () => {
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.emit("errorEvent", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchSnapshot();
     });
 
     describe("not connected service should lazily connect and create configuration", () => {

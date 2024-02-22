@@ -21,6 +21,8 @@ const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 
+let serviceBindingCache = null;
+
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
   #exceededTriesExceeded = [];
@@ -68,6 +70,8 @@ class EventQueueProcessorBase {
     this.__txMap = {};
     this.__txRollback = {};
     this.__queueEntries = [];
+
+    this.#checkGlobalContextToLocalContext();
   }
 
   /**
@@ -531,7 +535,9 @@ class EventQueueProcessorBase {
   async getQueueEntriesAndSetToInProgress() {
     let result = [];
     const refDateStartAfter = new Date(Date.now() + this.#config.runInterval * 1.2);
+    this.#checkGlobalContextToLocalContext();
     await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
+      this.#checkGlobalContextToLocalContext();
       await this.checkTxConsistency(tx);
       const entries = await tx.run(
         SELECT.from(this.#config.tableNameEventQueue)
@@ -673,16 +679,14 @@ class EventQueueProcessorBase {
       });
     let txSchema, serviceManagerSchema;
     try {
-      const mtxServiceManager = require("@sap/cds-mtxs/srv/plugins/hana/srv-mgr");
       const schemaPromise = tx.run("SELECT CURRENT_SCHEMA FROM DUMMY");
-      const serviceManagerBindingsPromise = mtxServiceManager.getAll();
-      const [schema, serviceManagerBindings] = await Promise.allSettled([schemaPromise, serviceManagerBindingsPromise]);
+      const [schema, serviceManagerBindings] = await Promise.allSettled([schemaPromise, this.#getServiceBindings()]);
       if (schema.reason) {
         errorHandler(schema.reason);
         return;
       }
       if (serviceManagerBindings.reason) {
-        errorHandler(schema.reason);
+        errorHandler(serviceManagerBindings.reason);
         return;
       }
 
@@ -692,11 +696,24 @@ class EventQueueProcessorBase {
     } catch (err) {
       errorHandler(err);
     }
-    if (txSchema !== serviceManagerSchema) {
+    if (serviceManagerSchema && txSchema !== serviceManagerSchema) {
       const err = EventQueueError.dbClientSchemaMismatch(tx.context.tenant, txSchema, serviceManagerSchema);
       errorHandler(err);
       throw err;
     }
+  }
+
+  async #getServiceBindings() {
+    if (!(serviceBindingCache && serviceBindingCache.expireTs >= Date.now())) {
+      const mtxServiceManager = require("@sap/cds-mtxs/srv/plugins/hana/srv-mgr");
+      serviceBindingCache = {
+        expireTs: Date.now() + 10 * 60 * 1000,
+        value: mtxServiceManager.getAll().catch(() => {
+          serviceBindingCache = null;
+        }),
+      };
+    }
+    return await serviceBindingCache.value;
   }
 
   async #selectLastSuccessfulPeriodicTimestamp() {
@@ -709,6 +726,48 @@ class EventQueueProcessorBase {
       })
       .columns("max (lastAttemptTimestamp) as lastAttemptsTs");
     return entry.lastAttemptsTs;
+  }
+
+  #checkGlobalContextToLocalContext() {
+    if (!this.#config.enableTxConsistencyCheck) {
+      return;
+    }
+    if (this.__context.tenant !== cds.context.tenant) {
+      throw EventQueueError.globalCdsContextNotMatchingLocal(
+        JSON.stringify(
+          {
+            correlationId: cds.context.id,
+            tenantId: cds.context.tenant,
+            timestamp: cds.context.timestamp,
+            base: JSON.stringify(
+              {
+                correlationId: cds.context.context?.id,
+                tenantId: cds.context.context?.tenant,
+                timestamp: cds.context.context?.timestamp,
+              },
+              null,
+              2
+            ),
+          },
+          null,
+          2
+        ),
+        JSON.stringify(
+          {
+            correlationId: this.__context.id,
+            tenantId: this.__context.tenant,
+            timestamp: this.__context.timestamp,
+            base: JSON.stringify({
+              correlationId: this.__context.context?.id,
+              tenantId: this.__context.context?.tenant,
+              timestamp: this.__context.context?.timestamp,
+            }),
+          },
+          null,
+          2
+        )
+      );
+    }
   }
 
   #handleDelayedEvents(delayedEvents) {

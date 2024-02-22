@@ -17,7 +17,9 @@ const ERROR_CODES = {
   DUPLICATE_EVENT_REGISTRATION: "DUPLICATE_EVENT_REGISTRATION",
   NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
   LOAD_HIGHER_THAN_LIMIT: "LOAD_HIGHER_THAN_LIMIT",
+  NOT_ALLOWED_PRIORITY: "NOT_ALLOWED_PRIORITY",
   SCHEMA_TENANT_MISMATCH: "SCHEMA_TENANT_MISMATCH",
+  GLOBAL_CDS_CONTEXT_MISMATCH: "GLOBAL_CDS_CONTEXT_MISMATCH",
 };
 
 const ERROR_CODES_META = {
@@ -64,8 +66,14 @@ const ERROR_CODES_META = {
   [ERROR_CODES.LOAD_HIGHER_THAN_LIMIT]: {
     message: "The defined load of an event is higher than the maximum defined limit. Check your configuration!",
   },
+  [ERROR_CODES.NOT_ALLOWED_PRIORITY]: {
+    message: "The supplied priority is not allowed. Only LOW, MEDIUM, HIGH is allowed!",
+  },
   [ERROR_CODES.SCHEMA_TENANT_MISMATCH]: {
     message: "The db client associated to the tenant context does not match! Processing will be skipped.",
+  },
+  [ERROR_CODES.GLOBAL_CDS_CONTEXT_MISMATCH]: {
+    message: "The global cds context does not match the local cds context.",
   },
 };
 
@@ -225,12 +233,34 @@ class EventQueueError extends VError {
     );
   }
 
+  static priorityNotAllowed(priority, label) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.NOT_ALLOWED_PRIORITY];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.NOT_ALLOWED_PRIORITY,
+        info: { priority, label },
+      },
+      message
+    );
+  }
+
   static dbClientSchemaMismatch(tenantId, dbClientSchema, serviceManagerSchema) {
     const { message } = ERROR_CODES_META[ERROR_CODES.SCHEMA_TENANT_MISMATCH];
     return new EventQueueError(
       {
         name: ERROR_CODES.SCHEMA_TENANT_MISMATCH,
         info: { tenantId, dbClientSchema, serviceManagerSchema },
+      },
+      message
+    );
+  }
+
+  static globalCdsContextNotMatchingLocal(globalProperties, localProperties) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.GLOBAL_CDS_CONTEXT_MISMATCH];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.GLOBAL_CDS_CONTEXT_MISMATCH,
+        info: { globalProperties, localProperties },
       },
       message
     );

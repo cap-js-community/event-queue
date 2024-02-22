@@ -14,6 +14,8 @@ const config = require("./config");
 const { initEventQueueRedisSubscribe, closeSubscribeClient } = require("./redisPubSub");
 const { closeMainClient } = require("./shared/redis");
 const eventQueueAsOutbox = require("./outbox/eventQueueAsOutbox");
+const { getAllTenantIds } = require("./shared/cdsHelper");
+const { EventProcessingStatus } = require("./constants");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -38,6 +40,7 @@ const CONFIG_VARS = [
   ["useAsCAPOutbox", false],
   ["userId", null],
   ["enableTxConsistencyCheck", false],
+  ["registerCleanupForDev", true],
 ];
 
 const initialize = async ({
@@ -55,11 +58,8 @@ const initialize = async ({
   useAsCAPOutbox,
   userId,
   enableTxConsistencyCheck,
+  cleanupLocksAndEventsForDev,
 } = {}) => {
-  // TODO: initialize check:
-  // - content of yaml check
-  // - betweenRuns
-
   if (config.initialized) {
     return;
   }
@@ -79,7 +79,8 @@ const initialize = async ({
     thresholdLoggingEventProcessing,
     useAsCAPOutbox,
     userId,
-    enableTxConsistencyCheck
+    enableTxConsistencyCheck,
+    cleanupLocksAndEventsForDev
   );
 
   const logger = cds.log(COMPONENT);
@@ -90,6 +91,7 @@ const initialize = async ({
     cds.on("connect", (service) => {
       if (service.name === "db") {
         dbHandler.registerEventQueueDbHandler(service);
+        config.cleanupLocksAndEventsForDev && registerCleanupForDevDb().catch(() => {});
       }
     });
   }
@@ -108,20 +110,28 @@ const initialize = async ({
 };
 
 const readConfigFromFile = async (configFilepath) => {
-  const fileData = await readFileAsync(configFilepath);
-  if (/\.ya?ml$/i.test(configFilepath)) {
-    return yaml.parse(fileData.toString());
+  try {
+    const fileData = await readFileAsync(configFilepath);
+    if (/\.ya?ml$/i.test(configFilepath)) {
+      return yaml.parse(fileData.toString());
+    }
+    if (/\.json$/i.test(configFilepath)) {
+      return JSON.parse(fileData.toString());
+    }
+
+    throw new VError(
+      {
+        name: VERROR_CLUSTER_NAME,
+        info: { configFilepath },
+      },
+      "configFilepath with unsupported extension, allowed extensions are .yaml and .json"
+    );
+  } catch (err) {
+    if (config.useAsCAPOutbox) {
+      return {};
+    }
+    throw err;
   }
-  if (/\.json$/i.test(configFilepath)) {
-    return JSON.parse(fileData.toString());
-  }
-  throw new VError(
-    {
-      name: VERROR_CLUSTER_NAME,
-      info: { configFilepath },
-    },
-    "configFilepath with unsupported extension, allowed extensions are .yaml and .json"
-  );
 };
 
 const registerEventProcessors = () => {
@@ -149,9 +159,11 @@ const monkeyPatchCAPOutbox = () => {
   if (config.useAsCAPOutbox) {
     Object.defineProperty(cds, "outboxed", {
       get: () => eventQueueAsOutbox.outboxed,
+      configurable: true,
     });
     Object.defineProperty(cds, "unboxed", {
       get: () => eventQueueAsOutbox.unboxed,
+      configurable: true,
     });
   }
 };
@@ -211,6 +223,25 @@ const registerCdsShutdown = () => {
   cds.on("shutdown", async () => {
     await Promise.allSettled([closeMainClient(), closeSubscribeClient()]);
   });
+};
+
+const registerCleanupForDevDb = async () => {
+  const profile = cds.env.profiles.find((profile) => profile === "development");
+  if (!profile) {
+    return;
+  }
+
+  const tenantIds = await getAllTenantIds();
+  for (const tenantId of tenantIds) {
+    await cds.tx({ tenant: tenantId }, async (tx) => {
+      await tx.run(DELETE.from(config.tableNameEventLock));
+      await tx.run(
+        UPDATE.entity(config.tableNameEventQueue).where({ status: EventProcessingStatus.InProgress }).set({
+          status: EventProcessingStatus.Error,
+        })
+      );
+    });
+  }
 };
 
 module.exports = {
