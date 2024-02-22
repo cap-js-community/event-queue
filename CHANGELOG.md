@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.3.0 - 2024-02-21
+## v1.3.1 - 2024-02-21
 
 ### Fixed
 
@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 
 - Reduce log severity for skip publish redis event as no lock is available to debug
+- Only do etag checks after a processing time of 10 minutes to improve performance
 
 ## v1.3.0 - 2024-02-21
 

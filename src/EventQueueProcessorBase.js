@@ -20,6 +20,7 @@ const LIMIT_PARALLEL_EVENT_PROCESSING = 10;
 const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
+const ETAG_CHECK_AFTER_MIN = 10;
 
 let serviceBindingCache = null;
 
@@ -901,7 +902,7 @@ class EventQueueProcessorBase {
    * @return {Promise<boolean>} true if the db record of the event has been modified since selection
    */
   async isOutdatedAndKeepalive(queueEntries) {
-    if (!this.__outdatedCheckEnabled) {
+    if (!this.__outdatedCheckEnabled || new Date() - this.__startTime <= ETAG_CHECK_AFTER_MIN * 60 * 1000) {
       return false;
     }
     let eventOutdated;
