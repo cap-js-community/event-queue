@@ -13,9 +13,9 @@ jobs:
     strategy:
       matrix:
         node-version: [18, 20]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        cds-new-db-service: [true, false]
 
-    name: test - node.js ${{ matrix.node-version }}
+    name: test - node.js ${{ matrix.node-version }} - new cds db service enabled ${{ matrix.cds-new-db-service }}
     steps:
       - name: "unique id for hana schema"
         id: generateId
@@ -37,6 +37,7 @@ jobs:
           GITHUB_ACTION_HANA: true
           SCHEMA_GUID: ${{steps.generateId.outputs.id}}
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
+          NEW_DB_SERVICE: ${{ matrix.cds-new-db-service }}
 
   lint:
     runs-on: ubuntu-latest
