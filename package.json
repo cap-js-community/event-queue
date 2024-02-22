@@ -47,13 +47,13 @@
     "yaml": "2.3.4"
   },
   "devDependencies": {
-    "@cap-js/hana": "^0.0.4",
+    "@cap-js/hana": "^0.0.5",
     "@cap-js/sqlite": "^1.5.0",
     "@sap/cds": "^7.5.3",
     "@sap/cds-dk": "^7.5.1",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-jest": "^27.6.3",
+    "eslint-plugin-jest": "^27.9.0",
     "eslint-plugin-node": "^11.1.0",
     "express": "^4.18.2",
     "hdb": "^0.19.7",
