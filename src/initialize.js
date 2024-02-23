@@ -40,7 +40,7 @@ const CONFIG_VARS = [
   ["useAsCAPOutbox", false],
   ["userId", null],
   ["enableTxConsistencyCheck", false],
-  ["registerCleanupForDev", true],
+  ["cleanupLocksAndEventsForDev", false],
 ];
 
 const initialize = async ({
@@ -227,7 +227,7 @@ const registerCdsShutdown = () => {
 
 const registerCleanupForDevDb = async () => {
   const profile = cds.env.profiles.find((profile) => profile === "development");
-  if (!profile) {
+  if (!profile || process.env.NODE_ENV === "production") {
     return;
   }
 
