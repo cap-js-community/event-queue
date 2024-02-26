@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- option for delayed events for cds outboxed services: [documentation]()
+- option for delayed events for cds outboxed services: [documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#how-to-delay-outboxed-service-calls)
 
 ## v1.3.1 - 2024-02-21
 
