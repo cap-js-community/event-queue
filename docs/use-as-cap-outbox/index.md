@@ -133,12 +133,32 @@ const service = await cds.connect.to("task-service");
 const outboxedService = cds.outboxed(service, {
   kind: "persitent-outbox",
   transactionMode: "alwaysRollback",
-  checkForNextChun: true,
+  checkForNextChunk: true,
 });
 await outboxedService.send("process", {
   ID: 1,
   comment: "done",
 });
+```
+
+### How to Delay Outboxed Service Calls
+
+The event queue has a feature that enables the publication of delayed events. This feature is also applicable to CAP
+outboxed services.
+
+To implement this feature, include the `x-eventqueue-startAfter` header attribute during the send or emit process.
+
+```js
+const outboxedService = await cds.connect.to("task-service");
+await outboxedService.send(
+  "process",
+  {
+    ID: 1,
+    comment: "done",
+  },
+  // delay the processing 4 minutes
+  { "x-eventqueue-startAfter": new Date(Date.now() + 4 * 60 * 1000).toISOString() }
+);
 ```
 
 ### Error Handling in a Custom Outboxed Service
