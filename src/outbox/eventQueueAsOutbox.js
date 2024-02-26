@@ -73,6 +73,8 @@ const _mapToEventAndPublish = async (context, name, req) => {
   for (const header in req.headers ?? {}) {
     if (header.toLocaleLowerCase() === "x-eventqueue-startafter") {
       startAfter = req.headers[header];
+      delete req.headers[header];
+      break;
     }
   }
   const event = {

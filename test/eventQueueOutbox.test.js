@@ -172,11 +172,17 @@ describe("event-queue outbox", () => {
       );
 
       tx = cds.tx({});
-      const event = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 1 });
-      expect(event[0]).toMatchObject({
+      const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 1,
+        additionalColumns: ["payload"],
+      });
+      expect(event).toMatchObject({
         status: EventProcessingStatus.Open,
         startAfter: date,
       });
+      expect(JSON.parse(event.payload)).toMatchSnapshot();
+      expect(JSON.parse(event.payload).headers["x-eventqueue-startAfter"]).toBeUndefined();
+      expect(JSON.parse(event.payload).headers["x-eventqueue-startafter"]).toBeUndefined();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
