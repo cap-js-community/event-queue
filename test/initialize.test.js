@@ -107,12 +107,17 @@ describe("initialize", () => {
   });
 
   describe("runner mode registration", () => {
+    beforeEach(() => {
+      cds._events.connect.splice(1, cds._events.connect.length - 1);
+    });
+
     test("single tenant", async () => {
       const singleTenantSpy = jest.spyOn(runner, "singleTenant").mockResolvedValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
       });
+      cds.emit("connect", await cds.connect.to("db"));
       expect(singleTenantSpy).toHaveBeenCalledTimes(1);
     });
 
@@ -123,6 +128,7 @@ describe("initialize", () => {
         configFilePath,
         processEventsAfterPublish: false,
       });
+      cds.emit("connect", await cds.connect.to("db"));
       expect(multiTenancyDbSpy).toHaveBeenCalledTimes(1);
       cds.requires.multitenancy = null;
     });
@@ -137,6 +143,7 @@ describe("initialize", () => {
         configFilePath,
         processEventsAfterPublish: false,
       });
+      cds.emit("connect", await cds.connect.to("db"));
       await Promise.allSettled([p1, p2]);
       expect(singleTenant).toHaveBeenCalledTimes(1);
     });
@@ -153,6 +160,7 @@ describe("initialize", () => {
         configFilePath,
         processEventsAfterPublish: false,
       });
+      cds.emit("connect", await cds.connect.to("db"));
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(1);
       env.isOnCF = false;
       cds.requires.multitenancy = null;
