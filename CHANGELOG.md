@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.3.2 - 2024-02-XX
+
+### Added
+
+- option for delayed events for cds outboxed services: [documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#how-to-delay-outboxed-service-calls)
+
 ## v1.3.1 - 2024-02-21
 
 ### Fixed

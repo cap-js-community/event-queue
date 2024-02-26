@@ -1,5 +1,19 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true accept event-queue specific options in headers 1`] = `
+{
+  "_fromSend": true,
+  "contextUser": "anonymous",
+  "data": {
+    "body": "body",
+    "subject": "subject",
+    "to": "to",
+  },
+  "event": "sendFiori",
+  "headers": {},
+}
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true req error should be caught for emit 1`] = `
 [
   [
