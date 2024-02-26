@@ -684,6 +684,7 @@ describe("integration-main", () => {
 
   describe("periodic events", () => {
     beforeAll(async () => {
+      cds._events.connect.splice(1, cds._events.connect.length - 1);
       eventQueue.config.initialized = false;
       const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
       await eventQueue.initialize({
@@ -1277,6 +1278,7 @@ describe("integration-main", () => {
     let dbHandlerSpy;
     beforeAll(async () => {
       checkAndInsertPeriodicEventsMock = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
+      cds._events.connect.splice(1, cds._events.connect.length - 1);
       eventQueue.config.initialized = false;
       const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
       dbHandlerSpy = jest.spyOn(dbHandler, "registerEventQueueDbHandler");
