@@ -68,21 +68,28 @@ function unboxed(srv) {
   return srv[UNBOXED] || srv;
 }
 
-const _mapToEventAndPublish = async (context, name, msg) => {
+const _mapToEventAndPublish = async (context, name, req) => {
+  let startAfter;
+  for (const header in req.headers ?? {}) {
+    if (header.toLocaleLowerCase() === "x-eventqueue-startafter") {
+      startAfter = req.headers[header];
+    }
+  }
   const event = {
     contextUser: context.user.id,
-    ...(msg._fromSend || (msg.reply && { _fromSend: true })), // send or emit
-    ...(msg.inbound && { inbound: msg.inbound }),
-    ...(msg.event && { event: msg.event }),
-    ...(msg.data && { data: msg.data }),
-    ...(msg.headers && { headers: msg.headers }),
-    ...(msg.query && { query: msg.query }),
+    ...(req._fromSend || (req.reply && { _fromSend: true })), // send or emit
+    ...(req.inbound && { inbound: req.inbound }),
+    ...(req.event && { event: req.event }),
+    ...(req.data && { data: req.data }),
+    ...(req.headers && { headers: req.headers }),
+    ...(req.query && { query: req.query }),
   };
 
   await publishEvent(cds.tx(context), {
     type: CDS_EVENT_TYPE,
     subType: name,
     payload: JSON.stringify(event),
+    ...(startAfter && { startAfter }),
   });
 };
 

@@ -9,6 +9,7 @@ const { Logger: mockLogger } = require("./mocks/logger");
 const { processEventQueue } = require("../src/processEventQueue");
 const redisPubSub = require("../src/redisPubSub");
 const runner = require("../src/runner");
+const { EventProcessingStatus } = require("../src/constants");
 
 const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
@@ -149,6 +150,34 @@ describe("event-queue outbox", () => {
       tx = cds.tx({});
       const outboxEvent = await tx.run(SELECT.from("cds.outbox.Messages"));
       expect(outboxEvent).toHaveLength(0);
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("accept event-queue specific options in headers", async () => {
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service);
+      const date = new Date(Date.now() + 4 * 60 * 1000).toISOString();
+      await outboxedService.send(
+        "sendFiori",
+        {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        },
+        {
+          "x-eventqueue-startAfter": date,
+        }
+      );
+
+      tx = cds.tx({});
+      const event = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 1 });
+      expect(event[0]).toMatchObject({
+        status: EventProcessingStatus.Open,
+        startAfter: date,
+      });
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
       expect(loggerMock.callsLengths().error).toEqual(0);
