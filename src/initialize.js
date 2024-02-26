@@ -84,21 +84,19 @@ const initialize = async ({
   );
 
   const logger = cds.log(COMPONENT);
-  config.fileContent = await readConfigFromFile(config.configFilePath);
   config.checkRedisEnabled();
+  cds.on("connect", (service) => {
+    if (service.name === "db") {
+      config.processEventsAfterPublish && dbHandler.registerEventQueueDbHandler(service);
+      config.cleanupLocksAndEventsForDev && registerCleanupForDevDb().catch(() => {});
+      registerEventProcessors();
+    }
+  });
+  config.fileContent = await readConfigFromFile(config.configFilePath);
 
-  if (config.processEventsAfterPublish) {
-    cds.on("connect", (service) => {
-      if (service.name === "db") {
-        dbHandler.registerEventQueueDbHandler(service);
-        config.cleanupLocksAndEventsForDev && registerCleanupForDevDb().catch(() => {});
-      }
-    });
-  }
   !config.skipCsnCheck && (await csnCheck());
 
   monkeyPatchCAPOutbox();
-  registerEventProcessors();
   registerCdsShutdown();
   logger.info("event queue initialized", {
     registerAsEventProcessor: config.registerAsEventProcessor,
