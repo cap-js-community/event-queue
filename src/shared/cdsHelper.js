@@ -57,6 +57,13 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
         );
       } else {
         contextTx.context.user = user;
+        try {
+          contextTx.set?.({
+            "$user.id": user.id,
+          });
+        } catch {
+          /* empty */
+        }
         await fn(contextTx, ...parameters);
       }
     }
