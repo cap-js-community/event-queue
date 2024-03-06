@@ -186,7 +186,7 @@ describe("redisRunner", () => {
     await cds.tx({}, (tx2) =>
       tx2.run(
         UPDATE.entity("sap.eventqueue.Lock").set({
-          createdAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
+          createdAt: new Date(Date.now() - 26 * 60 * 1000).toISOString(),
         })
       )
     );
@@ -232,7 +232,7 @@ describe("redisRunner", () => {
 
     it("should have default offset with no previous run", async () => {
       const result = await runner.__._calculateOffsetForFirstRun();
-      expect(result).toEqual(5 * 60 * 1000);
+      expect(result).toEqual(25 * 60 * 1000);
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
