@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.3.2 - 2024-02-XX
+## v1.3.3 - 2024-03-06
+
+### Changed
+
+- Default for runInterval changed from 5 minutes to 25 minutes. This is to reduce the load on the database.
+- The load of the internal periodic event DELETE_EVENTS is increased to 20 to only process 5 tenants in parallel. This is to reduce the load on the database.
+- The max processing time for the event-queue is set to the runInterval.
+
+## v1.3.2 - 2024-03-01
 
 ### Added
 

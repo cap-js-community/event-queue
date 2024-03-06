@@ -11,7 +11,6 @@ const { limiter } = require("./shared/common");
 const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
 
 const COMPONENT_NAME = "/eventQueue/processEventQueue";
-const MAX_EXECUTION_TIME = 5 * 60 * 1000;
 
 const processEventQueue = async (context, eventType, eventSubType, startTime = new Date()) => {
   let iterationCounter = 0;
@@ -115,7 +114,7 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
   if (eventTypeInstance.emptyChunkSelected) {
     return false; // the last selected chunk was empty - no more data for processing
   }
-  if (new Date(startTime.getTime() + MAX_EXECUTION_TIME) > new Date()) {
+  if (new Date(startTime.getTime() + config.runInterval) > new Date()) {
     return true;
   }
   eventTypeInstance.logTimeExceeded(iterationCounter);
