@@ -30,7 +30,7 @@ const CONFIG_VARS = [
   ["registerAsEventProcessor", true],
   ["processEventsAfterPublish", true],
   ["isEventQueueActive", true],
-  ["runInterval", 5 * 60 * 1000],
+  ["runInterval", 25 * 60 * 1000],
   ["tableNameEventQueue", BASE_TABLES.EVENT],
   ["tableNameEventLock", BASE_TABLES.LOCK],
   ["disableRedis", false],
