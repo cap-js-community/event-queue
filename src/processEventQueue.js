@@ -9,6 +9,7 @@ const { TransactionMode, EventProcessingStatus } = require("./constants");
 const { limiter } = require("./shared/common");
 
 const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
+const { broadcastEvent } = require("./redisPubSub");
 
 const COMPONENT_NAME = "/eventQueue/processEventQueue";
 
@@ -117,6 +118,17 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
   if (new Date(startTime.getTime() + config.runInterval) > new Date()) {
     return true;
   }
+  setTimeout(() => {
+    broadcastEvent(eventTypeInstance.context.tenant, eventTypeInstance.eventType, eventTypeInstance.eventSubType).catch(
+      (err) => {
+        eventTypeInstance.logger.error("could not execute scheduled event", err, {
+          tenantId: eventTypeInstance.context.tenant,
+          type: eventTypeInstance.eventType,
+          subType: eventTypeInstance.eventSubType,
+        });
+      }
+    );
+  }, 1000).unref();
   eventTypeInstance.logTimeExceeded(iterationCounter);
   return false;
 };
