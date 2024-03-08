@@ -12,6 +12,7 @@ const eventQueue = require("../src");
 const { getEnvInstance } = require("../src/shared/env");
 const runner = require("../src/runner");
 const config = require("../src/config");
+const redis = require("../src/shared/redis");
 
 jest.spyOn(redisPubSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
 
@@ -108,7 +109,7 @@ describe("initialize", () => {
 
   describe("runner mode registration", () => {
     beforeEach(() => {
-      cds._events.connect.splice(1, cds._events.connect.length - 1);
+      cds._events.connect.splice?.(1, cds._events.connect.length - 1);
     });
 
     test("single tenant", async () => {
@@ -151,14 +152,15 @@ describe("initialize", () => {
     test("multi tenancy with redis", async () => {
       cds.requires.multitenancy = {};
       const env = getEnvInstance();
-      env.isOnCF = true;
       env.vcapServices = {
         "redis-cache": [{ credentials: { hostname: "123" } }],
       };
       const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();
+      jest.spyOn(redis, "connectionCheck").mockResolvedValueOnce(true);
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
+        disableRedis: false,
       });
       cds.emit("connect", await cds.connect.to("db"));
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(1);

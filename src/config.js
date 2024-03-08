@@ -99,7 +99,8 @@ class Config {
   }
 
   checkRedisEnabled() {
-    this.#redisEnabled = !this.#disableRedis && this._checkRedisIsBound() && this.#env.isOnCF;
+    this.#redisEnabled = !this.#disableRedis && this._checkRedisIsBound();
+    return this.#redisEnabled;
   }
 
   attachConfigChangeHandler() {
