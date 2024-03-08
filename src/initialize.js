@@ -85,11 +85,13 @@ const initialize = async ({
 
   const logger = cds.log(COMPONENT);
   const redisEnabled = config.checkRedisEnabled();
+  let resolveFn;
+  let initFinished = new Promise((resolve) => (resolveFn = resolve));
   cds.on("connect", (service) => {
     if (service.name === "db") {
       config.processEventsAfterPublish && dbHandler.registerEventQueueDbHandler(service);
       config.cleanupLocksAndEventsForDev && registerCleanupForDevDb().catch(() => {});
-      registerEventProcessors();
+      initFinished.then(registerEventProcessors);
     }
   });
   if (redisEnabled) {
@@ -108,6 +110,7 @@ const initialize = async ({
     redisEnabled: config.redisEnabled,
     runInterval: config.runInterval,
   });
+  resolveFn();
 };
 
 const readConfigFromFile = async (configFilepath) => {

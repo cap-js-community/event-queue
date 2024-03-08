@@ -1,6 +1,7 @@
 "use strict";
 
 const path = require("path");
+const { promisify } = require("util");
 
 const cds = require("@sap/cds");
 
@@ -119,6 +120,7 @@ describe("initialize", () => {
         processEventsAfterPublish: false,
       });
       cds.emit("connect", await cds.connect.to("db"));
+      await promisify(setImmediate)();
       expect(singleTenantSpy).toHaveBeenCalledTimes(1);
     });
 
@@ -130,6 +132,7 @@ describe("initialize", () => {
         processEventsAfterPublish: false,
       });
       cds.emit("connect", await cds.connect.to("db"));
+      await promisify(setImmediate)();
       expect(multiTenancyDbSpy).toHaveBeenCalledTimes(1);
       cds.requires.multitenancy = null;
     });
@@ -146,6 +149,7 @@ describe("initialize", () => {
       });
       cds.emit("connect", await cds.connect.to("db"));
       await Promise.allSettled([p1, p2]);
+      await promisify(setImmediate)();
       expect(singleTenant).toHaveBeenCalledTimes(1);
     });
 
@@ -163,6 +167,7 @@ describe("initialize", () => {
         disableRedis: false,
       });
       cds.emit("connect", await cds.connect.to("db"));
+      await promisify(setImmediate)();
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(1);
       env.isOnCF = false;
       cds.requires.multitenancy = null;
