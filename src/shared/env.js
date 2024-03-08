@@ -4,12 +4,9 @@ let instance;
 
 class Env {
   #isLocal;
-  #isOnCF;
   #vcapServices;
 
   constructor() {
-    this.#isLocal = process.env.USER !== "vcap";
-    this.#isOnCF = !this.#isLocal;
     try {
       this.#vcapServices = JSON.parse(process.env.VCAP_SERVICES);
     } catch {
@@ -26,13 +23,6 @@ class Env {
   }
   get isLocal() {
     return this.#isLocal;
-  }
-
-  set isOnCF(value) {
-    this.#isOnCF = value;
-  }
-  get isOnCF() {
-    return this.#isOnCF;
   }
 
   set vcapServices(value) {
