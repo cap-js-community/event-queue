@@ -67,6 +67,11 @@
     "url": "https://github.com/cap-js-community/event-queue.git"
   },
   "cds": {
+    "eventQueue": {
+      "[production]": {
+        "disableRedis": false
+      }
+    },
     "requires": {
       "event-queue": {
         "model": "@cap-js-community/event-queue"
