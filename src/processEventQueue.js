@@ -117,6 +117,7 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
   if (new Date(startTime.getTime() + config.runInterval) > new Date()) {
     return true;
   }
+
   eventTypeInstance.logTimeExceeded(iterationCounter);
   return false;
 };

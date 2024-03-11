@@ -36,15 +36,6 @@ describe("redis layer", () => {
 
   afterAll(() => cds.shutdown);
 
-  test("should call connect and on without any error for local", async () => {
-    const connectSpy = jest.spyOn(redis, "createClient");
-    const client = await redisEventQueue.createClientAndConnect();
-    expect(client.connect).toHaveBeenCalledTimes(1);
-    expect(client.on).toHaveBeenCalledTimes(1);
-    expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(connectSpy).toHaveBeenCalledWith({ socket: { reconnectStrategy: expect.anything() } });
-  });
-
   test("should call connect and on without any error for cf", async () => {
     const env = getEnvInstance();
     env.isOnCF = true;

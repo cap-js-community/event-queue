@@ -10,6 +10,7 @@ const { arrayToFlatMap } = require("./shared/common");
 const eventScheduler = require("./shared/eventScheduler");
 const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
+const { broadcastEvent } = require("./redisPubSub");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
 const COMPONENT_NAME = "/eventQueue/EventQueueProcessorBase";
@@ -1002,11 +1003,11 @@ class EventQueueProcessorBase {
   }
 
   async scheduleNextPeriodEvent(queueEntry) {
-    const intervalInSec = this.#eventConfig.interval * 1000;
+    const intervalInMs = this.#eventConfig.interval * 1000;
     const newEvent = {
       type: this.#eventType,
       subType: this.#eventSubType,
-      startAfter: new Date(new Date(queueEntry.startAfter).getTime() + intervalInSec),
+      startAfter: new Date(new Date(queueEntry.startAfter).getTime() + intervalInMs),
     };
     const { relative } = this.#eventSchedulerInstance.calculateOffset(
       this.#eventType,
@@ -1015,11 +1016,13 @@ class EventQueueProcessorBase {
     );
 
     // more than one interval behind - shift tick to keep up
-    if (relative < 0 && Math.abs(relative) >= intervalInSec) {
+    if (relative < 0 && Math.abs(relative) >= intervalInMs) {
+      const plannedStartAfter = newEvent.startAfter;
       newEvent.startAfter = new Date(Date.now() + 5 * 1000);
       this.logger.info("interval adjusted because shifted more than one interval", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
+        plannedStartAfter,
         newStartAfter: newEvent.startAfter,
       });
     }
@@ -1027,7 +1030,7 @@ class EventQueueProcessorBase {
     this.tx._skipEventQueueBroadcase = true;
     await this.tx.run(INSERT.into(this.#config.tableNameEventQueue).entries({ ...newEvent }));
     this.tx._skipEventQueueBroadcase = false;
-    if (intervalInSec < this.#config.runInterval * 1.5) {
+    if (intervalInMs < this.#config.runInterval * 1.5) {
       this.#handleDelayedEvents([newEvent]);
       const { relative: relativeAfterSchedule } = this.#eventSchedulerInstance.calculateOffset(
         this.#eventType,
@@ -1106,6 +1109,18 @@ class EventQueueProcessorBase {
   clearEventProcessingContext() {
     this.__processContext = null;
     this.__processTx = null;
+  }
+
+  broadCastEvent() {
+    setTimeout(() => {
+      broadcastEvent(this.__baseContext.tenant, this.#eventType, this.#eventSubType).catch((err) => {
+        this.logger.error("could not execute scheduled event", err, {
+          tenantId: this.__baseContext.tenant,
+          type: this.#eventType,
+          subType: this.#eventSubType,
+        });
+      });
+    }, 1000).unref();
   }
 
   get logger() {

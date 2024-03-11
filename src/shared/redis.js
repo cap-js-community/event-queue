@@ -26,29 +26,23 @@ const createMainClientAndConnect = () => {
 
 const _createClientBase = () => {
   const env = getEnvInstance();
-  if (env.isOnCF) {
-    try {
-      const credentials = env.getRedisCredentialsFromEnv();
-      const redisIsCluster = credentials.cluster_mode;
-      const url = credentials.uri.replace(/(?<=rediss:\/\/)[\w-]+?(?=:)/, "");
-      if (redisIsCluster) {
-        return redis.createCluster({
-          rootNodes: [{ url }],
-          // https://github.com/redis/node-redis/issues/1782
-          defaults: {
-            password: credentials.password,
-            socket: { tls: credentials.tls },
-          },
-        });
-      }
-      return redis.createClient({ url });
-    } catch (err) {
-      throw EventQueueError.redisConnectionFailure(err);
+  try {
+    const credentials = env.getRedisCredentialsFromEnv();
+    const redisIsCluster = credentials.cluster_mode;
+    const url = credentials.uri.replace(/(?<=rediss:\/\/)[\w-]+?(?=:)/, "");
+    if (redisIsCluster) {
+      return redis.createCluster({
+        rootNodes: [{ url }],
+        // https://github.com/redis/node-redis/issues/1782
+        defaults: {
+          password: credentials.password,
+          socket: { tls: credentials.tls },
+        },
+      });
     }
-  } else {
-    return redis.createClient({
-      socket: { reconnectStrategy: _localReconnectStrategy },
-    });
+    return redis.createClient({ url });
+  } catch (err) {
+    throw EventQueueError.redisConnectionFailure(err);
   }
 };
 
@@ -93,11 +87,16 @@ const publishMessage = async (channel, message) => {
   return await client.publish(channel, message);
 };
 
-const _localReconnectStrategy = () => EventQueueError.redisNoReconnect();
-
 const closeMainClient = async () => {
   try {
-    const client = await mainClientPromise;
+    await _resilientClientClose(await mainClientPromise);
+  } catch (err) {
+    // ignore errors during shutdown
+  }
+};
+
+const _resilientClientClose = async (client) => {
+  try {
     if (client?.quit) {
       await client.quit();
     }
@@ -106,10 +105,28 @@ const closeMainClient = async () => {
   }
 };
 
+const connectionCheck = async () => {
+  return new Promise((resolve, reject) => {
+    createClientAndConnect(reject)
+      .then((client) => {
+        if (client) {
+          _resilientClientClose(client);
+          resolve();
+        } else {
+          reject(new Error());
+        }
+      })
+      .catch(reject);
+  })
+    .then(() => true)
+    .catch(() => false);
+};
+
 module.exports = {
   createClientAndConnect,
   createMainClientAndConnect,
   subscribeRedisChannel,
   publishMessage,
   closeMainClient,
+  connectionCheck,
 };

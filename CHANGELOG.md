@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.3.4 - 2024-03-08
 
+### Added
+
+- Trigger processing again if time is exceeded for event processing.
+
 ### Changed
 
 - removed CF check to enable redis to allow using redis even if process.env.USER is not vcap.

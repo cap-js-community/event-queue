@@ -12,7 +12,7 @@ const runner = require("./runner");
 const dbHandler = require("./dbHandler");
 const config = require("./config");
 const { initEventQueueRedisSubscribe, closeSubscribeClient } = require("./redisPubSub");
-const { closeMainClient } = require("./shared/redis");
+const redis = require("./shared/redis");
 const eventQueueAsOutbox = require("./outbox/eventQueueAsOutbox");
 const { getAllTenantIds } = require("./shared/cdsHelper");
 const { EventProcessingStatus } = require("./constants");
@@ -33,7 +33,7 @@ const CONFIG_VARS = [
   ["runInterval", 25 * 60 * 1000],
   ["tableNameEventQueue", BASE_TABLES.EVENT],
   ["tableNameEventLock", BASE_TABLES.LOCK],
-  ["disableRedis", false],
+  ["disableRedis", true],
   ["skipCsnCheck", false],
   ["updatePeriodicEvents", true],
   ["thresholdLoggingEventProcessing", 50],
@@ -84,14 +84,19 @@ const initialize = async ({
   );
 
   const logger = cds.log(COMPONENT);
-  config.checkRedisEnabled();
+  const redisEnabled = config.checkRedisEnabled();
+  let resolveFn;
+  let initFinished = new Promise((resolve) => (resolveFn = resolve));
   cds.on("connect", (service) => {
     if (service.name === "db") {
       config.processEventsAfterPublish && dbHandler.registerEventQueueDbHandler(service);
       config.cleanupLocksAndEventsForDev && registerCleanupForDevDb().catch(() => {});
-      registerEventProcessors();
+      initFinished.then(registerEventProcessors);
     }
   });
+  if (redisEnabled) {
+    config.redisEnabled = await redis.connectionCheck();
+  }
   config.fileContent = await readConfigFromFile(config.configFilePath);
 
   !config.skipCsnCheck && (await csnCheck());
@@ -105,6 +110,7 @@ const initialize = async ({
     redisEnabled: config.redisEnabled,
     runInterval: config.runInterval,
   });
+  resolveFn();
 };
 
 const readConfigFromFile = async (configFilepath) => {
@@ -219,7 +225,7 @@ const mixConfigVarsWithEnv = (...args) => {
 
 const registerCdsShutdown = () => {
   cds.on("shutdown", async () => {
-    await Promise.allSettled([closeMainClient(), closeSubscribeClient()]);
+    await Promise.allSettled([redis.closeMainClient(), closeSubscribeClient()]);
   });
 };
 
