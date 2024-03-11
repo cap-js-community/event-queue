@@ -70,6 +70,11 @@
     "eventQueue": {
       "[production]": {
         "disableRedis": false
+      },
+      "[test]": {
+        "registerAsEventProcessor": false,
+        "isRunnerDeactivated": true,
+        "updatePeriodicEvents": false
       }
     },
     "requires": {

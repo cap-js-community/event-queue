@@ -105,6 +105,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   });
 
   test("should wait and try again if lock is not available for periodic events", async () => {
+    await tx.rollback();
     const event = eventQueue.config.periodicEvents[0];
     checkLockExistsSpy.mockResolvedValueOnce(true);
     checkLockExistsSpy.mockResolvedValueOnce(false);
