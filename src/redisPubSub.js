@@ -1,5 +1,7 @@
 "use strict";
 
+const { promisify } = require("util");
+
 const cds = require("@sap/cds");
 
 const redis = require("./shared/redis");
@@ -10,7 +12,10 @@ const { getSubdomainForTenantId } = require("./shared/cdsHelper");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/redisPubSub";
+const TRIES_FOR_PUBLISH_PERIODIC_EVENT = 10;
+const SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT = 30 * 1000;
 
+const wait = promisify(setTimeout);
 let subscriberClientPromise;
 
 const initEventQueueRedisSubscribe = () => {
@@ -107,23 +112,34 @@ const broadcastEvent = async (tenantId, type, subType) => {
       }
       return;
     }
-    const result = await checkLockExistsAndReturnValue(
-      new cds.EventContext({ tenant: tenantId }),
-      [type, subType].join("##")
-    );
-    if (result) {
-      logger.debug("skip publish redis event as no lock is available", {
+    const eventConfig = config.getEventConfig(type, subType);
+    for (let i = 0; i < TRIES_FOR_PUBLISH_PERIODIC_EVENT; i++) {
+      const result = await checkLockExistsAndReturnValue(
+        new cds.EventContext({ tenant: tenantId }),
+        [type, subType].join("##")
+      );
+      if (result) {
+        logger.debug("skip publish redis event as no lock is available", {
+          type,
+          subType,
+          index: i,
+          isPeriodic: eventConfig.isPeriodic,
+          waitInterval: SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT,
+        });
+        if (!eventConfig.isPeriodic) {
+          break;
+        }
+        await wait(SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT);
+        continue;
+      }
+      logger.debug("publishing redis event", {
+        tenantId,
         type,
         subType,
       });
-      return;
+      await redis.publishMessage(EVENT_MESSAGE_CHANNEL, JSON.stringify({ tenantId, type, subType }));
+      break;
     }
-    logger.debug("publishing redis event", {
-      tenantId,
-      type,
-      subType,
-    });
-    await redis.publishMessage(EVENT_MESSAGE_CHANNEL, JSON.stringify({ tenantId, type, subType }));
   } catch (err) {
     logger.error("publish event failed!", err, {
       tenantId,

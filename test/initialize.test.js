@@ -118,6 +118,7 @@ describe("initialize", () => {
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
+        registerAsEventProcessor: true,
       });
       cds.emit("connect", await cds.connect.to("db"));
       await promisify(setImmediate)();
@@ -130,6 +131,7 @@ describe("initialize", () => {
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
+        registerAsEventProcessor: true,
       });
       cds.emit("connect", await cds.connect.to("db"));
       await promisify(setImmediate)();
@@ -142,10 +144,12 @@ describe("initialize", () => {
       const p1 = eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
+        registerAsEventProcessor: true,
       });
       const p2 = eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
+        registerAsEventProcessor: true,
       });
       cds.emit("connect", await cds.connect.to("db"));
       await Promise.allSettled([p1, p2]);
@@ -165,6 +169,7 @@ describe("initialize", () => {
         configFilePath,
         processEventsAfterPublish: false,
         disableRedis: false,
+        registerAsEventProcessor: true,
       });
       cds.emit("connect", await cds.connect.to("db"));
       await promisify(setImmediate)();

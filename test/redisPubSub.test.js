@@ -2,9 +2,14 @@
 
 const path = require("path");
 
+const setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation((_, fn) => {
+  fn();
+});
+
 const distributedLock = require("../src/shared/distributedLock");
-const config = require("../src/config");
 const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExistsAndReturnValue");
+const config = require("../src/config");
+const redisPubSub = require("../src/redisPubSub");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
@@ -97,6 +102,25 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     await tx.commit();
     expect(loggerMock.calls().error).toHaveLength(0);
     expect(mockRedisPublishCalls).toHaveLength(0);
+  });
+
+  test("should wait and try again if lock is not available for periodic events", async () => {
+    await tx.rollback();
+    const event = eventQueue.config.periodicEvents[0];
+    checkLockExistsSpy.mockResolvedValueOnce(true);
+    checkLockExistsSpy.mockResolvedValueOnce(false);
+
+    await redisPubSub.broadcastEvent(123, event.type, event.subType);
+    expect(loggerMock.calls().error).toHaveLength(0);
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    expect(setTimeoutSpy.mock.lastCall[0]).toMatchInlineSnapshot(`30000`);
+    expect(mockRedisPublishCalls).toHaveLength(1);
+    expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
+      [
+        "EVENT_QUEUE_MESSAGE_CHANNEL",
+        "{"tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
+      ]
+    `);
   });
 
   test("publish event should be called only once even if the same combination is inserted twice", async () => {
