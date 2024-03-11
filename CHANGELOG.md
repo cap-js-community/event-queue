@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.3.5 - 2024-03-XX
+
+### Fixed
+
+- In instances of overlapping intervals, periodic events may fall behind schedule.
+
+## v1.3.4 - 2024-03-08
+
+### Changed
+
+- removed CF check to enable redis to allow using redis even if process.env.USER is not vcap.
+
 ## v1.3.3 - 2024-03-06
 
 ### Changed
