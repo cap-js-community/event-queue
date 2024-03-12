@@ -22,25 +22,13 @@ transaction management, ensuring that even regularly occurring tasks are handled
 overloading any single instance. This makes it an ideal solution for applications needing consistent and reliable event
 processing.
 
-## Content
-
-| Area                                         | Purpose                                                |
-| :------------------------------------------- | :----------------------------------------------------- |
-| [Getting started](setup)                     | Integrate the event-queue into your project            |
-| [Configure Event](configure-event)           | Maintain Event Configuration                           |
-| [Implement an Event](implement-event)        | How to implement an Event                              |
-| [Publishing of Events](publish-event)        | How to publish an Event                                |
-| [Transaction Handling](transaction-handling) | Managed transaction with event-queue                   |
-| [Event Status Handling](status-handling)     | Event Status Handling                                  |
-| [Concurrency Control](setup)                 | Configure and concepts on Concurrency Control          |
-| [Load-balancing app-instances](setup)        | How load is distributed on the available app instances |
-
 ## Features
 
 - [load balancing](/event-queue/load-balancing) and concurrency control of event processing across app instances
 - [periodic events](/event-queue/configure-event/#periodic-events) similar to running cron jobs for business processes
 - [managed transactions](/event-queue/transaction-handling) for event processing
 - [plug and play](setup) via cds-plugin
+- [use as CAP outbox](/event-queue/use-as-cap-outbox) use the event-queue as CDS outbox for streamlined asynchronous processing
 - async processing of processing intensive tasks for better UI responsiveness
 - push/pull mechanism for reducing delay between publish an event and processing
 - cluster published events during processing (e.g. for combining multiple E-Mail events to one E-Mail)
