@@ -19,7 +19,7 @@
 # in the templates via {{ site.myvariable }}.
 
 title: >-
-  event-queue
+  Event Queue
 description: >-
   Event-Queue is a framework built on top of CAP Node.js, designed specifically for efficient and streamlined asynchronous event processing
 
@@ -66,7 +66,7 @@ search:
   tokenizer_separator: /[\s\-\.\(\)]+/
 
 aux_links:
-  "event-queue on GitHub":
+  "Event Queue on GitHub":
     - "//github.com/cap-js-community/event-queue"
 
 # Back to top link
