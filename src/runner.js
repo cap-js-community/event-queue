@@ -68,19 +68,23 @@ const _scheduleFunction = async (singleRunFn, periodicFn) => {
 
 const _multiTenancyRedis = async () => {
   const logger = cds.log(COMPONENT_NAME);
-  const emptyContext = new cds.EventContext({});
-  logger.info("executing event queue run for multi instance and tenant");
-  const tenantIds = await cdsHelper.getAllTenantIds();
-  await _checkPeriodicEventUpdate(tenantIds);
+  try {
+    const emptyContext = new cds.EventContext({});
+    logger.info("executing event queue run for multi instance and tenant");
+    const tenantIds = await cdsHelper.getAllTenantIds();
+    await _checkPeriodicEventUpdate(tenantIds);
 
-  const runId = await _acquireRunId(emptyContext);
+    const runId = await _acquireRunId(emptyContext);
 
-  if (!runId) {
-    logger.error("could not acquire runId, skip processing events!");
-    return;
+    if (!runId) {
+      logger.error("could not acquire runId, skip processing events!");
+      return;
+    }
+
+    return await _executeEventsAllTenants(tenantIds, runId);
+  } catch (err) {
+    logger.info("executing event queue run for multi instance and tenant failed", err);
   }
-
-  return await _executeEventsAllTenants(tenantIds, runId);
 };
 
 const _checkPeriodicEventUpdate = async (tenantIds) => {
