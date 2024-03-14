@@ -6,6 +6,7 @@ const { getEnvInstance } = require("./env");
 const EventQueueError = require("../EventQueueError");
 
 const COMPONENT_NAME = "/eventQueue/shared/redis";
+const LOG_AFTER_SEC = 5;
 
 let mainClientPromise;
 const subscriberChannelClientPromise = {};
@@ -19,7 +20,7 @@ const createMainClientAndConnect = () => {
   const errorHandlerCreateClient = (err) => {
     cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
     mainClientPromise = null;
-    setTimeout(createMainClientAndConnect, 5 * 1000).unref();
+    setTimeout(createMainClientAndConnect, LOG_AFTER_SEC * 1000).unref();
   };
 
   mainClientPromise = createClientAndConnect(errorHandlerCreateClient);
@@ -54,7 +55,7 @@ const createClientAndConnect = async (errorHandlerCreateClient) => {
     await client.connect();
     client.on("error", (err) => {
       const dateNow = Date.now();
-      if (dateNow - lastErrorLog > 5 * 1000) {
+      if (dateNow - lastErrorLog > LOG_AFTER_SEC * 1000) {
         cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
         lastErrorLog = dateNow;
       }
@@ -62,7 +63,7 @@ const createClientAndConnect = async (errorHandlerCreateClient) => {
 
     client.on("reconnecting", () => {
       const dateNow = Date.now();
-      if (dateNow - lastErrorLog > 5 * 1000) {
+      if (dateNow - lastErrorLog > LOG_AFTER_SEC * 1000) {
         cds.log(COMPONENT_NAME).info("redis client trying reconnect...");
         lastErrorLog = dateNow;
       }
@@ -77,7 +78,7 @@ const subscribeRedisChannel = (channel, subscribeHandler) => {
   const errorHandlerCreateClient = (err) => {
     cds.log(COMPONENT_NAME).error(`error from redis client for pub/sub failed for channel ${channel}`, err);
     subscriberChannelClientPromise[channel] = null;
-    setTimeout(() => subscribeRedisChannel(channel, subscribeHandler), 5 * 1000).unref();
+    setTimeout(() => subscribeRedisChannel(channel, subscribeHandler), LOG_AFTER_SEC * 1000).unref();
   };
 
   subscriberChannelClientPromise[channel] = createClientAndConnect(errorHandlerCreateClient)
