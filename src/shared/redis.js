@@ -48,7 +48,7 @@ const _createClientBase = () => {
   }
 };
 
-const createClientAndConnect = async () => {
+const createClientAndConnect = async (errorHandlerCreateClient) => {
   try {
     const client = _createClientBase();
     await client.connect();
@@ -69,7 +69,7 @@ const createClientAndConnect = async () => {
     });
     return client;
   } catch (err) {
-    cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
+    errorHandlerCreateClient(err);
   }
 };
 
