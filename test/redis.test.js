@@ -45,7 +45,7 @@ describe("redis layer", () => {
     const connectSpy = jest.spyOn(redis, "createClient");
     const client = await redisEventQueue.createClientAndConnect();
     expect(client.connect).toHaveBeenCalledTimes(1);
-    expect(client.on).toHaveBeenCalledTimes(1);
+    expect(client.on).toHaveBeenCalledTimes(3);
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(connectSpy).toHaveBeenCalledWith({ url: "123" });
     env.isOnCF = false;
