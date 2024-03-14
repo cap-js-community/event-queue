@@ -20,7 +20,14 @@ const createMainClientAndConnect = () => {
     mainClientPromise = null;
     setTimeout(createMainClientAndConnect, 5 * 1000).unref();
   };
-  mainClientPromise = createClientAndConnect(errorHandlerCreateClient);
+
+  const endHandlerClient = (err) => {
+    cds.log(COMPONENT_NAME).error("redis client connection closed for pub/sub", err);
+    mainClientPromise = null;
+    setTimeout(createMainClientAndConnect, 5 * 1000).unref();
+  };
+
+  mainClientPromise = createClientAndConnect(errorHandlerCreateClient, endHandlerClient);
   return mainClientPromise;
 };
 
@@ -46,7 +53,7 @@ const _createClientBase = () => {
   }
 };
 
-const createClientAndConnect = async (errorHandlerCreateClient) => {
+const createClientAndConnect = async (errorHandlerCreateClient, endHandler = () => {}) => {
   let client = null;
   try {
     client = _createClientBase();
@@ -54,13 +61,22 @@ const createClientAndConnect = async (errorHandlerCreateClient) => {
     throw EventQueueError.redisConnectionFailure(err);
   }
 
-  client.on("error", errorHandlerCreateClient);
-
   try {
     await client.connect();
   } catch (err) {
     errorHandlerCreateClient(err);
   }
+
+  client.on("error", (err) => {
+    cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
+  });
+
+  client.on("end", endHandler);
+
+  client.on("reconnecting", () => {
+    cds.log(COMPONENT_NAME).error("redis client trying reconnect...");
+  });
+
   return client;
 };
 
@@ -70,7 +86,13 @@ const subscribeRedisChannel = (channel, subscribeHandler) => {
     subscriberChannelClientPromise[channel] = null;
     setTimeout(() => subscribeRedisChannel(channel, subscribeHandler), 5 * 1000).unref();
   };
-  subscriberChannelClientPromise[channel] = createClientAndConnect(errorHandlerCreateClient)
+  const endHanlderClient = () => {
+    cds.log(COMPONENT_NAME).error(`redis connection closed for channel ${channel}`);
+    subscriberChannelClientPromise[channel] = null;
+    setTimeout(() => subscribeRedisChannel(channel, subscribeHandler), 5 * 1000).unref();
+  };
+
+  subscriberChannelClientPromise[channel] = createClientAndConnect(errorHandlerCreateClient, endHanlderClient)
     .then((client) => {
       cds.log(COMPONENT_NAME).info("subscribe redis client connected channel", { channel });
       client.subscribe(channel, subscribeHandler).catch(errorHandlerCreateClient);
