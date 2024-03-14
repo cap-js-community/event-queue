@@ -9,6 +9,7 @@ const COMPONENT_NAME = "/eventQueue/shared/redis";
 
 let mainClientPromise;
 const subscriberChannelClientPromise = {};
+let lastErrorLog = Date.now();
 
 const createMainClientAndConnect = () => {
   if (mainClientPromise) {
@@ -47,29 +48,29 @@ const _createClientBase = () => {
   }
 };
 
-const createClientAndConnect = async (errorHandlerCreateClient) => {
-  let client = null;
+const createClientAndConnect = async () => {
   try {
-    client = _createClientBase();
+    const client = _createClientBase();
+    await client.connect();
+    client.on("error", (err) => {
+      const dateNow = Date.now();
+      if (dateNow - lastErrorLog > 5 * 1000) {
+        cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
+        lastErrorLog = dateNow;
+      }
+    });
+
+    client.on("reconnecting", () => {
+      const dateNow = Date.now();
+      if (dateNow - lastErrorLog > 5 * 1000) {
+        cds.log(COMPONENT_NAME).info("redis client trying reconnect...");
+        lastErrorLog = dateNow;
+      }
+    });
+    return client;
   } catch (err) {
     throw EventQueueError.redisConnectionFailure(err);
   }
-
-  try {
-    await client.connect();
-  } catch (err) {
-    errorHandlerCreateClient(err);
-  }
-
-  client.on("error", (err) => {
-    cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
-  });
-
-  client.on("reconnecting", () => {
-    cds.log(COMPONENT_NAME).error("redis client trying reconnect...");
-  });
-
-  return client;
 };
 
 const subscribeRedisChannel = (channel, subscribeHandler) => {
