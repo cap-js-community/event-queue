@@ -69,7 +69,7 @@ const createClientAndConnect = async () => {
     });
     return client;
   } catch (err) {
-    throw EventQueueError.redisConnectionFailure(err);
+    cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
   }
 };
 
