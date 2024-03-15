@@ -119,3 +119,4 @@ test-integration/_env/db
 *.hdbmigrationtable
 test-integration/_env/db/last-dev
 
+/dist/
