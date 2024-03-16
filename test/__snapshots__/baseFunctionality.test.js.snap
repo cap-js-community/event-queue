@@ -119,23 +119,6 @@ exports[`baseFunctionality getOpenQueueEntries event types in progress should be
 ]
 `;
 
-exports[`baseFunctionality getOpenQueueEntries return open event types 1`] = `
-[
-  {
-    "subType": "DELETE_EVENTS",
-    "type": "EVENT_QUEUE_BASE_PERIODIC",
-  },
-  {
-    "subType": "DB",
-    "type": "HealthCheck_PERIODIC",
-  },
-  {
-    "subType": "Task",
-    "type": "Notifications",
-  },
-]
-`;
-
 exports[`baseFunctionality getOpenQueueEntries return open event types 2`] = `
 [
   {

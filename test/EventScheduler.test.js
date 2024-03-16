@@ -2,9 +2,10 @@
 
 const cds = require("@sap/cds");
 
+const redisPub = require("../src/redis/redisPub");
+
 const { getInstance: getEventSchedulerInstance } = require("../src/shared/eventScheduler");
 const config = require("../src/config");
-const { broadcastEvent } = require("../src/redis/redisSub");
 
 jest.mock("@sap/cds", () => ({
   log: jest.fn().mockReturnValue({
@@ -12,10 +13,6 @@ jest.mock("@sap/cds", () => ({
     error: jest.fn(),
     debug: jest.fn(),
   }),
-}));
-
-jest.mock("../src/redis/redisSub", () => ({
-  broadcastEvent: jest.fn().mockResolvedValue(),
 }));
 
 describe("EventScheduler", () => {
@@ -45,6 +42,7 @@ describe("EventScheduler", () => {
   });
 
   it("should schedule an event", () => {
+    const broadcastEventSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValueOnce();
     jest.setSystemTime(new Date(1633046400000)); // 2021-10-01T00:00:00.000Z
     const startAfter = new Date("2021-10-01T00:00:01.000Z");
     eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
@@ -54,10 +52,11 @@ describe("EventScheduler", () => {
     expect(cds.log().debug.mock.calls[0]).toMatchSnapshot();
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
     expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
-    expect(broadcastEvent).not.toHaveBeenCalled();
+    expect(broadcastEventSpy).not.toHaveBeenCalled();
   });
 
   it("should not schedule an event if it's already scheduled", () => {
+    const broadcastEventSpy = jest.spyOn(redisPub, "broadcastEvent");
     jest.setSystemTime(new Date(1633046400000)); // 2021-10-01T00:00:00.000Z
 
     const startAfter = new Date("2021-10-01T00:00:01.000Z");
@@ -70,10 +69,11 @@ describe("EventScheduler", () => {
     expect(cds.log().debug.mock.calls[0]).toMatchSnapshot();
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
     expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
-    expect(broadcastEvent).not.toHaveBeenCalled();
+    expect(broadcastEventSpy).not.toHaveBeenCalled();
   });
 
   it("broadcastEvent should be correctly called", async () => {
+    const broadcastEventSpy = jest.spyOn(redisPub, "broadcastEvent");
     setTimeoutSpy.mockRestore();
     setTimeoutSpy = jest.spyOn(global, "setTimeout");
     jest.setSystemTime(new Date(1633046400000)); // 2021-10-01T00:00:00.000Z
@@ -85,11 +85,11 @@ describe("EventScheduler", () => {
     expect(cds.log().debug.mock.calls[0]).toMatchSnapshot();
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
     expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
-    expect(broadcastEvent).not.toHaveBeenCalled();
+    expect(broadcastEventSpy).not.toHaveBeenCalled();
 
     await jest.runAllTimersAsync();
-    expect(broadcastEvent).toHaveBeenCalledTimes(1);
-    expect(broadcastEvent.mock.calls[0]).toMatchInlineSnapshot(`
+    expect(broadcastEventSpy).toHaveBeenCalledTimes(1);
+    expect(broadcastEventSpy.mock.calls[0]).toMatchInlineSnapshot(`
       [
         "1",
         {
@@ -101,11 +101,13 @@ describe("EventScheduler", () => {
   });
 
   it("should handle an error when broadcasting an event", async () => {
+    const broadcastEventSpy = jest
+      .spyOn(redisPub, "broadcastEvent")
+      .mockRejectedValueOnce(new Error("Broadcast failed"));
     setTimeoutSpy.mockRestore();
     setTimeoutSpy = jest.spyOn(global, "setTimeout");
     jest.setSystemTime(new Date(1633046400000)); // 2021-10-01T00:00:00.000Z
     const startAfter = new Date("2021-10-01T00:00:01.000Z");
-    broadcastEvent.mockRejectedValueOnce(new Error("Broadcast failed"));
 
     eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
     await jest.runAllTimersAsync();
@@ -117,8 +119,8 @@ describe("EventScheduler", () => {
     expect(cds.log().error.mock.calls[0]).toMatchSnapshot();
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
     expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
-    expect(broadcastEvent).toHaveBeenCalledTimes(1);
-    expect(broadcastEvent.mock.calls[0]).toMatchInlineSnapshot(`
+    expect(broadcastEventSpy).toHaveBeenCalledTimes(1);
+    expect(broadcastEventSpy.mock.calls[0]).toMatchInlineSnapshot(`
       [
         "1",
         {

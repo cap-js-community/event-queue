@@ -1,14 +1,16 @@
 "use strict";
 
 const { promisify } = require("util");
+const { AsyncResource } = require("async_hooks");
 
 const cds = require("@sap/cds");
 
 const redis = require("../shared/redis");
 const { checkLockExistsAndReturnValue } = require("../shared/distributedLock");
 const config = require("../config");
-const runner = require("../runner/runner");
 const { getSubdomainForTenantId } = require("../shared/cdsHelper");
+const { processEventQueue } = require("../processEventQueue");
+const WorkerQueue = require("../shared/WorkerQueue");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/redisPub";
@@ -40,8 +42,8 @@ const broadcastEvent = async (tenantId, events) => {
         }
 
         return await cds.tx(context, async ({ context }) => {
-          for (const [type, subType] of events) {
-            await runner.runEventCombinationForTenant(context, type, subType);
+          for (const { type, subType } of events) {
+            await _runEventCombinationForTenant(context, type, subType);
           }
         });
       }
@@ -80,6 +82,30 @@ const broadcastEvent = async (tenantId, events) => {
   } catch (err) {
     logger.error("publish events failed!", err, {
       tenantId,
+    });
+  }
+};
+
+const _runEventCombinationForTenant = async (context, type, subType, skipWorkerPool) => {
+  try {
+    if (skipWorkerPool) {
+      return await processEventQueue(context, type, subType);
+    } else {
+      const eventConfig = config.getEventConfig(type, subType);
+      const label = `${type}_${subType}`;
+      return await WorkerQueue.instance.addToQueue(
+        eventConfig.load,
+        label,
+        eventConfig.priority,
+        AsyncResource.bind(async () => await processEventQueue(context, type, subType))
+      );
+    }
+  } catch (err) {
+    const logger = cds.log(COMPONENT_NAME);
+    logger.error("error executing event combination for tenant", err, {
+      tenantId: context.tenant,
+      type,
+      subType,
     });
   }
 };
