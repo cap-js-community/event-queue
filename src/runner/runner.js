@@ -122,13 +122,13 @@ const _executeEventsAllTenantsRedis = async (tenantIds, runId) => {
     for (const tenantId of tenantIds) {
       await cds.tx({ tenant: tenantId }, async (tx) => {
         const entries = await getOpenQueueEntries(tx);
-        if (!entries.length) {
-          return;
-        }
         logger.info("broadcasting events for run", {
           tenantId,
           entries: entries.length,
         });
+        if (!entries.length) {
+          return;
+        }
         await broadcastEvent(tenantId, entries).catch((err) => {
           logger.error("broadcasting event failed", err, {
             tenantId,
