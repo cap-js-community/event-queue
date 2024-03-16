@@ -2,7 +2,7 @@
 
 const cds = require("@sap/cds");
 
-const { broadcastEvent } = require("../redis/redisSub");
+const { broadcastEvent } = require("../redis/redisPub");
 const config = require("./../config");
 
 const COMPONENT_NAME = "/eventQueue/shared/eventScheduler";
