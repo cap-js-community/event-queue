@@ -8,10 +8,10 @@ const yaml = require("yaml");
 const VError = require("verror");
 
 const EventQueueError = require("./EventQueueError");
-const runner = require("./runner");
+const runner = require("./runner/runner");
 const dbHandler = require("./dbHandler");
 const config = require("./config");
-const { initEventQueueRedisSubscribe, closeSubscribeClient } = require("./redisPubSub");
+const { initEventQueueRedisSubscribe, closeSubscribeClient } = require("./redis/redisSub");
 const redis = require("./shared/redis");
 const eventQueueAsOutbox = require("./outbox/eventQueueAsOutbox");
 const { getAllTenantIds } = require("./shared/cdsHelper");

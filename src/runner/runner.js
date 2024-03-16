@@ -5,21 +5,24 @@ const { AsyncResource } = require("async_hooks");
 
 const cds = require("@sap/cds");
 
-const eventQueueConfig = require("./config");
-const { processEventQueue } = require("./processEventQueue");
-const WorkerQueue = require("./shared/WorkerQueue");
-const cdsHelper = require("./shared/cdsHelper");
-const distributedLock = require("./shared/distributedLock");
-const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
-const { getSubdomainForTenantId } = require("./shared/cdsHelper");
-const periodicEvents = require("./periodicEvents");
-const { hashStringTo32Bit } = require("./shared/common");
-const config = require("./config");
-const { Priorities } = require("./constants");
+const eventQueueConfig = require("../config");
+const { processEventQueue } = require("../processEventQueue");
+const WorkerQueue = require("../shared/WorkerQueue");
+const cdsHelper = require("../shared/cdsHelper");
+const distributedLock = require("../shared/distributedLock");
+const SetIntervalDriftSafe = require("../shared/SetIntervalDriftSafe");
+const { getSubdomainForTenantId } = require("../shared/cdsHelper");
+const periodicEvents = require("../periodicEvents");
+const { hashStringTo32Bit } = require("../shared/common");
+const config = require("../config");
+const { Priorities } = require("../constants");
+const { broadcastEvent } = require("../redis/redisPub");
+const { getOpenQueueEntries } = require("./openEvents");
 
 const COMPONENT_NAME = "/eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
 const EVENT_QUEUE_RUN_TS = "EVENT_QUEUE_RUN_TS";
+const EVENT_QUEUE_RUN_REDIS_CHECK = "EVENT_QUEUE_RUN_REDIS_CHECK";
 const EVENT_QUEUE_RUN_PERIODIC_EVENT = "EVENT_QUEUE_RUN_PERIODIC_EVENT";
 const OFFSET_FIRST_RUN = 10 * 1000;
 
@@ -101,6 +104,41 @@ const _checkPeriodicEventUpdate = async (tenantIds) => {
     return await _multiTenancyPeriodicEvents(tenantIds).catch((err) => {
       cds.log(COMPONENT_NAME).error("Error during triggering updating periodic events!", err);
     });
+  }
+};
+
+const _executeEventsAllTenantsRedis = async (tenantIds, runId) => {
+  const logger = cds.log(COMPONENT_NAME);
+  try {
+    const context = new cds.EventContext({});
+    const lockId = `${runId}_${EVENT_QUEUE_RUN_REDIS_CHECK}`;
+    const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+      expiryTime: eventQueueConfig.runInterval * 0.95,
+    });
+    if (!couldAcquireLock) {
+      return;
+    }
+
+    for (const tenantId of tenantIds) {
+      await cds.tx({ tenant: tenantId }, async (tx) => {
+        const entries = await getOpenQueueEntries(tx);
+        if (!entries.length) {
+          return;
+        }
+        logger.info("broadcasting events for run", {
+          tenantId,
+          entries: entries.length,
+        });
+        await broadcastEvent(tenantId, entries).catch((err) => {
+          logger.error("broadcasting event failed", err, {
+            tenantId,
+            entries: entries.length,
+          });
+        });
+      });
+    }
+  } catch (err) {
+    logger.info("executing event queue run for multi instance and tenant failed", err);
   }
 };
 

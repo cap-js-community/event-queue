@@ -89,6 +89,27 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored 
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true return open event types 1`] = `
+[
+  {
+    "subType": "NotificationService",
+    "type": "CAP_OUTBOX",
+  },
+  {
+    "subType": "DELETE_EVENTS",
+    "type": "EVENT_QUEUE_BASE_PERIODIC",
+  },
+  {
+    "subType": "DB",
+    "type": "HealthCheck_PERIODIC",
+  },
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+]
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true should store correct user of original context 1`] = `
 {
   "_fromSend": true,

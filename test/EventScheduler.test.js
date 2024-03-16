@@ -4,7 +4,7 @@ const cds = require("@sap/cds");
 
 const { getInstance: getEventSchedulerInstance } = require("../src/shared/eventScheduler");
 const config = require("../src/config");
-const { broadcastEvent } = require("../src/redisPubSub");
+const { broadcastEvent } = require("../src/redis/redisSub");
 
 jest.mock("@sap/cds", () => ({
   log: jest.fn().mockReturnValue({
@@ -14,7 +14,7 @@ jest.mock("@sap/cds", () => ({
   }),
 }));
 
-jest.mock("../src/redisPubSub", () => ({
+jest.mock("../src/redis/redisSub", () => ({
   broadcastEvent: jest.fn().mockResolvedValue(),
 }));
 
@@ -92,8 +92,10 @@ describe("EventScheduler", () => {
     expect(broadcastEvent.mock.calls[0]).toMatchInlineSnapshot(`
       [
         "1",
-        "type",
-        "subType",
+        {
+          "subType": "subType",
+          "type": "type",
+        },
       ]
     `);
   });
@@ -119,8 +121,10 @@ describe("EventScheduler", () => {
     expect(broadcastEvent.mock.calls[0]).toMatchInlineSnapshot(`
       [
         "1",
-        "type",
-        "subType",
+        {
+          "subType": "subType",
+          "type": "type",
+        },
       ]
     `);
   });

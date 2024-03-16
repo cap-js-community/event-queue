@@ -1,0 +1,51 @@
+"use strict";
+
+const cds = require("@sap/cds");
+
+const eventConfig = require("../config");
+const { EventProcessingStatus } = require("../constants");
+
+const getOpenQueueEntries = async (tx) => {
+  const startTime = new Date();
+  const refDateStartAfter = new Date(startTime.getTime() + eventConfig.runInterval * 1.2);
+  const entries = await tx.run(
+    SELECT.from(eventConfig.tableNameEventQueue)
+      .where(
+        "( startAfter IS NULL OR startAfter <=",
+        refDateStartAfter.toISOString(),
+        " ) AND ( status =",
+        EventProcessingStatus.Open,
+        "AND ( lastAttemptTimestamp <=",
+        startTime.toISOString(),
+        "OR lastAttemptTimestamp IS NULL ) OR ( status =",
+        EventProcessingStatus.Error,
+        "AND lastAttemptTimestamp <=",
+        startTime.toISOString(),
+        ") OR ( status =",
+        EventProcessingStatus.InProgress,
+        "AND lastAttemptTimestamp <=",
+        new Date(startTime.getTime() - eventConfig.globalTxTimeout).toISOString(),
+        ") )"
+      )
+      .columns("type", "subType")
+      .groupBy("type", "subType")
+  );
+
+  const result = [];
+  for (const { type, subType } of entries) {
+    if (type.startsWith("CAP_OUTBOX")) {
+      if (cds.requires[subType]) {
+        result.push({ type, subType });
+      }
+    } else {
+      if (eventConfig.getEventConfig(type, subType)) {
+        result.push({ type, subType });
+      }
+    }
+  }
+  return entries;
+};
+
+module.exports = {
+  getOpenQueueEntries,
+};

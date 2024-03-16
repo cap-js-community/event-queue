@@ -23,7 +23,7 @@ const processEventQueueSpy = jest.spyOn(processEventQueue, "processEventQueue").
 
 const distributedLock = require("../src/shared/distributedLock");
 const eventQueue = require("../src");
-const runner = require("../src/runner");
+const runner = require("../src/runner/runner");
 const path = require("path");
 const periodicEvents = require("../src/periodicEvents");
 

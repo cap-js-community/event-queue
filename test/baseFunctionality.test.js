@@ -14,6 +14,8 @@ const testHelper = require("./helper");
 const EventQueueTest = require("./asset/EventQueueTest");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { EventProcessingStatus } = require("../src/constants");
+const { EventQueueProcessorBase } = require("../src");
+const { getOpenQueueEntries } = require("../src/runner/openEvents");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
@@ -497,6 +499,20 @@ describe("baseFunctionality", () => {
         attempts: 1,
         startAfter: new Date(done2.startAfter).toISOString(),
       });
+    });
+  });
+
+  describe("getOpenQueueEntries", () => {
+    test("return open event types", async () => {
+      await testHelper.insertEventEntry(tx);
+      await checkAndInsertPeriodicEvents(context);
+      const result = await getOpenQueueEntries(tx);
+      expect(result).toMatchSnapshot();
+    });
+
+    test("no events - should nothing be open", async () => {
+      const result = await getOpenQueueEntries(tx);
+      expect(result).toMatchInlineSnapshot(`[]`);
     });
   });
 });

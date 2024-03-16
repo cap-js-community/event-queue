@@ -8,14 +8,14 @@ const cds = require("@sap/cds");
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
-const redisPubSub = require("../src/redisPubSub");
+const redisSub = require("../src/redis/redisSub");
 const eventQueue = require("../src");
 const { getEnvInstance } = require("../src/shared/env");
-const runner = require("../src/runner");
+const runner = require("../src/runner/runner");
 const config = require("../src/config");
 const redis = require("../src/shared/redis");
 
-jest.spyOn(redisPubSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
+jest.spyOn(redisSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
 
 describe("initialize", () => {
   let configInstance;

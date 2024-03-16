@@ -89,6 +89,23 @@ exports[`baseFunctionality ad-hoc events error handling missing event implementa
 ]
 `;
 
+exports[`baseFunctionality getOpenQueueEntries return open event types 1`] = `
+[
+  {
+    "subType": "DELETE_EVENTS",
+    "type": "EVENT_QUEUE_BASE_PERIODIC",
+  },
+  {
+    "subType": "DB",
+    "type": "HealthCheck_PERIODIC",
+  },
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+]
+`;
+
 exports[`baseFunctionality periodic events two open events - not allowed 1`] = `
 [
   "More than one open events for the same configuration which is not allowed!",
