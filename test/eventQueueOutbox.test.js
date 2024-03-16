@@ -11,7 +11,6 @@ const redisSub = require("../src/redis/redisSub");
 const runner = require("../src/runner/runner");
 const { EventProcessingStatus } = require("../src/constants");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
-const { EventQueueProcessorBase } = require("../src");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
 
 const project = __dirname + "/asset/outboxProject"; // The project's root folder

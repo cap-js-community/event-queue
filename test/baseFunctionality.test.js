@@ -14,7 +14,6 @@ const testHelper = require("./helper");
 const EventQueueTest = require("./asset/EventQueueTest");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { EventProcessingStatus } = require("../src/constants");
-const { EventQueueProcessorBase } = require("../src");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
 
 const project = __dirname + "/.."; // The project's root folder

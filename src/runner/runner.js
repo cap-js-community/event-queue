@@ -84,7 +84,7 @@ const _multiTenancyRedis = async () => {
       return;
     }
 
-    return await _executeEventsAllTenants(tenantIds, runId);
+    return await _executeEventsAllTenantsRedis(tenantIds, runId);
   } catch (err) {
     logger.info("executing event queue run for multi instance and tenant failed", err);
   }
