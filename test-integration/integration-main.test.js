@@ -9,7 +9,7 @@ const cdsHelper = require("../src/shared/cdsHelper");
 jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValue(null);
 
 const eventQueue = require("../src");
-const runners = require("../src/runner");
+const runners = require("../src/runner/runner");
 const dbHandler = require("../src/dbHandler");
 jest.spyOn(runners, "singleTenant").mockResolvedValue();
 const testHelper = require("../test/helper");
