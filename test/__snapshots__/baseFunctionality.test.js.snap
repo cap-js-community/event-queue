@@ -89,7 +89,54 @@ exports[`baseFunctionality ad-hoc events error handling missing event implementa
 ]
 `;
 
+exports[`baseFunctionality getOpenQueueEntries event types in error should be considered 2`] = `
+[
+  {
+    "subType": "DELETE_EVENTS",
+    "type": "EVENT_QUEUE_BASE_PERIODIC",
+  },
+  {
+    "subType": "DB",
+    "type": "HealthCheck_PERIODIC",
+  },
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+]
+`;
+
+exports[`baseFunctionality getOpenQueueEntries event types in progress should be ignored 2`] = `
+[
+  {
+    "subType": "DELETE_EVENTS",
+    "type": "EVENT_QUEUE_BASE_PERIODIC",
+  },
+  {
+    "subType": "DB",
+    "type": "HealthCheck_PERIODIC",
+  },
+]
+`;
+
 exports[`baseFunctionality getOpenQueueEntries return open event types 1`] = `
+[
+  {
+    "subType": "DELETE_EVENTS",
+    "type": "EVENT_QUEUE_BASE_PERIODIC",
+  },
+  {
+    "subType": "DB",
+    "type": "HealthCheck_PERIODIC",
+  },
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+]
+`;
+
+exports[`baseFunctionality getOpenQueueEntries return open event types 2`] = `
 [
   {
     "subType": "DELETE_EVENTS",

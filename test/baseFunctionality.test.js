@@ -506,12 +506,65 @@ describe("baseFunctionality", () => {
       await testHelper.insertEventEntry(tx);
       await checkAndInsertPeriodicEvents(context);
       const result = await getOpenQueueEntries(tx);
+      expect(result.length).toMatchInlineSnapshot(`3`); // 1 ad-hoc and 2 periodic
       expect(result).toMatchSnapshot();
+    });
+
+    test("event types in progress should be ignored", async () => {
+      await testHelper.insertEventEntry(tx);
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ status: EventProcessingStatus.InProgress }));
+      await checkAndInsertPeriodicEvents(context);
+      const result = await getOpenQueueEntries(tx);
+      expect(result.length).toMatchInlineSnapshot(`2`); // 2 periodic
+      expect(result).toMatchSnapshot();
+    });
+
+    test("event types in error should be considered", async () => {
+      await testHelper.insertEventEntry(tx);
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ status: EventProcessingStatus.Error }));
+      await checkAndInsertPeriodicEvents(context);
+      const result = await getOpenQueueEntries(tx);
+      expect(result.length).toMatchInlineSnapshot(`3`); // 1 ad-hoc and 2 periodic
+      expect(result).toMatchSnapshot();
+    });
+
+    test("should ignore not existing types", async () => {
+      await testHelper.insertEventEntry(tx);
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "123" }));
+      const result = await getOpenQueueEntries(tx);
+      expect(result.length).toMatchInlineSnapshot(`0`);
+    });
+
+    test("should work for CAP Service that is not connected yet", async () => {
+      cds.requires.NotificationService = {};
+      await testHelper.insertEventEntry(tx);
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
+      const result = await getOpenQueueEntries(tx);
+      expect(result.length).toMatchInlineSnapshot(`1`);
+      delete cds.requires.NotificationService;
+    });
+
+    test("should work for CAP Service that is not connected yet use connect as fallback should not fail", async () => {
+      const connectToSpy = jest.spyOn(cds.connect, "to");
+      await testHelper.insertEventEntry(tx);
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
+      const result = await getOpenQueueEntries(tx);
+      expect(result.length).toMatchInlineSnapshot(`0`);
+      expect(connectToSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("should work for CAP Service that is not connected yet use connect as fallback should work", async () => {
+      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({});
+      await testHelper.insertEventEntry(tx);
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
+      const result = await getOpenQueueEntries(tx);
+      expect(result.length).toMatchInlineSnapshot(`1`);
+      expect(connectToSpy).toHaveBeenCalledTimes(1);
     });
 
     test("no events - should nothing be open", async () => {
       const result = await getOpenQueueEntries(tx);
-      expect(result).toMatchInlineSnapshot(`[]`);
+      expect(result.length).toMatchInlineSnapshot(`0`);
     });
   });
 });

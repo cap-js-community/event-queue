@@ -15,12 +15,8 @@ const getOpenQueueEntries = async (tx) => {
         refDateStartAfter.toISOString(),
         " ) AND ( status =",
         EventProcessingStatus.Open,
-        "AND ( lastAttemptTimestamp <=",
-        startTime.toISOString(),
-        "OR lastAttemptTimestamp IS NULL ) OR ( status =",
+        "OR ( status =",
         EventProcessingStatus.Error,
-        "AND lastAttemptTimestamp <=",
-        startTime.toISOString(),
         ") OR ( status =",
         EventProcessingStatus.InProgress,
         "AND lastAttemptTimestamp <=",
@@ -36,6 +32,11 @@ const getOpenQueueEntries = async (tx) => {
     if (type.startsWith("CAP_OUTBOX")) {
       if (cds.requires[subType]) {
         result.push({ type, subType });
+      } else {
+        const service = await cds.connect.to(subType).catch(() => {});
+        if (service) {
+          result.push({ type, subType });
+        }
       }
     } else {
       if (eventConfig.getEventConfig(type, subType)) {
@@ -43,7 +44,7 @@ const getOpenQueueEntries = async (tx) => {
       }
     }
   }
-  return entries;
+  return result;
 };
 
 module.exports = {
