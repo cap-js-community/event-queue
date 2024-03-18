@@ -15,7 +15,6 @@ const { getSubdomainForTenantId } = require("../shared/cdsHelper");
 const periodicEvents = require("../periodicEvents");
 const { hashStringTo32Bit } = require("../shared/common");
 const config = require("../config");
-const { Priorities } = require("../constants");
 const redisPub = require("../redis/redisPub");
 const openEvents = require("./openEvents");
 

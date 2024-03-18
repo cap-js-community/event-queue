@@ -189,7 +189,6 @@ describe("runner", () => {
       getAllTenantIdsSpy
         .mockResolvedValueOnce(tenantIds)
         .mockResolvedValueOnce(tenantIds)
-        .mockResolvedValueOnce(tenantIds)
         .mockResolvedValueOnce(tenantIds);
       expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
       const p1 = runner.__._multiTenancyDb();
@@ -210,6 +209,7 @@ describe("runner", () => {
       // still 3 calls as no open events and no lock is required to check for open events
       expect(acquireLockSpy).toHaveBeenCalledTimes(3);
       expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
+      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(3);
     });
 
     it("open periodic events", async () => {
@@ -219,7 +219,6 @@ describe("runner", () => {
       });
       const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
       getAllTenantIdsSpy
-        .mockResolvedValueOnce(tenantIds)
         .mockResolvedValueOnce(tenantIds)
         .mockResolvedValueOnce(tenantIds)
         .mockResolvedValueOnce(tenantIds);
@@ -245,6 +244,7 @@ describe("runner", () => {
       expect(acquireLockSpy).toHaveBeenCalledTimes(12);
       // still 3 calls
       expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
+      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -355,6 +355,7 @@ describe("runner", () => {
       );
 
       acquireLockSpy.mockRestore();
+      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(1);
     });
 
     it("should not trigger update again if tenant ids have not been changed", async () => {
@@ -386,9 +387,10 @@ describe("runner", () => {
         3
       );
       acquireLockSpy.mockRestore();
+      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(2);
     });
 
-    it.skip("should trigger update again if tenant ids have been changed", async () => {
+    it("should trigger update again if tenant ids have been changed", async () => {
       let counter = 0;
       let acquireLockSpy;
       const promise = new Promise((resolve) => {
@@ -431,9 +433,10 @@ describe("runner", () => {
         4
       );
       acquireLockSpy.mockRestore();
+      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(2);
     });
 
-    it.skip("should trigger update again if tenant ids have been changed and third run should not trigger an update", async () => {
+    it("should trigger update again if tenant ids have been changed and third run should not trigger an update", async () => {
       let counter = 0;
       let acquireLockSpy;
       const promise = new Promise((resolve) => {
@@ -487,6 +490,7 @@ describe("runner", () => {
         0
       );
       acquireLockSpy.mockRestore();
+      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(3);
     });
   });
 });
