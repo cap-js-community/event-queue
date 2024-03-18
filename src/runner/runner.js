@@ -16,20 +16,20 @@ const periodicEvents = require("../periodicEvents");
 const { hashStringTo32Bit } = require("../shared/common");
 const config = require("../config");
 const { Priorities } = require("../constants");
-const { broadcastEvent } = require("../redis/redisPub");
-const { getOpenQueueEntries } = require("./openEvents");
+const redisPub = require("../redis/redisPub");
+const openEvents = require("./openEvents");
 
 const COMPONENT_NAME = "/eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
 const EVENT_QUEUE_RUN_TS = "EVENT_QUEUE_RUN_TS";
 const EVENT_QUEUE_RUN_REDIS_CHECK = "EVENT_QUEUE_RUN_REDIS_CHECK";
-const EVENT_QUEUE_RUN_PERIODIC_EVENT = "EVENT_QUEUE_RUN_PERIODIC_EVENT";
+const EVENT_QUEUE_UPDATE_PERIODIC_EVENTS = "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS";
 const OFFSET_FIRST_RUN = 10 * 1000;
 
 let tenantIdHash;
 let singleRunDone;
 
-const singleTenant = () => _scheduleFunction(_checkPeriodicEventsSingleTenant, _singleTenantDb);
+const singleTenant = () => _scheduleFunction(_checkPeriodicEventsSingleTenantOneTime, _singleTenantDb);
 
 const multiTenancyDb = () => _scheduleFunction(async () => {}, _multiTenancyDb);
 
@@ -72,19 +72,10 @@ const _scheduleFunction = async (singleRunFn, periodicFn) => {
 const _multiTenancyRedis = async () => {
   const logger = cds.log(COMPONENT_NAME);
   try {
-    const emptyContext = new cds.EventContext({});
     logger.info("executing event queue run for multi instance and tenant");
     const tenantIds = await cdsHelper.getAllTenantIds();
     await _checkPeriodicEventUpdate(tenantIds);
-
-    const runId = await _acquireRunId(emptyContext);
-
-    if (!runId) {
-      logger.error("could not acquire runId, skip processing events!");
-      return;
-    }
-
-    return await _executeEventsAllTenantsRedis(tenantIds, runId);
+    return await _executeEventsAllTenantsRedis(tenantIds);
   } catch (err) {
     logger.info("executing event queue run for multi instance and tenant failed", err);
   }
@@ -107,13 +98,15 @@ const _checkPeriodicEventUpdate = async (tenantIds) => {
   }
 };
 
-const _executeEventsAllTenantsRedis = async (tenantIds, runId) => {
+const _executeEventsAllTenantsRedis = async (tenantIds) => {
   const logger = cds.log(COMPONENT_NAME);
   try {
-    const context = new cds.EventContext({});
-    const lockId = `${runId}_${EVENT_QUEUE_RUN_REDIS_CHECK}`;
-    const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+    // NOTE: do checks for all tenants on the same app instance --> acquire lock tenant independent
+    //       distribute from this instance to all others
+    const dummyContext = new cds.EventContext({});
+    const couldAcquireLock = await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_RUN_REDIS_CHECK, {
       expiryTime: eventQueueConfig.runInterval * 0.95,
+      tenantScoped: false,
     });
     if (!couldAcquireLock) {
       return;
@@ -121,7 +114,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds, runId) => {
 
     for (const tenantId of tenantIds) {
       await cds.tx({ tenant: tenantId }, async (tx) => {
-        const entries = await getOpenQueueEntries(tx);
+        const entries = await openEvents.getOpenQueueEntries(tx);
         logger.info("broadcasting events for run", {
           tenantId,
           entries: entries.length,
@@ -129,7 +122,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds, runId) => {
         if (!entries.length) {
           return;
         }
-        await broadcastEvent(tenantId, entries).catch((err) => {
+        await redisPub.broadcastEvent(tenantId, entries).catch((err) => {
           logger.error("broadcasting event failed", err, {
             tenantId,
             entries: entries.length,
@@ -142,17 +135,57 @@ const _executeEventsAllTenantsRedis = async (tenantIds, runId) => {
   }
 };
 
-const _executeEventsAllTenants = (tenantIds, runId) => {
-  const events = eventQueueConfig.allEvents;
-  const product = tenantIds.reduce((result, tenantId) => {
-    events.forEach((event) => {
-      result.push([tenantId, event]);
-    });
-    return result;
-  }, []);
+const _executeEventsAllTenants = async (tenantIds, runId) => {
+  const promises = [];
 
-  return Promise.allSettled(
-    product.map(async ([tenantId, eventConfig]) => {
+  for (const tenantId of tenantIds) {
+    const subdomain = await getSubdomainForTenantId(tenantId);
+    const user = new cds.User.Privileged(config.userId);
+    const tenantContext = {
+      tenant: tenantId,
+      user,
+      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
+      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
+    };
+    const events = await cds.tx(tenantContext, async (tx) => {
+      return await openEvents.getOpenQueueEntries(tx);
+    });
+
+    if (!events.length) {
+      continue;
+    }
+
+    promises.concat(
+      events.map(async (openEvent) => {
+        const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType);
+        const label = `${eventConfig.type}_${eventConfig.subType}`;
+        return await WorkerQueue.instance.addToQueue(eventConfig.load, label, eventConfig.priority, async () => {
+          return await cds.tx(tenantContext, async ({ context }) => {
+            try {
+              const lockId = `${runId}_${label}`;
+              const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+                expiryTime: eventQueueConfig.runInterval * 0.95,
+              });
+              if (!couldAcquireLock) {
+                return;
+              }
+              await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, true);
+            } catch (err) {
+              cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
+                tenantId,
+              });
+            }
+          });
+        });
+      })
+    );
+  }
+  return Promise.allSettled(promises);
+};
+
+const _executePeriodicEventsAllTenants = async (tenantIds) => {
+  for (const tenantId of tenantIds) {
+    try {
       const subdomain = await getSubdomainForTenantId(tenantId);
       const user = new cds.User.Privileged(config.userId);
       const tenantContext = {
@@ -161,61 +194,23 @@ const _executeEventsAllTenants = (tenantIds, runId) => {
         // NOTE: we need this because of logging otherwise logs would not contain the subdomain
         http: { req: { authInfo: { getSubdomain: () => subdomain } } },
       };
-      const label = `${eventConfig.type}_${eventConfig.subType}`;
-      return await WorkerQueue.instance.addToQueue(eventConfig.load, label, eventConfig.priority, async () => {
-        return await cds.tx(tenantContext, async ({ context }) => {
-          try {
-            const lockId = `${runId}_${label}`;
-            const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
-              expiryTime: eventQueueConfig.runInterval * 0.95,
-            });
-            if (!couldAcquireLock) {
-              return;
-            }
-            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, true);
-          } catch (err) {
-            cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
-              tenantId,
-            });
+      await cds.tx(tenantContext, async ({ context }) => {
+        if (!config.redisEnabled) {
+          const couldAcquireLock = await distributedLock.acquireLock(context, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
+            expiryTime: eventQueueConfig.runInterval * 0.95,
+          });
+          if (!couldAcquireLock) {
+            return;
           }
-        });
-      });
-    })
-  );
-};
-
-const _executePeriodicEventsAllTenants = async (tenantIds, runId) => {
-  return await Promise.allSettled(
-    tenantIds.map(async (tenantId) => {
-      const label = `UPDATE_PERIODIC_EVENTS_${tenantId}`;
-      return await WorkerQueue.instance.addToQueue(1, label, Priorities.Low, async () => {
-        try {
-          const subdomain = await getSubdomainForTenantId(tenantId);
-          const user = new cds.User.Privileged(config.userId);
-          const tenantContext = {
-            tenant: tenantId,
-            user,
-            // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-            http: { req: { authInfo: { getSubdomain: () => subdomain } } },
-          };
-
-          return await cds.tx(tenantContext, async ({ context }) => {
-            const couldAcquireLock = await distributedLock.acquireLock(context, runId, {
-              expiryTime: eventQueueConfig.runInterval * 0.95,
-            });
-            if (!couldAcquireLock) {
-              return;
-            }
-            await _checkPeriodicEventsSingleTenant(context);
-          });
-        } catch (err) {
-          cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
-            tenantId,
-          });
         }
+        await _checkPeriodicEventsSingleTenant(context);
       });
-    })
-  );
+    } catch (err) {
+      cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
+        tenantId,
+      });
+    }
+  }
 };
 
 const _singleTenantDb = async (tenantId) => {
@@ -347,14 +342,29 @@ const _multiTenancyPeriodicEvents = async (tenantIds) => {
   const logger = cds.log(COMPONENT_NAME);
   try {
     logger.info("executing event queue update periodic events");
+
+    if (config.redisEnabled) {
+      const dummyContext = new cds.EventContext({});
+      const couldAcquireLock = await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
+        expiryTime: 60 * 1000, // short living lock --> assume we do not have 2 onboards within 1 minute
+        tenantScoped: false,
+      });
+      if (!couldAcquireLock) {
+        return;
+      }
+    }
+
     tenantIds = tenantIds ?? (await cdsHelper.getAllTenantIds());
-    return await _executePeriodicEventsAllTenants(tenantIds, EVENT_QUEUE_RUN_PERIODIC_EVENT);
+    return await _executePeriodicEventsAllTenants(tenantIds);
   } catch (err) {
     logger.error("Couldn't fetch tenant ids for updating periodic event processing!", err);
   }
 };
 
-const _checkPeriodicEventsSingleTenant = async (context = {}) => {
+const _checkPeriodicEventsSingleTenantOneTime = () =>
+  cds.tx({}, async (tx) => await periodicEvents.checkAndInsertPeriodicEvents(tx.context));
+
+const _checkPeriodicEventsSingleTenant = async (context) => {
   const logger = cds.log(COMPONENT_NAME);
   if (!eventQueueConfig.updatePeriodicEvents || !eventQueueConfig.periodicEvents.length) {
     logger.info("updating of periodic events is disabled or no periodic events configured", {
@@ -368,9 +378,7 @@ const _checkPeriodicEventsSingleTenant = async (context = {}) => {
       tenantId: context.tenant,
       subdomain: context.http?.req.authInfo.getSubdomain(),
     });
-    await cdsHelper.executeInNewTransaction(context, "update-periodic-events", async (tx) => {
-      await periodicEvents.checkAndInsertPeriodicEvents(tx.context);
-    });
+    await periodicEvents.checkAndInsertPeriodicEvents(context);
   } catch (err) {
     logger.error("Couldn't update periodic events for tenant! Next try after defined interval.", err, {
       tenantId: context.tenant,
