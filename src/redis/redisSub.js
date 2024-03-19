@@ -4,8 +4,8 @@ const cds = require("@sap/cds");
 
 const redis = require("../shared/redis");
 const config = require("../config");
-const runner = require("../runner/runner");
 const { getSubdomainForTenantId } = require("../shared/cdsHelper");
+const { runEventCombinationForTenant } = require("../runner/runnerHelper");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/redisSub";
@@ -66,7 +66,7 @@ const _messageHandlerProcessEvents = async (messageData) => {
     }
 
     return await cds.tx(tenantContext, async ({ context }) => {
-      return await runner.runEventCombinationForTenant(context, type, subType);
+      return await runEventCombinationForTenant(context, type, subType);
     });
   } catch (err) {
     logger.error("could not parse event information", {
