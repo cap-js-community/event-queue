@@ -55,7 +55,7 @@ describe("redis layer", () => {
   test("should spread custom options to create client", async () => {
     const connectSpy = jest.spyOn(redis, "createClient");
     config.redisOptions = { pingInterval: 100 };
-    const client = await redisEventQueue.createClientAndConnect();
+    const client = await redisEventQueue.createClientAndConnect(config.redisOptions);
     expect(client.connect).toHaveBeenCalledTimes(1);
     expect(client.on).toHaveBeenCalledTimes(2);
     expect(loggerMock.callsLengths().error).toEqual(0);
@@ -65,7 +65,7 @@ describe("redis layer", () => {
   test("should override default values", async () => {
     const connectSpy = jest.spyOn(redis, "createClient");
     config.redisOptions = { url: "1234", pingInterval: 100 };
-    const client = await redisEventQueue.createClientAndConnect();
+    const client = await redisEventQueue.createClientAndConnect(config.redisOptions);
     expect(client.connect).toHaveBeenCalledTimes(1);
     expect(client.on).toHaveBeenCalledTimes(2);
     expect(loggerMock.callsLengths().error).toEqual(0);

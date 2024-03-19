@@ -90,6 +90,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     expect(mockRedisPublishCalls).toHaveLength(1);
     expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
+        {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"type":"Notifications","subType":"Task"}",
       ]
@@ -117,6 +118,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     expect(mockRedisPublishCalls).toHaveLength(1);
     expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
+        {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
       ]
@@ -130,6 +132,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     expect(mockRedisPublishCalls).toHaveLength(1);
     expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
+        {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"type":"Notifications","subType":"Task"}",
       ]
@@ -143,6 +146,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     expect(mockRedisPublishCalls).toHaveLength(1);
     expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
+        {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"type":"Notifications","subType":"Task"}",
       ]
@@ -164,10 +168,12 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     expect(mockRedisPublishCalls).toMatchInlineSnapshot(`
       [
         [
+          {},
           "EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"type":"Notifications","subType":"Task"}",
         ],
         [
+          {},
           "EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"type":"Fiori","subType":"Task"}",
         ],

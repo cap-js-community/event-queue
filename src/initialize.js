@@ -85,7 +85,7 @@ const initialize = async ({
     }
   });
   if (redisEnabled) {
-    config.redisEnabled = await redis.connectionCheck();
+    config.redisEnabled = await redis.connectionCheck(config.redisOptions);
   }
   config.fileContent = await readConfigFromFile(config.configFilePath);
 

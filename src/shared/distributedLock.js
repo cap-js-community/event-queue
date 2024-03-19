@@ -54,7 +54,7 @@ const checkLockExistsAndReturnValue = async (context, key, { tenantScoped = true
 };
 
 const _acquireLockRedis = async (context, fullKey, expiryTime, { value = "true", overrideValue = false } = {}) => {
-  const client = await redis.createMainClientAndConnect();
+  const client = await redis.createMainClientAndConnect(config.redisOptions);
   const result = await client.set(fullKey, value, {
     PX: expiryTime,
     ...(overrideValue ? null : { NX: true }),
@@ -63,7 +63,7 @@ const _acquireLockRedis = async (context, fullKey, expiryTime, { value = "true",
 };
 
 const _checkLockExistsRedis = async (context, fullKey) => {
-  const client = await redis.createMainClientAndConnect();
+  const client = await redis.createMainClientAndConnect(config.redisOptions);
   return await client.get(fullKey);
 };
 
@@ -76,7 +76,7 @@ const _checkLockExistsDb = async (context, fullKey) => {
 };
 
 const _releaseLockRedis = async (context, fullKey) => {
-  const client = await redis.createMainClientAndConnect();
+  const client = await redis.createMainClientAndConnect(config.redisOptions);
   await client.del(fullKey);
 };
 
