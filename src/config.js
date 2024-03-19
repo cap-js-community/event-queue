@@ -34,6 +34,11 @@ const BASE_PERIODIC_EVENTS = [
   },
 ];
 
+const BASE_TABLES = {
+  EVENT: "sap.eventqueue.Event",
+  LOCK: "sap.eventqueue.Lock",
+};
+
 class Config {
   #logger;
   #config;
@@ -386,19 +391,11 @@ class Config {
   }
 
   get tableNameEventQueue() {
-    return this.#tableNameEventQueue;
-  }
-
-  set tableNameEventQueue(value) {
-    this.#tableNameEventQueue = value;
+    return BASE_TABLES.EVENT;
   }
 
   get tableNameEventLock() {
-    return this.#tableNameEventLock;
-  }
-
-  set tableNameEventLock(value) {
-    this.#tableNameEventLock = value;
+    return BASE_TABLES.LOCK;
   }
 
   set configFilePath(value) {
