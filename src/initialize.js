@@ -34,6 +34,7 @@ const CONFIG_VARS = [
   ["userId", null],
   ["enableTxConsistencyCheck", false],
   ["cleanupLocksAndEventsForDev", false],
+  ["redisOptions", {}],
 ];
 
 const initialize = async ({
@@ -49,6 +50,7 @@ const initialize = async ({
   userId,
   enableTxConsistencyCheck,
   cleanupLocksAndEventsForDev,
+  redisOptions,
 } = {}) => {
   if (config.initialized) {
     return;
@@ -67,7 +69,8 @@ const initialize = async ({
     useAsCAPOutbox,
     userId,
     enableTxConsistencyCheck,
-    cleanupLocksAndEventsForDev
+    cleanupLocksAndEventsForDev,
+    redisOptions
   );
 
   const logger = cds.log(COMPONENT);
@@ -82,7 +85,7 @@ const initialize = async ({
     }
   });
   if (redisEnabled) {
-    config.redisEnabled = await redis.connectionCheck();
+    config.redisEnabled = await redis.connectionCheck(config.redisOptions);
   }
   config.fileContent = await readConfigFromFile(config.configFilePath);
 

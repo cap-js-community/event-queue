@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.4.0 - 2024-03-XX
 
+### Added
+
+- add to supply custom redis options for create client.
+
 ### Changed
 
 - Reworked periodic processing of all events to be more efficient and to reduce the load on the database and use less database connections.

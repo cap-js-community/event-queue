@@ -174,14 +174,12 @@ describe("initialize", () => {
       cds.emit("connect", await cds.connect.to("db"));
       await promisify(setImmediate)();
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(1);
-      env.isOnCF = false;
       cds.requires.multitenancy = null;
     });
 
     test("multi tenancy with redis - option to disable redis", async () => {
       cds.requires.multitenancy = {};
       const env = getEnvInstance();
-      env.isOnCF = true;
       env.vcapServices = {
         "redis-cache": [{ credentials: { hostname: "123" } }],
       };
@@ -192,7 +190,6 @@ describe("initialize", () => {
         disableRedis: true,
       });
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(0);
-      env.isOnCF = false;
       cds.requires.multitenancy = null;
     });
 

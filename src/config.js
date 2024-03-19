@@ -66,6 +66,7 @@ class Config {
   #userId;
   #enableTxConsistencyCheck;
   #cleanupLocksAndEventsForDev;
+  #redisOptions;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -110,7 +111,7 @@ class Config {
 
   attachConfigChangeHandler() {
     this.#attachBlockListChangeHandler();
-    redis.subscribeRedisChannel(REDIS_CONFIG_CHANNEL, (messageData) => {
+    redis.subscribeRedisChannel(this.#redisOptions, REDIS_CONFIG_CHANNEL, (messageData) => {
       try {
         const { key, value } = JSON.parse(messageData);
         if (this[key] !== value) {
@@ -130,13 +131,13 @@ class Config {
       this.#logger.info("redis not connected, config change won't be published", { key, value });
       return;
     }
-    redis.publishMessage(REDIS_CONFIG_CHANNEL, JSON.stringify({ key, value })).catch((error) => {
+    redis.publishMessage(this.#redisOptions, REDIS_CONFIG_CHANNEL, JSON.stringify({ key, value })).catch((error) => {
       this.#logger.error(`publishing config change failed key: ${key}, value: ${value}`, error);
     });
   }
 
   #attachBlockListChangeHandler() {
-    redis.subscribeRedisChannel(REDIS_CONFIG_BLOCKLIST_CHANNEL, (messageData) => {
+    redis.subscribeRedisChannel(this.#redisOptions, REDIS_CONFIG_BLOCKLIST_CHANNEL, (messageData) => {
       try {
         const { command, key, tenant } = JSON.parse(messageData);
         if (command === COMMAND_BLOCK) {
@@ -165,7 +166,11 @@ class Config {
     }
 
     redis
-      .publishMessage(REDIS_CONFIG_BLOCKLIST_CHANNEL, JSON.stringify({ command: COMMAND_BLOCK, key, tenant }))
+      .publishMessage(
+        this.#redisOptions,
+        REDIS_CONFIG_BLOCKLIST_CHANNEL,
+        JSON.stringify({ command: COMMAND_BLOCK, key, tenant })
+      )
       .catch((error) => {
         this.#logger.error(`publishing config block failed key: ${key}`, error);
       });
@@ -194,7 +199,11 @@ class Config {
     }
 
     redis
-      .publishMessage(REDIS_CONFIG_BLOCKLIST_CHANNEL, JSON.stringify({ command: COMMAND_UNBLOCK, key, tenant }))
+      .publishMessage(
+        this.#redisOptions,
+        REDIS_CONFIG_BLOCKLIST_CHANNEL,
+        JSON.stringify({ command: COMMAND_UNBLOCK, key, tenant })
+      )
       .catch((error) => {
         this.#logger.error(`publishing config block failed key: ${key}`, error);
       });
@@ -484,6 +493,14 @@ class Config {
 
   get cleanupLocksAndEventsForDev() {
     return this.#cleanupLocksAndEventsForDev;
+  }
+
+  set redisOptions(value) {
+    this.#redisOptions = value;
+  }
+
+  get redisOptions() {
+    return this.#redisOptions;
   }
 
   get isMultiTenancy() {
