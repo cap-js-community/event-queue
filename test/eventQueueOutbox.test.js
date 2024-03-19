@@ -7,9 +7,11 @@ const cdsHelper = require("../src/shared/cdsHelper");
 const testHelper = require("./helper");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { processEventQueue } = require("../src/processEventQueue");
-const redisPubSub = require("../src/redisPubSub");
-const runner = require("../src/runner");
+const redisSub = require("../src/redis/redisSub");
+const runnerHelper = require("../src/runner/runnerHelper");
 const { EventProcessingStatus } = require("../src/constants");
+const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
+const { getOpenQueueEntries } = require("../src/runner/openEvents");
 
 const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
@@ -104,6 +106,25 @@ describe("event-queue outbox", () => {
         registerAsEventProcessor: false,
         useAsCAPOutbox: true,
       });
+    });
+
+    it("return open event types", async () => {
+      tx = cds.tx({});
+      context = tx.context;
+      const service = (await cds.connect.to("NotificationService")).tx(context);
+      const outboxedService = cds.outboxed(service);
+      await outboxedService.send("errorEvent", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      await testHelper.insertEventEntry(tx);
+      await checkAndInsertPeriodicEvents(context);
+      await tx.commit();
+      tx = cds.tx({});
+      context = tx.context;
+      const result = await getOpenQueueEntries(tx);
+      expect(result).toMatchSnapshot();
     });
 
     it("if the service is not outboxed no event should be written", async () => {
@@ -507,15 +528,15 @@ describe("event-queue outbox", () => {
         eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");
       });
 
-      it("redisPubSub", async () => {
+      it("redisSub", async () => {
         const type = "CAP_OUTBOX";
         const subType = "NotificationServiceLazyInitTest";
         let config = eventQueue.config.getEventConfig(type, subType);
         expect(config).toBeUndefined();
         const runEventCombinationForTenantSpy = jest
-          .spyOn(runner, "runEventCombinationForTenant")
+          .spyOn(runnerHelper, "runEventCombinationForTenant")
           .mockResolvedValueOnce();
-        await redisPubSub.__._messageHandlerProcessEvents(
+        await redisSub.__._messageHandlerProcessEvents(
           JSON.stringify({
             type,
             subType,
@@ -532,8 +553,8 @@ describe("event-queue outbox", () => {
         const subType = "NotificationServiceLaizyInitTest";
         let config = eventQueue.config.getEventConfig(type, subType);
         expect(config).toBeUndefined();
-        const runEventCombinationForTenantSpy = jest.spyOn(runner, "runEventCombinationForTenant");
-        await redisPubSub.__._messageHandlerProcessEvents(
+        const runEventCombinationForTenantSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant");
+        await redisSub.__._messageHandlerProcessEvents(
           JSON.stringify({
             type,
             subType,

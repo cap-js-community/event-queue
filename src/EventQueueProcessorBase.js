@@ -10,7 +10,7 @@ const { arrayToFlatMap } = require("./shared/common");
 const eventScheduler = require("./shared/eventScheduler");
 const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
-const { broadcastEvent } = require("./redisPubSub");
+const { broadcastEvent } = require("./redis/redisPub");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
 const COMPONENT_NAME = "/eventQueue/EventQueueProcessorBase";
@@ -1113,7 +1113,7 @@ class EventQueueProcessorBase {
 
   broadCastEvent() {
     setTimeout(() => {
-      broadcastEvent(this.__baseContext.tenant, this.#eventType, this.#eventSubType).catch((err) => {
+      broadcastEvent(this.__baseContext.tenant, { type: this.#eventType, subType: this.#eventSubType }).catch((err) => {
         this.logger.error("could not execute scheduled event", err, {
           tenantId: this.__baseContext.tenant,
           type: this.#eventType,

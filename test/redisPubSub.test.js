@@ -9,7 +9,7 @@ const setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation((_, fn
 const distributedLock = require("../src/shared/distributedLock");
 const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExistsAndReturnValue");
 const config = require("../src/config");
-const redisPubSub = require("../src/redisPubSub");
+const redisPub = require("../src/redis/redisPub");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
@@ -110,7 +110,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     checkLockExistsSpy.mockResolvedValueOnce(true);
     checkLockExistsSpy.mockResolvedValueOnce(false);
 
-    await redisPubSub.broadcastEvent(123, event.type, event.subType);
+    await redisPub.broadcastEvent(123, { type: event.type, subType: event.subType });
     expect(loggerMock.calls().error).toHaveLength(0);
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
     expect(setTimeoutSpy.mock.lastCall[0]).toMatchInlineSnapshot(`30000`);
