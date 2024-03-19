@@ -7,7 +7,6 @@ const cds = require("@sap/cds");
 const yaml = require("yaml");
 const VError = require("verror");
 
-const EventQueueError = require("./EventQueueError");
 const runner = require("./runner");
 const dbHandler = require("./dbHandler");
 const config = require("./config");
@@ -21,20 +20,14 @@ const readFileAsync = promisify(fs.readFile);
 
 const VERROR_CLUSTER_NAME = "EventQueueInitialization";
 const COMPONENT = "eventQueue/initialize";
-const BASE_TABLES = {
-  EVENT: "sap.eventqueue.Event",
-  LOCK: "sap.eventqueue.Lock",
-};
+
 const CONFIG_VARS = [
   ["configFilePath", null],
   ["registerAsEventProcessor", true],
   ["processEventsAfterPublish", true],
   ["isEventQueueActive", true],
   ["runInterval", 25 * 60 * 1000],
-  ["tableNameEventQueue", BASE_TABLES.EVENT],
-  ["tableNameEventLock", BASE_TABLES.LOCK],
   ["disableRedis", true],
-  ["skipCsnCheck", false],
   ["updatePeriodicEvents", true],
   ["thresholdLoggingEventProcessing", 50],
   ["useAsCAPOutbox", false],
@@ -49,10 +42,7 @@ const initialize = async ({
   processEventsAfterPublish,
   isEventQueueActive,
   runInterval,
-  tableNameEventQueue,
-  tableNameEventLock,
   disableRedis,
-  skipCsnCheck,
   updatePeriodicEvents,
   thresholdLoggingEventProcessing,
   useAsCAPOutbox,
@@ -71,10 +61,7 @@ const initialize = async ({
     processEventsAfterPublish,
     isEventQueueActive,
     runInterval,
-    tableNameEventQueue,
-    tableNameEventLock,
     disableRedis,
-    skipCsnCheck,
     updatePeriodicEvents,
     thresholdLoggingEventProcessing,
     useAsCAPOutbox,
@@ -98,8 +85,6 @@ const initialize = async ({
     config.redisEnabled = await redis.connectionCheck();
   }
   config.fileContent = await readConfigFromFile(config.configFilePath);
-
-  !config.skipCsnCheck && (await csnCheck());
 
   monkeyPatchCAPOutbox();
   registerCdsShutdown();
@@ -169,50 +154,6 @@ const monkeyPatchCAPOutbox = () => {
       get: () => eventQueueAsOutbox.unboxed,
       configurable: true,
     });
-  }
-};
-
-const csnCheck = async () => {
-  cds.on("loaded", async (csn) => {
-    if (csn.namespace === "cds.xt") {
-      return;
-    }
-    const eventCsn = csn.definitions[config.tableNameEventQueue];
-    if (!eventCsn) {
-      throw EventQueueError.missingTableInCsn(config.tableNameEventQueue);
-    }
-
-    const lockCsn = csn.definitions[config.tableNameEventLock];
-    if (!lockCsn) {
-      throw EventQueueError.missingTableInCsn(config.tableNameEventLock);
-    }
-
-    if (config.tableNameEventQueue === BASE_TABLES.EVENT && config.tableNameEventLock === BASE_TABLES.LOCK) {
-      return; // no need to check base tables
-    }
-
-    const baseEvent = csn.definitions["sap.eventqueue.Event"];
-    const baseLock = csn.definitions["sap.eventqueue.Lock"];
-
-    checkCustomTable(baseEvent, eventCsn);
-    checkCustomTable(baseLock, lockCsn);
-  });
-};
-
-const checkCustomTable = (baseCsn, customCsn) => {
-  for (const columnName in baseCsn.elements) {
-    if (!customCsn.elements[columnName]) {
-      throw EventQueueError.missingElementInTable(customCsn.name, columnName);
-    }
-
-    if (
-      customCsn.elements[columnName].type !== "cds.Association" &&
-      customCsn.elements[columnName].type !== baseCsn.elements[columnName].type &&
-      columnName === "status" &&
-      customCsn.elements[columnName].type !== "cds.Integer"
-    ) {
-      throw EventQueueError.typeMismatchInTable(customCsn.name, columnName);
-    }
   }
 };
 
