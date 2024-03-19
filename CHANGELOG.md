@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.4.0 - 2024-03-XX
+
+### Changed
+
+- Reworked periodic processing of all events to be more efficient and to reduce the load on the database and use less database connections.
+- Removed support for custom tables. The event-queue now uses always the provided tables.
+
 ## v1.3.6 - 2024-03-14
 
 ### Fixed
