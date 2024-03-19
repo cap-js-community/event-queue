@@ -31,11 +31,10 @@ const registerEventQueueDbHandler = (dbService) => {
 
     eventCombinations.length &&
       req.on("succeeded", () => {
-        const events = eventCombinations.reduce((result, eventCombination) => {
+        const events = eventCombinations.map((eventCombination) => {
           const [type, subType] = eventCombination.split("##");
-          result.push({ type, subType });
-          return result;
-        }, []);
+          return { type, subType };
+        });
 
         broadcastEvent(req.tenant, events).catch((err) => {
           cds.log(COMPONENT_NAME).error("db handler failure during broadcasting event", err, {

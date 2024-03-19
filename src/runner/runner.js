@@ -17,6 +17,7 @@ const { hashStringTo32Bit } = require("../shared/common");
 const config = require("../config");
 const redisPub = require("../redis/redisPub");
 const openEvents = require("./openEvents");
+const { runEventCombinationForTenant } = require("./runnerHelper");
 
 const COMPONENT_NAME = "/eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
@@ -301,30 +302,6 @@ const _calculateOffsetForFirstRun = async () => {
   return offsetDependingOnLastRun;
 };
 
-const runEventCombinationForTenant = async (context, type, subType, skipWorkerPool) => {
-  try {
-    if (skipWorkerPool) {
-      return await processEventQueue(context, type, subType);
-    } else {
-      const eventConfig = eventQueueConfig.getEventConfig(type, subType);
-      const label = `${type}_${subType}`;
-      return await WorkerQueue.instance.addToQueue(
-        eventConfig.load,
-        label,
-        eventConfig.priority,
-        AsyncResource.bind(async () => await processEventQueue(context, type, subType))
-      );
-    }
-  } catch (err) {
-    const logger = cds.log(COMPONENT_NAME);
-    logger.error("error executing event combination for tenant", err, {
-      tenantId: context.tenant,
-      type,
-      subType,
-    });
-  }
-};
-
 const _multiTenancyDb = async () => {
   const logger = cds.log(COMPONENT_NAME);
   try {
@@ -390,7 +367,6 @@ module.exports = {
   singleTenant,
   multiTenancyDb,
   multiTenancyRedis,
-  runEventCombinationForTenant,
   __: {
     _singleTenantDb,
     _multiTenancyRedis,
