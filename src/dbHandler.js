@@ -2,7 +2,7 @@
 
 const cds = require("@sap/cds");
 
-const { broadcastEvent } = require("./redisPubSub");
+const { broadcastEvent } = require("./redis/redisPub");
 const config = require("./config");
 
 const COMPONENT_NAME = "/eventQueue/dbHandler";
@@ -31,14 +31,17 @@ const registerEventQueueDbHandler = (dbService) => {
 
     eventCombinations.length &&
       req.on("succeeded", () => {
-        for (const eventCombination of eventCombinations) {
-          broadcastEvent(req.tenant, ...eventCombination.split("##")).catch((err) => {
-            cds.log(COMPONENT_NAME).error("db handler failure during broadcasting event", err, {
-              tenant: req.tenant,
-              eventCombination,
-            });
+        const events = eventCombinations.map((eventCombination) => {
+          const [type, subType] = eventCombination.split("##");
+          return { type, subType };
+        });
+
+        broadcastEvent(req.tenant, events).catch((err) => {
+          cds.log(COMPONENT_NAME).error("db handler failure during broadcasting event", err, {
+            tenant: req.tenant,
+            events,
           });
-        }
+        });
       });
   });
 };
