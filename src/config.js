@@ -66,6 +66,7 @@ class Config {
   #userId;
   #enableTxConsistencyCheck;
   #cleanupLocksAndEventsForDev;
+  #redisOptions;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -484,6 +485,14 @@ class Config {
 
   get cleanupLocksAndEventsForDev() {
     return this.#cleanupLocksAndEventsForDev;
+  }
+
+  set redisOptions(value) {
+    this.#redisOptions = value;
+  }
+
+  get redisOptions() {
+    return this.#redisOptions;
   }
 
   get isMultiTenancy() {

@@ -4,6 +4,7 @@ const redis = require("redis");
 
 const { getEnvInstance } = require("./env");
 const EventQueueError = require("../EventQueueError");
+const config = require("../config");
 
 const COMPONENT_NAME = "/eventQueue/shared/redis";
 const LOG_AFTER_SEC = 5;
@@ -40,10 +41,11 @@ const _createClientBase = () => {
         defaults: {
           password: credentials.password,
           socket: { tls: credentials.tls },
+          ...config.redisOptions,
         },
       });
     }
-    return redis.createClient({ url });
+    return redis.createClient({ url, ...config.redisOptions });
   } catch (err) {
     throw EventQueueError.redisConnectionFailure(err);
   }
