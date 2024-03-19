@@ -129,6 +129,15 @@ const getAllTenantIds = async () => {
   if (!config.isMultiTenancy) {
     return null;
   }
+
+  // NOTE: tmp workaround until cds-mtxs fixes the connect.to service
+  for (let i = 0; i < 10; i++) {
+    if (cds.services["saas-registry"]) {
+      break;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
   const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
   const response = await ssp.get("/tenant");
   return response
