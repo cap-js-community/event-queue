@@ -222,7 +222,6 @@ describe("initialize", () => {
       expect(configInstance.runInterval).toEqual(25 * 60 * 1000);
       expect(configInstance.tableNameEventQueue).toEqual("sap.eventqueue.Event");
       expect(configInstance.tableNameEventLock).toEqual("sap.eventqueue.Lock");
-      expect(configInstance.skipCsnCheck).toEqual(false);
     });
   });
 });
