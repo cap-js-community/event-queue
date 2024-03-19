@@ -8,6 +8,8 @@ const { processEventQueue } = require("../processEventQueue");
 const eventQueueConfig = require("../config");
 const WorkerQueue = require("../shared/WorkerQueue");
 
+const COMPNENT_NAME = "/eventQueue/runnerHelper";
+
 const runEventCombinationForTenant = async (context, type, subType, skipWorkerPool) => {
   try {
     if (skipWorkerPool) {

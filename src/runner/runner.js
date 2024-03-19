@@ -1,12 +1,10 @@
 "use strict";
 
 const { randomUUID } = require("crypto");
-const { AsyncResource } = require("async_hooks");
 
 const cds = require("@sap/cds");
 
 const eventQueueConfig = require("../config");
-const { processEventQueue } = require("../processEventQueue");
 const WorkerQueue = require("../shared/WorkerQueue");
 const cdsHelper = require("../shared/cdsHelper");
 const distributedLock = require("../shared/distributedLock");
