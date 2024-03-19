@@ -8,7 +8,7 @@ const testHelper = require("./helper");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { processEventQueue } = require("../src/processEventQueue");
 const redisSub = require("../src/redis/redisSub");
-const runner = require("../src/runner/runner");
+const runnerHelper = require("../src/runner/runnerHelper");
 const { EventProcessingStatus } = require("../src/constants");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
@@ -534,7 +534,7 @@ describe("event-queue outbox", () => {
         let config = eventQueue.config.getEventConfig(type, subType);
         expect(config).toBeUndefined();
         const runEventCombinationForTenantSpy = jest
-          .spyOn(runner, "runEventCombinationForTenant")
+          .spyOn(runnerHelper, "runEventCombinationForTenant")
           .mockResolvedValueOnce();
         await redisSub.__._messageHandlerProcessEvents(
           JSON.stringify({
@@ -553,7 +553,7 @@ describe("event-queue outbox", () => {
         const subType = "NotificationServiceLaizyInitTest";
         let config = eventQueue.config.getEventConfig(type, subType);
         expect(config).toBeUndefined();
-        const runEventCombinationForTenantSpy = jest.spyOn(runner, "runEventCombinationForTenant");
+        const runEventCombinationForTenantSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant");
         await redisSub.__._messageHandlerProcessEvents(
           JSON.stringify({
             type,
