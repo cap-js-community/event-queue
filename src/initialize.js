@@ -7,7 +7,6 @@ const cds = require("@sap/cds");
 const yaml = require("yaml");
 const VError = require("verror");
 
-const EventQueueError = require("./EventQueueError");
 const runner = require("./runner");
 const dbHandler = require("./dbHandler");
 const config = require("./config");
