@@ -76,7 +76,7 @@ const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(v
 const _getNewAuthInfo = async (tenantId) => {
   try {
     const token = await getAuthTokenAsync(null, cds.requires.auth.credentials, null, tenantId);
-    const [, authInfo] = await getCreateSecurityContextAsync(token, cds.requires.auth.credentials);
+    const authInfo = await getCreateSecurityContextAsync(token, cds.requires.auth.credentials);
     authInfoCache[tenantId].expireTs = authInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
     return authInfo;
   } catch (err) {
@@ -92,7 +92,8 @@ const getAuthInfo = async (tenantId) => {
 
   // not existing or existing but expired
   if (!authInfoCache[tenantId] || (authInfoCache[tenantId] && Date.now() > authInfoCache[tenantId].expireTs)) {
-    authInfoCache[tenantId].value = _getNewAuthInfo();
+    authInfoCache[tenantId] ??= {};
+    authInfoCache[tenantId].value = _getNewAuthInfo(tenantId);
     authInfoCache[tenantId].expireTs = null;
   }
   return authInfoCache[tenantId].value;
