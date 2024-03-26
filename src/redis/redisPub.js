@@ -7,7 +7,7 @@ const cds = require("@sap/cds");
 const redis = require("../shared/redis");
 const { checkLockExistsAndReturnValue } = require("../shared/distributedLock");
 const config = require("../config");
-const { getSubdomainForTenantId } = require("../shared/cdsHelper");
+const common = require("../shared/common");
 const { runEventCombinationForTenant } = require("../runner/runnerHelper");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
@@ -29,13 +29,10 @@ const broadcastEvent = async (tenantId, events) => {
       if (config.registerAsEventProcessor) {
         let context = {};
         if (tenantId) {
-          const subdomain = await getSubdomainForTenantId(tenantId);
-          const user = new cds.User.Privileged(config.userId);
+          const user = new cds.User.Privileged({ id: config.userId, authInfo: common.getAuthInfo(tenantId) });
           context = {
-            // NOTE: we need this because of logging otherwise logs would not contain the subdomain
             tenant: tenantId,
             user,
-            http: { req: { authInfo: { getSubdomain: () => subdomain } } },
           };
         }
 

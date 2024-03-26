@@ -10,7 +10,6 @@ jest.mock("../src/shared/redis", () => mockRedis);
 const cdsHelper = require("../src/shared/cdsHelper");
 const WorkerQueue = require("../src/shared/WorkerQueue");
 const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
-jest.spyOn(cdsHelper, "getSubdomainForTenantId").mockResolvedValue("dummy");
 const processEventQueue = require("../src/processEventQueue");
 const openEvents = require("../src/runner/openEvents");
 const { Logger: mockLogger } = require("../test/mocks/logger");

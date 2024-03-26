@@ -9,9 +9,8 @@ const WorkerQueue = require("../shared/WorkerQueue");
 const cdsHelper = require("../shared/cdsHelper");
 const distributedLock = require("../shared/distributedLock");
 const SetIntervalDriftSafe = require("../shared/SetIntervalDriftSafe");
-const { getSubdomainForTenantId } = require("../shared/cdsHelper");
 const periodicEvents = require("../periodicEvents");
-const { hashStringTo32Bit } = require("../shared/common");
+const common = require("../shared/common");
 const config = require("../config");
 const redisPub = require("../redis/redisPub");
 const openEvents = require("./openEvents");
@@ -80,7 +79,7 @@ const _multiTenancyRedis = async () => {
 };
 
 const _checkPeriodicEventUpdate = async (tenantIds) => {
-  const hash = hashStringTo32Bit(JSON.stringify(tenantIds));
+  const hash = common.hashStringTo32Bit(JSON.stringify(tenantIds));
   if (!tenantIdHash) {
     tenantIdHash = hash;
     return await _multiTenancyPeriodicEvents(tenantIds).catch((err) => {
@@ -137,13 +136,10 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
   const promises = [];
 
   for (const tenantId of tenantIds) {
-    const subdomain = await getSubdomainForTenantId(tenantId);
-    const user = new cds.User.Privileged(config.userId);
+    const user = new cds.User.Privileged({ id: config.userId, authInfo: common.getAuthInfo(tenantId) });
     const tenantContext = {
       tenant: tenantId,
       user,
-      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     };
     const events = await cds.tx(tenantContext, async (tx) => {
       return await openEvents.getOpenQueueEntries(tx);
@@ -184,13 +180,10 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
 const _executePeriodicEventsAllTenants = async (tenantIds) => {
   for (const tenantId of tenantIds) {
     try {
-      const subdomain = await getSubdomainForTenantId(tenantId);
-      const user = new cds.User.Privileged(config.userId);
+      const user = new cds.User.Privileged({ id: config.userId, authInfo: common.getAuthInfo(tenantId) });
       const tenantContext = {
         tenant: tenantId,
         user,
-        // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-        http: { req: { authInfo: { getSubdomain: () => subdomain } } },
       };
       await cds.tx(tenantContext, async ({ context }) => {
         if (!config.redisEnabled) {
@@ -350,7 +343,7 @@ const _checkPeriodicEventsSingleTenant = async (context) => {
   try {
     logger.info("executing updating periodic events", {
       tenantId: context.tenant,
-      subdomain: context.http?.req.authInfo.getSubdomain(),
+      subdomain: context.user?.authInfo?.getSubdomain(),
     });
     await periodicEvents.checkAndInsertPeriodicEvents(context);
   } catch (err) {
