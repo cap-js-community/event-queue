@@ -136,7 +136,7 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
   const promises = [];
 
   for (const tenantId of tenantIds) {
-    const user = new cds.User.Privileged({ id: config.userId, authInfo: common.getAuthInfo(tenantId) });
+    const user = new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
     const tenantContext = {
       tenant: tenantId,
       user,
@@ -180,7 +180,7 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
 const _executePeriodicEventsAllTenants = async (tenantIds) => {
   for (const tenantId of tenantIds) {
     try {
-      const user = new cds.User.Privileged({ id: config.userId, authInfo: common.getAuthInfo(tenantId) });
+      const user = new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
       const tenantContext = {
         tenant: tenantId,
         user,

@@ -25,7 +25,7 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
   try {
-    const user = new cds.User.Privileged({ id: config.userId, authInfo: common.getAuthInfo(context.tenant) });
+    const user = new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(context.tenant) });
     if (cds.db.kind === "hana") {
       await cds.tx(
         {
