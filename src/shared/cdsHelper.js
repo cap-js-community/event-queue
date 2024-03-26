@@ -6,8 +6,6 @@ const cds = require("@sap/cds");
 const config = require("../config");
 const common = require("./common");
 
-const subdomainCache = {};
-
 const VERROR_CLUSTER_NAME = "ExecuteInNewTransactionError";
 const COMPONENT_NAME = "/eventQueue/cdsHelper";
 
