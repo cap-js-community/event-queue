@@ -15,7 +15,6 @@ class Env {
   }
 
   getRedisCredentialsFromEnv() {
-    console.info("VCAP SERIVCES: %o", this.#vcapServices);
     return this.#vcapServices["redis-cache"]?.[0]?.credentials;
   }
 

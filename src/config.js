@@ -105,7 +105,6 @@ class Config {
 
   checkRedisEnabled() {
     this.#redisEnabled = !this.#disableRedis && this._checkRedisIsBound();
-    console.info("redisEnabled: %s, disableRedis: %s ", this.#redisEnabled, this.#disableRedis);
     return this.#redisEnabled;
   }
 
