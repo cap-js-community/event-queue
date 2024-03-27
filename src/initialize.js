@@ -32,7 +32,6 @@ const CONFIG_VARS = [
   ["thresholdLoggingEventProcessing", 50],
   ["useAsCAPOutbox", false],
   ["userId", null],
-  ["enableTxConsistencyCheck", false],
   ["cleanupLocksAndEventsForDev", false],
 ];
 
@@ -47,7 +46,6 @@ const initialize = async ({
   thresholdLoggingEventProcessing,
   useAsCAPOutbox,
   userId,
-  enableTxConsistencyCheck,
   cleanupLocksAndEventsForDev,
 } = {}) => {
   if (config.initialized) {
@@ -66,7 +64,6 @@ const initialize = async ({
     thresholdLoggingEventProcessing,
     useAsCAPOutbox,
     userId,
-    enableTxConsistencyCheck,
     cleanupLocksAndEventsForDev
   );
 

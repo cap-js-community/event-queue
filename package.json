@@ -48,7 +48,6 @@
     "yaml": "^2.4.1"
   },
   "devDependencies": {
-    "@cap-js/hana": "^0.0.6",
     "@cap-js/sqlite": "^1.5.0",
     "@sap/cds": "^7.7.0",
     "@sap/cds-dk": "^7.5.1",
