@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 
 - Removed authInfo from context.http.req and moved to a full-fledged xssec/xsuaa authInfo attached to context.user.authInfo
-- [cds-plguin] return promise for init for cds to wait until plugin is fully initialized
+- [cds-plugin] return promise for init for cds to wait until plugin is fully initialized
 
 ## v1.4.0 - 2024-03-21
 
