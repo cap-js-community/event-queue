@@ -1,14 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`_getNewAuthInfo should handle error 1`] = `
-[
-  [
-    "failed to request authInfo",
-    [Error],
-  ],
-]
-`;
-
 exports[`getAuthInfo should clear cache for error case 1`] = `
 [
   [
