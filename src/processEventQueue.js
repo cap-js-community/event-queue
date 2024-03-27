@@ -96,9 +96,6 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
     }
   } catch (err) {
     cds.log(COMPONENT_NAME).error("Processing event queue failed with unexpected error.", err, {
-      tenantId: context?.tenant,
-      tenantIdBase: baseInstance?.context?.tenant,
-      globalTenantId: cds.context?.tenant,
       eventType,
       eventSubType,
     });
@@ -188,9 +185,6 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
     cds.log(COMPONENT_NAME).error("Processing periodic events failed with unexpected error.", err, {
       eventType: eventTypeInstance?.eventType,
       eventSubType: eventTypeInstance?.eventSubType,
-      tenantId: context?.tenant,
-      tenantIdBase: eventTypeInstance?.context?.tenant,
-      globalTenantId: cds.context?.tenant,
     });
   } finally {
     await eventTypeInstance?.handleReleaseLock();

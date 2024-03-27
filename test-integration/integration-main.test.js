@@ -40,6 +40,10 @@ describe("integration-main", () => {
     });
     loggerMock = mockLogger();
     const db = await cds.connect.to("db");
+
+    if (db._source !== (process.env.NEW_DB_SERVICE ? "@cap-js/hana" : "@sap/cds/libx/_runtime/hana/Service.js")) {
+      throw new Error("wrong hana driver is used for testing");
+    }
     db.before("*", (cdsContext) => {
       if (dbCounts[cdsContext.event]) {
         dbCounts[cdsContext.event] = dbCounts[cdsContext.event] + 1;
@@ -73,6 +77,7 @@ describe("integration-main", () => {
     const event = eventQueue.config.events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 0 });
+    expect(loggerMock.calls().error).toEqual([]);
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(dbCounts).toMatchSnapshot();
   });

@@ -4,8 +4,7 @@ const VError = require("verror");
 const cds = require("@sap/cds");
 
 const config = require("../config");
-
-const subdomainCache = {};
+const common = require("./common");
 
 const VERROR_CLUSTER_NAME = "ExecuteInNewTransactionError";
 const COMPONENT_NAME = "/eventQueue/cdsHelper";
@@ -24,7 +23,7 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
   try {
-    const user = new cds.User.Privileged(config.userId);
+    const user = new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(context.tenant) });
     if (cds.db.kind === "hana") {
       await cds.tx(
         {
@@ -33,7 +32,6 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
           locale: context.locale,
           user,
           headers: context.headers,
-          http: context.http,
         },
         async (tx) => {
           tx.context._ = context._ ?? {};
@@ -51,7 +49,6 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
             locale: context.locale,
             user,
             headers: context.headers,
-            http: context.http,
           },
           async (tx) => fn(tx, ...parameters)
         );
@@ -102,29 +99,6 @@ class TriggerRollback extends VError {
   }
 }
 
-const getSubdomainForTenantId = async (tenantId) => {
-  if (!config.isMultiTenancy) {
-    return null;
-  }
-  if (subdomainCache[tenantId]) {
-    return await subdomainCache[tenantId];
-  }
-  subdomainCache[tenantId] = new Promise((resolve) => {
-    cds.connect
-      .to("cds.xt.SaasProvisioningService")
-      .then((ssp) => {
-        ssp
-          .get("/tenant", { subscribedTenantId: tenantId })
-          .then((response) => {
-            resolve(response.subscribedSubdomain);
-          })
-          .catch(() => resolve(null));
-      })
-      .catch(() => resolve(null));
-  });
-  return await subdomainCache[tenantId];
-};
-
 const getAllTenantIds = async () => {
   if (!config.isMultiTenancy) {
     return null;
@@ -150,6 +124,5 @@ const isFakeTenant = (tenantId) => /00000000-0000-4000-8000-\d{12}/.test(tenantI
 module.exports = {
   executeInNewTransaction,
   TriggerRollback,
-  getSubdomainForTenantId,
   getAllTenantIds,
 };

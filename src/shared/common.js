@@ -1,6 +1,18 @@
 "use strict";
 
 const crypto = require("crypto");
+const { promisify } = require("util");
+
+const cds = require("@sap/cds");
+const xssec = require("@sap/xssec");
+
+const getAuthTokenAsync = promisify(xssec.requests.requestClientCredentialsToken);
+const getCreateSecurityContextAsync = promisify(xssec.createSecurityContext);
+
+let authInfoCache = {};
+const MARGIN_AUTH_INFO_EXPIRY = 60 * 1000;
+const COMPONENT_NAME = "/eventQueue/common";
+
 const arrayToFlatMap = (array, key = "ID") => {
   return array.reduce((result, element) => {
     result[element[key]] = element;
@@ -61,4 +73,43 @@ const processChunkedSync = (inputs, chunkSize, chunkHandler) => {
 
 const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(value)).digest("base64").slice(0, 32);
 
-module.exports = { arrayToFlatMap, limiter, isValidDate, processChunkedSync, hashStringTo32Bit };
+const _getNewAuthInfo = async (tenantId) => {
+  try {
+    const token = await getAuthTokenAsync(null, cds.requires.auth.credentials, null, tenantId);
+    const authInfo = await getCreateSecurityContextAsync(token, cds.requires.auth.credentials);
+    authInfoCache[tenantId].expireTs = authInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
+    return authInfo;
+  } catch (err) {
+    authInfoCache[tenantId] = null;
+    cds.log(COMPONENT_NAME).warn("failed to request authInfo", err);
+  }
+};
+
+const getAuthInfo = async (tenantId) => {
+  if (!cds.requires?.auth?.credentials) {
+    return null; // no credentials not authInfo
+  }
+
+  // not existing or existing but expired
+  if (
+    !authInfoCache[tenantId] ||
+    (authInfoCache[tenantId] && authInfoCache[tenantId].expireTs && Date.now() > authInfoCache[tenantId].expireTs)
+  ) {
+    authInfoCache[tenantId] ??= {};
+    authInfoCache[tenantId].value = _getNewAuthInfo(tenantId);
+    authInfoCache[tenantId].expireTs = null;
+  }
+  return await authInfoCache[tenantId].value;
+};
+
+module.exports = {
+  arrayToFlatMap,
+  limiter,
+  isValidDate,
+  processChunkedSync,
+  hashStringTo32Bit,
+  getAuthInfo,
+  __: {
+    clearAuthInfoCache: () => (authInfoCache = {}),
+  },
+};

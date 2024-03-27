@@ -4,6 +4,8 @@ const parsedCdsOptions = JSON.parse(process.env.CDS_CONFIG ?? "{}");
 
 parsedCdsOptions.requires ??= {};
 parsedCdsOptions.requires.outbox = "persistent-outbox";
+
+process.env.NEW_DB_SERVICE = process.env.NEW_DB_SERVICE === "true";
 if (!process.env.NEW_DB_SERVICE) {
   parsedCdsOptions.requires.db = {
     kind: "legacy-sqlite",
@@ -18,6 +20,3 @@ process.env.CDS_CONFIG = JSON.stringify(parsedCdsOptions);
 jest.spyOn(console, "log").mockImplementation();
 jest.spyOn(console, "info").mockImplementation();
 jest.spyOn(console, "warn").mockImplementation();
-jest.spyOn(console, "error").mockImplementation();
-jest.spyOn(process.stdout, "write").mockImplementation();
-jest.spyOn(process.stderr, "write").mockImplementation();

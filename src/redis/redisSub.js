@@ -4,8 +4,8 @@ const cds = require("@sap/cds");
 
 const redis = require("../shared/redis");
 const config = require("../config");
-const { getSubdomainForTenantId } = require("../shared/cdsHelper");
 const runnerHelper = require("../runner/runnerHelper");
+const common = require("../shared/common");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/redisSub";
@@ -35,13 +35,10 @@ const _messageHandlerProcessEvents = async (messageData) => {
       return;
     }
 
-    const subdomain = await getSubdomainForTenantId(tenantId);
-    const user = new cds.User.Privileged(config.userId);
+    const user = new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
     const tenantContext = {
       tenant: tenantId,
       user,
-      // NOTE: we need this because of logging otherwise logs would not contain the subdomain
-      http: { req: { authInfo: { getSubdomain: () => subdomain } } },
     };
 
     if (!config.getEventConfig(type, subType)) {

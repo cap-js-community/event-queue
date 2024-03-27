@@ -64,7 +64,6 @@ class Config {
   #thresholdLoggingEventProcessing;
   #useAsCAPOutbox;
   #userId;
-  #enableTxConsistencyCheck;
   #cleanupLocksAndEventsForDev;
   #redisOptions;
   static #instance;
@@ -477,14 +476,6 @@ class Config {
 
   get userId() {
     return this.#userId;
-  }
-
-  set enableTxConsistencyCheck(value) {
-    this.#enableTxConsistencyCheck = value;
-  }
-
-  get enableTxConsistencyCheck() {
-    return this.#enableTxConsistencyCheck;
   }
 
   set cleanupLocksAndEventsForDev(value) {
