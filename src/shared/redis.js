@@ -120,6 +120,7 @@ const connectionCheck = async () => {
   return new Promise((resolve, reject) => {
     createClientAndConnect(reject)
       .then((client) => {
+        console.error("connection check result %o", client);
         if (client) {
           _resilientClientClose(client);
           resolve();
