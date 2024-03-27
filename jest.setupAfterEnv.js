@@ -5,8 +5,7 @@ const parsedCdsOptions = JSON.parse(process.env.CDS_CONFIG ?? "{}");
 parsedCdsOptions.requires ??= {};
 parsedCdsOptions.requires.outbox = "persistent-outbox";
 
-process.env.NEW_DB_SERVICE = process.env.NEW_DB_SERVICE === "true";
-if (!process.env.NEW_DB_SERVICE) {
+if (/true/i.test(process.env.NEW_DB_SERVICE)) {
   parsedCdsOptions.requires.db = {
     kind: "legacy-sqlite",
     credentials: {

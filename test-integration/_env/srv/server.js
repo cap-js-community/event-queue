@@ -19,7 +19,7 @@ try {
 }
 
 cds.env.requires.db = {
-  impl: process.env.NEW_DB_SERVICE ? "@cap-js/hana" : "@sap/cds/libx/_runtime/hana/Service.js",
+  impl: /true/i.test(process.env.NEW_DB_SERVICE) ? "@cap-js/hana" : "@sap/cds/libx/_runtime/hana/Service.js",
   kind: "hana",
   credentials,
 };
