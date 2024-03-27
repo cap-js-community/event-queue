@@ -40,6 +40,10 @@ describe("integration-main", () => {
     });
     loggerMock = mockLogger();
     const db = await cds.connect.to("db");
+
+    if (db._source !== (process.env.NEW_DB_SERVICE ? "@cap-js/hana" : "@sap/cds/libx/_runtime/hana/Service.js")) {
+      throw new Error("wrong hana driver is used for testing");
+    }
     db.before("*", (cdsContext) => {
       if (dbCounts[cdsContext.event]) {
         dbCounts[cdsContext.event] = dbCounts[cdsContext.event] + 1;
@@ -70,10 +74,6 @@ describe("integration-main", () => {
   });
 
   it("empty queue - nothing to do", async () => {
-    // await cds.tx({}, async (tx) => {
-    //   await tx.run(SELECT.from("sap.eventqueue.Event").where("ID IN", [1, 2, 3, 4, 5]));
-    // });
-
     const event = eventQueue.config.events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 0 });
@@ -256,7 +256,7 @@ describe("integration-main", () => {
     eventQueue.config.dbUser = null;
   });
 
-  const onlyOldDbService = process.env.NEW_DB_SERVICE ? it : it;
+  const onlyOldDbService = process.env.NEW_DB_SERVICE ? it.skip : it;
   onlyOldDbService("lock wait timeout during keepAlive", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
