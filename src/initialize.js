@@ -137,7 +137,7 @@ const registerEventProcessors = () => {
 
   if (config.redisEnabled) {
     initEventQueueRedisSubscribe();
-    console.error("attach redis handler: %s", config.redisEnabled);
+    console.info("attach redis handler: %s", config.redisEnabled);
     config.attachConfigChangeHandler();
     runner.multiTenancyRedis().catch(errorHandler);
   } else {
