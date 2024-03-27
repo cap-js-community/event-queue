@@ -131,4 +131,15 @@ describe("getAuthInfo", () => {
     const result2 = await getAuthInfo("1");
     expect(result2).toBeDefined();
   });
+
+  it("two parallel requests should get the same error", async () => {
+    xssec.requests.requestClientCredentialsToken.mockImplementationOnce((a, b, c, d, cb) => cb(new Error(), null));
+    const resultPromise = getAuthInfo("1");
+    const resultPromise2 = getAuthInfo("1");
+
+    const [result1, result2] = await Promise.all([resultPromise, resultPromise2]);
+
+    expect(result1).toEqual(result2);
+    expect(xssec.requests.requestClientCredentialsToken).toHaveBeenCalledTimes(1);
+  });
 });

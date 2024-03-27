@@ -99,7 +99,7 @@ const getAuthInfo = async (tenantId) => {
     authInfoCache[tenantId].value = _getNewAuthInfo(tenantId);
     authInfoCache[tenantId].expireTs = null;
   }
-  return authInfoCache[tenantId].value;
+  return await authInfoCache[tenantId].value;
 };
 
 module.exports = {
