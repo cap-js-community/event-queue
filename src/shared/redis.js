@@ -12,7 +12,7 @@ let mainClientPromise;
 const subscriberChannelClientPromise = {};
 let lastErrorLog = Date.now();
 
-const createMainClientAndConnect = () => {
+const createMainClientAndConnect = (options) => {
   if (mainClientPromise) {
     return mainClientPromise;
   }
@@ -20,14 +20,14 @@ const createMainClientAndConnect = () => {
   const errorHandlerCreateClient = (err) => {
     cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
     mainClientPromise = null;
-    setTimeout(createMainClientAndConnect, LOG_AFTER_SEC * 1000).unref();
+    setTimeout(() => createMainClientAndConnect(options), LOG_AFTER_SEC * 1000).unref();
   };
 
-  mainClientPromise = createClientAndConnect(errorHandlerCreateClient);
+  mainClientPromise = createClientAndConnect(options, errorHandlerCreateClient);
   return mainClientPromise;
 };
 
-const _createClientBase = () => {
+const _createClientBase = (redisOptions) => {
   const env = getEnvInstance();
   try {
     const credentials = env.getRedisCredentialsFromEnv();
@@ -40,18 +40,19 @@ const _createClientBase = () => {
         defaults: {
           password: credentials.password,
           socket: { tls: credentials.tls },
+          ...redisOptions,
         },
       });
     }
-    return redis.createClient({ url });
+    return redis.createClient({ url, ...redisOptions });
   } catch (err) {
     throw EventQueueError.redisConnectionFailure(err);
   }
 };
 
-const createClientAndConnect = async (errorHandlerCreateClient) => {
+const createClientAndConnect = async (options, errorHandlerCreateClient) => {
   try {
-    const client = _createClientBase();
+    const client = _createClientBase(options);
     await client.connect();
     client.on("error", (err) => {
       const dateNow = Date.now();
@@ -74,14 +75,14 @@ const createClientAndConnect = async (errorHandlerCreateClient) => {
   }
 };
 
-const subscribeRedisChannel = (channel, subscribeHandler) => {
+const subscribeRedisChannel = (options, channel, subscribeHandler) => {
   const errorHandlerCreateClient = (err) => {
     cds.log(COMPONENT_NAME).error(`error from redis client for pub/sub failed for channel ${channel}`, err);
     subscriberChannelClientPromise[channel] = null;
-    setTimeout(() => subscribeRedisChannel(channel, subscribeHandler), LOG_AFTER_SEC * 1000).unref();
+    setTimeout(() => subscribeRedisChannel(options, channel, subscribeHandler), LOG_AFTER_SEC * 1000).unref();
   };
 
-  subscriberChannelClientPromise[channel] = createClientAndConnect(errorHandlerCreateClient)
+  subscriberChannelClientPromise[channel] = createClientAndConnect(options, errorHandlerCreateClient)
     .then((client) => {
       cds.log(COMPONENT_NAME).info("subscribe redis client connected channel", { channel });
       client.subscribe(channel, subscribeHandler).catch(errorHandlerCreateClient);
@@ -93,8 +94,8 @@ const subscribeRedisChannel = (channel, subscribeHandler) => {
     });
 };
 
-const publishMessage = async (channel, message) => {
-  const client = await createMainClientAndConnect();
+const publishMessage = async (options, channel, message) => {
+  const client = await createMainClientAndConnect(options);
   return await client.publish(channel, message);
 };
 
@@ -116,9 +117,9 @@ const _resilientClientClose = async (client) => {
   }
 };
 
-const connectionCheck = async () => {
+const connectionCheck = async (options) => {
   return new Promise((resolve, reject) => {
-    createClientAndConnect(reject)
+    createClientAndConnect(options, reject)
       .then((client) => {
         console.info("connection check result %o", client);
         if (client) {

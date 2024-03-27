@@ -33,6 +33,7 @@ const CONFIG_VARS = [
   ["useAsCAPOutbox", false],
   ["userId", null],
   ["cleanupLocksAndEventsForDev", false],
+  ["redisOptions", {}],
 ];
 
 const initialize = async ({
@@ -47,6 +48,7 @@ const initialize = async ({
   useAsCAPOutbox,
   userId,
   cleanupLocksAndEventsForDev,
+  redisOptions,
 } = {}) => {
   if (config.initialized) {
     return;
@@ -64,7 +66,8 @@ const initialize = async ({
     thresholdLoggingEventProcessing,
     useAsCAPOutbox,
     userId,
-    cleanupLocksAndEventsForDev
+    cleanupLocksAndEventsForDev,
+    redisOptions
   );
 
   const logger = cds.log(COMPONENT);
@@ -79,7 +82,7 @@ const initialize = async ({
     }
   });
   if (redisEnabled) {
-    config.redisEnabled = await redis.connectionCheck();
+    config.redisEnabled = await redis.connectionCheck(config.redisOptions);
   }
   config.fileContent = await readConfigFromFile(config.configFilePath);
 

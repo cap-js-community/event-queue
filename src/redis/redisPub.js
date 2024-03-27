@@ -70,7 +70,11 @@ const broadcastEvent = async (tenantId, events) => {
           type,
           subType,
         });
-        await redis.publishMessage(EVENT_MESSAGE_CHANNEL, JSON.stringify({ tenantId, type, subType }));
+        await redis.publishMessage(
+          config.redisOptions,
+          EVENT_MESSAGE_CHANNEL,
+          JSON.stringify({ tenantId, type, subType })
+        );
         break;
       }
     }
