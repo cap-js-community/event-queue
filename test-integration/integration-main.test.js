@@ -78,6 +78,7 @@ describe("integration-main", () => {
     await eventQueue.processEventQueue(context, event.type, event.subType);
     await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 0 });
     console.log(loggerMock.calls().error);
+    expect(loggerMock.calls().error).toEqual([]);
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(dbCounts).toMatchSnapshot();
   });
