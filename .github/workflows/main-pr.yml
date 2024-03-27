@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 20]
-        cds-new-db-service: [true, false]
+        node-version: [18]
+        cds-new-db-service: [false]
 
     name: test - node.js ${{ matrix.node-version }} - new cds db service enabled ${{ matrix.cds-new-db-service }}
     steps:

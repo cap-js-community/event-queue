@@ -70,9 +70,14 @@ describe("integration-main", () => {
   });
 
   it("empty queue - nothing to do", async () => {
+    // await cds.tx({}, async (tx) => {
+    //   await tx.run(SELECT.from("sap.eventqueue.Event").where("ID IN", [1, 2, 3, 4, 5]));
+    // });
+
     const event = eventQueue.config.events[0];
     await eventQueue.processEventQueue(context, event.type, event.subType);
     await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 0 });
+    console.log(loggerMock.calls().error);
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(dbCounts).toMatchSnapshot();
   });
