@@ -165,6 +165,7 @@ describe("initialize", () => {
       };
       const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();
       jest.spyOn(redis, "connectionCheck").mockResolvedValueOnce(true);
+      jest.spyOn(redis, "subscribeRedisChannel").mockResolvedValue();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
