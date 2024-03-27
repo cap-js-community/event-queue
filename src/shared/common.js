@@ -9,7 +9,7 @@ const xssec = require("@sap/xssec");
 const getAuthTokenAsync = promisify(xssec.requests.requestClientCredentialsToken);
 const getCreateSecurityContextAsync = promisify(xssec.createSecurityContext);
 
-const authInfoCache = {};
+let authInfoCache = {};
 const MARGIN_AUTH_INFO_EXPIRY = 60 * 1000;
 const COMPONENT_NAME = "/eventQueue/common";
 
@@ -91,7 +91,10 @@ const getAuthInfo = async (tenantId) => {
   }
 
   // not existing or existing but expired
-  if (!authInfoCache[tenantId] || (authInfoCache[tenantId] && Date.now() > authInfoCache[tenantId].expireTs)) {
+  if (
+    !authInfoCache[tenantId] ||
+    (authInfoCache[tenantId] && authInfoCache[tenantId].expireTs && Date.now() > authInfoCache[tenantId].expireTs)
+  ) {
     authInfoCache[tenantId] ??= {};
     authInfoCache[tenantId].value = _getNewAuthInfo(tenantId);
     authInfoCache[tenantId].expireTs = null;
@@ -99,4 +102,14 @@ const getAuthInfo = async (tenantId) => {
   return authInfoCache[tenantId].value;
 };
 
-module.exports = { arrayToFlatMap, limiter, isValidDate, processChunkedSync, hashStringTo32Bit, getAuthInfo };
+module.exports = {
+  arrayToFlatMap,
+  limiter,
+  isValidDate,
+  processChunkedSync,
+  hashStringTo32Bit,
+  getAuthInfo,
+  __: {
+    clearAuthInfoCache: () => (authInfoCache = {}),
+  },
+};

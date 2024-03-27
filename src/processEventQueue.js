@@ -185,9 +185,6 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
     cds.log(COMPONENT_NAME).error("Processing periodic events failed with unexpected error.", err, {
       eventType: eventTypeInstance?.eventType,
       eventSubType: eventTypeInstance?.eventSubType,
-      tenantId: context?.tenant,
-      tenantIdBase: eventTypeInstance?.context?.tenant,
-      globalTenantId: cds.context?.tenant,
     });
   } finally {
     await eventTypeInstance?.handleReleaseLock();
