@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         node-version: [18, 20]
-        cds-new-db-service: [false]
+        cds-new-db-service: [false, true]
 
     name: test - node.js ${{ matrix.node-version }} - new cds db service enabled ${{ matrix.cds-new-db-service }}
     steps:
