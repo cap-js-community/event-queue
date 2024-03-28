@@ -14,8 +14,9 @@ nav_order: 4
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
+
 - TOC
-{: toc}
+  {: toc}
 
 # Ad-Hoc events
 
@@ -31,7 +32,7 @@ The configuration YAML file is where all the required information regarding even
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                             | Default Value |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
 | impl                          | impl                                                                                                                                                                                                                    | -             |
 | type                          | type                                                                                                                                                                                                                    | -             |
 | subType                       | subType                                                                                                                                                                                                                 | -             |
@@ -80,7 +81,7 @@ instance is overloaded.
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                   | Default Value |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
 | type                          | Type of the periodic event                                                                                                                                                                    | -             |
 | subType                       | SubType of the periodic event                                                                                                                                                                 | -             |
 | impl                          | Implementation file path for the periodic event                                                                                                                                               | -             |
@@ -97,32 +98,33 @@ application instance. If capacity is unavailable, the execution is delayed, but 
 to
 the originally planned schedule plus the defined interval.
 
-# Runtime configuration changes
+# Runtime Configuration Changes
 
-In certain scenarios it's requires to change configurations during runtime. The event-queue has two main configuration
-sections. One for all ad-hoc and periodic events (this wiki page) and one for the 
-[initialization configuration](/event-queue/setup/#initialization-parameters). Not all parameters can be changed
-at runtime, to see for which this is possible check out the corresponding parameter tables in the documentation.
-Keep in mind that the configuration change needs to be done for every application instance. If a configuration change
-is done e.g. via an HTTP-Handler the change will ony be reflected in the instance which processed the HTTP-Request.
+In certain scenarios, it may be necessary to change configurations during runtime. The event-queue has two main
+configuration sections: one for all ad-hoc and periodic events (explained on this wiki page), and another for
+the [initialization configuration](/event-queue/setup/#initialization-parameters). However, not all parameters can be
+modified at runtime. To identify which parameters can be altered, please refer to the corresponding parameter tables in
+the documentation. Note that any configuration change needs to be implemented for every application instance. For
+instance, if a configuration change is made via an HTTP-Handler, the change will only be reflected in the instance that
+processed the HTTP request.
 
-## Changing initialization configuration at runtime
+## Changing Initialization Configuration at Runtime
 
-Initialization can be changed by setting the value of the corosponding setter parameter from the config class instance.
-See the code below:
+The initialization configuration can be changed by setting the value of the corresponding setter parameter from the
+config class instance. Here is an example:
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 config.runInterval = 5 * 60 * 1000 // 5 minutes
 ```
 
-## Changing event configuration at runtime
+## Changing Event Configuration at Runtime
 
-To change the configuration of a particular event you can refer to the following example below:
+To change the configuration of a specific event, you can refer to the example below:
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 const eventConfig = config.getEventConfig("HealthCheck", "DB");
 eventConfig.load = 5;
@@ -159,7 +161,7 @@ accomplished.
 ## Blocking/Unblocking based on configuration
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 // Block type: HealthCheck and subType: DB for tenant 123
 const isPeriodicEvent = true;
@@ -181,10 +183,10 @@ For greater flexibility, the decision to block an event can be determined based 
 The example below shows how to register the callback.
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
-  // Perform custom check and return true or false
+    // Perform custom check and return true or false
 };
 ```
 
