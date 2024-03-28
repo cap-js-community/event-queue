@@ -97,6 +97,43 @@ application instance. If capacity is unavailable, the execution is delayed, but 
 to
 the originally planned schedule plus the defined interval.
 
+# Runtime configuration changes
+
+In certain scenarios it's requires to change configurations during runtime. The event-queue has two main configuration
+sections. One for all ad-hoc and periodic events (this wiki page) and one for the 
+[initialization configuration](/event-queue/setup/#initialization-parameters). Not all parameters can be changed
+at runtime, to see for which this is possible check out the corresponding parameter tables in the documentation.
+Keep in mind that the configuration change needs to be done for every application instance. If a configuration change
+is done e.g. via an HTTP-Handler the change will ony be reflected in the instance which processed the HTTP-Request.
+
+## Changing initialization configuration at runtime
+
+Initialization can be changed by setting the value of the corosponding setter parameter from the config class instance.
+See the code below:
+
+```js
+const { config } = require("@cap-js-community/event-queue");
+
+config.runInterval = 5 * 60 * 1000 // 5 minutes
+```
+
+## Changing event configuration at runtime
+
+To change the configuration of a particular event you can refer to the following example below:
+
+```js
+const { config } = require("@cap-js-community/event-queue");
+
+const eventConfig = config.getEventConfig("HealthCheck", "DB");
+eventConfig.load = 5;
+```
+
+## Limitation
+
+The current implementation of config does not persistently store runtime configuration changes. This means that e.g.
+the block/unblock list is only available until the next restart of the application. If you want this information to be
+persistent, it is recommended to use the callback API. This allows for accessing persistent information.
+
 ```yaml
 periodicEvents:
   - type: HealthCheck
@@ -107,7 +144,7 @@ periodicEvents:
     interval: 30
 ```
 
-# Blocking Events
+## Blocking Events
 
 In certain scenarios, it may be necessary to prevent specific events from executing. This could be due to various
 reasons such as:
@@ -150,12 +187,6 @@ config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
   // Perform custom check and return true or false
 };
 ```
-
-## Limitation
-
-The current implementation of config does not persistently store the information. This means that the block/unblock
-list is only available until the next restart of the application. If you want this information to be persistent,
-it is recommended to use the callback API. This allows for accessing persistent information.
 
 # Delete Processed Events
 
