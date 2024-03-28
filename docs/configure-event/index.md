@@ -14,7 +14,6 @@ nav_order: 4
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
-
 - TOC
 {: toc}
 
@@ -32,7 +31,7 @@ The configuration YAML file is where all the required information regarding even
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                             | Default Value |
-|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | impl                          | impl                                                                                                                                                                                                                    | -             |
 | type                          | type                                                                                                                                                                                                                    | -             |
 | subType                       | subType                                                                                                                                                                                                                 | -             |
@@ -81,7 +80,7 @@ instance is overloaded.
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                   | Default Value |
-|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | type                          | Type of the periodic event                                                                                                                                                                    | -             |
 | subType                       | SubType of the periodic event                                                                                                                                                                 | -             |
 | impl                          | Implementation file path for the periodic event                                                                                                                                               | -             |
@@ -126,7 +125,7 @@ config class instance. Here is an example:
 ```js
 const { config } = require("@cap-js-community/event-queue");
 
-config.runInterval = 5 * 60 * 1000 // 5 minutes
+config.runInterval = 5 * 60 * 1000; // 5 minutes
 ```
 
 ## Changing Event Configuration at Runtime
@@ -186,7 +185,7 @@ The example below shows how to register the callback.
 const { config } = require("@cap-js-community/event-queue");
 
 config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
-    // Perform custom check and return true or false
+  // Perform custom check and return true or false
 };
 ```
 
