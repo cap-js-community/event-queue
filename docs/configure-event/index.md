@@ -98,6 +98,16 @@ application instance. If capacity is unavailable, the execution is delayed, but 
 to
 the originally planned schedule plus the defined interval.
 
+```yaml
+periodicEvents:
+  - type: HealthCheck
+    subType: DB
+    impl: ./test/asset/EventQueueHealthCheckDb
+    load: 1
+    transactionMode: alwaysRollback
+    interval: 30
+```
+
 # Runtime Configuration Changes
 
 In certain scenarios, it may be necessary to change configurations during runtime. The event-queue has two main
@@ -114,7 +124,7 @@ The initialization configuration can be changed by setting the value of the corr
 config class instance. Here is an example:
 
 ```js
-const {config} = require("@cap-js-community/event-queue");
+const { config } = require("@cap-js-community/event-queue");
 
 config.runInterval = 5 * 60 * 1000 // 5 minutes
 ```
@@ -124,7 +134,7 @@ config.runInterval = 5 * 60 * 1000 // 5 minutes
 To change the configuration of a specific event, you can refer to the example below:
 
 ```js
-const {config} = require("@cap-js-community/event-queue");
+const { config } = require("@cap-js-community/event-queue");
 
 const eventConfig = config.getEventConfig("HealthCheck", "DB");
 eventConfig.load = 5;
@@ -135,16 +145,6 @@ eventConfig.load = 5;
 The current implementation of config does not persistently store runtime configuration changes. This means that e.g.
 the block/unblock list is only available until the next restart of the application. If you want this information to be
 persistent, it is recommended to use the callback API. This allows for accessing persistent information.
-
-```yaml
-periodicEvents:
-  - type: HealthCheck
-    subType: DB
-    impl: ./test/asset/EventQueueHealthCheckDb
-    load: 1
-    transactionMode: alwaysRollback
-    interval: 30
-```
 
 ## Blocking Events
 
@@ -161,7 +161,7 @@ accomplished.
 ## Blocking/Unblocking based on configuration
 
 ```js
-const {config} = require("@cap-js-community/event-queue");
+const { config } = require("@cap-js-community/event-queue");
 
 // Block type: HealthCheck and subType: DB for tenant 123
 const isPeriodicEvent = true;
@@ -183,7 +183,7 @@ For greater flexibility, the decision to block an event can be determined based 
 The example below shows how to register the callback.
 
 ```js
-const {config} = require("@cap-js-community/event-queue");
+const { config } = require("@cap-js-community/event-queue");
 
 config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
     // Perform custom check and return true or false
