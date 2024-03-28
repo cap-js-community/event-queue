@@ -107,7 +107,45 @@ periodicEvents:
     interval: 30
 ```
 
-# Blocking Events
+# Runtime Configuration Changes
+
+In certain scenarios, it may be necessary to change configurations during runtime. The event-queue has two main
+configuration sections: one for all ad-hoc and periodic events (explained on this wiki page), and another for
+the [initialization configuration](/event-queue/setup/#initialization-parameters). However, not all parameters can be
+modified at runtime. To identify which parameters can be altered, please refer to the corresponding parameter tables in
+the documentation. Note that any configuration change needs to be implemented for every application instance. For
+instance, if a configuration change is made via an HTTP-Handler, the change will only be reflected in the instance that
+processed the HTTP request.
+
+## Changing Initialization Configuration at Runtime
+
+The initialization configuration can be changed by setting the value of the corresponding setter parameter from the
+config class instance. Here is an example:
+
+```js
+const { config } = require("@cap-js-community/event-queue");
+
+config.runInterval = 5 * 60 * 1000; // 5 minutes
+```
+
+## Changing Event Configuration at Runtime
+
+To change the configuration of a specific event, you can refer to the example below:
+
+```js
+const { config } = require("@cap-js-community/event-queue");
+
+const eventConfig = config.getEventConfig("HealthCheck", "DB");
+eventConfig.load = 5;
+```
+
+## Limitation
+
+The current implementation of config does not persistently store runtime configuration changes. This means that e.g.
+the block/unblock list is only available until the next restart of the application. If you want this information to be
+persistent, it is recommended to use the callback API. This allows for accessing persistent information.
+
+## Blocking Events
 
 In certain scenarios, it may be necessary to prevent specific events from executing. This could be due to various
 reasons such as:
@@ -150,12 +188,6 @@ config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
   // Perform custom check and return true or false
 };
 ```
-
-## Limitation
-
-The current implementation of config does not persistently store the information. This means that the block/unblock
-list is only available until the next restart of the application. If you want this information to be persistent,
-it is recommended to use the callback API. This allows for accessing persistent information.
 
 # Delete Processed Events
 
