@@ -16,7 +16,7 @@ nav_order: 4
 <!-- prettier-ignore -->
 
 - TOC
-  {: toc}
+{: toc}
 
 # Ad-Hoc events
 
