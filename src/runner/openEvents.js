@@ -31,6 +31,7 @@ const getOpenQueueEntries = async (tx) => {
   for (const { type, subType } of entries) {
     if (type.startsWith("CAP_OUTBOX")) {
       if (cds.requires[subType]) {
+        await cds.connect.to(subType).catch(() => {});
         result.push({ type, subType });
       } else {
         const service = await cds.connect.to(subType).catch(() => {});
