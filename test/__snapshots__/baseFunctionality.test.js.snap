@@ -75,12 +75,10 @@ exports[`baseFunctionality ad-hoc events error handling handle undefined return 
 [
   [
     "The supplied status tuple doesn't have the required structure. Setting all entries to error.",
-    [
-      {
-        "eventSubType": "Task",
-        "eventType": "Notifications",
-      },
-    ],
+    {
+      "eventSubType": "Task",
+      "eventType": "Notifications",
+    },
   ],
 ]
 `;
