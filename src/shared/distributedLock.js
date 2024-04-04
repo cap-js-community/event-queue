@@ -6,6 +6,10 @@ const cdsHelper = require("./cdsHelper");
 
 const KEY_PREFIX = "EVENT_QUEUE";
 
+const existingLocks = {};
+
+const REDIS_COMMAND_OK = "OK";
+
 const acquireLock = async (context, key, { tenantScoped = true, expiryTime = config.globalTxTimeout } = {}) => {
   const fullKey = _generateKey(context, tenantScoped, key);
   if (config.redisEnabled) {
@@ -59,7 +63,11 @@ const _acquireLockRedis = async (context, fullKey, expiryTime, { value = "true",
     PX: expiryTime,
     ...(overrideValue ? null : { NX: true }),
   });
-  return result === "OK";
+  const isOk = result === REDIS_COMMAND_OK;
+  if (isOk) {
+    existingLocks[fullKey] = 1;
+  }
+  return isOk;
 };
 
 const _checkLockExistsRedis = async (context, fullKey) => {
@@ -78,6 +86,7 @@ const _checkLockExistsDb = async (context, fullKey) => {
 const _releaseLockRedis = async (context, fullKey) => {
   const client = await redis.createMainClientAndConnect(config.redisOptions);
   await client.del(fullKey);
+  delete existingLocks[fullKey];
 };
 
 const _releaseLockDb = async (context, fullKey) => {
@@ -133,9 +142,14 @@ const _generateKey = (context, tenantScoped, key) => {
   return `${KEY_PREFIX}_${keyParts.join("##")}`;
 };
 
+const shutdownHandler = async () => {
+  await Promise.allSettled(Object.keys(existingLocks).map((key) => _releaseLockRedis(null, key)));
+};
+
 module.exports = {
   acquireLock,
   releaseLock,
   checkLockExistsAndReturnValue,
   setValueWithExpire,
+  shutdownHandler,
 };
