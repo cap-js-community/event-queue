@@ -224,6 +224,18 @@ describe("baseFunctionality", () => {
         expect(loggerMock.callsLengths().error).toEqual(1);
         await testHelper.selectEventQueueAndExpectError(tx);
       });
+
+      test("handle undefined return for processEvent", async () => {
+        jest.spyOn(EventQueueTest.prototype, "processEvent").mockImplementationOnce(async () => {
+          return undefined;
+        });
+        await testHelper.insertEventEntry(tx);
+        const event = eventQueue.config.events[0];
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(1);
+        expect(loggerMock.calls().error).toMatchSnapshot();
+        await testHelper.selectEventQueueAndExpectError(tx);
+      });
     });
 
     describe("insert events", () => {

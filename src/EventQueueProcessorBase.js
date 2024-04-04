@@ -279,22 +279,33 @@ class EventQueueProcessorBase {
       eventSubType: this.#eventSubType,
     });
     const statusMap = this.commitOnEventLevel || returnMap ? {} : this.__statusMap;
-    try {
-      queueEntryProcessingStatusTuple.forEach(([id, processingStatus]) =>
-        this.#determineAndAddEventStatusToMap(id, processingStatus, statusMap)
-      );
-    } catch (error) {
+    const errorHandler = (error) => {
       queueEntries.forEach((queueEntry) =>
         this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error, statusMap)
       );
       this.logger.error(
         "The supplied status tuple doesn't have the required structure. Setting all entries to error.",
-        error,
-        {
-          eventType: this.#eventType,
-          eventSubType: this.#eventSubType,
-        }
+        [
+          error,
+          {
+            eventType: this.#eventType,
+            eventSubType: this.#eventSubType,
+          },
+        ].filter((a) => a)
       );
+    };
+
+    if (!queueEntryProcessingStatusTuple) {
+      errorHandler();
+      return statusMap;
+    }
+
+    try {
+      queueEntryProcessingStatusTuple.forEach(([id, processingStatus]) =>
+        this.#determineAndAddEventStatusToMap(id, processingStatus, statusMap)
+      );
+    } catch (error) {
+      errorHandler(error);
     }
     return statusMap;
   }
