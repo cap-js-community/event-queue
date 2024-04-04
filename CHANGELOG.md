@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - [cds-outboxed] Add eventQueue processor, key, queueEntries, and payload to req (can be accessed via req.context.\_eventQueue)
+- Add option `insertEventsBeforeCommit` to improve performance for `publishEvent`.
 - Add cds shutdown handler to clear existing redis locks before shutdown of the instance.
 
 ### Fixed
