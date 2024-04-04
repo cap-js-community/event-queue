@@ -15,6 +15,7 @@ const redis = require("./shared/redis");
 const eventQueueAsOutbox = require("./outbox/eventQueueAsOutbox");
 const { getAllTenantIds } = require("./shared/cdsHelper");
 const { EventProcessingStatus } = require("./constants");
+const distributedLock = require("./shared/distributedLock");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -166,6 +167,7 @@ const mixConfigVarsWithEnv = (...args) => {
 
 const registerCdsShutdown = () => {
   cds.on("shutdown", async () => {
+    await distributedLock.shutdownHandler();
     await Promise.allSettled([redis.closeMainClient(), closeSubscribeClient()]);
   });
 };
