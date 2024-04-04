@@ -285,7 +285,7 @@ class EventQueueProcessorBase {
       );
       this.logger.error(
         "The supplied status tuple doesn't have the required structure. Setting all entries to error.",
-        [
+        ...[
           error,
           {
             eventType: this.#eventType,
