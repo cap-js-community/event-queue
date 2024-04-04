@@ -184,3 +184,25 @@ class TaskService extends cds.Service {
 
 Errors raised in a custom outboxed service are thrown and will be logged from the event queue. The event entry will be
 marked as an error and will be retried based on the event configuration.
+
+### Event-Queue properties
+
+The event queue properties that are available for the native event queue processor (refer to [this documentation](/event-queue/implement-event/#minimal-implementation-for-ad-hoc-events)) are
+also accessible for outboxed services utilizing the event queue. These properties can be accessed via the cds context.
+The following properties are available:
+
+- processor: instance of event-queue processor
+- key
+- queueEntries
+- payload
+
+```js
+class TaskService extends cds.Service {
+  async init() {
+    await super.init();
+    this.on("send", (req) => {
+      const { processor, queueEntries, payload, key } = req.context._eventQueue;
+    });
+  }
+}
+```

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.4.2 - 2024-04-XX
 
+### Added
+
+- [cds-outboxed] Add eventQueue processor, key, queueEntries, and payload to req (can be accessed via req.context.\_eventQueue)
+
 ### Fixed
 
 - [cds-outboxed] Call cds.connect.to for open outboxed events
