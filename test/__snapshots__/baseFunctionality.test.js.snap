@@ -71,6 +71,18 @@ exports[`baseFunctionality ad-hoc events error handling handle modifyQueueEntry 
 ]
 `;
 
+exports[`baseFunctionality ad-hoc events error handling handle undefined return for processEvent 1`] = `
+[
+  [
+    "The supplied status tuple doesn't have the required structure. Setting all entries to error.",
+    {
+      "eventSubType": "Task",
+      "eventType": "Notifications",
+    },
+  ],
+]
+`;
+
 exports[`baseFunctionality ad-hoc events error handling missing event implementation 1`] = `
 [
   [

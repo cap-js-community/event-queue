@@ -252,6 +252,7 @@ describe("event-queue outbox", () => {
             "subject": "subject",
             "to": "to",
           },
+          "eventQueueId": "NotificationService",
           "user": "anonymous",
         }
       `);
@@ -283,6 +284,7 @@ describe("event-queue outbox", () => {
             "subject": "subject",
             "to": "to",
           },
+          "eventQueueId": "NotificationService",
           "user": "anonymous",
         }
       `);
@@ -315,6 +317,7 @@ describe("event-queue outbox", () => {
             "subject": "subject",
             "to": "to",
           },
+          "eventQueueId": "NotificationService",
           "user": "badman",
         }
       `);

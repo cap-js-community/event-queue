@@ -23,6 +23,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       delete msg._fromSend;
       delete msg.contextUser;
       processContext.user = new cds.User.Privileged(userId);
+      processContext._eventQueue = { processor: this, key, queueEntries, payload };
       await cds.unboxed(service).tx(processContext)[invocationFn](msg);
     } catch (err) {
       status = EventProcessingStatus.Error;
