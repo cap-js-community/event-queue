@@ -21,6 +21,9 @@ const distributedLock = require("../src/shared/distributedLock");
 const eventScheduler = require("../src/shared/eventScheduler");
 const { processEventQueue } = require("../src/processEventQueue");
 const periodicEvents = require("../src/periodicEvents");
+const { publishEvent } = require("../src/publishEvent");
+
+const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
 
 let dbCounts = {};
 describe("integration-main", () => {
@@ -30,7 +33,6 @@ describe("integration-main", () => {
   let checkAndInsertPeriodicEventsMock;
 
   beforeAll(async () => {
-    const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
     checkAndInsertPeriodicEventsMock = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
     await eventQueue.initialize({
       configFilePath,
@@ -694,7 +696,6 @@ describe("integration-main", () => {
     beforeAll(async () => {
       cds._events.connect.splice(1, cds._events.connect.length - 1);
       eventQueue.config.initialized = false;
-      const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -1288,7 +1289,6 @@ describe("integration-main", () => {
       checkAndInsertPeriodicEventsMock = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
       cds._events.connect.splice(1, cds._events.connect.length - 1);
       eventQueue.config.initialized = false;
-      const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
       dbHandlerSpy = jest.spyOn(dbHandler, "registerEventQueueDbHandler");
       await eventQueue.initialize({
         configFilePath,
@@ -1304,6 +1304,44 @@ describe("integration-main", () => {
       await waitEntryIsDone();
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx);
+    });
+  });
+
+  describe("insertEventsBeforeCommit", () => {
+    beforeAll(async () => {
+      eventQueue.config.initialized = false;
+      await eventQueue.initialize({
+        configFilePath,
+        insertEventsBeforeCommit: true,
+        processEventsAfterPublish: false,
+      });
+      cds.emit("connect", await cds.connect.to("db"));
+    });
+
+    it("insert should happen with commit", async () => {
+      const event = testHelper.getEventEntry();
+      let tx = cds.tx({});
+      await publishEvent(tx, event);
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 0 });
+      await tx.commit();
+
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await tx.rollback();
+    });
+
+    it("insert should not happen if tx is rolled back", async () => {
+      const event = testHelper.getEventEntry();
+      let tx = cds.tx({});
+      await publishEvent(tx, event);
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 0 });
+      await tx.rollback();
+
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 0 });
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await tx.rollback();
     });
   });
 });

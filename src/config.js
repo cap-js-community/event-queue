@@ -66,6 +66,7 @@ class Config {
   #userId;
   #cleanupLocksAndEventsForDev;
   #redisOptions;
+  #insertEventsBeforeCommit;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -492,6 +493,14 @@ class Config {
 
   get redisOptions() {
     return this.#redisOptions;
+  }
+
+  set insertEventsBeforeCommit(value) {
+    this.#insertEventsBeforeCommit = value;
+  }
+
+  get insertEventsBeforeCommit() {
+    return this.#insertEventsBeforeCommit;
   }
 
   get isMultiTenancy() {
