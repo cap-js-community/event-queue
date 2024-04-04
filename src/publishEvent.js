@@ -45,10 +45,16 @@ const publishEvent = async (tx, events, skipBroadcast = false) => {
       throw EventQueueError.manuelPeriodicEventInsert(type, subType);
     }
   }
-  tx._skipEventQueueBroadcase = skipBroadcast;
-  const result = await tx.run(INSERT.into(config.tableNameEventQueue).entries(eventsForProcessing));
-  tx._skipEventQueueBroadcase = false;
-  return result;
+
+  if (config.insertEventsBeforeCommit) {
+    tx.context._eventQueueEvents ??= [];
+    tx.context._eventQueueEvents = tx.context._eventQueueEvents.concat(events);
+  } else {
+    tx._skipEventQueueBroadcase = skipBroadcast;
+    const result = await tx.run(INSERT.into(config.tableNameEventQueue).entries(eventsForProcessing));
+    tx._skipEventQueueBroadcase = false;
+    return result;
+  }
 };
 
 module.exports = {

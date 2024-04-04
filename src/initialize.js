@@ -34,6 +34,7 @@ const CONFIG_VARS = [
   ["userId", null],
   ["cleanupLocksAndEventsForDev", false],
   ["redisOptions", {}],
+  ["insertEventsBeforeCommit", false],
 ];
 
 const initialize = async ({
@@ -49,6 +50,7 @@ const initialize = async ({
   userId,
   cleanupLocksAndEventsForDev,
   redisOptions,
+  insertEventsBeforeCommit,
 } = {}) => {
   if (config.initialized) {
     return;
@@ -67,7 +69,8 @@ const initialize = async ({
     useAsCAPOutbox,
     userId,
     cleanupLocksAndEventsForDev,
-    redisOptions
+    redisOptions,
+    insertEventsBeforeCommit
   );
 
   const logger = cds.log(COMPONENT);
@@ -77,6 +80,7 @@ const initialize = async ({
   cds.on("connect", (service) => {
     if (service.name === "db") {
       config.processEventsAfterPublish && dbHandler.registerEventQueueDbHandler(service);
+      config.insertEventsBeforeCommit && dbHandler.registerBeforeDbHandler(service);
       config.cleanupLocksAndEventsForDev && registerCleanupForDevDb().catch(() => {});
       initFinished.then(registerEventProcessors);
     }
