@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - typescript types for the most common functions
+- add subdomain for logging of broadcasting events via redis
 
 ### Changed
 
