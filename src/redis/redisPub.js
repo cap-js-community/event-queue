@@ -29,7 +29,9 @@ const broadcastEvent = async (tenantId, events) => {
       if (config.registerAsEventProcessor) {
         let context = {};
         if (tenantId) {
-          const user = new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
+          const user = await cds.tx({ tenant: tenantId }, async () => {
+            return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
+          });
           context = {
             tenant: tenantId,
             user,
