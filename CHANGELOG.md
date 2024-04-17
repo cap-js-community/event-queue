@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - typescript types for the most common functions
 
-
 ## v1.4.2 - 2024-04-04
 
 ### Added
