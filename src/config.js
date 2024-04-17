@@ -242,8 +242,8 @@ class Config {
     return key;
   }
 
-  isEventBlocked(type, subType, tenant) {
-    const map = this.#blockedEvents[this.generateKey(type, subType)];
+  isEventBlocked(type, subType, isPeriodicEvent, tenant) {
+    const map = this.#blockedEvents[this.generateKey(`${type}${isPeriodicEvent ? SUFFIX_PERIODIC : ""}`, subType)];
     if (!map) {
       return false;
     }
