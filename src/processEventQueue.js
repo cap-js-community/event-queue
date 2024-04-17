@@ -263,6 +263,7 @@ const _checkEventIsBlocked = async (baseInstance) => {
     eventBlocked = config.isEventBlocked(
       baseInstance.eventType,
       baseInstance.eventSubType,
+      baseInstance.isPeriodicEvent,
       baseInstance.context.tenant
     );
   }
