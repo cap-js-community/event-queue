@@ -22,6 +22,7 @@ const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 const ETAG_CHECK_AFTER_MIN = 10;
+const SUFFIX_PERIODIC = "_PERIODIC";
 
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
@@ -1095,7 +1096,7 @@ class EventQueueProcessorBase {
   }
 
   get eventType() {
-    return this.#eventType;
+    return this.#eventType.replace(SUFFIX_PERIODIC, "");
   }
 
   get eventSubType() {
