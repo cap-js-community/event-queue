@@ -1,5 +1,31 @@
 import * as cds from "@sap/cds";
 
+export declare const EventProcessingStatus: {
+  Open: 0;
+  InProgress: 1;
+  Done: 2;
+  Error: 3;
+  Exceeded: 4;
+};
+
+export declare type EventProcessingStatusType = keyof typeof EventProcessingStatus;
+
+export declare const TransactionMode: {
+  isolated: "isolated";
+  alwaysCommit: "alwaysCommit";
+  alwaysRollback: "alwaysRollback";
+};
+
+export declare type TransactionModeType = keyof typeof TransactionMode;
+
+export declare const Priorities: {
+  Low: "low";
+  Medium: "medium";
+  High: "high";
+  VeryHigh: "veryHigh";
+};
+export declare type PrioritiesType = keyof typeof Priorities;
+
 interface RedisOptions {
   host: string;
   port: number;
@@ -24,14 +50,6 @@ interface InitializeParams {
 type CdsLogger = ReturnType<typeof cds.log>;
 
 export function initialize(params: InitializeParams): Promise<void>;
-
-declare enum EventProcessingStatus {
-  Open,
-  InProgress,
-  Done,
-  Error,
-  Exceeded,
-}
 
 type EventConfigType = {
   type: string;
@@ -84,7 +102,7 @@ export declare class EventQueueProcessorBase {
     key: string,
     queueEntries: EventEntity[],
     payload: Object
-  ): Promise<Array<[string, EventProcessingStatus]>>;
+  ): Promise<Array<[string, EventProcessingStatusType]>>;
 
   processPeriodicEvent(processContext: cds.EventContext, key: string, queueEntry: EventEntity): Promise<undefined>;
   checkEventAndGeneratePayload(queueEntry: EventEntity): Promise<Object>;
