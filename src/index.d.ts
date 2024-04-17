@@ -8,7 +8,8 @@ export declare const EventProcessingStatus: {
   Exceeded: 4;
 };
 
-export declare type EventProcessingStatusType = keyof typeof EventProcessingStatus;
+declare type EventProcessingStatusKeysType = keyof typeof EventProcessingStatus;
+export declare type EventProcessingStatusType = (typeof EventProcessingStatus)[EventProcessingStatusKeysType];
 
 export declare const TransactionMode: {
   isolated: "isolated";
