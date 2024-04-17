@@ -12,6 +12,7 @@ const eventScheduler = require("../src/shared/eventScheduler");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const testHelper = require("./helper");
 const EventQueueTest = require("./asset/EventQueueTest");
+const EventQueueHealthCheck = require("./asset/EventQueueHealthCheckDb");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { EventProcessingStatus } = require("../src/constants");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
@@ -300,7 +301,12 @@ describe("baseFunctionality", () => {
     test("straight forward", async () => {
       const event = eventQueue.config.periodicEvents[0];
       await checkAndInsertPeriodicEvents(context);
+      let eventType;
+      jest.spyOn(EventQueueHealthCheck.prototype, "processPeriodicEvent").mockImplementationOnce(async function () {
+        eventType = this.eventType;
+      });
       await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(eventType).toEqual("HealthCheck");
       expect(loggerMock.callsLengths().error).toEqual(0);
       const events = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 2,
