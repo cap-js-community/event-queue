@@ -1,6 +1,5 @@
 "use strict";
 
-// TODO: how to deal with fatal logs
 // TODO: add tests for config --> similar to csn check
 
 module.exports = {
