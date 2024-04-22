@@ -69,7 +69,7 @@ const _registerHandlerAndAddEvents = (tx, events) => {
       return;
     }
     await tx.run(INSERT.into(config.tableNameEventQueue).entries(tx._eventQueue.events));
-    tx._eventQueueEvents = null;
+    tx._eventQueue = null;
   });
 };
 
