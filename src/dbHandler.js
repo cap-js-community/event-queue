@@ -55,21 +55,6 @@ const registerEventQueueDbHandler = (dbService) => {
   });
 };
 
-const registerBeforeDbHandler = (dbService) => {
-  if (!config.insertEventsBeforeCommit || registeredHandlers.beforeDbHandler) {
-    return;
-  }
-
-  registeredHandlers.beforeDbHandler = true;
-  dbService.before("COMMIT", async (req) => {
-    if (req.context._eventQueueEvents?.length) {
-      await cds.tx(req).run(INSERT.into(config.tableNameEventQueue).entries(req.context._eventQueueEvents));
-      req.context._eventQueueEvents = null;
-    }
-  });
-};
-
 module.exports = {
   registerEventQueueDbHandler,
-  registerBeforeDbHandler,
 };
