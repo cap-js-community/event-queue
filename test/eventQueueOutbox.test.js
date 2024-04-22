@@ -45,7 +45,7 @@ describe("event-queue outbox", () => {
     await tx.run(DELETE.from("cds.outbox.Messages"));
     eventQueue.config.clearPeriodicEventBlockList();
     eventQueue.config.isEventBlockedCb = null;
-    await tx.commit();
+    await commitAndOpenNew();
     jest.clearAllMocks();
   });
 
@@ -67,13 +67,13 @@ describe("event-queue outbox", () => {
     });
 
     it("if the service is not outboxed no event should be written", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       await service.send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       const outboxEvent = await tx.run(SELECT.from("cds.outbox.Messages"));
       expect(outboxEvent).toHaveLength(0);
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 0 });
@@ -81,14 +81,14 @@ describe("event-queue outbox", () => {
     });
 
     it("if the service is outboxed cds outbox should be used", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       const outboxEvent = await tx.run(SELECT.from("cds.outbox.Messages"));
       expect(outboxEvent).toHaveLength(1);
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 0 });
@@ -104,13 +104,13 @@ describe("event-queue outbox", () => {
         configFilePath,
         processEventsAfterPublish: false,
         registerAsEventProcessor: false,
+        insertEventsBeforeCommit: true,
         useAsCAPOutbox: true,
       });
+      cds.emit("connect", await cds.connect.to("db"));
     });
 
     it("return open event types", async () => {
-      tx = cds.tx({});
-      context = tx.context;
       const service = (await cds.connect.to("NotificationService")).tx(context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("errorEvent", {
@@ -120,21 +120,19 @@ describe("event-queue outbox", () => {
       });
       await testHelper.insertEventEntry(tx);
       await checkAndInsertPeriodicEvents(context);
-      await tx.commit();
-      tx = cds.tx({});
-      context = tx.context;
+      await commitAndOpenNew();
       const result = await getOpenQueueEntries(tx);
       expect(result).toMatchSnapshot();
     });
 
     it("if the service is not outboxed no event should be written", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       await service.send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       const outboxEvent = await tx.run(SELECT.from("cds.outbox.Messages"));
       expect(outboxEvent).toHaveLength(0);
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 0 });
@@ -144,14 +142,14 @@ describe("event-queue outbox", () => {
     });
 
     it("the unboxed version should not use the event-queue", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await cds.unboxed(outboxedService).send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       const outboxEvent = await tx.run(SELECT.from("cds.outbox.Messages"));
       expect(outboxEvent).toHaveLength(0);
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 0 });
@@ -161,23 +159,23 @@ describe("event-queue outbox", () => {
     });
 
     it("if the service is outboxed the event-queue outbox should be used", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
       const outboxEvent = await tx.run(SELECT.from("cds.outbox.Messages"));
       expect(outboxEvent).toHaveLength(0);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
     it("accept event-queue specific options in headers", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       const date = new Date(Date.now() + 4 * 60 * 1000).toISOString();
       await outboxedService.send(
@@ -192,7 +190,7 @@ describe("event-queue outbox", () => {
         }
       );
 
-      tx = cds.tx({});
+      await commitAndOpenNew();
       const [event] = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 1,
         additionalColumns: ["payload"],
@@ -211,14 +209,14 @@ describe("event-queue outbox", () => {
     });
 
     it("process outboxed event", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
@@ -228,14 +226,14 @@ describe("event-queue outbox", () => {
     });
 
     it("req.data should be stored for sent", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.emit("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       const event = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 1,
         additionalColumns: ["payload"],
@@ -253,21 +251,21 @@ describe("event-queue outbox", () => {
             "to": "to",
           },
           "eventQueueId": "NotificationService",
-          "user": "anonymous",
+          "user": "testUser",
         }
       `);
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
     it("req.data should be stored for emit", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       const event = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 1,
         additionalColumns: ["payload"],
@@ -285,22 +283,22 @@ describe("event-queue outbox", () => {
             "to": "to",
           },
           "eventQueueId": "NotificationService",
-          "user": "anonymous",
+          "user": "testUser",
         }
       `);
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
     it("should store correct user of original context", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
-      tx = cds.tx({});
       tx.context.user = { id: "badman" };
       await outboxedService.tx(tx.context).send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
+      await commitAndOpenNew();
       const event = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 1,
         additionalColumns: ["payload"],
@@ -326,14 +324,14 @@ describe("event-queue outbox", () => {
 
     it("map config to event-queue config", async () => {
       eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationService");
       expect(config).toMatchInlineSnapshot(`
@@ -368,7 +366,7 @@ describe("event-queue outbox", () => {
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
       await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
@@ -397,14 +395,14 @@ describe("event-queue outbox", () => {
     });
 
     it("should catch errors and log them", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
       const mock = () => {
@@ -442,14 +440,14 @@ describe("event-queue outbox", () => {
         useAsCAPOutbox: true,
       });
 
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
@@ -459,14 +457,14 @@ describe("event-queue outbox", () => {
     });
 
     it("req reject should be caught for send", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("rejectEvent", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
@@ -476,14 +474,14 @@ describe("event-queue outbox", () => {
     });
 
     it("req reject should cause an error for emit", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.emit("rejectEvent", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
@@ -493,14 +491,14 @@ describe("event-queue outbox", () => {
     });
 
     it("req error should be caught for send", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.send("errorEvent", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
@@ -510,14 +508,14 @@ describe("event-queue outbox", () => {
     });
 
     it("req error should be caught for emit", async () => {
-      const service = await cds.connect.to("NotificationService");
+      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
       const outboxedService = cds.outboxed(service);
       await outboxedService.emit("errorEvent", {
         to: "to",
         subject: "subject",
         body: "body",
       });
-      tx = cds.tx({});
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
@@ -570,6 +568,12 @@ describe("event-queue outbox", () => {
       });
     });
   });
+
+  const commitAndOpenNew = async () => {
+    await tx.commit();
+    context = new cds.EventContext({ user: "testUser", tenant: 123 });
+    tx = cds.tx(context);
+  };
 });
 
 expect.extend({

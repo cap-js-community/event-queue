@@ -47,14 +47,30 @@ const publishEvent = async (tx, events, skipBroadcast = false) => {
   }
 
   if (config.insertEventsBeforeCommit) {
-    tx.context._eventQueueEvents ??= [];
-    tx.context._eventQueueEvents = tx.context._eventQueueEvents.concat(events);
+    _registerHandlerAndAddEvents(tx, events);
   } else {
     tx._skipEventQueueBroadcase = skipBroadcast;
     const result = await tx.run(INSERT.into(config.tableNameEventQueue).entries(eventsForProcessing));
     tx._skipEventQueueBroadcase = false;
     return result;
   }
+};
+
+const _registerHandlerAndAddEvents = (tx, events) => {
+  tx._eventQueue ??= { events: [], handlerRegistered: false };
+  tx._eventQueue.events = tx._eventQueue.events.concat(events);
+
+  if (tx._eventQueue.handlerRegistered) {
+    return;
+  }
+  tx._eventQueue.handlerRegistered = true;
+  tx.context.before("commit", async () => {
+    if (!tx._eventQueue.events?.length) {
+      return;
+    }
+    await tx.run(INSERT.into(config.tableNameEventQueue).entries(tx._eventQueue.events));
+    tx._eventQueueEvents = null;
+  });
 };
 
 module.exports = {

@@ -81,7 +81,6 @@ const initialize = async ({
   cds.on("connect", (service) => {
     if (service.name === "db") {
       config.processEventsAfterPublish && dbHandler.registerEventQueueDbHandler(service);
-      config.insertEventsBeforeCommit && dbHandler.registerBeforeDbHandler(service);
       config.cleanupLocksAndEventsForDev && registerCleanupForDevDb().catch(() => {});
       initFinished.then(registerEventProcessors);
     }

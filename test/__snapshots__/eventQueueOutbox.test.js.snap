@@ -3,7 +3,7 @@
 exports[`event-queue outbox monkeyPatchCAPOutbox=true accept event-queue specific options in headers 1`] = `
 {
   "_fromSend": true,
-  "contextUser": "anonymous",
+  "contextUser": "testUser",
   "data": {
     "body": "body",
     "subject": "subject",
@@ -65,7 +65,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req reject should cause an
 exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored for emit 1`] = `
 {
   "_fromSend": true,
-  "contextUser": "anonymous",
+  "contextUser": "testUser",
   "data": {
     "body": "body",
     "subject": "subject",
@@ -78,7 +78,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored 
 
 exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored for sent 1`] = `
 {
-  "contextUser": "anonymous",
+  "contextUser": "testUser",
   "data": {
     "body": "body",
     "subject": "subject",
