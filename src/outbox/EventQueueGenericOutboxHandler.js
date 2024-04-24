@@ -4,6 +4,7 @@ const cds = require("@sap/cds");
 
 const EventQueueBaseClass = require("../EventQueueProcessorBase");
 const { EventProcessingStatus } = require("../constants");
+const common = require("../shared/common");
 
 const COMPONENT_NAME = "/eventQueue/outbox/generic";
 
@@ -22,7 +23,10 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       const invocationFn = payload._fromSend ? "send" : "emit";
       delete msg._fromSend;
       delete msg.contextUser;
-      processContext.user = new cds.User.Privileged(userId);
+      processContext.user = new cds.User.Privileged({
+        id: userId,
+        authInfo: await common.getAuthInfo(processContext.tenant),
+      });
       processContext._eventQueue = { processor: this, key, queueEntries, payload };
       await cds.unboxed(service).tx(processContext)[invocationFn](msg);
     } catch (err) {
