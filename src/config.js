@@ -20,8 +20,8 @@ const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
 const CAP_EVENT_TYPE = "CAP_OUTBOX";
-
 const CAP_PARALLEL_DEFAULT = 5;
+const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
 
 const BASE_PERIODIC_EVENTS = [
   {
@@ -69,6 +69,7 @@ class Config {
   #redisOptions;
   #insertEventsBeforeCommit;
   #unsubscribeHandlers = [];
+  #unsubscribedTenants = {};
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -155,6 +156,8 @@ class Config {
   }
 
   handleUnsubscribe(tenantId) {
+    this.#unsubscribedTenants[tenantId] = true;
+    setTimeout(() => delete this.#unsubscribedTenants[tenantId], DELETE_TENANT_BLOCK_AFTER_MS);
     if (this.redisEnabled) {
       redis
         .publishMessage(this.#redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, JSON.stringify({ tenantId }))
@@ -362,6 +365,10 @@ class Config {
       this.#config.events.splice(index, 1);
     }
     delete this.#eventMap[this.generateKey(type, subType)];
+  }
+
+  isTenantUnsubscribed(tenantId) {
+    return this.#unsubscribedTenants[tenantId];
   }
 
   get fileContent() {
