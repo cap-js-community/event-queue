@@ -10,7 +10,8 @@ const { Priorities } = require("./constants");
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
 const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
-const REDIS_CONFIG_BLOCKLIST_CHANNEL = "REDIS_CONFIG_BLOCKLIST_CHANNEL";
+const REDIS_OFFBOARD_TENANT_CHANNEL = "REDIS_OFFBOARD_TENANT_CHANNEL";
+const REDIS_CONFIG_BLOCKLIST_CHANNEL = "EVENT_QUEUE_REDIS_CONFIG_BLOCKLIST_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/config";
 const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
@@ -67,6 +68,7 @@ class Config {
   #cleanupLocksAndEventsForDev;
   #redisOptions;
   #insertEventsBeforeCommit;
+  #unsubscribeHandlers = [];
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -124,6 +126,48 @@ class Config {
         });
       }
     });
+  }
+
+  attachRedisUnsubscribeHandler() {
+    redis.subscribeRedisChannel(this.#redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, (messageData) => {
+      try {
+        const { tenantId } = JSON.parse(messageData);
+        this.#logger.info("received unsubscribe broadcast event", { tenantId });
+        this.executeUnsubscribeHandler(tenantId);
+      } catch (err) {
+        this.#logger.error("could not parse unsubscribe broadcast event", err, {
+          messageData,
+        });
+      }
+    });
+  }
+
+  executeUnsubscribeHandler(tenantId) {
+    for (const unsubscribeHandler of this.#unsubscribeHandlers) {
+      try {
+        unsubscribeHandler(tenantId);
+      } catch (err) {
+        this.#logger.error("could executing unsubscribe handler", err, {
+          tenantId,
+        });
+      }
+    }
+  }
+
+  unsubscribeHandler(tenantId) {
+    if (this.redisEnabled) {
+      redis
+        .publishMessage(this.#redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, JSON.stringify({ tenantId }))
+        .catch((error) => {
+          this.#logger.error(`publishing tenant unsubscribe failed. tenantId: ${tenantId}`, error);
+        });
+    } else {
+      this.executeUnsubscribeHandler(tenantId);
+    }
+  }
+
+  attachUnsubscribeHandler(cb) {
+    this.#unsubscribeHandlers.push(cb);
   }
 
   publishConfigChange(key, value) {

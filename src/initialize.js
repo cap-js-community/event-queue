@@ -146,6 +146,13 @@ const registerEventProcessors = () => {
   } else {
     runner.multiTenancyDb().catch(errorHandler);
   }
+
+  cds.connect.to("cds.xt.DeploymentService").then((ds) => {
+    ds.after("unsubscribe", async (req) => {
+      const { tenant } = req.data;
+      config.unsubscribeHandler(tenant);
+    });
+  });
 };
 
 const monkeyPatchCAPOutbox = () => {

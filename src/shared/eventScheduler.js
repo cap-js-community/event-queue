@@ -10,7 +10,10 @@ const COMPONENT_NAME = "/eventQueue/shared/eventScheduler";
 let instance;
 class EventScheduler {
   #scheduledEvents = {};
-  constructor() {}
+  #eventsByTenants = {};
+  constructor() {
+    config.attachUnsubscribeHandler(this.clearForTenant.bind(this));
+  }
 
   scheduleEvent(tenantId, type, subType, startAfter) {
     const { date, relative } = this.calculateOffset(type, subType, startAfter);
@@ -24,7 +27,9 @@ class EventScheduler {
       subType,
       delaySeconds: (date.getTime() - Date.now()) / 1000,
     });
-    setTimeout(() => {
+    this.#eventsByTenants[tenantId] ??= {};
+    const timeoutId = setTimeout(() => {
+      delete this.#eventsByTenants[tenantId][timeoutId];
       delete this.#scheduledEvents[key];
       redisPub.broadcastEvent(tenantId, { type, subType }).catch((err) => {
         cds.log(COMPONENT_NAME).error("could not execute scheduled event", err, {
@@ -35,6 +40,11 @@ class EventScheduler {
         });
       });
     }, relative).unref();
+    this.#eventsByTenants[tenantId][timeoutId] = true;
+  }
+
+  clearForTenant(tenantId) {
+    Object.values(this.#eventsByTenants[tenantId]).forEach((timeoutId) => clearTimeout(timeoutId));
   }
 
   calculateOffset(type, subType, startAfter) {
