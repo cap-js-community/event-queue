@@ -148,12 +148,15 @@ const registerEventProcessors = () => {
     runner.multiTenancyDb().catch(errorHandler);
   }
 
-  cds.connect.to("cds.xt.DeploymentService").then((ds) => {
-    ds.after("unsubscribe", async (req) => {
-      const { tenant } = req.data;
-      config.handleUnsubscribe(tenant);
-    });
-  });
+  cds.connect
+    .to("cds.xt.DeploymentService")
+    .then((ds) => {
+      ds.after("unsubscribe", async (req) => {
+        const { tenant } = req.data;
+        config.handleUnsubscribe(tenant);
+      });
+    })
+    .catch((err) => cds.log(COMPONENT).error("error during attaching unsubscribe handler", err));
 };
 
 const monkeyPatchCAPOutbox = () => {
