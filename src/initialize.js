@@ -135,7 +135,7 @@ const registerEventProcessors = () => {
         cds.log(COMPONENT).info("event-queue unsubscribe handler registered", {
           redisEnabled: config.redisEnabled,
         });
-        ds.after("unsubscribe", async (req) => {
+        ds.after("unsubscribe", async (_, req) => {
           const { tenant } = req.data;
           config.handleUnsubscribe(tenant);
         });
