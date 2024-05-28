@@ -148,15 +148,19 @@ const registerEventProcessors = () => {
     runner.multiTenancyDb().catch(errorHandler);
   }
 
-  cds.connect
-    .to("cds.xt.DeploymentService")
-    .then((ds) => {
-      ds.after("unsubscribe", async (req) => {
-        const { tenant } = req.data;
-        config.handleUnsubscribe(tenant);
-      });
-    })
-    .catch((err) => cds.log(COMPONENT).error("error during attaching unsubscribe handler", err));
+  cds.on("listening", () => {
+    cds.connect
+      .to("cds.xt.DeploymentService")
+      .then((ds) => {
+        ds.after("unsubscribe", async (req) => {
+          const { tenant } = req.data;
+          config.handleUnsubscribe(tenant);
+        });
+      })
+      .catch(
+        () => {} // ignore errors as the DeploymentService is most of the time only available in the mtx sidecar
+      );
+  });
 };
 
 const monkeyPatchCAPOutbox = () => {
