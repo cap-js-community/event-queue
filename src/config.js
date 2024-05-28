@@ -144,6 +144,8 @@ class Config {
   }
 
   executeUnsubscribeHandlers(tenantId) {
+    this.#unsubscribedTenants[tenantId] = true;
+    setTimeout(() => delete this.#unsubscribedTenants[tenantId], DELETE_TENANT_BLOCK_AFTER_MS);
     for (const unsubscribeHandler of this.#unsubscribeHandlers) {
       try {
         unsubscribeHandler(tenantId);
@@ -156,8 +158,6 @@ class Config {
   }
 
   handleUnsubscribe(tenantId) {
-    this.#unsubscribedTenants[tenantId] = true;
-    setTimeout(() => delete this.#unsubscribedTenants[tenantId], DELETE_TENANT_BLOCK_AFTER_MS);
     if (this.redisEnabled) {
       redis
         .publishMessage(this.#redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, JSON.stringify({ tenantId }))
