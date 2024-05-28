@@ -136,3 +136,75 @@ export function processEventQueue(
   eventSubType: string,
   startTime: Date
 ): Promise<any>;
+
+declare class Config {
+  constructor();
+
+  getEventConfig(type: string, subType: string): any;
+  isCapOutboxEvent(type: string): boolean;
+  hasEventAfterCommitFlag(type: string, subType: string): boolean;
+  _checkRedisIsBound(): boolean;
+  checkRedisEnabled(): boolean;
+  attachConfigChangeHandler(): void;
+  attachRedisUnsubscribeHandler(): void;
+  executeUnsubscribeHandlers(tenantId: string): void;
+  handleUnsubscribe(tenantId: string): void;
+  attachUnsubscribeHandler(cb: Function): void;
+  publishConfigChange(key: string, value: any): void;
+  blockEvent(type: string, subType: string, isPeriodic: boolean, tenant?: string): void;
+  clearPeriodicEventBlockList(): void;
+  unblockEvent(type: string, subType: string, isPeriodic: boolean, tenant?: string): void;
+  addCAPOutboxEvent(serviceName: string, config: any): void;
+  isEventBlocked(type: string, subType: string, isPeriodicEvent: boolean, tenant: string): boolean;
+  get isEventQueueActive(): boolean;
+  set isEventQueueActive(value: boolean);
+  set fileContent(config: any);
+  get fileContent(): any;
+  get events(): any[];
+  get periodicEvents(): any[];
+  isPeriodicEvent(type: string, subType: string): boolean;
+  get allEvents(): any[];
+  get forUpdateTimeout(): number;
+  get globalTxTimeout(): number;
+  set forUpdateTimeout(value: number);
+  set globalTxTimeout(value: number);
+  get runInterval(): number | null;
+  set runInterval(value: number);
+  get redisEnabled(): boolean | null;
+  set redisEnabled(value: boolean | null);
+  get initialized(): boolean;
+  set initialized(value: boolean);
+  get instanceLoadLimit(): number;
+  set instanceLoadLimit(value: number);
+  get isEventBlockedCb(): any;
+  set isEventBlockedCb(value: any);
+  get tableNameEventQueue(): string;
+  get tableNameEventLock(): string;
+  set configFilePath(value: string | null);
+  get configFilePath(): string | null;
+  set processEventsAfterPublish(value: any);
+  get processEventsAfterPublish(): any;
+  set skipCsnCheck(value: any);
+  get skipCsnCheck(): any;
+  set disableRedis(value: any);
+  get disableRedis(): any;
+  set updatePeriodicEvents(value: any);
+  get updatePeriodicEvents(): any;
+  set registerAsEventProcessor(value: any);
+  get registerAsEventProcessor(): any;
+  set thresholdLoggingEventProcessing(value: any);
+  get thresholdLoggingEventProcessing(): any;
+  set useAsCAPOutbox(value: any);
+  get useAsCAPOutbox(): any;
+  set userId(value: any);
+  get userId(): any;
+  set cleanupLocksAndEventsForDev(value: any);
+  get cleanupLocksAndEventsForDev(): any;
+  set redisOptions(value: any);
+  get redisOptions(): any;
+  set insertEventsBeforeCommit(value: any);
+  get insertEventsBeforeCommit(): any;
+  get isMultiTenancy(): boolean;
+}
+
+export const config: Config;
