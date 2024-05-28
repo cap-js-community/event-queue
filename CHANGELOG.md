@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - upgrade dependencies
 
-
 ## v1.4.5 - 2024-04-24
 
 ### Fixed
