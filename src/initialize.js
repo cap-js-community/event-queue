@@ -152,6 +152,9 @@ const registerEventProcessors = () => {
     cds.connect
       .to("cds.xt.DeploymentService")
       .then((ds) => {
+        cds.log(COMPONENT).info("event-queue unsubscribe handler registered", {
+          redisEnabled: config.redisEnabled,
+        });
         ds.after("unsubscribe", async (req) => {
           const { tenant } = req.data;
           config.handleUnsubscribe(tenant);
