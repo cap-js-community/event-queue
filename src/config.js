@@ -133,7 +133,7 @@ class Config {
       try {
         const { tenantId } = JSON.parse(messageData);
         this.#logger.info("received unsubscribe broadcast event", { tenantId });
-        this.executeUnsubscribeHandler(tenantId);
+        this.executeUnsubscribeHandlers(tenantId);
       } catch (err) {
         this.#logger.error("could not parse unsubscribe broadcast event", err, {
           messageData,
@@ -142,7 +142,7 @@ class Config {
     });
   }
 
-  executeUnsubscribeHandler(tenantId) {
+  executeUnsubscribeHandlers(tenantId) {
     for (const unsubscribeHandler of this.#unsubscribeHandlers) {
       try {
         unsubscribeHandler(tenantId);
@@ -154,7 +154,7 @@ class Config {
     }
   }
 
-  unsubscribeHandler(tenantId) {
+  handleUnsubscribe(tenantId) {
     if (this.redisEnabled) {
       redis
         .publishMessage(this.#redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, JSON.stringify({ tenantId }))
@@ -162,7 +162,7 @@ class Config {
           this.#logger.error(`publishing tenant unsubscribe failed. tenantId: ${tenantId}`, error);
         });
     } else {
-      this.executeUnsubscribeHandler(tenantId);
+      this.executeUnsubscribeHandlers(tenantId);
     }
   }
 

@@ -151,7 +151,7 @@ const registerEventProcessors = () => {
   cds.connect.to("cds.xt.DeploymentService").then((ds) => {
     ds.after("unsubscribe", async (req) => {
       const { tenant } = req.data;
-      config.unsubscribeHandler(tenant);
+      config.handleUnsubscribe(tenant);
     });
   });
 };
