@@ -130,6 +130,7 @@ class Config {
   }
 
   attachRedisUnsubscribeHandler() {
+    this.#logger.info("attached redis handle for unsubscribe events");
     redis.subscribeRedisChannel(this.#redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, (messageData) => {
       try {
         const { tenantId } = JSON.parse(messageData);

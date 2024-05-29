@@ -144,6 +144,7 @@ const registerEventProcessors = () => {
         () => {} // ignore errors as the DeploymentService is most of the time only available in the mtx sidecar
       );
   });
+  config.redisEnabled && config.attachRedisUnsubscribeHandler();
 
   if (!config.registerAsEventProcessor) {
     return;
@@ -159,7 +160,6 @@ const registerEventProcessors = () => {
   if (config.redisEnabled) {
     initEventQueueRedisSubscribe();
     config.attachConfigChangeHandler();
-    config.attachRedisUnsubscribeHandler();
     runner.multiTenancyRedis().catch(errorHandler);
   } else {
     runner.multiTenancyDb().catch(errorHandler);
