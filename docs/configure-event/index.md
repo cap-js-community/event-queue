@@ -189,6 +189,28 @@ config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
 };
 ```
 
+## Unsubscribe Handler
+
+The event-queue listens for unsubscribe events from `cds-mtxs` and stops processing events for an unsubscribed tenant.
+Additionally, the event-queue federates the unsubscribe event to all application instances bound to the same Redis instance.
+To react to unsubscribe events across all application instances, the event-queue allows the registration of callbacks
+that are triggered when a tenant is unsubscribed. Follow the code example below:
+
+```javascript
+const { config } = require("@cap-js-community/event-queue");
+
+config.attachUnsubscribeHandler(async (tenantId) => {
+  try {
+    cds.log("server").info("received unsubscribe event via event-queue", { tenantId });
+    await cds.db.disconnect(tenantId);
+  } catch (err) {
+    logger.error("disconnect db failed!", { tenantId }, err);
+  }
+});
+```
+
+This ensures that your application can handle tenant unsubscription events consistently, even in a distributed environment.
+
 # Delete Processed Events
 
 The parameter `deleteFinishedEventsAfterDays` defines the number of days after which processed events are automatically

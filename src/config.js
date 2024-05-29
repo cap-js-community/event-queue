@@ -10,7 +10,8 @@ const { Priorities } = require("./constants");
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
 const REDIS_CONFIG_CHANNEL = "EVENT_QUEUE_CONFIG_CHANNEL";
-const REDIS_CONFIG_BLOCKLIST_CHANNEL = "REDIS_CONFIG_BLOCKLIST_CHANNEL";
+const REDIS_OFFBOARD_TENANT_CHANNEL = "REDIS_OFFBOARD_TENANT_CHANNEL";
+const REDIS_CONFIG_BLOCKLIST_CHANNEL = "EVENT_QUEUE_REDIS_CONFIG_BLOCKLIST_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/config";
 const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
@@ -19,8 +20,8 @@ const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
 const CAP_EVENT_TYPE = "CAP_OUTBOX";
-
 const CAP_PARALLEL_DEFAULT = 5;
+const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
 
 const BASE_PERIODIC_EVENTS = [
   {
@@ -67,6 +68,8 @@ class Config {
   #cleanupLocksAndEventsForDev;
   #redisOptions;
   #insertEventsBeforeCommit;
+  #unsubscribeHandlers = [];
+  #unsubscribedTenants = {};
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -124,6 +127,51 @@ class Config {
         });
       }
     });
+  }
+
+  attachRedisUnsubscribeHandler() {
+    this.#logger.info("attached redis handle for unsubscribe events");
+    redis.subscribeRedisChannel(this.#redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, (messageData) => {
+      try {
+        const { tenantId } = JSON.parse(messageData);
+        this.#logger.info("received unsubscribe broadcast event", { tenantId });
+        this.executeUnsubscribeHandlers(tenantId);
+      } catch (err) {
+        this.#logger.error("could not parse unsubscribe broadcast event", err, {
+          messageData,
+        });
+      }
+    });
+  }
+
+  executeUnsubscribeHandlers(tenantId) {
+    this.#unsubscribedTenants[tenantId] = true;
+    setTimeout(() => delete this.#unsubscribedTenants[tenantId], DELETE_TENANT_BLOCK_AFTER_MS);
+    for (const unsubscribeHandler of this.#unsubscribeHandlers) {
+      try {
+        unsubscribeHandler(tenantId);
+      } catch (err) {
+        this.#logger.error("could executing unsubscribe handler", err, {
+          tenantId,
+        });
+      }
+    }
+  }
+
+  handleUnsubscribe(tenantId) {
+    if (this.redisEnabled) {
+      redis
+        .publishMessage(this.#redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, JSON.stringify({ tenantId }))
+        .catch((error) => {
+          this.#logger.error(`publishing tenant unsubscribe failed. tenantId: ${tenantId}`, error);
+        });
+    } else {
+      this.executeUnsubscribeHandlers(tenantId);
+    }
+  }
+
+  attachUnsubscribeHandler(cb) {
+    this.#unsubscribeHandlers.push(cb);
   }
 
   publishConfigChange(key, value) {
@@ -318,6 +366,10 @@ class Config {
       this.#config.events.splice(index, 1);
     }
     delete this.#eventMap[this.generateKey(type, subType)];
+  }
+
+  isTenantUnsubscribed(tenantId) {
+    return this.#unsubscribedTenants[tenantId];
   }
 
   get fileContent() {

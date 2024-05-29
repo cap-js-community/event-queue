@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.4.6 - 2024-05-28
 
+### Added
+
+- federate unsubscribe events via redis to all application instances and allow to register custom handler for unsubscribe events
+- types for event-queue config
+
 ### Fixed
 
 - upgrade dependencies

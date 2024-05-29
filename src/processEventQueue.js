@@ -268,10 +268,15 @@ const _checkEventIsBlocked = async (baseInstance) => {
     );
   }
 
+  if (!eventBlocked) {
+    eventBlocked = config.isTenantUnsubscribed(baseInstance.context.tenant);
+  }
+
   if (eventBlocked) {
     baseInstance.logger.info("skipping run because event is blocked by configuration", {
       type: baseInstance.eventType,
       subType: baseInstance.eventSubType,
+      tenantUnsubscribed: config.isTenantUnsubscribed(baseInstance.context.tenant),
     });
   }
   return eventBlocked;
