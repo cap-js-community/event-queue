@@ -7,10 +7,11 @@ const cds = require("@sap/cds");
 const { processEventQueue } = require("../processEventQueue");
 const eventQueueConfig = require("../config");
 const WorkerQueue = require("../shared/WorkerQueue");
+const distributedLock = require("../shared/distributedLock");
 
 const COMPONENT_NAME = "/eventQueue/runnerHelper";
 
-const runEventCombinationForTenant = async (context, type, subType, skipWorkerPool) => {
+const runEventCombinationForTenant = async (context, type, subType, { skipWorkerPool, lockId } = {}) => {
   try {
     if (skipWorkerPool) {
       return await processEventQueue(context, type, subType);
@@ -21,7 +22,16 @@ const runEventCombinationForTenant = async (context, type, subType, skipWorkerPo
         eventConfig.load,
         label,
         eventConfig.priority,
-        AsyncResource.bind(async () => await processEventQueue(context, type, subType))
+        AsyncResource.bind(async () => {
+          if (lockId) {
+            const lockAvailable = await distributedLock.acquireLock(context, lockId);
+            if (!lockAvailable) {
+              return;
+            }
+          }
+
+          await processEventQueue(context, type, subType);
+        })
       );
     }
   } catch (err) {

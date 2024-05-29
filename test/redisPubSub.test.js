@@ -57,6 +57,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     config.redisEnabled = true;
     eventQueue.registerEventQueueDbHandler(cds.db);
     loggerMock = mockLogger();
+    jest.spyOn(cds.utils, "uuid").mockReturnValue("6e31047a-d2b5-4e3c-83d8-deab20165956");
   });
 
   beforeEach(async () => {
@@ -92,7 +93,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"type":"Notifications","subType":"Task"}",
+        "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
       ]
     `);
   });
@@ -120,7 +121,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
+        "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
       ]
     `);
   });
@@ -134,7 +135,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"type":"Notifications","subType":"Task"}",
+        "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
       ]
     `);
   });
@@ -148,7 +149,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"type":"Notifications","subType":"Task"}",
+        "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
       ]
     `);
   });
@@ -170,12 +171,12 @@ describe("eventQueue Redis Events and DB Handlers", () => {
         [
           {},
           "EVENT_QUEUE_MESSAGE_CHANNEL",
-          "{"type":"Notifications","subType":"Task"}",
+          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
         ],
         [
           {},
           "EVENT_QUEUE_MESSAGE_CHANNEL",
-          "{"type":"Fiori","subType":"Task"}",
+          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Fiori","subType":"Task"}",
         ],
       ]
     `);
