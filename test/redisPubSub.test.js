@@ -83,6 +83,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   });
 
   test("db handler should be called if event is inserted", async () => {
+    jest.spyOn(cds.utils, "uuid").mockReturnValueOnce("6e31047a-d2b5-4e3c-83d8-deab20165956");
     checkLockExistsSpy.mockResolvedValueOnce(false);
     await insertEventEntry(tx);
     await tx.commit();
@@ -92,7 +93,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"type":"Notifications","subType":"Task"}",
+        "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
       ]
     `);
   });
@@ -106,6 +107,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   });
 
   test("should wait and try again if lock is not available for periodic events", async () => {
+    jest.spyOn(cds.utils, "uuid").mockReturnValueOnce("6e31047a-d2b5-4e3c-83d8-deab20165956");
     await tx.rollback();
     const event = eventQueue.config.periodicEvents[0];
     checkLockExistsSpy.mockResolvedValueOnce(true);
@@ -120,12 +122,13 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
+        "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
       ]
     `);
   });
 
   test("publish event should be called only once even if the same combination is inserted twice", async () => {
+    jest.spyOn(cds.utils, "uuid").mockReturnValueOnce("6e31047a-d2b5-4e3c-83d8-deab20165956");
     checkLockExistsSpy.mockResolvedValueOnce(false);
     await insertEventEntry(tx, { numberOfEntries: 2 });
     await tx.commit();
@@ -134,12 +137,13 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"type":"Notifications","subType":"Task"}",
+        "{"lockId":"53da163a-0e8f-4eac-9291-a857fbfc3cd6","type":"Notifications","subType":"Task"}",
       ]
     `);
   });
 
   test("publish event should be called only once even if the same combination is inserted twice - two inserts", async () => {
+    jest.spyOn(cds.utils, "uuid").mockReturnValueOnce("6e31047a-d2b5-4e3c-83d8-deab20165956");
     checkLockExistsSpy.mockResolvedValueOnce(false);
     await insertEventEntry(tx, { numberOfEntries: 2 });
     await tx.commit();
@@ -148,12 +152,16 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"type":"Notifications","subType":"Task"}",
+        "{"lockId":"5a52481c-ee60-4151-9d6a-4db5dd95ef77","type":"Notifications","subType":"Task"}",
       ]
     `);
   });
 
   test("different event combinations should result in two requests", async () => {
+    jest
+      .spyOn(cds.utils, "uuid")
+      .mockReturnValueOnce("6e31047a-d2b5-4e3c-83d8-deab20165956")
+      .mockReturnValueOnce("6e31047a-d2b5-4e3c-83d8-deab20165956");
     checkLockExistsSpy.mockResolvedValue(false);
     await insertEventEntry(tx);
     await tx.run(
@@ -170,12 +178,12 @@ describe("eventQueue Redis Events and DB Handlers", () => {
         [
           {},
           "EVENT_QUEUE_MESSAGE_CHANNEL",
-          "{"type":"Notifications","subType":"Task"}",
+          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
         ],
         [
           {},
           "EVENT_QUEUE_MESSAGE_CHANNEL",
-          "{"type":"Fiori","subType":"Task"}",
+          "{"lockId":"5a4f0903-585f-4632-99fb-912409e4f486","type":"Fiori","subType":"Task"}",
         ],
       ]
     `);

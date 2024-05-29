@@ -75,7 +75,7 @@ const broadcastEvent = async (tenantId, events) => {
         await redis.publishMessage(
           config.redisOptions,
           EVENT_MESSAGE_CHANNEL,
-          JSON.stringify({ tenantId, type, subType })
+          JSON.stringify({ lockId: cds.utils.uuid(), tenantId, type, subType })
         );
         break;
       }

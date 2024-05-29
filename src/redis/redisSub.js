@@ -21,7 +21,7 @@ const initEventQueueRedisSubscribe = () => {
 const _messageHandlerProcessEvents = async (messageData) => {
   const logger = cds.log(COMPONENT_NAME);
   try {
-    const { tenantId, type, subType } = JSON.parse(messageData);
+    const { lockId, tenantId, type, subType } = JSON.parse(messageData);
     logger.debug("received redis event", {
       tenantId,
       type,
@@ -65,7 +65,7 @@ const _messageHandlerProcessEvents = async (messageData) => {
     }
 
     return await cds.tx(tenantContext, async ({ context }) => {
-      return await runnerHelper.runEventCombinationForTenant(context, type, subType);
+      return await runnerHelper.runEventCombinationForTenant(context, type, subType, { lockId });
     });
   } catch (err) {
     logger.error("could not parse event information", {
