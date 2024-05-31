@@ -122,6 +122,8 @@ export declare class EventQueueProcessorBase {
   get tx(): cds.Transaction;
   get context(): cds.EventContext;
   get isPeriodicEvent(): boolean;
+  get eventType(): String;
+  get eventSubType(): String;
 }
 
 export function publishEvent(
