@@ -116,6 +116,7 @@ export declare class EventQueueProcessorBase {
   getTxForEventProcessing(key: string): cds.Transaction;
   setShouldRollbackTransaction(key: string): void;
   shouldRollbackTransaction(key: string): boolean;
+  beforeProcessingEvents(): Promise<void>;
 
   set logger(value: CdsLogger);
   get logger(): CdsLogger;
