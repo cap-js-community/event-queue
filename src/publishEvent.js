@@ -54,7 +54,7 @@ const publishEvent = async (tx, events, skipBroadcast = false) => {
   } else {
     tx._skipEventQueueBroadcase = skipBroadcast;
     const chunks = [];
-    processChunkedSync(events, CHUNK_SIZE_INSERTS, (chunk) => chunks.push(chunk));
+    processChunkedSync(eventsForProcessing, CHUNK_SIZE_INSERTS, (chunk) => chunks.push(chunk));
     let result;
     for (const chunk of chunks) {
       if (result) {
