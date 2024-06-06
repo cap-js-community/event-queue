@@ -1,7 +1,13 @@
 "use strict";
 
 const cds = require("@sap/cds");
-const otel = require("@opentelemetry/api");
+
+let otel;
+try {
+  otel = require("@opentelemetry/api");
+} catch {
+  // ignore
+}
 
 const trace = async (context, label, fn) => {
   if (!cds._telemetry?.tracer) {
@@ -12,7 +18,7 @@ const trace = async (context, label, fn) => {
   span.setAttribute("sap.tenancy.tenant_id", context.tenant);
   span.setAttribute("correlationId", context.id);
   const ctxWithSpan = otel.trace.setSpan(otel.context.active(), span);
-  otel.context.with(ctxWithSpan, async () => {
+  return otel.context.with(ctxWithSpan, async () => {
     const onSuccess = (res) => {
       span.setStatus({ code: otel.SpanStatusCode.OK });
       return res;

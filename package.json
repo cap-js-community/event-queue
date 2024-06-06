@@ -46,8 +46,7 @@
     "@sap/xssec": "^3.6.1",
     "redis": "^4.6.14",
     "verror": "^1.10.1",
-    "yaml": "^2.4.2",
-    "@opentelemetry/api": "^1.9.0"
+    "yaml": "^2.4.2"
   },
   "devDependencies": {
     "@cap-js/hana": "^0.4.0",
@@ -63,6 +62,9 @@
     "jest": "^29.7.0",
     "prettier": "^2.8.8",
     "sqlite3": "^5.1.7"
+  },
+  "peerDependencies": {
+    "@cap-js/telemetry": "^0.2.2"
   },
   "homepage": "https://cap-js-community.github.io/event-queue/",
   "repository": {
