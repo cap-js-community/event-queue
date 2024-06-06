@@ -244,7 +244,9 @@ const _singleTenantDb = async (tenantId) => {
             if (!couldAcquireLock) {
               return;
             }
-            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, true);
+            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
+              skipWorkerPool: true,
+            });
           } catch (err) {
             cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
               tenantId,
