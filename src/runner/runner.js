@@ -3,6 +3,7 @@
 const { randomUUID } = require("crypto");
 
 const cds = require("@sap/cds");
+const otel = require("@opentelemetry/api");
 
 const eventQueueConfig = require("../config");
 const WorkerQueue = require("../shared/WorkerQueue");
@@ -79,6 +80,13 @@ const _multiTenancyRedis = async () => {
 };
 
 const _checkPeriodicEventUpdate = async (tenantIds) => {
+  if (!eventQueueConfig.updatePeriodicEvents || !eventQueueConfig.periodicEvents.length) {
+    cds.log(COMPONENT_NAME).info("updating of periodic events is disabled or no periodic events configured", {
+      updateEnabled: eventQueueConfig.updatePeriodicEvents,
+      events: eventQueueConfig.periodicEvents.length,
+    });
+    return;
+  }
   const hash = common.hashStringTo32Bit(JSON.stringify(tenantIds));
   if (!tenantIdHash) {
     tenantIdHash = hash;
@@ -159,15 +167,22 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
         return await WorkerQueue.instance.addToQueue(eventConfig.load, label, eventConfig.priority, async () => {
           return await cds.tx(tenantContext, async ({ context }) => {
             try {
-              const lockId = `${runId}_${label}`;
-              const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
-                expiryTime: eventQueueConfig.runInterval * 0.95,
-              });
-              if (!couldAcquireLock) {
-                return;
-              }
-              await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-                skipWorkerPool: true,
+              const parentSpan = cds._telemetry.tracer.startSpan(label);
+              parentSpan.setAttribute("tenant.id", tenantId);
+              parentSpan.setAttribute("correlationId", context.id);
+              const ctxWithSpan = otel.trace.setSpan(otel.context.active(), parentSpan);
+              otel.context.with(ctxWithSpan, async () => {
+                const lockId = `${runId}_${label}`;
+                const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+                  expiryTime: eventQueueConfig.runInterval * 0.95,
+                });
+                if (!couldAcquireLock) {
+                  return;
+                }
+                await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
+                  skipWorkerPool: true,
+                });
+                parentSpan.end();
               });
             } catch (err) {
               cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
@@ -230,9 +245,7 @@ const _singleTenantDb = async (tenantId) => {
             if (!couldAcquireLock) {
               return;
             }
-            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-              skipWorkerPool: true,
-            });
+            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, true);
           } catch (err) {
             cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
               tenantId,
