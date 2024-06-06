@@ -15,6 +15,7 @@ const config = require("../config");
 const redisPub = require("../redis/redisPub");
 const openEvents = require("./openEvents");
 const { runEventCombinationForTenant } = require("./runnerHelper");
+const trace = require("../shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
@@ -79,6 +80,13 @@ const _multiTenancyRedis = async () => {
 };
 
 const _checkPeriodicEventUpdate = async (tenantIds) => {
+  if (!eventQueueConfig.updatePeriodicEvents || !eventQueueConfig.periodicEvents.length) {
+    cds.log(COMPONENT_NAME).info("updating of periodic events is disabled or no periodic events configured", {
+      updateEnabled: eventQueueConfig.updatePeriodicEvents,
+      events: eventQueueConfig.periodicEvents.length,
+    });
+    return;
+  }
   const hash = common.hashStringTo32Bit(JSON.stringify(tenantIds));
   if (!tenantIdHash) {
     tenantIdHash = hash;
@@ -137,15 +145,19 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
   const promises = [];
 
   for (const tenantId of tenantIds) {
-    const user = await cds.tx({ tenant: tenantId }, async () => {
-      return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
-    });
-    const tenantContext = {
-      tenant: tenantId,
-      user,
-    };
-    const events = await cds.tx(tenantContext, async (tx) => {
-      return await openEvents.getOpenQueueEntries(tx);
+    const id = cds.utils.uuid();
+    let tenantContext;
+    const events = await trace({ id, tenant: tenantId }, "fetch-openEvents-and-authInfo", async () => {
+      const user = await cds.tx({ tenant: tenantId }, async () => {
+        return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
+      });
+      tenantContext = {
+        tenant: tenantId,
+        user,
+      };
+      return await cds.tx(tenantContext, async (tx) => {
+        return await openEvents.getOpenQueueEntries(tx);
+      });
     });
 
     if (!events.length) {
@@ -158,22 +170,24 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
         const label = `${eventConfig.type}_${eventConfig.subType}`;
         return await WorkerQueue.instance.addToQueue(eventConfig.load, label, eventConfig.priority, async () => {
           return await cds.tx(tenantContext, async ({ context }) => {
-            try {
-              const lockId = `${runId}_${label}`;
-              const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
-                expiryTime: eventQueueConfig.runInterval * 0.95,
-              });
-              if (!couldAcquireLock) {
-                return;
+            await trace(context, label, async () => {
+              try {
+                const lockId = `${runId}_${label}`;
+                const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+                  expiryTime: eventQueueConfig.runInterval * 0.95,
+                });
+                if (!couldAcquireLock) {
+                  return;
+                }
+                await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
+                  skipWorkerPool: true,
+                });
+              } catch (err) {
+                cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
+                  tenantId,
+                });
               }
-              await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-                skipWorkerPool: true,
-              });
-            } catch (err) {
-              cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
-                tenantId,
-              });
-            }
+            });
           });
         });
       })
@@ -230,9 +244,7 @@ const _singleTenantDb = async (tenantId) => {
             if (!couldAcquireLock) {
               return;
             }
-            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-              skipWorkerPool: true,
-            });
+            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, true);
           } catch (err) {
             cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
               tenantId,
