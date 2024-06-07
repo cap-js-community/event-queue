@@ -1,5 +1,7 @@
 "use strict";
 
+const { promisify } = require("util");
+
 const redis = require("redis");
 
 const { getEnvInstance } = require("./env");
@@ -11,6 +13,8 @@ const LOG_AFTER_SEC = 5;
 let mainClientPromise;
 const subscriberChannelClientPromise = {};
 let lastErrorLog = Date.now();
+
+const wait = promisify(setTimeout);
 
 const createMainClientAndConnect = (options) => {
   if (mainClientPromise) {
@@ -52,6 +56,7 @@ const _createClientBase = (redisOptions) => {
 
 const createClientAndConnect = async (options, errorHandlerCreateClient) => {
   try {
+    await (cds.env.requires.telemetry ? waitForTelemetry() : Promise.resolve());
     const client = _createClientBase(options);
     await client.connect();
     client.on("error", (err) => {
@@ -114,6 +119,16 @@ const _resilientClientClose = async (client) => {
     }
   } catch (err) {
     // ignore errors during shutdown
+  }
+};
+
+const waitForTelemetry = async () => {
+  while (true) {
+    if (cds._telemetry) {
+      return;
+    } else {
+      await wait(1000);
+    }
   }
 };
 
