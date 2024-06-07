@@ -13,7 +13,7 @@ const trace = async (context, label, fn, attributes = {}) => {
     return fn();
   }
 
-  const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}`);
+  const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}-${context.id}`);
   _setAttributes(context, span, attributes);
   const ctxWithSpan = otel.trace.setSpan(otel.context.active(), span);
   return otel.context.with(ctxWithSpan, async () => {
