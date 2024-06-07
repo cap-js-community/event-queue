@@ -9,11 +9,14 @@ try {
 }
 
 const trace = async (context, label, fn, attributes = {}) => {
-  if (!cds._telemetry?.tracer) {
+  if (!otel || !cds._telemetry?.tracer) {
     return fn();
   }
 
-  const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}-${context.id}`);
+  const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}-${context.id}`, {
+    kind: otel.SpanKind.INTERNAL,
+    root: true,
+  });
   _setAttributes(context, span, attributes);
   const ctxWithSpan = otel.trace.setSpan(otel.context.active(), span);
   return otel.context.with(ctxWithSpan, async () => {
