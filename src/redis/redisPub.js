@@ -40,7 +40,7 @@ const broadcastEvent = async (tenantId, events) => {
 
         return await cds.tx(context, async ({ context }) => {
           for (const { type, subType } of events) {
-            await runEventCombinationForTenant(context, type, subType);
+            await runEventCombinationForTenant(context, type, subType, { shouldTrace: true });
           }
         });
       }
