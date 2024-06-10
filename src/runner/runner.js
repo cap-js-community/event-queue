@@ -147,18 +147,23 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
   for (const tenantId of tenantIds) {
     const id = cds.utils.uuid();
     let tenantContext;
-    const events = await trace({ id, tenant: tenantId }, "fetch-openEvents-and-authInfo", async () => {
-      const user = await cds.tx({ tenant: tenantId }, async () => {
-        return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
-      });
-      tenantContext = {
-        tenant: tenantId,
-        user,
-      };
-      return await cds.tx(tenantContext, async (tx) => {
-        return await openEvents.getOpenQueueEntries(tx);
-      });
-    });
+    const events = await trace(
+      { id, tenant: tenantId },
+      "fetch-openEvents-and-authInfo",
+      async () => {
+        const user = await cds.tx({ tenant: tenantId }, async () => {
+          return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
+        });
+        tenantContext = {
+          tenant: tenantId,
+          user,
+        };
+        return await cds.tx(tenantContext, async (tx) => {
+          return await openEvents.getOpenQueueEntries(tx);
+        });
+      },
+      { newRootSpan: true }
+    );
 
     if (!events.length) {
       continue;
@@ -170,24 +175,29 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
         const label = `${eventConfig.type}_${eventConfig.subType}`;
         return await WorkerQueue.instance.addToQueue(eventConfig.load, label, eventConfig.priority, async () => {
           return await cds.tx(tenantContext, async ({ context }) => {
-            await trace(context, label, async () => {
-              try {
-                const lockId = `${runId}_${label}`;
-                const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
-                  expiryTime: eventQueueConfig.runInterval * 0.95,
-                });
-                if (!couldAcquireLock) {
-                  return;
+            await trace(
+              context,
+              label,
+              async () => {
+                try {
+                  const lockId = `${runId}_${label}`;
+                  const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+                    expiryTime: eventQueueConfig.runInterval * 0.95,
+                  });
+                  if (!couldAcquireLock) {
+                    return;
+                  }
+                  await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
+                    skipWorkerPool: true,
+                  });
+                } catch (err) {
+                  cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
+                    tenantId,
+                  });
                 }
-                await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-                  skipWorkerPool: true,
-                });
-              } catch (err) {
-                cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
-                  tenantId,
-                });
-              }
-            });
+              },
+              { newRootSpan: true }
+            );
           });
         });
       })
@@ -207,17 +217,22 @@ const _executePeriodicEventsAllTenants = async (tenantIds) => {
         user,
       };
       await cds.tx(tenantContext, async ({ context }) => {
-        await trace(tenantContext, "update-periodic-events", async () => {
-          if (!config.redisEnabled) {
-            const couldAcquireLock = await distributedLock.acquireLock(context, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
-              expiryTime: eventQueueConfig.runInterval * 0.95,
-            });
-            if (!couldAcquireLock) {
-              return;
+        await trace(
+          tenantContext,
+          "update-periodic-events",
+          async () => {
+            if (!config.redisEnabled) {
+              const couldAcquireLock = await distributedLock.acquireLock(context, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
+                expiryTime: eventQueueConfig.runInterval * 0.95,
+              });
+              if (!couldAcquireLock) {
+                return;
+              }
             }
-          }
-          await _checkPeriodicEventsSingleTenant(context);
-        });
+            await _checkPeriodicEventsSingleTenant(context);
+          },
+          { newRootSpan: true }
+        );
       });
     } catch (err) {
       cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {

@@ -8,14 +8,14 @@ try {
   // ignore
 }
 
-const trace = async (context, label, fn, attributes = {}) => {
+const trace = async (context, label, fn, { attributes = {}, newRootSpan = false } = {}) => {
   if (!otel || !cds._telemetry?.tracer) {
     return fn();
   }
 
   const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}-${context.id}`, {
     kind: otel.SpanKind.INTERNAL,
-    root: true,
+    root: newRootSpan,
   });
   _setAttributes(context, span, attributes);
   const ctxWithSpan = otel.trace.setSpan(otel.context.active(), span);

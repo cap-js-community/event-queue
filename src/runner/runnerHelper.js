@@ -35,7 +35,7 @@ const runEventCombinationForTenant = async (context, type, subType, { skipWorker
             await processEventQueue(context, type, subType);
           };
           if (shouldTrace) {
-            return await trace(context, label, _exec);
+            return await trace(context, label, _exec, { newRootSpan: true });
           } else {
             return await _exec();
           }
