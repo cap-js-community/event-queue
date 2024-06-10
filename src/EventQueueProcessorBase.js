@@ -383,7 +383,7 @@ class EventQueueProcessorBase {
    * The function accepts no arguments as there are dedicated functions to set the status of events (e.g. setEventStatus)
    */
   async persistEventStatus(tx, { skipChecks, statusMap = this.__statusMap } = {}) {
-    return await trace(this.baseContext, "event-status", async () => {
+    return await trace(this.baseContext, "persist-event-status", async () => {
       this.logger.debug("entering persistEventStatus", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
@@ -915,7 +915,9 @@ class EventQueueProcessorBase {
       return;
     }
     try {
-      await distributedLock.releaseLock(this.context, [this.#eventType, this.#eventSubType].join("##"));
+      await trace(this.baseContext, "persist-release-lock", async () => {
+        await distributedLock.releaseLock(this.context, [this.#eventType, this.#eventSubType].join("##"));
+      });
     } catch (err) {
       this.logger.error("Releasing distributed lock failed.", err);
     }
