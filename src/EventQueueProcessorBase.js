@@ -383,7 +383,7 @@ class EventQueueProcessorBase {
    * The function accepts no arguments as there are dedicated functions to set the status of events (e.g. setEventStatus)
    */
   async persistEventStatus(tx, { skipChecks, statusMap = this.__statusMap } = {}) {
-    await trace(this.context, "eventQueue-persist-event-status", async () => {
+    return await trace(this.baseContext, "eventQueue-persist-event-status", async () => {
       this.logger.debug("entering persistEventStatus", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
@@ -731,7 +731,7 @@ class EventQueueProcessorBase {
       return;
     }
 
-    await trace(this.context, "eventQueue-handle-exceeded-events", async () => {
+    return await trace(this.baseContext, "eventQueue-handle-exceeded-events", async () => {
       for (const exceededEvent of this.#eventsWithExceededTries) {
         await executeInNewTransaction(
           this.context,
@@ -893,7 +893,7 @@ class EventQueueProcessorBase {
       return true;
     }
 
-    await trace(this.context, "eventQueue-acquire-lock", async () => {
+    return await trace(this.baseContext, "eventQueue-acquire-lock", async () => {
       const lockAcquired = await distributedLock.acquireLock(
         this.context,
         [this.#eventType, this.#eventSubType].join("##")
