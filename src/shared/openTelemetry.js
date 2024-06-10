@@ -13,7 +13,7 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false 
     return fn();
   }
 
-  const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}-${context.id}`, {
+  const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}${newRootSpan ? `-${context.id}` : ""}`, {
     kind: otel.SpanKind.INTERNAL,
     root: newRootSpan,
   });
