@@ -45,7 +45,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       iterationCounter++;
       await executeInNewTransaction(context, `eventQueue-pre-processing-${eventType}##${eventSubType}`, async (tx) => {
         eventTypeInstance = new EventTypeClass(tx.context, eventType, eventSubType, eventConfig);
-        await trace(eventTypeInstance.context, "eventQueue-preparation", async () => {
+        await trace(eventTypeInstance.context, "preparation", async () => {
           const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
           eventTypeInstance.startPerformanceTracerPreprocessing();
           for (const queueEntry of queueEntries) {
@@ -76,7 +76,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       if (Object.keys(eventTypeInstance.queueEntriesWithPayloadMap).length) {
         await executeInNewTransaction(context, `eventQueue-processing-${eventType}##${eventSubType}`, async (tx) => {
           eventTypeInstance.processEventContext = tx.context;
-          await trace(eventTypeInstance.context, "eventQueue-process-events", async () => {
+          await trace(eventTypeInstance.context, "process-events", async () => {
             try {
               eventTypeInstance.clusterQueueEntries(eventTypeInstance.queueEntriesWithPayloadMap);
               await processEventMap(eventTypeInstance);
@@ -133,7 +133,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
         eventTypeInstance.context,
         `eventQueue-periodic-scheduleNext-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
         async (tx) => {
-          await trace(eventTypeInstance.context, "eventQueue-periodic-event-preparation", async () => {
+          await trace(eventTypeInstance.context, "periodic-event-preparation", async () => {
             eventTypeInstance.processEventContext = tx.context;
             const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
             if (!queueEntries.length) {
@@ -158,7 +158,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
         eventTypeInstance.context,
         `eventQueue-periodic-process-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
         async (tx) => {
-          await trace(eventTypeInstance.context, "eventQueue-process-periodic-event", async () => {
+          await trace(eventTypeInstance.context, "process-periodic-event", async () => {
             eventTypeInstance.processEventContext = tx.context;
             eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
             try {
@@ -185,7 +185,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
         eventTypeInstance.context,
         `eventQueue-periodic-setStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
         async (tx) => {
-          await trace(eventTypeInstance.context, "eventQueue-periodic-event-set-status", async () => {
+          await trace(eventTypeInstance.context, "periodic-event-set-status", async () => {
             eventTypeInstance.processEventContext = tx.context;
             await eventTypeInstance.setPeriodicEventStatus(queueEntry.ID, status);
           });
