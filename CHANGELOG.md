@@ -15,7 +15,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - cds.build.register may be undefined if @sap/cds-dk is is not installed locally or globally
 
-
 ## v1.4.6 - 2024-05-28
 
 ### Added
