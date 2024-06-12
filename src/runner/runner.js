@@ -109,31 +109,48 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
     // NOTE: do checks for all tenants on the same app instance --> acquire lock tenant independent
     //       distribute from this instance to all others
     const dummyContext = new cds.EventContext({});
-    const couldAcquireLock = await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_RUN_REDIS_CHECK, {
-      expiryTime: eventQueueConfig.runInterval * 0.95,
-      tenantScoped: false,
-    });
+    const couldAcquireLock = await trace(
+      dummyContext,
+      "acquire-lock-master-runner",
+      async () => {
+        return await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_RUN_REDIS_CHECK, {
+          expiryTime: eventQueueConfig.runInterval * 0.95,
+          tenantScoped: false,
+        });
+      },
+      { newRootSpan: true }
+    );
     if (!couldAcquireLock) {
       return;
     }
 
     for (const tenantId of tenantIds) {
       await cds.tx({ tenant: tenantId }, async (tx) => {
-        tx.context.user = new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
-        const entries = await openEvents.getOpenQueueEntries(tx);
-        logger.info("broadcasting events for run", {
-          tenantId,
-          entries: entries.length,
-        });
-        if (!entries.length) {
-          return;
-        }
-        await redisPub.broadcastEvent(tenantId, entries).catch((err) => {
-          logger.error("broadcasting event failed", err, {
-            tenantId,
-            entries: entries.length,
-          });
-        });
+        await trace(
+          tx.context,
+          "get-openEvents-and-publish",
+          async () => {
+            tx.context.user = new cds.User.Privileged({
+              id: config.userId,
+              authInfo: await common.getAuthInfo(tenantId),
+            });
+            const entries = await openEvents.getOpenQueueEntries(tx);
+            logger.info("broadcasting events for run", {
+              tenantId,
+              entries: entries.length,
+            });
+            if (!entries.length) {
+              return;
+            }
+            await redisPub.broadcastEvent(tenantId, entries).catch((err) => {
+              logger.error("broadcasting event failed", err, {
+                tenantId,
+                entries: entries.length,
+              });
+            });
+          },
+          { newRootSpan: true }
+        );
       });
     }
   } catch (err) {
@@ -180,7 +197,7 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
               label,
               async () => {
                 try {
-                const lockId = `${runId}_${label}`;
+                  const lockId = `${runId}_${label}`;
                   const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
                     expiryTime: eventQueueConfig.runInterval * 0.95,
                   });
@@ -188,7 +205,8 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
                     return;
                   }
                   await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-                    skipWorkerPool: true,});
+                    skipWorkerPool: true,
+                  });
                 } catch (err) {
                   cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
                     tenantId,
