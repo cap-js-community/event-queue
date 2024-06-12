@@ -180,7 +180,7 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
               label,
               async () => {
                 try {
-                  const lockId = `${runId}_${label}`;
+                const lockId = `${runId}_${label}`;
                   const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
                     expiryTime: eventQueueConfig.runInterval * 0.95,
                   });
@@ -188,8 +188,7 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
                     return;
                   }
                   await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-                    skipWorkerPool: true,
-                  });
+                    skipWorkerPool: true,});
                 } catch (err) {
                   cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
                     tenantId,
@@ -261,9 +260,7 @@ const _singleTenantDb = async (tenantId) => {
             if (!couldAcquireLock) {
               return;
             }
-            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-              skipWorkerPool: true,
-            });
+            await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, true);
           } catch (err) {
             cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
               tenantId,
