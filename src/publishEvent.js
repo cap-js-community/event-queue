@@ -3,6 +3,9 @@
 const config = require("./config");
 const common = require("./shared/common");
 const EventQueueError = require("./EventQueueError");
+const { processChunkedSync } = require("./shared/common");
+
+const CHUNK_SIZE_INSERTS = 3000;
 
 /**
  * Asynchronously publishes a series of events to the event queue.
@@ -50,7 +53,15 @@ const publishEvent = async (tx, events, skipBroadcast = false) => {
     _registerHandlerAndAddEvents(tx, events);
   } else {
     tx._skipEventQueueBroadcase = skipBroadcast;
-    const result = await tx.run(INSERT.into(config.tableNameEventQueue).entries(eventsForProcessing));
+    const chunks = [];
+    processChunkedSync(eventsForProcessing, CHUNK_SIZE_INSERTS, (chunk) => chunks.push(chunk));
+    let result;
+    for (const chunk of chunks) {
+      if (result) {
+        await tx.run(INSERT.into(config.tableNameEventQueue).entries(chunk));
+      }
+      result = await tx.run(INSERT.into(config.tableNameEventQueue).entries(chunk));
+    }
     tx._skipEventQueueBroadcase = false;
     return result;
   }
@@ -68,7 +79,11 @@ const _registerHandlerAndAddEvents = (tx, events) => {
     if (!tx._eventQueue.events?.length) {
       return;
     }
-    await tx.run(INSERT.into(config.tableNameEventQueue).entries(tx._eventQueue.events));
+    const chunks = [];
+    processChunkedSync(tx._eventQueue.events, CHUNK_SIZE_INSERTS, (chunk) => chunks.push(chunk));
+    for (const chunk of chunks) {
+      await tx.run(INSERT.into(config.tableNameEventQueue).entries(chunk));
+    }
     tx._eventQueue = null;
   });
 };
