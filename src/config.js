@@ -68,6 +68,7 @@ class Config {
   #cleanupLocksAndEventsForDev;
   #redisOptions;
   #insertEventsBeforeCommit;
+  #enableCAPTelemetry;
   #unsubscribeHandlers = [];
   #unsubscribedTenants = {};
   static #instance;
@@ -553,6 +554,14 @@ class Config {
 
   get insertEventsBeforeCommit() {
     return this.#insertEventsBeforeCommit;
+  }
+
+  set enableCAPTelemetry(value) {
+    this.#enableCAPTelemetry = value;
+  }
+
+  get enableCAPTelemetry() {
+    return this.#enableCAPTelemetry;
   }
 
   get isMultiTenancy() {

@@ -8,8 +8,10 @@ try {
   // ignore
 }
 
+const config = require("../config");
+
 const trace = async (context, label, fn, { attributes = {}, newRootSpan = false } = {}) => {
-  if (!otel || !cds._telemetry?.tracer) {
+  if (!config.enableCAPTelemetry || !otel || !cds._telemetry?.tracer) {
     return fn();
   }
 
