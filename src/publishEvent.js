@@ -21,13 +21,15 @@ const EventQueueError = require("./EventQueueError");
  *     createdAt: Timestamp, // Timestamp of event creation. This field is automatically set on insert.
  *     startAfter: Timestamp, // Timestamp indicating when the event should start after.
  *   }
- * @param {Boolean} skipBroadcast - (Optional) If set to true, event broadcasting will be skipped. Defaults to false.
+ * @param {Object} [options] - Optional settings.
+ * @param {Boolean} [options.skipBroadcast=false] - If set to true, event broadcasting will be skipped. Defaults to false.
+ * @param {Boolean} [options.skipInsertEventsBeforeCommit=false] - If set to true, events will not be inserted before the transaction commit. Defaults to false.
  * @throws {EventQueueError} Throws an error if the configuration is not initialized.
  * @throws {EventQueueError} Throws an error if the event type is unknown.
  * @throws {EventQueueError} Throws an error if the startAfter field is not a valid date.
- * @returns {Promise} Returns a promise which resolves to the result of the database insert operation.
+ * @returns {Promise<*>} Returns a promise which resolves to the result of the database insert operation.
  */
-const publishEvent = async (tx, events, skipBroadcast = false) => {
+const publishEvent = async (tx, events, { skipBroadcast = false, skipInsertEventsBeforeCommit = false } = {}) => {
   if (!config.initialized) {
     throw EventQueueError.notInitialized();
   }
@@ -46,7 +48,7 @@ const publishEvent = async (tx, events, skipBroadcast = false) => {
     }
   }
 
-  if (config.insertEventsBeforeCommit) {
+  if (config.insertEventsBeforeCommit && !skipInsertEventsBeforeCommit) {
     _registerHandlerAndAddEvents(tx, events);
   } else {
     let result;
