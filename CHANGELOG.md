@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Telemetry instrumentation for processing events. This can be enabled with the `enableCAPTelemetry` setting.
 - Additional types.
+- allow to use `skipInsertEventsBeforeCommit` in `publishEvent` function.
 
 ### Fixed
 
