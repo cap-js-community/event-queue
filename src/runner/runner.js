@@ -318,28 +318,30 @@ const _calculateOffsetForFirstRun = async () => {
   const now = Date.now();
   // NOTE: this is only supported with Redis, because this is a tenant agnostic information
   //       currently there is no proper place to store this information beside t0 schema
+  const dummyContext = new cds.EventContext({});
   try {
-    if (eventQueueConfig.redisEnabled) {
-      const dummyContext = new cds.EventContext({});
-      let lastRunTs = await distributedLock.checkLockExistsAndReturnValue(dummyContext, EVENT_QUEUE_RUN_TS, {
-        tenantScoped: false,
-      });
-      if (!lastRunTs) {
-        const ts = new Date(now).toISOString();
-        const couldSetValue = await distributedLock.setValueWithExpire(dummyContext, EVENT_QUEUE_RUN_TS, ts, {
+    await trace(dummyContext, "calculateOffsetForFirstRun", async () => {
+      if (eventQueueConfig.redisEnabled) {
+        let lastRunTs = await distributedLock.checkLockExistsAndReturnValue(dummyContext, EVENT_QUEUE_RUN_TS, {
           tenantScoped: false,
-          expiryTime: eventQueueConfig.runInterval,
         });
-        if (couldSetValue) {
-          lastRunTs = ts;
-        } else {
-          lastRunTs = await distributedLock.checkLockExistsAndReturnValue(dummyContext, EVENT_QUEUE_RUN_TS, {
+        if (!lastRunTs) {
+          const ts = new Date(now).toISOString();
+          const couldSetValue = await distributedLock.setValueWithExpire(dummyContext, EVENT_QUEUE_RUN_TS, ts, {
             tenantScoped: false,
+            expiryTime: eventQueueConfig.runInterval,
           });
+          if (couldSetValue) {
+            lastRunTs = ts;
+          } else {
+            lastRunTs = await distributedLock.checkLockExistsAndReturnValue(dummyContext, EVENT_QUEUE_RUN_TS, {
+              tenantScoped: false,
+            });
+          }
         }
+        offsetDependingOnLastRun = new Date(lastRunTs).getTime() + eventQueueConfig.runInterval - now;
       }
-      offsetDependingOnLastRun = new Date(lastRunTs).getTime() + eventQueueConfig.runInterval - now;
-    }
+    });
   } catch (err) {
     cds
       .log(COMPONENT_NAME)
@@ -365,19 +367,26 @@ const _multiTenancyPeriodicEvents = async (tenantIds) => {
   try {
     logger.info("executing event queue update periodic events");
 
-    if (config.redisEnabled) {
-      const dummyContext = new cds.EventContext({});
-      const couldAcquireLock = await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
-        expiryTime: 60 * 1000, // short living lock --> assume we do not have 2 onboards within 1 minute
-        tenantScoped: false,
-      });
-      if (!couldAcquireLock) {
-        return;
-      }
-    }
+    const dummyContext = new cds.EventContext({});
+    return await trace(
+      dummyContext,
+      "update-periodic-events",
+      async () => {
+        if (config.redisEnabled) {
+          const couldAcquireLock = await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
+            expiryTime: 60 * 1000, // short living lock --> assume we do not have 2 onboards within 1 minute
+            tenantScoped: false,
+          });
+          if (!couldAcquireLock) {
+            return;
+          }
+        }
 
-    tenantIds = tenantIds ?? (await cdsHelper.getAllTenantIds());
-    return await _executePeriodicEventsAllTenants(tenantIds);
+        tenantIds = tenantIds ?? (await cdsHelper.getAllTenantIds());
+        return await _executePeriodicEventsAllTenants(tenantIds);
+      },
+      { newRootSpan: true }
+    );
   } catch (err) {
     logger.error("Couldn't fetch tenant ids for updating periodic event processing!", err);
   }
