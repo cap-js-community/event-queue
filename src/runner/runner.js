@@ -234,22 +234,17 @@ const _executePeriodicEventsAllTenants = async (tenantIds) => {
         user,
       };
       await cds.tx(tenantContext, async ({ context }) => {
-        await trace(
-          tenantContext,
-          "update-periodic-events",
-          async () => {
-            if (!config.redisEnabled) {
-              const couldAcquireLock = await distributedLock.acquireLock(context, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
-                expiryTime: eventQueueConfig.runInterval * 0.95,
-              });
-              if (!couldAcquireLock) {
-                return;
-              }
+        await trace(tenantContext, "update-periodic-events-for-tenant", async () => {
+          if (!config.redisEnabled) {
+            const couldAcquireLock = await distributedLock.acquireLock(context, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
+              expiryTime: eventQueueConfig.runInterval * 0.95,
+            });
+            if (!couldAcquireLock) {
+              return;
             }
-            await _checkPeriodicEventsSingleTenant(context);
-          },
-          { newRootSpan: true }
-        );
+          }
+          await _checkPeriodicEventsSingleTenant(context);
+        });
       });
     } catch (err) {
       cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
