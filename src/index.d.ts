@@ -130,7 +130,10 @@ export declare class EventQueueProcessorBase {
 export function publishEvent(
   tx: cds.Transaction,
   events: EventEntityPublish[] | EventEntityPublish,
-  skipBroadcast?: boolean
+  options?: {
+    skipBroadcast?: boolean;
+    skipInsertEventsBeforeCommit?: boolean;
+  }
 ): Promise<any>;
 
 export function processEventQueue(

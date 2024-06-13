@@ -1331,6 +1331,19 @@ describe("integration-main", () => {
       await tx.rollback();
     });
 
+    it("insert should happen immediately if specified with skipInsertEventsBeforeCommit", async () => {
+      const event = testHelper.getEventEntry();
+      let tx = cds.tx({});
+      await publishEvent(tx, event, { skipInsertEventsBeforeCommit: true });
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      await tx.commit();
+
+      tx = cds.tx({});
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await tx.rollback();
+    });
+
     it("insert should not happen if tx is rolled back", async () => {
       const event = testHelper.getEventEntry();
       let tx = cds.tx({});
