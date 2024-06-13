@@ -9,6 +9,7 @@ const { TransactionMode, EventProcessingStatus } = require("./constants");
 const { limiter } = require("./shared/common");
 
 const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
+const trace = require("./shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/processEventQueue";
 
@@ -44,26 +45,28 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       iterationCounter++;
       await executeInNewTransaction(context, `eventQueue-pre-processing-${eventType}##${eventSubType}`, async (tx) => {
         eventTypeInstance = new EventTypeClass(tx.context, eventType, eventSubType, eventConfig);
-        const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
-        eventTypeInstance.startPerformanceTracerPreprocessing();
-        for (const queueEntry of queueEntries) {
-          try {
-            eventTypeInstance.modifyQueueEntry(queueEntry);
-            const payload = await eventTypeInstance.checkEventAndGeneratePayload(queueEntry);
-            if (payload === null) {
-              eventTypeInstance.setStatusToDone(queueEntry);
-              continue;
+        await trace(eventTypeInstance.context, "preparation", async () => {
+          const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
+          eventTypeInstance.startPerformanceTracerPreprocessing();
+          for (const queueEntry of queueEntries) {
+            try {
+              eventTypeInstance.modifyQueueEntry(queueEntry);
+              const payload = await eventTypeInstance.checkEventAndGeneratePayload(queueEntry);
+              if (payload === null) {
+                eventTypeInstance.setStatusToDone(queueEntry);
+                continue;
+              }
+              if (payload === undefined) {
+                eventTypeInstance.handleInvalidPayloadReturned(queueEntry);
+                continue;
+              }
+              eventTypeInstance.addEventWithPayloadForProcessing(queueEntry, payload);
+            } catch (err) {
+              eventTypeInstance.handleErrorDuringProcessing(err, queueEntry);
             }
-            if (payload === undefined) {
-              eventTypeInstance.handleInvalidPayloadReturned(queueEntry);
-              continue;
-            }
-            eventTypeInstance.addEventWithPayloadForProcessing(queueEntry, payload);
-          } catch (err) {
-            eventTypeInstance.handleErrorDuringProcessing(err, queueEntry);
           }
-        }
-        throw new TriggerRollback();
+          throw new TriggerRollback();
+        });
       });
       await eventTypeInstance.handleExceededEvents();
       if (!eventTypeInstance) {
@@ -73,20 +76,22 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       if (Object.keys(eventTypeInstance.queueEntriesWithPayloadMap).length) {
         await executeInNewTransaction(context, `eventQueue-processing-${eventType}##${eventSubType}`, async (tx) => {
           eventTypeInstance.processEventContext = tx.context;
-          try {
-            eventTypeInstance.clusterQueueEntries(eventTypeInstance.queueEntriesWithPayloadMap);
-            await processEventMap(eventTypeInstance);
-          } catch (err) {
-            eventTypeInstance.handleErrorDuringClustering(err);
-          }
-          if (
-            eventTypeInstance.transactionMode !== TransactionMode.alwaysCommit ||
-            Object.entries(eventTypeInstance.eventProcessingMap).some(([key]) =>
-              eventTypeInstance.shouldRollbackTransaction(key)
-            )
-          ) {
-            throw new TriggerRollback();
-          }
+          await trace(eventTypeInstance.context, "process-events", async () => {
+            try {
+              eventTypeInstance.clusterQueueEntries(eventTypeInstance.queueEntriesWithPayloadMap);
+              await processEventMap(eventTypeInstance);
+            } catch (err) {
+              eventTypeInstance.handleErrorDuringClustering(err);
+            }
+            if (
+              eventTypeInstance.transactionMode !== TransactionMode.alwaysCommit ||
+              Object.entries(eventTypeInstance.eventProcessingMap).some(([key]) =>
+                eventTypeInstance.shouldRollbackTransaction(key)
+              )
+            ) {
+              throw new TriggerRollback();
+            }
+          });
         });
       }
       await executeInNewTransaction(context, `eventQueue-persistStatus-${eventType}##${eventSubType}`, async (tx) => {
@@ -128,17 +133,19 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
         eventTypeInstance.context,
         `eventQueue-periodic-scheduleNext-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
         async (tx) => {
-          eventTypeInstance.processEventContext = tx.context;
-          const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
-          if (!queueEntries.length) {
-            return;
-          }
-          if (queueEntries.length > 1) {
-            queueEntry = await eventTypeInstance.handleDuplicatedPeriodicEventEntry(queueEntries);
-          } else {
-            queueEntry = queueEntries[0];
-          }
-          processNext = await eventTypeInstance.scheduleNextPeriodEvent(queueEntry);
+          await trace(eventTypeInstance.context, "periodic-event-preparation", async () => {
+            eventTypeInstance.processEventContext = tx.context;
+            const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
+            if (!queueEntries.length) {
+              return;
+            }
+            if (queueEntries.length > 1) {
+              queueEntry = await eventTypeInstance.handleDuplicatedPeriodicEventEntry(queueEntries);
+            } else {
+              queueEntry = queueEntries[0];
+            }
+            processNext = await eventTypeInstance.scheduleNextPeriodEvent(queueEntry);
+          });
         }
       );
 
@@ -151,24 +158,26 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
         eventTypeInstance.context,
         `eventQueue-periodic-process-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
         async (tx) => {
-          eventTypeInstance.processEventContext = tx.context;
-          eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
-          try {
-            eventTypeInstance.startPerformanceTracerPeriodicEvents();
-            await eventTypeInstance.processPeriodicEvent(tx.context, queueEntry.ID, queueEntry);
-          } catch (err) {
-            status = EventProcessingStatus.Error;
-            eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
-            throw new TriggerRollback();
-          } finally {
-            eventTypeInstance.endPerformanceTracerPeriodicEvents();
-          }
-          if (
-            eventTypeInstance.transactionMode === TransactionMode.alwaysRollback ||
-            eventTypeInstance.shouldRollbackTransaction(queueEntry.ID)
-          ) {
-            throw new TriggerRollback();
-          }
+          await trace(eventTypeInstance.context, "process-periodic-event", async () => {
+            eventTypeInstance.processEventContext = tx.context;
+            eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
+            try {
+              eventTypeInstance.startPerformanceTracerPeriodicEvents();
+              await eventTypeInstance.processPeriodicEvent(tx.context, queueEntry.ID, queueEntry);
+            } catch (err) {
+              status = EventProcessingStatus.Error;
+              eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
+              throw new TriggerRollback();
+            } finally {
+              eventTypeInstance.endPerformanceTracerPeriodicEvents();
+            }
+            if (
+              eventTypeInstance.transactionMode === TransactionMode.alwaysRollback ||
+              eventTypeInstance.shouldRollbackTransaction(queueEntry.ID)
+            ) {
+              throw new TriggerRollback();
+            }
+          });
         }
       );
 
@@ -176,8 +185,10 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
         eventTypeInstance.context,
         `eventQueue-periodic-setStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
         async (tx) => {
-          eventTypeInstance.processEventContext = tx.context;
-          await eventTypeInstance.setPeriodicEventStatus(queueEntry.ID, status);
+          await trace(eventTypeInstance.context, "periodic-event-set-status", async () => {
+            eventTypeInstance.processEventContext = tx.context;
+            await eventTypeInstance.setPeriodicEventStatus(queueEntry.ID, status);
+          });
         }
       );
     }
@@ -186,8 +197,6 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
       eventType: eventTypeInstance?.eventType,
       eventSubType: eventTypeInstance?.eventSubType,
     });
-  } finally {
-    await eventTypeInstance?.handleReleaseLock();
   }
 };
 

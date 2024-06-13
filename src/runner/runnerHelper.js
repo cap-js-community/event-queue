@@ -8,10 +8,11 @@ const { processEventQueue } = require("../processEventQueue");
 const eventQueueConfig = require("../config");
 const WorkerQueue = require("../shared/WorkerQueue");
 const distributedLock = require("../shared/distributedLock");
+const trace = require("../shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/runnerHelper";
 
-const runEventCombinationForTenant = async (context, type, subType, { skipWorkerPool, lockId } = {}) => {
+const runEventCombinationForTenant = async (context, type, subType, { skipWorkerPool, lockId, shouldTrace } = {}) => {
   try {
     if (skipWorkerPool) {
       return await processEventQueue(context, type, subType);
@@ -23,14 +24,21 @@ const runEventCombinationForTenant = async (context, type, subType, { skipWorker
         label,
         eventConfig.priority,
         AsyncResource.bind(async () => {
-          if (lockId) {
-            const lockAvailable = await distributedLock.acquireLock(context, lockId);
-            if (!lockAvailable) {
-              return;
+          const _exec = async () => {
+            if (lockId) {
+              const lockAvailable = await distributedLock.acquireLock(context, lockId);
+              if (!lockAvailable) {
+                return;
+              }
             }
-          }
 
-          await processEventQueue(context, type, subType);
+            await processEventQueue(context, type, subType);
+          };
+          if (shouldTrace) {
+            return await trace(context, label, _exec, { newRootSpan: true });
+          } else {
+            return await _exec();
+          }
         })
       );
     }

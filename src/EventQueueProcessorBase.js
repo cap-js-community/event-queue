@@ -11,6 +11,7 @@ const eventScheduler = require("./shared/eventScheduler");
 const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
 const { broadcastEvent } = require("./redis/redisPub");
+const trace = require("./shared/openTelemetry");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
 const COMPONENT_NAME = "/eventQueue/EventQueueProcessorBase";
@@ -382,79 +383,81 @@ class EventQueueProcessorBase {
    * The function accepts no arguments as there are dedicated functions to set the status of events (e.g. setEventStatus)
    */
   async persistEventStatus(tx, { skipChecks, statusMap = this.__statusMap } = {}) {
-    this.logger.debug("entering persistEventStatus", {
-      eventType: this.#eventType,
-      eventSubType: this.#eventSubType,
-    });
-    this.#ensureOnlySelectedQueueEntries(statusMap);
-    if (!skipChecks) {
-      this.#ensureEveryQueueEntryHasStatus();
-    }
-    this.#ensureEveryStatusIsAllowed(statusMap);
+    return await trace(this.baseContext, "persist-event-status", async () => {
+      this.logger.debug("entering persistEventStatus", {
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
+      });
+      this.#ensureOnlySelectedQueueEntries(statusMap);
+      if (!skipChecks) {
+        this.#ensureEveryQueueEntryHasStatus();
+      }
+      this.#ensureEveryStatusIsAllowed(statusMap);
 
-    const { success, failed, exceeded, invalidAttempts } = Object.entries(statusMap).reduce(
-      (result, [notificationEntityId, processingStatus]) => {
-        this.__commitedStatusMap[notificationEntityId] = processingStatus;
-        if (processingStatus === EventProcessingStatus.Open) {
-          result.invalidAttempts.push(notificationEntityId);
-        } else if (processingStatus === EventProcessingStatus.Done) {
-          result.success.push(notificationEntityId);
-        } else if (processingStatus === EventProcessingStatus.Error) {
-          result.failed.push(notificationEntityId);
-        } else if (processingStatus === EventProcessingStatus.Exceeded) {
-          result.exceeded.push(notificationEntityId);
+      const { success, failed, exceeded, invalidAttempts } = Object.entries(statusMap).reduce(
+        (result, [notificationEntityId, processingStatus]) => {
+          this.__commitedStatusMap[notificationEntityId] = processingStatus;
+          if (processingStatus === EventProcessingStatus.Open) {
+            result.invalidAttempts.push(notificationEntityId);
+          } else if (processingStatus === EventProcessingStatus.Done) {
+            result.success.push(notificationEntityId);
+          } else if (processingStatus === EventProcessingStatus.Error) {
+            result.failed.push(notificationEntityId);
+          } else if (processingStatus === EventProcessingStatus.Exceeded) {
+            result.exceeded.push(notificationEntityId);
+          }
+          return result;
+        },
+        {
+          success: [],
+          failed: [],
+          exceeded: [],
+          invalidAttempts: [],
         }
-        return result;
-      },
-      {
-        success: [],
-        failed: [],
-        exceeded: [],
-        invalidAttempts: [],
-      }
-    );
-    this.logger.debug("persistEventStatus for entries", {
-      eventType: this.#eventType,
-      eventSubType: this.#eventSubType,
-      invalidAttempts,
-      failed,
-      exceeded,
-      success,
-    });
-    if (invalidAttempts.length) {
-      await tx.run(
-        UPDATE.entity(this.#config.tableNameEventQueue)
-          .set({
-            status: EventProcessingStatus.Open,
-            lastAttemptTimestamp: new Date().toISOString(),
-            attempts: { "-=": 1 },
-          })
-          .where("ID IN", invalidAttempts)
       );
-    }
-    const ts = new Date().toISOString();
-    const updateTuples = [
-      [success, EventProcessingStatus.Done],
-      [failed, EventProcessingStatus.Error],
-      [exceeded, EventProcessingStatus.Exceeded],
-    ];
+      this.logger.debug("persistEventStatus for entries", {
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
+        invalidAttempts,
+        failed,
+        exceeded,
+        success,
+      });
+      if (invalidAttempts.length) {
+        await tx.run(
+          UPDATE.entity(this.#config.tableNameEventQueue)
+            .set({
+              status: EventProcessingStatus.Open,
+              lastAttemptTimestamp: new Date().toISOString(),
+              attempts: { "-=": 1 },
+            })
+            .where("ID IN", invalidAttempts)
+        );
+      }
+      const ts = new Date().toISOString();
+      const updateTuples = [
+        [success, EventProcessingStatus.Done],
+        [failed, EventProcessingStatus.Error],
+        [exceeded, EventProcessingStatus.Exceeded],
+      ];
 
-    for (const [eventIds, status] of updateTuples) {
-      if (!eventIds.length) {
-        continue;
+      for (const [eventIds, status] of updateTuples) {
+        if (!eventIds.length) {
+          continue;
+        }
+        await tx.run(
+          UPDATE.entity(this.#config.tableNameEventQueue)
+            .set({
+              status: status,
+              lastAttemptTimestamp: ts,
+            })
+            .where("ID IN", eventIds)
+        );
       }
-      await tx.run(
-        UPDATE.entity(this.#config.tableNameEventQueue)
-          .set({
-            status: status,
-            lastAttemptTimestamp: ts,
-          })
-          .where("ID IN", eventIds)
-      );
-    }
-    this.logger.debug("exiting persistEventStatus", {
-      eventType: this.#eventType,
-      eventSubType: this.#eventSubType,
+      this.logger.debug("exiting persistEventStatus", {
+        eventType: this.#eventType,
+        eventSubType: this.#eventSubType,
+      });
     });
   }
 
@@ -728,43 +731,45 @@ class EventQueueProcessorBase {
       return;
     }
 
-    for (const exceededEvent of this.#eventsWithExceededTries) {
-      await executeInNewTransaction(
-        this.context,
-        `eventQueue-handleExceededEvents-${this.#eventType}##${this.#eventSubType}`,
-        async (tx) => {
-          try {
-            this.processEventContext = tx.context;
-            this.modifyQueueEntry(exceededEvent);
-            await this.hookForExceededEvents({ ...exceededEvent });
-            this.logger.warn("The retry attempts for the following events are exceeded", {
-              eventType: this.#eventType,
-              eventSubType: this.#eventSubType,
-              retryAttempts: this.__retryAttempts,
-              queueEntriesId: exceededEvent.ID,
-              currentAttempt: exceededEvent.attempts,
-            });
-            await this.#persistEventQueueStatusForExceeded(this.tx, [exceededEvent], EventProcessingStatus.Exceeded);
-          } catch (err) {
-            this.logger.error(
-              "Caught error during hook for exceeded events - setting queue entry to error. Please catch your promises/exceptions.",
-              err,
-              {
+    return await trace(this.baseContext, "handle-exceeded-events", async () => {
+      for (const exceededEvent of this.#eventsWithExceededTries) {
+        await executeInNewTransaction(
+          this.context,
+          `eventQueue-handleExceededEvents-${this.#eventType}##${this.#eventSubType}`,
+          async (tx) => {
+            try {
+              this.processEventContext = tx.context;
+              this.modifyQueueEntry(exceededEvent);
+              await this.hookForExceededEvents({ ...exceededEvent });
+              this.logger.warn("The retry attempts for the following events are exceeded", {
                 eventType: this.#eventType,
                 eventSubType: this.#eventSubType,
                 retryAttempts: this.__retryAttempts,
                 queueEntriesId: exceededEvent.ID,
                 currentAttempt: exceededEvent.attempts,
-              }
-            );
-            await executeInNewTransaction(this.context, "error-hookForExceededEvents", async (tx) =>
-              this.#persistEventQueueStatusForExceeded(tx, [exceededEvent], EventProcessingStatus.Error)
-            );
-            throw new TriggerRollback();
+              });
+              await this.#persistEventQueueStatusForExceeded(this.tx, [exceededEvent], EventProcessingStatus.Exceeded);
+            } catch (err) {
+              this.logger.error(
+                "Caught error during hook for exceeded events - setting queue entry to error. Please catch your promises/exceptions.",
+                err,
+                {
+                  eventType: this.#eventType,
+                  eventSubType: this.#eventSubType,
+                  retryAttempts: this.__retryAttempts,
+                  queueEntriesId: exceededEvent.ID,
+                  currentAttempt: exceededEvent.attempts,
+                }
+              );
+              await executeInNewTransaction(this.context, "error-hookForExceededEvents", async (tx) =>
+                this.#persistEventQueueStatusForExceeded(tx, [exceededEvent], EventProcessingStatus.Error)
+              );
+              throw new TriggerRollback();
+            }
           }
-        }
-      );
-    }
+        );
+      }
+    });
   }
 
   async #handleExceededTriesExceeded() {
@@ -888,19 +893,21 @@ class EventQueueProcessorBase {
       return true;
     }
 
-    const lockAcquired = await distributedLock.acquireLock(
-      this.context,
-      [this.#eventType, this.#eventSubType].join("##")
-    );
-    if (!lockAcquired) {
-      this.logger.debug("no lock available, exit processing", {
-        type: this.#eventType,
-        subType: this.#eventSubType,
-      });
-      return false;
-    }
-    this.__lockAcquired = true;
-    return true;
+    return await trace(this.baseContext, "acquire-lock", async () => {
+      const lockAcquired = await distributedLock.acquireLock(
+        this.context,
+        [this.#eventType, this.#eventSubType].join("##")
+      );
+      if (!lockAcquired) {
+        this.logger.debug("no lock available, exit processing", {
+          type: this.#eventType,
+          subType: this.#eventSubType,
+        });
+        return false;
+      }
+      this.__lockAcquired = true;
+      return true;
+    });
   }
 
   async handleReleaseLock() {
@@ -908,7 +915,9 @@ class EventQueueProcessorBase {
       return;
     }
     try {
-      await distributedLock.releaseLock(this.context, [this.#eventType, this.#eventSubType].join("##"));
+      await trace(this.baseContext, "persist-release-lock", async () => {
+        await distributedLock.releaseLock(this.context, [this.#eventType, this.#eventSubType].join("##"));
+      });
     } catch (err) {
       this.logger.error("Releasing distributed lock failed.", err);
     }

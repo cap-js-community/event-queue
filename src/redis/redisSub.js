@@ -65,7 +65,7 @@ const _messageHandlerProcessEvents = async (messageData) => {
     }
 
     return await cds.tx(tenantContext, async ({ context }) => {
-      return await runnerHelper.runEventCombinationForTenant(context, type, subType, { lockId });
+      return await runnerHelper.runEventCombinationForTenant(context, type, subType, { lockId, shouldTrace: true });
     });
   } catch (err) {
     logger.error("could not parse event information", {

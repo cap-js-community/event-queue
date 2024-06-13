@@ -36,6 +36,7 @@ const CONFIG_VARS = [
   ["cleanupLocksAndEventsForDev", false],
   ["redisOptions", {}],
   ["insertEventsBeforeCommit", false],
+  ["enableCAPTelemetry", false],
 ];
 
 const initialize = async ({
@@ -52,6 +53,7 @@ const initialize = async ({
   cleanupLocksAndEventsForDev,
   redisOptions,
   insertEventsBeforeCommit,
+  enableCAPTelemetry,
 } = {}) => {
   if (config.initialized) {
     return;
@@ -71,7 +73,8 @@ const initialize = async ({
     userId,
     cleanupLocksAndEventsForDev,
     redisOptions,
-    insertEventsBeforeCommit
+    insertEventsBeforeCommit,
+    enableCAPTelemetry
   );
 
   const logger = cds.log(COMPONENT);

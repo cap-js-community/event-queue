@@ -63,6 +63,9 @@
     "prettier": "^2.8.8",
     "sqlite3": "^5.1.7"
   },
+  "peerDependencies": {
+    "@cap-js/telemetry": "^0.2.2"
+  },
   "homepage": "https://cap-js-community.github.io/event-queue/",
   "repository": {
     "type": "git",
