@@ -197,10 +197,10 @@ exports[`integration-main lock wait timeout during keepAlive 1`] = `
 
 exports[`integration-main periodic events transactions modes always commit - use cds.context for db interaction 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 6,
+  "BEGIN": 6,
+  "COMMIT": 5,
   "CREATE": 2,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 2,
   "UPDATE": 2,
 }
@@ -208,10 +208,10 @@ exports[`integration-main periodic events transactions modes always commit - use
 
 exports[`integration-main periodic events transactions modes always commit 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 6,
+  "BEGIN": 6,
+  "COMMIT": 5,
   "CREATE": 2,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 2,
   "UPDATE": 2,
 }
@@ -219,10 +219,10 @@ exports[`integration-main periodic events transactions modes always commit 1`] =
 
 exports[`integration-main periodic events transactions modes always rollback - use cds.context for db interaction 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 6,
+  "COMMIT": 4,
   "CREATE": 2,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 2,
   "ROLLBACK": 1,
   "UPDATE": 2,
@@ -231,10 +231,10 @@ exports[`integration-main periodic events transactions modes always rollback - u
 
 exports[`integration-main periodic events transactions modes always rollback 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 6,
+  "COMMIT": 4,
   "CREATE": 2,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 2,
   "ROLLBACK": 1,
   "UPDATE": 2,
@@ -243,10 +243,10 @@ exports[`integration-main periodic events transactions modes always rollback 1`]
 
 exports[`integration-main periodic events transactions modes no tx mode should commit if not exception 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 6,
+  "BEGIN": 6,
+  "COMMIT": 5,
   "CREATE": 2,
-  "DELETE": 2,
+  "DELETE": 1,
   "READ": 2,
   "UPDATE": 2,
 }
