@@ -52,16 +52,9 @@ const publishEvent = async (tx, events, skipBroadcast = false) => {
   if (config.insertEventsBeforeCommit) {
     _registerHandlerAndAddEvents(tx, events);
   } else {
-    tx._skipEventQueueBroadcase = skipBroadcast;
-    const chunks = [];
-    processChunkedSync(eventsForProcessing, CHUNK_SIZE_INSERTS, (chunk) => chunks.push(chunk));
     let result;
-    for (const chunk of chunks) {
-      if (result) {
-        await tx.run(INSERT.into(config.tableNameEventQueue).entries(chunk));
-      }
-      result = await tx.run(INSERT.into(config.tableNameEventQueue).entries(chunk));
-    }
+    tx._skipEventQueueBroadcase = skipBroadcast;
+    result = await tx.run(INSERT.into(config.tableNameEventQueue).entries(events));
     tx._skipEventQueueBroadcase = false;
     return result;
   }
@@ -79,11 +72,7 @@ const _registerHandlerAndAddEvents = (tx, events) => {
     if (!tx._eventQueue.events?.length) {
       return;
     }
-    const chunks = [];
-    processChunkedSync(tx._eventQueue.events, CHUNK_SIZE_INSERTS, (chunk) => chunks.push(chunk));
-    for (const chunk of chunks) {
-      await tx.run(INSERT.into(config.tableNameEventQueue).entries(chunk));
-    }
+    await tx.run(INSERT.into(config.tableNameEventQueue).entries(tx._eventQueue.events));
     tx._eventQueue = null;
   });
 };
