@@ -13,7 +13,7 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false 
     return fn();
   }
 
-  const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}${newRootSpan ? `-${context.id}` : ""}`, {
+  const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}`, {
     kind: otel.SpanKind.INTERNAL,
     root: newRootSpan,
   });
@@ -53,7 +53,7 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false 
 
 const _setAttributes = (context, span, attributes) => {
   span.setAttribute("sap.tenancy.tenant_id", context.tenant);
-  span.setAttribute("correlationId", context.id);
+  span.setAttribute("sap.correlation_id", context.id);
   for (const attributeKey in attributes) {
     span.setAttribute(attributeKey, attributes[attributeKey]);
   }
