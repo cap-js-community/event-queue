@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 - `cds.build.register` may be undefined if `@sap/cds-dk` is not installed locally or globally.
+- Double release of locks for periodic event processing.
 
 ## v1.4.6 - 2024-05-28
 

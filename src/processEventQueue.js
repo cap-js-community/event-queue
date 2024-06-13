@@ -197,8 +197,6 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
       eventType: eventTypeInstance?.eventType,
       eventSubType: eventTypeInstance?.eventSubType,
     });
-  } finally {
-    await eventTypeInstance?.handleReleaseLock();
   }
 };
 
