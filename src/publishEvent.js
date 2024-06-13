@@ -3,9 +3,6 @@
 const config = require("./config");
 const common = require("./shared/common");
 const EventQueueError = require("./EventQueueError");
-const { processChunkedSync } = require("./shared/common");
-
-const CHUNK_SIZE_INSERTS = 3000;
 
 /**
  * Asynchronously publishes a series of events to the event queue.
