@@ -22,6 +22,7 @@ const eventScheduler = require("../src/shared/eventScheduler");
 const { processEventQueue } = require("../src/processEventQueue");
 const periodicEvents = require("../src/periodicEvents");
 const { publishEvent } = require("../src/publishEvent");
+const redisPub = require("../src/redis/redisPub");
 
 const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
 
@@ -1305,6 +1306,30 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx);
     });
+
+    it("insert entry, entry should be automatically processed also for two different entries", async () => {
+      const broadcastSpy = jest.spyOn(redisPub, "broadcastEvent");
+      await cds.tx({}, async (tx2) => {
+        const test = testHelper.getEventEntry();
+        const test1 = testHelper.getEventEntry();
+        test1.type = "TransactionMode";
+        test1.subType = "isolated";
+        await testHelper.insertEventEntry(tx2, { entries: [test, test1] });
+      });
+      await waitEntriesIsDone();
+      expect(broadcastSpy).toHaveBeenCalledWith(undefined, [
+        {
+          subType: "Task",
+          type: "Notifications",
+        },
+        {
+          subType: "isolated",
+          type: "TransactionMode",
+        },
+      ]);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+    });
   });
 
   describe("insertEventsBeforeCommit", () => {
@@ -1354,6 +1379,26 @@ const waitEntryIsDone = async () => {
     dbCounts["COMMIT"]--;
     dbCounts["READ"]--;
     if (row?.status === EventProcessingStatus.Done) {
+      break;
+    }
+    if (Date.now() - startTime > 180 * 1000) {
+      throw new Error("entry not completed");
+    }
+    await promisify(setTimeout)(50);
+  }
+  return false;
+};
+
+const waitEntriesIsDone = async () => {
+  let startTime = Date.now();
+  while (true) {
+    const rows = await cds.tx({}, (tx2) => tx2.run(SELECT.from("sap.eventqueue.Event")));
+    dbCounts["BEGIN"]--;
+    dbCounts["COMMIT"]--;
+    dbCounts["READ"]--;
+
+    const oneRunning = rows.some((row) => row.status !== EventProcessingStatus.Done);
+    if (!oneRunning) {
       break;
     }
     if (Date.now() - startTime > 180 * 1000) {
