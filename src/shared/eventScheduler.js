@@ -44,7 +44,7 @@ class EventScheduler {
     // Convert the timeout object to a primitive timeout id to avoid circular dependencies between the callback of setTimeout
     // and closure. If the timeout object is used in the callback, this will lead to a deadlock for the garbage collector
     // as the timeout object has a reference to the callback of setTimeout.
-    timeoutId = Number(timeout);
+    timeoutId = String(timeout);
     this.#eventsByTenants[tenantId][timeoutId] = true;
   }
 
