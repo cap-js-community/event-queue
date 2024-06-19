@@ -2,7 +2,7 @@
 
 const cds = require("@sap/cds");
 
-const { broadcastEvent } = require("./redis/redisPub");
+const redisPub = require("./redis/redisPub");
 const config = require("./config");
 
 const COMPONENT_NAME = "/eventQueue/dbHandler";
@@ -25,7 +25,7 @@ const registerEventQueueDbHandler = (dbService) => {
     req.tx._ = req.tx._ ?? {};
     req.tx._.eventQueuePublishEvents = req.tx._.eventQueuePublishEvents ?? {};
     const eventQueuePublishEvents = req.tx._.eventQueuePublishEvents;
-    const data = Array.isArray(req.data) ? req.data : [req.data];
+    const data = Array.isArray(req.query.INSERT.entries) ? req.query.INSERT.entries : [req.query.INSERT.entries];
     const eventCombinations = Object.keys(
       data.reduce((result, event) => {
         const key = [event.type, event.subType].join("##");
@@ -45,7 +45,7 @@ const registerEventQueueDbHandler = (dbService) => {
           return { type, subType };
         });
 
-        broadcastEvent(req.tenant, events).catch((err) => {
+        redisPub.broadcastEvent(req.tenant, events).catch((err) => {
           cds.log(COMPONENT_NAME).error("db handler failure during broadcasting event", err, {
             tenant: req.tenant,
             events,
