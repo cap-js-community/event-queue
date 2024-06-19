@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.5.1 - 2024-06-19
+
+### Fixed
+
+- cds 7.9.2 introduced a bug affecting the instant processing of events, this release includes a temporary workaround
+  until this is fixed 
+- 
+
 ## v1.5.0 - 2024-06-13
 
 ### Added
