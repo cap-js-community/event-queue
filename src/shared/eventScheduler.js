@@ -28,7 +28,8 @@ class EventScheduler {
       delaySeconds: (date.getTime() - Date.now()) / 1000,
     });
     this.#eventsByTenants[tenantId] ??= {};
-    const timeoutId = setTimeout(() => {
+    let timeoutId;
+    const timeout = setTimeout(() => {
       delete this.#eventsByTenants[tenantId][timeoutId];
       delete this.#scheduledEvents[key];
       redisPub.broadcastEvent(tenantId, { type, subType }).catch((err) => {
@@ -40,6 +41,11 @@ class EventScheduler {
         });
       });
     }, relative).unref();
+    // Convert the timeout object to a primitive timeout id to avoid circular dependencies between the closure
+    // of setTimeout and the outer scope. If the timeout object is passed to the closure, this will lead to a deadlock
+    // for the garbage collector, as the timeout object has a reference to the callback of setTimeout, and the closure
+    // holds a reference to the timeout object.
+    timeoutId = Number(timeout);
     this.#eventsByTenants[tenantId][timeoutId] = true;
   }
 
