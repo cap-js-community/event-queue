@@ -9,9 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
-- cds 7.9.2 introduced a bug affecting the instant processing of events, this release includes a temporary workaround
-  until this is fixed 
-- 
+- Bug in CDS 7.9.2: Introduced a bug affecting the instant processing of events. This release includes a temporary workaround until the bug is fixed.
+- Memory Leaks: Fixed memory leaks caused by setTimeout returning an object instead of a primitive value
 
 ## v1.5.0 - 2024-06-13
 
