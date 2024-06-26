@@ -37,10 +37,7 @@ const broadcastEvent = async (tenantId, events) => {
         for (const { type, subType } of events) {
           const eventConfig = config.getEventConfig(type, subType);
           for (let i = 0; i < TRIES_FOR_PUBLISH_PERIODIC_EVENT; i++) {
-            const result = await checkLockExistsAndReturnValue(
-              new cds.EventContext({ tenant: tenantId }),
-              [type, subType].join("##")
-            );
+            const result = await checkLockExistsAndReturnValue(context, [type, subType].join("##"));
             if (result) {
               logger.debug("skip publish redis event as no lock is available", {
                 type,
