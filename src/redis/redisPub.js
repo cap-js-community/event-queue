@@ -20,6 +20,12 @@ const wait = promisify(setTimeout);
 
 const broadcastEvent = async (tenantId, events) => {
   const logger = cds.log(COMPONENT_NAME);
+
+  if (!config.isEventQueueActive) {
+    cds.log(COMPONENT_NAME).info("event-queue is deactivated, broadcasting is skipped!");
+    return;
+  }
+
   events = Array.isArray(events) ? events : [events];
   try {
     if (!config.redisEnabled) {
