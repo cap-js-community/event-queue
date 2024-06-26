@@ -9,6 +9,7 @@ const { checkLockExistsAndReturnValue } = require("../shared/distributedLock");
 const config = require("../config");
 const common = require("../shared/common");
 const { runEventCombinationForTenant } = require("../runner/runnerHelper");
+const trace = require("../shared/openTelemetry");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/redisPub";
@@ -21,68 +22,72 @@ const broadcastEvent = async (tenantId, events) => {
   const logger = cds.log(COMPONENT_NAME);
   events = Array.isArray(events) ? events : [events];
   try {
-    if (!config.isEventQueueActive) {
-      cds.log(COMPONENT_NAME).info("Skipping processing because runner is deactivated!", {});
-      return;
-    }
     if (!config.redisEnabled) {
-      if (config.registerAsEventProcessor) {
-        let context = {};
-        if (tenantId) {
-          const user = await cds.tx({ tenant: tenantId }, async () => {
-            return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
-          });
-          context = {
-            tenant: tenantId,
-            user,
-          };
-        }
-
-        return await cds.tx(context, async ({ context }) => {
-          for (const { type, subType } of events) {
-            await runEventCombinationForTenant(context, type, subType, { shouldTrace: true });
-          }
-        });
-      }
+      await _processLocalWithoutRedis(tenantId, events);
       return;
     }
-    for (const { type, subType } of events) {
-      const eventConfig = config.getEventConfig(type, subType);
-      for (let i = 0; i < TRIES_FOR_PUBLISH_PERIODIC_EVENT; i++) {
-        const result = await checkLockExistsAndReturnValue(
-          new cds.EventContext({ tenant: tenantId }),
-          [type, subType].join("##")
-        );
-        if (result) {
-          logger.debug("skip publish redis event as no lock is available", {
-            type,
-            subType,
-            index: i,
-            isPeriodic: eventConfig.isPeriodic,
-            waitInterval: SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT,
-          });
-          if (!eventConfig.isPeriodic) {
+    await cds.tx({ tenant: tenantId }, async ({ context }) => {
+      await trace(context, "broadcast-inserted-events", async () => {
+        for (const { type, subType } of events) {
+          const eventConfig = config.getEventConfig(type, subType);
+          for (let i = 0; i < TRIES_FOR_PUBLISH_PERIODIC_EVENT; i++) {
+            const result = await checkLockExistsAndReturnValue(
+              new cds.EventContext({ tenant: tenantId }),
+              [type, subType].join("##")
+            );
+            if (result) {
+              logger.debug("skip publish redis event as no lock is available", {
+                type,
+                subType,
+                index: i,
+                isPeriodic: eventConfig.isPeriodic,
+                waitInterval: SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT,
+              });
+              if (!eventConfig.isPeriodic) {
+                break;
+              }
+              await wait(SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT);
+              continue;
+            }
+            logger.debug("publishing redis event", {
+              tenantId,
+              type,
+              subType,
+            });
+            await redis.publishMessage(
+              config.redisOptions,
+              EVENT_MESSAGE_CHANNEL,
+              JSON.stringify({ lockId: cds.utils.uuid(), tenantId, type, subType })
+            );
             break;
           }
-          await wait(SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT);
-          continue;
         }
-        logger.debug("publishing redis event", {
-          tenantId,
-          type,
-          subType,
-        });
-        await redis.publishMessage(
-          config.redisOptions,
-          EVENT_MESSAGE_CHANNEL,
-          JSON.stringify({ lockId: cds.utils.uuid(), tenantId, type, subType })
-        );
-        break;
-      }
-    }
+      });
+    });
   } catch (err) {
     logger.error("publish events failed!", err, {
       tenantId,
+    });
+  }
+};
+
+const _processLocalWithoutRedis = async (tenantId, events) => {
+  if (config.registerAsEventProcessor) {
+    let context = {};
+    if (tenantId) {
+      const user = await cds.tx({ tenant: tenantId }, async () => {
+        return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
+      });
+      context = {
+        tenant: tenantId,
+        user,
+      };
+    }
+
+    return await cds.tx(context, async ({ context }) => {
+      for (const { type, subType } of events) {
+        await runEventCombinationForTenant(context, type, subType, { shouldTrace: true });
+      }
     });
   }
 };
