@@ -28,9 +28,11 @@ class EventScheduler {
       delaySeconds: (date.getTime() - Date.now()) / 1000,
     });
     this.#eventsByTenants[tenantId] ??= {};
-    let timeoutId;
     const timeout = setTimeout(() => {
-      delete this.#eventsByTenants[tenantId][timeoutId];
+      // NOTE: needed due to a bug in node.js which is leaking memory; will be fixed in v22.4.0
+      // https://github.com/nodejs/node/pull/53337/files
+      clearTimeout(timeout);
+      delete this.#eventsByTenants[tenantId][timeout];
       delete this.#scheduledEvents[key];
       redisPub.broadcastEvent(tenantId, { type, subType }).catch((err) => {
         cds.log(COMPONENT_NAME).error("could not execute scheduled event", err, {
@@ -41,11 +43,7 @@ class EventScheduler {
         });
       });
     }, relative).unref();
-    // Convert the timeout object to a primitive timeout id to avoid circular dependencies between the callback of setTimeout
-    // and the closure. The usage of the timeout object in the callback, leads to a deadlock for the garbage collector
-    // as the timeout object has a reference to the callback of setTimeout.
-    timeoutId = String(timeout);
-    this.#eventsByTenants[tenantId][timeoutId] = true;
+    this.#eventsByTenants[tenantId][timeout] = true;
   }
 
   clearForTenant(tenantId) {
