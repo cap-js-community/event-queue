@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.5.2 - 2024-06-26
+
+### Added
+
+- Added tracing to redis pub/sub
+
+### Fixed
+
+- Workaround for memory issues due to bug in node.js with timers: https://github.com/nodejs/node/pull/53337
+
 ## v1.5.1 - 2024-06-19
 
 ### Fixed
