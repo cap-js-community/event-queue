@@ -159,6 +159,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
 };
 
 const _executeEventsAllTenants = async (tenantIds, runId) => {
+  const promises = [];
   for (const tenantId of tenantIds) {
     const id = cds.utils.uuid();
     let tenantContext;
@@ -184,7 +185,7 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
       continue;
     }
 
-    return await Promise.allSettled(
+    promises.concat(
       events.map(async (openEvent) => {
         const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType);
         const label = `${eventConfig.type}_${eventConfig.subType}`;
@@ -218,6 +219,7 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
       })
     );
   }
+  return Promise.allSettled(promises);
 };
 
 const _executePeriodicEventsAllTenants = async (tenantIds) => {
