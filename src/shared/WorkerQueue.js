@@ -113,7 +113,7 @@ class WorkerQueue {
   }
 
   #checkForNext() {
-    if (!this.#queue.length && this.#runningLoad === this.#concurrencyLimit) {
+    if (!Object.values(this.#queue).some((queue) => queue.length) || this.#runningLoad === this.#concurrencyLimit) {
       return;
     }
 

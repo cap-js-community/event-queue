@@ -163,7 +163,7 @@ describe("runner", () => {
     });
   });
 
-  describe("db", () => {
+  describe("multi tenant db", () => {
     beforeAll(() => {
       const originalCdsTx = cds.tx;
       jest.spyOn(cds, "tx").mockImplementation(function (context, fn) {
@@ -247,28 +247,55 @@ describe("runner", () => {
     });
   });
 
-  it("db - single tenant", async () => {
-    configInstance.redisEnabled = false;
-    const originalCdsTx = cds.tx;
-    jest.spyOn(cds, "tx").mockImplementation(async function (context, fn) {
-      if (!fn) {
-        return originalCdsTx.call(this, context);
-      }
-      if (fn.toString().toLowerCase().includes("await fn(tx, ...parameters)")) {
-        context.tenant = null;
-      }
-      return originalCdsTx.call(this, context, fn);
+  describe("single tenant db", () => {
+    beforeAll(() => {
+      const originalCdsTx = cds.tx;
+      jest.spyOn(cds, "tx").mockImplementation(function (context, fn) {
+        if (!fn) {
+          return originalCdsTx.call(this, context);
+        }
+        if (fn.toString().toLowerCase().includes("await fn(tx, ...parameters)")) {
+          context.tenant = null;
+        }
+        return originalCdsTx.call(this, context, fn);
+      });
     });
-    const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
 
-    await Promise.all([runner.__._singleTenantDb(), runner.__._singleTenantDb()]).then((promises) =>
-      Promise.all(promises.flat())
-    );
+    afterAll(() => {
+      jest.spyOn(cds, "tx").mockRestore();
+    });
 
-    expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(processEventQueueSpy).toHaveBeenCalledTimes(2);
-    expect(acquireLockSpy).toHaveBeenCalledTimes(4);
-    expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
+    it("no open events", async () => {
+      configInstance.redisEnabled = false;
+
+      const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+
+      await Promise.all([runner.__._singleTenantDb(), runner.__._singleTenantDb()]).then((promises) =>
+        Promise.all(promises.flat())
+      );
+
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
+      expect(acquireLockSpy).toHaveBeenCalledTimes(0);
+      expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
+    });
+
+    it("open periodic events", async () => {
+      configInstance.redisEnabled = false;
+      await cds.tx({}, async (tx2) => {
+        await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+      });
+      const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+
+      await Promise.all([runner.__._singleTenantDb(), runner.__._singleTenantDb()]).then((promises) =>
+        Promise.all(promises.flat())
+      );
+
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(processEventQueueSpy).toHaveBeenCalledTimes(1);
+      expect(acquireLockSpy).toHaveBeenCalledTimes(2);
+      expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
+    });
   });
 
   describe("_calculateOffsetForFirstRun", () => {

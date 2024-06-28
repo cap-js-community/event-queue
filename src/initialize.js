@@ -131,22 +131,7 @@ const readConfigFromFile = async (configFilepath) => {
 };
 
 const registerEventProcessors = () => {
-  cds.on("listening", () => {
-    cds.connect
-      .to("cds.xt.DeploymentService")
-      .then((ds) => {
-        cds.log(COMPONENT).info("event-queue unsubscribe handler registered", {
-          redisEnabled: config.redisEnabled,
-        });
-        ds.after("unsubscribe", async (_, req) => {
-          const { tenant } = req.data;
-          config.handleUnsubscribe(tenant);
-        });
-      })
-      .catch(
-        () => {} // ignore errors as the DeploymentService is most of the time only available in the mtx sidecar
-      );
-  });
+  _registerUnsubscribe();
   config.redisEnabled && config.attachRedisUnsubscribeHandler();
 
   if (!config.registerAsEventProcessor) {
@@ -213,6 +198,25 @@ const registerCleanupForDevDb = async () => {
       );
     });
   }
+};
+
+const _registerUnsubscribe = () => {
+  cds.on("listening", () => {
+    cds.connect
+      .to("cds.xt.DeploymentService")
+      .then((ds) => {
+        cds.log(COMPONENT).info("event-queue unsubscribe handler registered", {
+          redisEnabled: config.redisEnabled,
+        });
+        ds.after("unsubscribe", async (_, req) => {
+          const { tenant } = req.data;
+          config.handleUnsubscribe(tenant);
+        });
+      })
+      .catch(
+        () => {} // ignore errors as the DeploymentService is most of the time only available in the mtx sidecar
+      );
+  });
 };
 
 module.exports = {
