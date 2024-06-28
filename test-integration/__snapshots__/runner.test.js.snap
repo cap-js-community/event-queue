@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`runner db no open events 1`] = `
+exports[`runner multi tenant db no open events 1`] = `
 [
   [
     "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
@@ -23,7 +23,7 @@ exports[`runner db no open events 1`] = `
 ]
 `;
 
-exports[`runner db open periodic events 1`] = `
+exports[`runner multi tenant db open periodic events 1`] = `
 [
   [
     "EVENT_QUEUE_RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",

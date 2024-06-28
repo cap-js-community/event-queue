@@ -87,11 +87,11 @@ const _processLocalWithoutRedis = async (tenantId, events) => {
       };
     }
 
-    return await cds.tx(context, async ({ context }) => {
-      for (const { type, subType } of events) {
+    for (const { type, subType } of events) {
+      await cds.tx(context, async ({ context }) => {
         await runEventCombinationForTenant(context, type, subType, { shouldTrace: true });
-      }
-    });
+      });
+    }
   }
 };
 

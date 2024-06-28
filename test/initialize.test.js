@@ -14,6 +14,8 @@ const { getEnvInstance } = require("../src/shared/env");
 const runner = require("../src/runner/runner");
 const config = require("../src/config");
 const redis = require("../src/shared/redis");
+const periodicEvents = require("../src/periodicEvents");
+const cdsHelper = require("../src/shared/cdsHelper");
 
 jest.spyOn(redisSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
 
@@ -220,6 +222,68 @@ describe("initialize", () => {
       expect(configInstance.runInterval).toEqual(25 * 60 * 1000);
       expect(configInstance.tableNameEventQueue).toEqual("sap.eventqueue.Event");
       expect(configInstance.tableNameEventLock).toEqual("sap.eventqueue.Lock");
+    });
+  });
+
+  describe("update periodic events", () => {
+    beforeAll(() => {
+      runner.__.setOffsetFirstRun(0);
+    });
+
+    it("single tenant - updatePeriodicEvents:true", async () => {
+      const periodicEventsSpy = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValueOnce();
+      await eventQueue.initialize({
+        configFilePath,
+        registerAsEventProcessor: true,
+        updatePeriodicEvents: true,
+      });
+      cds.emit("connect", await cds.connect.to("db"));
+      await promisify(setTimeout)(100);
+      expect(periodicEventsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("single tenant - updatePeriodicEvents:false", async () => {
+      const periodicEventsSpy = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValueOnce();
+      await eventQueue.initialize({
+        configFilePath,
+        registerAsEventProcessor: true,
+        updatePeriodicEvents: false,
+      });
+      cds.emit("connect", await cds.connect.to("db"));
+      await promisify(setTimeout)(100);
+      expect(periodicEventsSpy).toHaveBeenCalledTimes(0);
+    });
+
+    it("multi tenant db - updatePeriodicEvents:false", async () => {
+      cds.requires.multitenancy = {};
+      const periodicEventsSpy = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValueOnce();
+      jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValueOnce([null]);
+      await eventQueue.initialize({
+        configFilePath,
+        registerAsEventProcessor: true,
+        updatePeriodicEvents: false,
+      });
+      cds.emit("connect", await cds.connect.to("db"));
+      await promisify(setTimeout)(100);
+      expect(periodicEventsSpy).toHaveBeenCalledTimes(0);
+    });
+
+    it("multi tenant db - updatePeriodicEvents:true", async () => {
+      cds.requires.multitenancy = {};
+      const periodicEventsSpy = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValueOnce();
+      jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValueOnce([null]);
+      await eventQueue.initialize({
+        configFilePath,
+        registerAsEventProcessor: true,
+        updatePeriodicEvents: true,
+      });
+      cds.emit("connect", await cds.connect.to("db"));
+      await promisify(setTimeout)(100);
+      expect(periodicEventsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    afterAll(() => {
+      runner.__.setOffsetFirstRun(10 * 1000);
     });
   });
 });
