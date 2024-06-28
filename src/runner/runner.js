@@ -22,7 +22,7 @@ const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
 const EVENT_QUEUE_RUN_TS = "EVENT_QUEUE_RUN_TS";
 const EVENT_QUEUE_RUN_REDIS_CHECK = "EVENT_QUEUE_RUN_REDIS_CHECK";
 const EVENT_QUEUE_UPDATE_PERIODIC_EVENTS = "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS";
-const OFFSET_FIRST_RUN = 10 * 1000;
+let OFFSET_FIRST_RUN = 10 * 1000;
 
 let tenantIdHash;
 let singleRunDone;
@@ -398,7 +398,8 @@ const _multiTenancyPeriodicEvents = async (tenantIds) => {
   }
 };
 
-const _checkPeriodicEventsSingleTenantOneTime = () =>
+const _checkPeriodicEventsSingleTenantOneTime = async () =>
+  eventQueueConfig.updatePeriodicEvents &&
   cds.tx({}, async (tx) => await periodicEvents.checkAndInsertPeriodicEvents(tx.context));
 
 const _checkPeriodicEventsSingleTenant = async (context) => {
@@ -436,5 +437,6 @@ module.exports = {
     _acquireRunId,
     EVENT_QUEUE_RUN_TS,
     clearHash: () => (tenantIdHash = null),
+    setOffsetFirstRun: (value) => (OFFSET_FIRST_RUN = value),
   },
 };
