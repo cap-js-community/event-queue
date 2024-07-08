@@ -130,4 +130,17 @@ describe("EventScheduler", () => {
       ]
     `);
   });
+
+  it("should clear timeouts if offboarding occurred", () => {
+    setTimeoutSpy.mockRestore();
+    const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
+    const startAfter = new Date(Date.now() + 10 * 1000 * 60);
+    eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
+    const events = eventScheduler.eventsByTenants;
+    expect(Object.keys(events)).toEqual(["1"]);
+    expect(Object.values(Object.values(events)[0]).length).toEqual(1);
+    eventScheduler.clearForTenant(1);
+    expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
+    expect(clearTimeoutSpy).toHaveBeenCalledWith(Object.keys(events[1])[0]);
+  });
 });
