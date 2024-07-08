@@ -68,6 +68,10 @@ class EventScheduler {
     this.#scheduledEvents = {};
   }
 
+  clearEventsByTenants() {
+    this.#eventsByTenants = {};
+  }
+
   get eventsByTenants() {
     return this.#eventsByTenants;
   }

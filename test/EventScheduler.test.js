@@ -19,15 +19,6 @@ describe("EventScheduler", () => {
   let eventScheduler;
   let setTimeoutSpy;
 
-  beforeEach(() => {
-    eventScheduler.clearScheduledEvents();
-    setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation(() => {
-      return {
-        unref: () => {},
-      };
-    });
-  });
-
   beforeAll(() => {
     eventScheduler = getEventSchedulerInstance();
     jest.spyOn(config, "getEventConfig").mockReturnValue({
@@ -35,6 +26,16 @@ describe("EventScheduler", () => {
     });
     jest.spyOn(config, "isPeriodicEvent").mockReturnValue(false);
     jest.useFakeTimers();
+  });
+
+  beforeEach(() => {
+    eventScheduler.clearScheduledEvents();
+    eventScheduler.clearEventsByTenants();
+    setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation(() => {
+      return {
+        unref: () => {},
+      };
+    });
   });
 
   afterEach(() => {
