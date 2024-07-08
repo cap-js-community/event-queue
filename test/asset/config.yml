@@ -55,7 +55,6 @@ events:
     appNames:
       - app-a
 
-
 periodicEvents:
   - type: HealthCheck
     subType: DB
