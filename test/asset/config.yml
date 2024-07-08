@@ -63,3 +63,11 @@ periodicEvents:
     load: 1
     transactionMode: alwaysRollback
     interval: 30
+
+  - type: AppSpecific
+    subType: AppA
+    impl: ./test/asset/EventQueueHealthCheckDb
+    load: 1
+    interval: 30
+    appNames:
+      - app-a

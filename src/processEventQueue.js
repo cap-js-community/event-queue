@@ -288,6 +288,11 @@ const _checkEventIsBlocked = async (baseInstance) => {
       tenantUnsubscribed: config.isTenantUnsubscribed(baseInstance.context.tenant),
     });
   }
+
+  if (!eventBlocked) {
+    eventBlocked = !config.shouldBeProcessedInThisApplication(baseInstance.eventType, baseInstance.eventSubType);
+  }
+
   return eventBlocked;
 };
 

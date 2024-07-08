@@ -16,6 +16,7 @@ const EventQueueHealthCheck = require("./asset/EventQueueHealthCheckDb");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { EventProcessingStatus } = require("../src/constants");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
+const { getEnvInstance } = require("../src/shared/env");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
@@ -589,12 +590,59 @@ describe("baseFunctionality", () => {
   });
 
   describe("app specific apps", () => {
-    test("should not process event if not configured for this app name", async () => {
-      const event = eventQueue.config.events.find((event) => event.subType === "AppA");
-      await testHelper.insertEventEntry(tx, { type: event.type, subType: event.subType });
-      await eventQueue.processEventQueue(context, event.type, event.subType);
-      expect(loggerMock.callsLengths().error).toEqual(0);
-      await testHelper.selectEventQueueAndExpectOpen(tx);
+    describe("should not process", () => {
+      test("ad-hoc event", async () => {
+        const event = eventQueue.config.events.find((event) => event.subType === "AppA");
+        await testHelper.insertEventEntry(tx, { type: event.type, subType: event.subType });
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectOpen(tx);
+      });
+
+      test("periodic event", async () => {
+        const event = eventQueue.config.periodicEvents.find((event) => event.subType === "AppA");
+        await checkAndInsertPeriodicEvents(context);
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        await testHelper.selectEventQueueAndExpectOpen(tx, { type: "AppSpecific_PERIODIC" });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+    });
+
+    describe("should process", () => {
+      beforeAll(() => {
+        const env = getEnvInstance();
+        env.vcapApplication = { application_name: "app-a" };
+      });
+
+      test("ad-hoc event", async () => {
+        const event = eventQueue.config.events.find((event) => event.subType === "AppA");
+        await testHelper.insertEventEntry(tx, { type: event.type, subType: event.subType });
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectDone(tx);
+      });
+
+      test("periodic event", async () => {
+        const event = eventQueue.config.periodicEvents.find((event) => event.subType === "AppA");
+        await checkAndInsertPeriodicEvents(context);
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        const events = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 2,
+          type: "AppSpecific_PERIODIC",
+        });
+        const [open, done] = events.sort((a, b) => a.status - b.status);
+        expect(open).toEqual({
+          status: EventProcessingStatus.Open,
+          attempts: 0,
+          startAfter: new Date(new Date(done.startAfter).getTime() + event.interval * 1000).toISOString(),
+        });
+        expect(done).toEqual({
+          status: EventProcessingStatus.Done,
+          attempts: 1,
+          startAfter: new Date(done.startAfter).toISOString(),
+        });
+      });
     });
   });
 });

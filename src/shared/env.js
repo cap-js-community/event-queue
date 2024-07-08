@@ -16,11 +16,11 @@ class Env {
     }
   }
 
-  redisCredentialsFromEnv() {
+  get redisCredentialsFromEnv() {
     return this.#vcapServices["redis-cache"]?.[0]?.credentials;
   }
 
-  applicationName() {
+  get applicationName() {
     return this.#vcapApplication.application_name;
   }
 
