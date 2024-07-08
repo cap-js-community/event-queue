@@ -105,7 +105,12 @@ class Config {
   }
 
   _checkRedisIsBound() {
-    return !!this.#env.getRedisCredentialsFromEnv();
+    return !!this.#env.redisCredentialsFromEnv;
+  }
+
+  shouldBeProcessedInThisApplication(type, subType) {
+    const config = this.#eventMap[this.generateKey(type, subType)];
+    return config._appNameMap[this.#env.applicationName];
   }
 
   checkRedisEnabled() {
@@ -317,6 +322,7 @@ class Config {
       event.load = event.load ?? DEFAULT_LOAD;
       event.priority = event.priority ?? DEFAULT_PRIORITY;
       this.validateAdHocEvents(result, event);
+      event._appNameMap = Object.fromEntries(new Map(event.appNames.map((a) => [a, true])));
       result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, {});
@@ -326,6 +332,7 @@ class Config {
       event.type = `${event.type}${SUFFIX_PERIODIC}`;
       event.isPeriodic = true;
       this.validatePeriodicConfig(result, event);
+      event._appNameMap = Object.fromEntries(new Map(event.appNames.map((a) => [a, true])));
       result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, this.#eventMap);
@@ -354,6 +361,12 @@ class Config {
 
     if (!config.impl) {
       throw EventQueueError.missingImpl(config.type, config.subType);
+    }
+
+    if (config.appNames) {
+      if (!Array.isArray(config.appNames) || config.appNames.some((appName) => typeof appName !== "string")) {
+        throw EventQueueError.appNamesFormat(config.type, config.subType, config.appNames);
+      }
     }
   }
 

@@ -37,11 +37,13 @@ const getOpenQueueEntries = async (tx) => {
             return;
           }
           cds.outboxed(service);
-          result.push({ type, subType });
+          if (eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
+            result.push({ type, subType });
+          }
         })
         .catch(() => {});
     } else {
-      if (eventConfig.getEventConfig(type, subType)) {
+      if (eventConfig.getEventConfig(type, subType) && eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
         result.push({ type, subType });
       }
     }

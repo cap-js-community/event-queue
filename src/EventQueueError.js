@@ -18,6 +18,7 @@ const ERROR_CODES = {
   NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
   LOAD_HIGHER_THAN_LIMIT: "LOAD_HIGHER_THAN_LIMIT",
   NOT_ALLOWED_PRIORITY: "NOT_ALLOWED_PRIORITY",
+  APP_NAMES_FORMAT: "APP_NAMES_FORMAT",
   SCHEMA_TENANT_MISMATCH: "SCHEMA_TENANT_MISMATCH",
   GLOBAL_CDS_CONTEXT_MISMATCH: "GLOBAL_CDS_CONTEXT_MISMATCH",
 };
@@ -68,6 +69,9 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.NOT_ALLOWED_PRIORITY]: {
     message: "The supplied priority is not allowed. Only LOW, MEDIUM, HIGH is allowed!",
+  },
+  [ERROR_CODES.APP_NAMES_FORMAT]: {
+    message: "The app names property must be an array and only contain strings.",
   },
   [ERROR_CODES.SCHEMA_TENANT_MISMATCH]: {
     message: "The db client associated to the tenant context does not match! Processing will be skipped.",
@@ -239,6 +243,17 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.NOT_ALLOWED_PRIORITY,
         info: { priority, label },
+      },
+      message
+    );
+  }
+
+  static appNamesFormat(type, subType, appNames) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.APP_NAMES_FORMAT];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.APP_NAMES_FORMAT,
+        info: { type, subType, appNames },
       },
       message
     );
