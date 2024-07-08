@@ -43,6 +43,7 @@ describe("baseFunctionality", () => {
       configFilePath,
       processEventsAfterPublish: false,
       registerAsEventProcessor: false,
+      useAsCAPOutbox: true,
     });
     loggerMock = mockLogger();
     jest.spyOn(cds, "log").mockImplementation((layer) => {
@@ -555,10 +556,10 @@ describe("baseFunctionality", () => {
     });
 
     test("should work for CAP Service that is not connected yet", async () => {
-      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({});
+      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({ name: "NotificationService" });
       cds.requires.NotificationService = {};
       await testHelper.insertEventEntry(tx);
-      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService0" }));
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
       const result = await getOpenQueueEntries(tx);
       expect(connectToSpy).toHaveBeenCalledTimes(1);
       expect(result.length).toMatchInlineSnapshot(`1`);
@@ -566,9 +567,9 @@ describe("baseFunctionality", () => {
     });
 
     test("should work for CAP Service that is not connected yet use connect as fallback should work", async () => {
-      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({});
+      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({ name: "NotificationService" });
       await testHelper.insertEventEntry(tx);
-      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService1" }));
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
       const result = await getOpenQueueEntries(tx);
       expect(result.length).toMatchInlineSnapshot(`1`);
       expect(connectToSpy).toHaveBeenCalledTimes(1);
@@ -577,7 +578,7 @@ describe("baseFunctionality", () => {
     test("if connect to CAP service is not possible event should be ignored", async () => {
       const connectToSpy = jest.spyOn(cds.connect, "to").mockRejectedValueOnce(new Error("connect not possible"));
       await testHelper.insertEventEntry(tx);
-      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService2" }));
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
       const result = await getOpenQueueEntries(tx);
       expect(result.length).toMatchInlineSnapshot(`0`);
       expect(connectToSpy).toHaveBeenCalledTimes(1);
