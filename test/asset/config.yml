@@ -48,6 +48,14 @@ events:
     processAfterCommit: true
     transactionMode: isolated
 
+  - type: AppSpecific
+    subType: AppA
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    appNames:
+      - app-a
+
+
 periodicEvents:
   - type: HealthCheck
     subType: DB

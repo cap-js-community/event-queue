@@ -587,4 +587,14 @@ describe("baseFunctionality", () => {
       expect(result.length).toMatchInlineSnapshot(`0`);
     });
   });
+
+  describe("app specific apps", () => {
+    test("should not process event if not configured for this app name", async () => {
+      const event = eventQueue.config.events.find((event) => event.subType === "AppA");
+      await testHelper.insertEventEntry(tx, { type: event.type, subType: event.subType });
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectOpen(tx);
+    });
+  });
 });
