@@ -17,8 +17,9 @@ const { Logger: mockLogger } = require("./mocks/logger");
 const { EventProcessingStatus } = require("../src/constants");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
 const { getEnvInstance } = require("../src/shared/env");
+const config = require("../src/config");
 
-const project = __dirname + "/.."; // The project's root folder
+const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
 
 describe("baseFunctionality", () => {
@@ -56,6 +57,7 @@ describe("baseFunctionality", () => {
     tx = cds.tx(context);
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
     await tx.run(DELETE.from("sap.eventqueue.Event"));
+    config.removeEvent("CAP_OUTBOX", "NotificationService");
     eventQueue.config.clearPeriodicEventBlockList();
     eventQueue.config.isEventBlockedCb = null;
   });
@@ -587,6 +589,51 @@ describe("baseFunctionality", () => {
     test("no events - should nothing be open", async () => {
       const result = await getOpenQueueEntries(tx);
       expect(result.length).toMatchInlineSnapshot(`0`);
+    });
+
+    describe("should respect app name configuration", () => {
+      afterAll(() => {
+        const env = getEnvInstance();
+        env.vcapApplication = {};
+      });
+
+      test("one open event for app and one not for this app", async () => {
+        await testHelper.insertEventEntry(tx, { randomGuid: true });
+        await testHelper.insertEventEntry(tx, { type: "AppSpecific", subType: "AppA" });
+        const result = await getOpenQueueEntries(tx);
+        expect(result.length).toMatchInlineSnapshot(`1`); // 1 ad-hoc and one not relevant
+        expect(result).toMatchSnapshot();
+      });
+
+      test("both open event relevant for app", async () => {
+        await testHelper.insertEventEntry(tx, { randomGuid: true });
+        await testHelper.insertEventEntry(tx, { type: "AppSpecific", subType: "AppA" });
+        const env = getEnvInstance();
+        env.vcapApplication = { application_name: "app-a" };
+        const result = await getOpenQueueEntries(tx);
+        expect(result.length).toMatchInlineSnapshot(`2`); // 2 ad-hoc both relevant
+        expect(result).toMatchSnapshot();
+      });
+
+      test("CAP service published event not relevant for app", async () => {
+        const service = await cds.connect.to("NotificationService");
+        cds.outboxed(service, { appNames: ["app-b"] });
+        await testHelper.insertEventEntry(tx);
+        await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
+        const result = await getOpenQueueEntries(tx);
+        expect(result.length).toMatchInlineSnapshot(`0`);
+      });
+
+      test("CAP service published event relevant for app", async () => {
+        const env = getEnvInstance();
+        env.vcapApplication = { application_name: "app-b" };
+        const service = await cds.connect.to("NotificationService");
+        cds.outboxed(service);
+        await testHelper.insertEventEntry(tx);
+        await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
+        const result = await getOpenQueueEntries(tx);
+        expect(result.length).toMatchInlineSnapshot(`1`);
+      });
     });
   });
 

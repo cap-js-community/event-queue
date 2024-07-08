@@ -281,8 +281,12 @@ class Config {
       eventOutdatedCheck: config.eventOutdatedCheck,
       checkForNextChunk: config.checkForNextChunk,
       deleteFinishedEventsAfterDays: config.deleteFinishedEventsAfterDays,
+      appNames: config.appNames,
       internalEvent: true,
     };
+    eventConfig._appNameMap = eventConfig.appNames
+      ? Object.fromEntries(new Map(eventConfig.appNames.map((a) => [a, true])))
+      : null;
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
   }
