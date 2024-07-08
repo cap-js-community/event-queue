@@ -47,7 +47,7 @@ class EventScheduler {
   }
 
   clearForTenant(tenantId) {
-    Object.keys(this.#eventsByTenants[tenantId]).forEach((timeoutId) => clearTimeout(timeoutId));
+    Object.keys(this.#eventsByTenants[tenantId] ?? []).forEach((timeoutId) => clearTimeout(timeoutId));
   }
 
   calculateOffset(type, subType, startAfter) {
