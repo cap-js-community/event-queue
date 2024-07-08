@@ -81,8 +81,8 @@ describe("event-queue outbox", () => {
     });
 
     it("if the service is outboxed cds outbox should be used", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
@@ -120,8 +120,8 @@ describe("event-queue outbox", () => {
       });
       await testHelper.insertEventEntry(tx);
       await checkAndInsertPeriodicEvents(context);
-      await commitAndOpenNew();
-      const result = await getOpenQueueEntries(tx);
+      await tx.commit();
+      const result = await cds.tx({}, async (tx) => await getOpenQueueEntries(tx));
       expect(result).toMatchSnapshot();
     });
 
@@ -142,8 +142,8 @@ describe("event-queue outbox", () => {
     });
 
     it("the unboxed version should not use the event-queue", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await cds.unboxed(outboxedService).send("sendFiori", {
         to: "to",
         subject: "subject",
@@ -159,8 +159,8 @@ describe("event-queue outbox", () => {
     });
 
     it("if the service is outboxed the event-queue outbox should be used", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
@@ -175,8 +175,8 @@ describe("event-queue outbox", () => {
     });
 
     it("accept event-queue specific options in headers", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       const date = new Date(Date.now() + 4 * 60 * 1000).toISOString();
       await outboxedService.send(
         "sendFiori",
@@ -209,8 +209,8 @@ describe("event-queue outbox", () => {
     });
 
     it("process outboxed event", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
@@ -226,8 +226,8 @@ describe("event-queue outbox", () => {
     });
 
     it("req.data should be stored for sent", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.emit("sendFiori", {
         to: "to",
         subject: "subject",
@@ -258,8 +258,8 @@ describe("event-queue outbox", () => {
     });
 
     it("req.data should be stored for emit", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
@@ -290,8 +290,8 @@ describe("event-queue outbox", () => {
     });
 
     it("should store correct user of original context", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       tx.context.user = { id: "badman" };
       await outboxedService.tx(tx.context).send("sendFiori", {
         to: "to",
@@ -324,8 +324,8 @@ describe("event-queue outbox", () => {
 
     it("map config to event-queue config", async () => {
       eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
@@ -395,8 +395,8 @@ describe("event-queue outbox", () => {
     });
 
     it("should catch errors and log them", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
@@ -440,8 +440,8 @@ describe("event-queue outbox", () => {
         useAsCAPOutbox: true,
       });
 
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.send("sendFiori", {
         to: "to",
         subject: "subject",
@@ -457,8 +457,8 @@ describe("event-queue outbox", () => {
     });
 
     it("req reject should be caught for send", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.send("rejectEvent", {
         to: "to",
         subject: "subject",
@@ -474,8 +474,8 @@ describe("event-queue outbox", () => {
     });
 
     it("req reject should cause an error for emit", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.emit("rejectEvent", {
         to: "to",
         subject: "subject",
@@ -491,8 +491,8 @@ describe("event-queue outbox", () => {
     });
 
     it("req error should be caught for send", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.send("errorEvent", {
         to: "to",
         subject: "subject",
@@ -508,8 +508,8 @@ describe("event-queue outbox", () => {
     });
 
     it("req error should be caught for emit", async () => {
-      const service = (await cds.connect.to("NotificationService")).tx(tx.context);
-      const outboxedService = cds.outboxed(service);
+      const service = await cds.connect.to("NotificationService");
+      const outboxedService = cds.outboxed(service).tx(context);
       await outboxedService.emit("errorEvent", {
         to: "to",
         subject: "subject",

@@ -29,16 +29,17 @@ const getOpenQueueEntries = async (tx) => {
 
   const result = [];
   for (const { type, subType } of entries) {
-    if (type.startsWith("CAP_OUTBOX")) {
-      if (cds.requires[subType]) {
-        await cds.connect.to(subType).catch(() => {});
-        result.push({ type, subType });
-      } else {
-        const service = await cds.connect.to(subType).catch(() => {});
-        if (service) {
+    if (eventConfig.isCapOutboxEvent(type)) {
+      await cds.connect
+        .to(subType)
+        .then((service) => {
+          if (!service) {
+            return;
+          }
+          cds.outboxed(service);
           result.push({ type, subType });
-        }
-      }
+        })
+        .catch(() => {});
     } else {
       if (eventConfig.getEventConfig(type, subType)) {
         result.push({ type, subType });
