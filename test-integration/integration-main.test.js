@@ -1088,7 +1088,7 @@ describe("integration-main", () => {
 
     describe("delete finished events", () => {
       it("should events which are eligible for deletion -> nothing should be deleted after 30 days", async () => {
-        const event = eventQueue.config.periodicEvents[1];
+        const event = eventQueue.config.periodicEvents.find(({ subType }) => subType === "DELETE_EVENTS");
         await cds.tx({}, async (tx2) => {
           checkAndInsertPeriodicEventsMock.mockRestore();
           await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
@@ -1112,11 +1112,11 @@ describe("integration-main", () => {
 
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 12 });
+        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 13 });
       });
 
       it("should events which are eligible for deletion -> should be deleted after 7 days", async () => {
-        const event = eventQueue.config.periodicEvents[1];
+        const event = eventQueue.config.periodicEvents.find(({ subType }) => subType === "DELETE_EVENTS");
         await cds.tx({}, async (tx2) => {
           checkAndInsertPeriodicEventsMock.mockRestore();
           await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
@@ -1140,7 +1140,7 @@ describe("integration-main", () => {
 
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
+        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 3 });
       });
     });
 
