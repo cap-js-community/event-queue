@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 - Avoid issues with not connected CAP service and open events
+- fix clear timeout tenant unsubscribe
 
 ## v1.5.3 - 2024-06-28
 
