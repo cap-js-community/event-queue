@@ -30,7 +30,7 @@ const createMainClientAndConnect = (options) => {
 const _createClientBase = (redisOptions) => {
   const env = getEnvInstance();
   try {
-    const credentials = env.getRedisCredentialsFromEnv();
+    const credentials = env.redisCredentialsFromEnv;
     const redisIsCluster = credentials.cluster_mode;
     const url = credentials.uri.replace(/(?<=rediss:\/\/)[\w-]+?(?=:)/, "");
     if (redisIsCluster) {

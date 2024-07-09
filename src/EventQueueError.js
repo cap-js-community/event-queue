@@ -18,8 +18,7 @@ const ERROR_CODES = {
   NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
   LOAD_HIGHER_THAN_LIMIT: "LOAD_HIGHER_THAN_LIMIT",
   NOT_ALLOWED_PRIORITY: "NOT_ALLOWED_PRIORITY",
-  SCHEMA_TENANT_MISMATCH: "SCHEMA_TENANT_MISMATCH",
-  GLOBAL_CDS_CONTEXT_MISMATCH: "GLOBAL_CDS_CONTEXT_MISMATCH",
+  APP_NAMES_FORMAT: "APP_NAMES_FORMAT",
 };
 
 const ERROR_CODES_META = {
@@ -69,11 +68,8 @@ const ERROR_CODES_META = {
   [ERROR_CODES.NOT_ALLOWED_PRIORITY]: {
     message: "The supplied priority is not allowed. Only LOW, MEDIUM, HIGH is allowed!",
   },
-  [ERROR_CODES.SCHEMA_TENANT_MISMATCH]: {
-    message: "The db client associated to the tenant context does not match! Processing will be skipped.",
-  },
-  [ERROR_CODES.GLOBAL_CDS_CONTEXT_MISMATCH]: {
-    message: "The global cds context does not match the local cds context.",
+  [ERROR_CODES.APP_NAMES_FORMAT]: {
+    message: "The app names property must be an array and only contain strings.",
   },
 };
 
@@ -244,23 +240,12 @@ class EventQueueError extends VError {
     );
   }
 
-  static dbClientSchemaMismatch(tenantId, dbClientSchema, serviceManagerSchema) {
-    const { message } = ERROR_CODES_META[ERROR_CODES.SCHEMA_TENANT_MISMATCH];
+  static appNamesFormat(type, subType, appNames) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.APP_NAMES_FORMAT];
     return new EventQueueError(
       {
-        name: ERROR_CODES.SCHEMA_TENANT_MISMATCH,
-        info: { tenantId, dbClientSchema, serviceManagerSchema },
-      },
-      message
-    );
-  }
-
-  static globalCdsContextNotMatchingLocal(globalProperties, localProperties) {
-    const { message } = ERROR_CODES_META[ERROR_CODES.GLOBAL_CDS_CONTEXT_MISMATCH];
-    return new EventQueueError(
-      {
-        name: ERROR_CODES.GLOBAL_CDS_CONTEXT_MISMATCH,
-        info: { globalProperties, localProperties },
+        name: ERROR_CODES.APP_NAMES_FORMAT,
+        info: { type, subType, appNames },
       },
       message
     );

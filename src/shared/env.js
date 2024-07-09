@@ -3,33 +3,41 @@
 let instance;
 
 class Env {
-  #isLocal;
   #vcapServices;
+  #vcapApplication;
 
   constructor() {
     try {
       this.#vcapServices = JSON.parse(process.env.VCAP_SERVICES);
+      this.#vcapApplication = JSON.parse(process.env.VCAP_APPLICATION);
     } catch {
       this.#vcapServices = {};
+      this.#vcapApplication = {};
     }
   }
 
-  getRedisCredentialsFromEnv() {
+  get redisCredentialsFromEnv() {
     return this.#vcapServices["redis-cache"]?.[0]?.credentials;
   }
 
-  set isLocal(value) {
-    this.#isLocal = value;
-  }
-  get isLocal() {
-    return this.#isLocal;
+  get applicationName() {
+    return this.#vcapApplication.application_name;
   }
 
   set vcapServices(value) {
     this.#vcapServices = value;
   }
+
   get vcapServices() {
     return this.#vcapServices;
+  }
+
+  set vcapApplication(value) {
+    this.#vcapApplication = value;
+  }
+
+  get vcapApplication() {
+    return this.#vcapApplication;
   }
 }
 

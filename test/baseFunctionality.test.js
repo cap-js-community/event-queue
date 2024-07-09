@@ -16,8 +16,10 @@ const EventQueueHealthCheck = require("./asset/EventQueueHealthCheckDb");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { EventProcessingStatus } = require("../src/constants");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
+const { getEnvInstance } = require("../src/shared/env");
+const config = require("../src/config");
 
-const project = __dirname + "/.."; // The project's root folder
+const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
 
 describe("baseFunctionality", () => {
@@ -42,6 +44,7 @@ describe("baseFunctionality", () => {
       configFilePath,
       processEventsAfterPublish: false,
       registerAsEventProcessor: false,
+      useAsCAPOutbox: true,
     });
     loggerMock = mockLogger();
     jest.spyOn(cds, "log").mockImplementation((layer) => {
@@ -54,6 +57,7 @@ describe("baseFunctionality", () => {
     tx = cds.tx(context);
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
     await tx.run(DELETE.from("sap.eventqueue.Event"));
+    config.removeEvent("CAP_OUTBOX", "NotificationService");
     eventQueue.config.clearPeriodicEventBlockList();
     eventQueue.config.isEventBlockedCb = null;
   });
@@ -554,10 +558,10 @@ describe("baseFunctionality", () => {
     });
 
     test("should work for CAP Service that is not connected yet", async () => {
-      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({});
+      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({ name: "NotificationService" });
       cds.requires.NotificationService = {};
       await testHelper.insertEventEntry(tx);
-      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService0" }));
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
       const result = await getOpenQueueEntries(tx);
       expect(connectToSpy).toHaveBeenCalledTimes(1);
       expect(result.length).toMatchInlineSnapshot(`1`);
@@ -565,9 +569,9 @@ describe("baseFunctionality", () => {
     });
 
     test("should work for CAP Service that is not connected yet use connect as fallback should work", async () => {
-      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({});
+      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({ name: "NotificationService" });
       await testHelper.insertEventEntry(tx);
-      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService1" }));
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
       const result = await getOpenQueueEntries(tx);
       expect(result.length).toMatchInlineSnapshot(`1`);
       expect(connectToSpy).toHaveBeenCalledTimes(1);
@@ -576,7 +580,7 @@ describe("baseFunctionality", () => {
     test("if connect to CAP service is not possible event should be ignored", async () => {
       const connectToSpy = jest.spyOn(cds.connect, "to").mockRejectedValueOnce(new Error("connect not possible"));
       await testHelper.insertEventEntry(tx);
-      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService2" }));
+      await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
       const result = await getOpenQueueEntries(tx);
       expect(result.length).toMatchInlineSnapshot(`0`);
       expect(connectToSpy).toHaveBeenCalledTimes(1);
@@ -585,6 +589,108 @@ describe("baseFunctionality", () => {
     test("no events - should nothing be open", async () => {
       const result = await getOpenQueueEntries(tx);
       expect(result.length).toMatchInlineSnapshot(`0`);
+    });
+
+    describe("should respect app name configuration", () => {
+      afterAll(() => {
+        const env = getEnvInstance();
+        env.vcapApplication = {};
+      });
+
+      test("one open event for app and one not for this app", async () => {
+        await testHelper.insertEventEntry(tx, { randomGuid: true });
+        await testHelper.insertEventEntry(tx, { type: "AppSpecific", subType: "AppA" });
+        const result = await getOpenQueueEntries(tx);
+        expect(result.length).toMatchInlineSnapshot(`1`); // 1 ad-hoc and one not relevant
+        expect(result).toMatchSnapshot();
+      });
+
+      test("both open event relevant for app", async () => {
+        await testHelper.insertEventEntry(tx, { randomGuid: true });
+        await testHelper.insertEventEntry(tx, { type: "AppSpecific", subType: "AppA" });
+        const env = getEnvInstance();
+        env.vcapApplication = { application_name: "app-a" };
+        const result = await getOpenQueueEntries(tx);
+        expect(result.length).toMatchInlineSnapshot(`2`); // 2 ad-hoc both relevant
+        expect(result).toMatchSnapshot();
+      });
+
+      test("CAP service published event not relevant for app", async () => {
+        const service = await cds.connect.to("NotificationService");
+        cds.outboxed(service, { appNames: ["app-b"] });
+        await testHelper.insertEventEntry(tx);
+        await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
+        const result = await getOpenQueueEntries(tx);
+        expect(result.length).toMatchInlineSnapshot(`0`);
+      });
+
+      test("CAP service published event relevant for app", async () => {
+        const env = getEnvInstance();
+        env.vcapApplication = { application_name: "app-b" };
+        const service = await cds.connect.to("NotificationService");
+        cds.outboxed(service);
+        await testHelper.insertEventEntry(tx);
+        await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
+        const result = await getOpenQueueEntries(tx);
+        expect(result.length).toMatchInlineSnapshot(`1`);
+      });
+    });
+  });
+
+  describe("app specific apps", () => {
+    describe("should not process", () => {
+      test("ad-hoc event", async () => {
+        const event = eventQueue.config.events.find((event) => event.subType === "AppA");
+        await testHelper.insertEventEntry(tx, { type: event.type, subType: event.subType });
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectOpen(tx);
+      });
+
+      test("periodic event", async () => {
+        const event = eventQueue.config.periodicEvents.find((event) => event.subType === "AppA");
+        await checkAndInsertPeriodicEvents(context);
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        await testHelper.selectEventQueueAndExpectOpen(tx, { type: "AppSpecific_PERIODIC" });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+    });
+
+    describe("should process", () => {
+      beforeAll(() => {
+        const env = getEnvInstance();
+        env.vcapApplication = { application_name: "app-a" };
+      });
+
+      test("ad-hoc event", async () => {
+        const event = eventQueue.config.events.find((event) => event.subType === "AppA");
+        await testHelper.insertEventEntry(tx, { type: event.type, subType: event.subType });
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectDone(tx);
+      });
+
+      test("periodic event", async () => {
+        const event = eventQueue.config.periodicEvents.find((event) => event.subType === "AppA");
+        await checkAndInsertPeriodicEvents(context);
+        await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        const events = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 2,
+          type: "AppSpecific_PERIODIC",
+        });
+        const [open, done] = events.sort((a, b) => a.status - b.status);
+        expect(open).toEqual({
+          status: EventProcessingStatus.Open,
+          attempts: 0,
+          startAfter: new Date(new Date(done.startAfter).getTime() + event.interval * 1000).toISOString(),
+        });
+        expect(done).toEqual({
+          status: EventProcessingStatus.Done,
+          attempts: 1,
+          startAfter: new Date(done.startAfter).toISOString(),
+        });
+      });
     });
   });
 });

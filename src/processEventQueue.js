@@ -269,6 +269,7 @@ const _checkEventIsBlocked = async (baseInstance) => {
       });
     }
   } else {
+    // TODO: we should be able to get rid of baseInstance.isPeriodicEvent with rawEventType
     eventBlocked = config.isEventBlocked(
       baseInstance.eventType,
       baseInstance.eventSubType,
@@ -283,11 +284,16 @@ const _checkEventIsBlocked = async (baseInstance) => {
 
   if (eventBlocked) {
     baseInstance.logger.info("skipping run because event is blocked by configuration", {
-      type: baseInstance.eventType,
+      type: baseInstance.rawEventType,
       subType: baseInstance.eventSubType,
       tenantUnsubscribed: config.isTenantUnsubscribed(baseInstance.context.tenant),
     });
   }
+
+  if (!eventBlocked) {
+    eventBlocked = !config.shouldBeProcessedInThisApplication(baseInstance.rawEventType, baseInstance.eventSubType);
+  }
+
   return eventBlocked;
 };
 

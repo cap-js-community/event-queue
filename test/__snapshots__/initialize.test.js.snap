@@ -3,6 +3,7 @@
 exports[`initialize read yaml config file 1`] = `
 [
   {
+    "_appNameMap": null,
     "impl": "./srv/notification/EventQueueNotificationProcessor",
     "load": 40,
     "parallelEventProcessing": 5,
@@ -11,6 +12,7 @@ exports[`initialize read yaml config file 1`] = `
     "type": "Notifications",
   },
   {
+    "_appNameMap": null,
     "impl": "./srv/businessLogs/EventQueueBusinessLogProcessor",
     "load": 10,
     "parallelEventProcessing": 1,

@@ -1108,6 +1108,10 @@ class EventQueueProcessorBase {
     return this.#eventType.replace(SUFFIX_PERIODIC, "");
   }
 
+  get rawEventType() {
+    return this.#eventType;
+  }
+
   get eventSubType() {
     return this.#eventSubType;
   }

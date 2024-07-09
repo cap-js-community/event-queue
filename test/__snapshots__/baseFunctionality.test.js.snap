@@ -142,6 +142,28 @@ exports[`baseFunctionality getOpenQueueEntries return open event types 2`] = `
 ]
 `;
 
+exports[`baseFunctionality getOpenQueueEntries should respect app name configuration both open event relevant for app 2`] = `
+[
+  {
+    "subType": "AppA",
+    "type": "AppSpecific",
+  },
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+]
+`;
+
+exports[`baseFunctionality getOpenQueueEntries should respect app name configuration one open event for app and one not for this app 2`] = `
+[
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+]
+`;
+
 exports[`baseFunctionality periodic events two open events - not allowed 1`] = `
 [
   "More than one open events for the same configuration which is not allowed!",

@@ -15,9 +15,19 @@ const COMPONENT_NAME = "/eventQueue/eventQueueAsOutbox";
 function outboxed(srv, customOpts) {
   // outbox max. once
   const logger = cds.log(COMPONENT_NAME);
+  const outboxOpts = Object.assign(
+    {},
+    (typeof cds.requires.outbox === "object" && cds.requires.outbox) || {},
+    (typeof srv.options?.outbox === "object" && srv.options.outbox) || {},
+    customOpts || {}
+  );
+
   if (!new.target) {
     const former = srv[OUTBOXED];
     if (former) {
+      if (outboxOpts.kind === "persistent-outbox") {
+        config.addCAPOutboxEvent(srv.name, outboxOpts);
+      }
       return former;
     }
   }
@@ -30,14 +40,9 @@ function outboxed(srv, customOpts) {
     Object.defineProperty(srv, OUTBOXED, { value: outboxedSrv });
   }
 
-  const outboxOpts = Object.assign(
-    {},
-    (typeof cds.requires.outbox === "object" && cds.requires.outbox) || {},
-    (typeof srv.options?.outbox === "object" && srv.options.outbox) || {},
-    customOpts || {}
-  );
-
-  config.addCAPOutboxEvent(srv.name, outboxOpts);
+  if (outboxOpts.kind === "persistent-outbox") {
+    config.addCAPOutboxEvent(srv.name, outboxOpts);
+  }
   outboxedSrv.handle = async function (req) {
     const context = req.context || cds.context;
     if (outboxOpts.kind === "persistent-outbox") {
