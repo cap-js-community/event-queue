@@ -10,12 +10,14 @@ const distributedLock = require("../src/shared/distributedLock");
 const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExistsAndReturnValue");
 const config = require("../src/config");
 const redisPub = require("../src/redis/redisPub");
+const redisSub = require("../src/redis/redisSub");
+const runnerHelper = require("../src/runner/runnerHelper");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
 const eventQueue = require("../src");
-const { insertEventEntry, getEventEntry } = require("./helper");
+const { insertEventEntry } = require("./helper");
 const { Logger: mockLogger } = require("./mocks/logger");
 
 let mockRedisPublishCalls = [];
@@ -70,103 +72,93 @@ describe("eventQueue Redis Events and DB Handlers", () => {
 
   afterAll(() => cds.shutdown);
 
-  test("should not be called if not activated for the event", async () => {
-    await tx.run(
-      INSERT.into("sap.eventqueue.Event").entries({
-        ...getEventEntry(),
-        type: "Test",
-        subType: "NoProcessAfterCommit",
-      })
-    );
-    await tx.commit();
-    expect(loggerMock.calls().error).toHaveLength(0);
-    expect(mockRedisPublishCalls).toHaveLength(0);
-  });
+  describe("publish", () => {
+    test("should not be called if not activated for the event", async () => {
+      await insertEventEntry(tx, { type: "Test", subType: "NoProcessAfterCommit" });
+      await tx.commit();
+      expect(loggerMock.calls().error).toHaveLength(0);
+      expect(mockRedisPublishCalls).toHaveLength(0);
+    });
 
-  test("db handler should be called if event is inserted", async () => {
-    checkLockExistsSpy.mockResolvedValueOnce(false);
-    await insertEventEntry(tx);
-    await tx.commit();
-    expect(loggerMock.calls().error).toHaveLength(0);
-    expect(mockRedisPublishCalls).toHaveLength(1);
-    expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
+    test("db handler should be called if event is inserted", async () => {
+      checkLockExistsSpy.mockResolvedValueOnce(false);
+      await insertEventEntry(tx);
+      await tx.commit();
+      expect(loggerMock.calls().error).toHaveLength(0);
+      expect(mockRedisPublishCalls).toHaveLength(1);
+      expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
       ]
     `);
-  });
+    });
 
-  test("should do nothing no lock is available", async () => {
-    checkLockExistsSpy.mockResolvedValueOnce(true);
-    await insertEventEntry(tx);
-    await tx.commit();
-    expect(loggerMock.calls().error).toHaveLength(0);
-    expect(mockRedisPublishCalls).toHaveLength(0);
-  });
+    test("should do nothing no lock is available", async () => {
+      checkLockExistsSpy.mockResolvedValueOnce(true);
+      await insertEventEntry(tx);
+      await tx.commit();
+      expect(loggerMock.calls().error).toHaveLength(0);
+      expect(mockRedisPublishCalls).toHaveLength(0);
+    });
 
-  test("should wait and try again if lock is not available for periodic events", async () => {
-    await tx.rollback();
-    const event = eventQueue.config.periodicEvents[0];
-    checkLockExistsSpy.mockResolvedValueOnce(true);
-    checkLockExistsSpy.mockResolvedValueOnce(false);
+    test("should wait and try again if lock is not available for periodic events", async () => {
+      await tx.rollback();
+      const event = eventQueue.config.periodicEvents[0];
+      checkLockExistsSpy.mockResolvedValueOnce(true);
+      checkLockExistsSpy.mockResolvedValueOnce(false);
 
-    await redisPub.broadcastEvent(123, { type: event.type, subType: event.subType });
-    expect(loggerMock.calls().error).toHaveLength(0);
-    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
-    expect(setTimeoutSpy.mock.lastCall[0]).toMatchInlineSnapshot(`30000`);
-    expect(mockRedisPublishCalls).toHaveLength(1);
-    expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
+      await redisPub.broadcastEvent(123, { type: event.type, subType: event.subType });
+      expect(loggerMock.calls().error).toHaveLength(0);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+      expect(setTimeoutSpy.mock.lastCall[0]).toMatchInlineSnapshot(`30000`);
+      expect(mockRedisPublishCalls).toHaveLength(1);
+      expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
       ]
     `);
-  });
+    });
 
-  test("publish event should be called only once even if the same combination is inserted twice", async () => {
-    checkLockExistsSpy.mockResolvedValueOnce(false);
-    await insertEventEntry(tx, { numberOfEntries: 2 });
-    await tx.commit();
-    expect(mockRedisPublishCalls).toHaveLength(1);
-    expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
+    test("publish event should be called only once even if the same combination is inserted twice", async () => {
+      checkLockExistsSpy.mockResolvedValueOnce(false);
+      await insertEventEntry(tx, { numberOfEntries: 2 });
+      await tx.commit();
+      expect(mockRedisPublishCalls).toHaveLength(1);
+      expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
       ]
     `);
-  });
+    });
 
-  test("publish event should be called only once even if the same combination is inserted twice - two inserts", async () => {
-    checkLockExistsSpy.mockResolvedValueOnce(false);
-    await insertEventEntry(tx, { numberOfEntries: 2 });
-    await tx.commit();
-    expect(mockRedisPublishCalls).toHaveLength(1);
-    expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
+    test("publish event should be called only once even if the same combination is inserted twice - two inserts", async () => {
+      checkLockExistsSpy.mockResolvedValueOnce(false);
+      await insertEventEntry(tx, { numberOfEntries: 2 });
+      await tx.commit();
+      expect(mockRedisPublishCalls).toHaveLength(1);
+      expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
       [
         {},
         "EVENT_QUEUE_MESSAGE_CHANNEL",
         "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
       ]
     `);
-  });
+    });
 
-  test("different event combinations should result in two requests", async () => {
-    checkLockExistsSpy.mockResolvedValue(false);
-    await insertEventEntry(tx);
-    await tx.run(
-      INSERT.into("sap.eventqueue.Event").entries({
-        ...getEventEntry(),
-        type: "Fiori",
-      })
-    );
+    test("different event combinations should result in two requests", async () => {
+      checkLockExistsSpy.mockResolvedValue(false);
+      await insertEventEntry(tx);
+      await insertEventEntry(tx, { type: "Fiori", randomGuid: true });
 
-    await tx.commit();
-    expect(mockRedisPublishCalls).toHaveLength(2);
-    expect(mockRedisPublishCalls).toMatchInlineSnapshot(`
+      await tx.commit();
+      expect(mockRedisPublishCalls).toHaveLength(2);
+      expect(mockRedisPublishCalls).toMatchInlineSnapshot(`
       [
         [
           {},
@@ -180,16 +172,75 @@ describe("eventQueue Redis Events and DB Handlers", () => {
         ],
       ]
     `);
+    });
+
+    test("publish event throws an error", async () => {
+      checkLockExistsSpy.mockResolvedValueOnce(false);
+      const publishMessageSpy = jest.spyOn(redis, "publishMessage");
+      await insertEventEntry(tx);
+      mockThrowErrorPublish = true;
+      await tx.commit();
+      expect(mockRedisPublishCalls).toHaveLength(0);
+      expect(publishMessageSpy).toHaveBeenCalledTimes(1);
+      mockThrowErrorPublish = false;
+    });
   });
 
-  test("publish event throws an error", async () => {
-    checkLockExistsSpy.mockResolvedValueOnce(false);
-    const publishMessageSpy = jest.spyOn(redis, "publishMessage");
-    await insertEventEntry(tx);
-    mockThrowErrorPublish = true;
-    await tx.commit();
-    expect(mockRedisPublishCalls).toHaveLength(0);
-    expect(publishMessageSpy).toHaveBeenCalledTimes(1);
-    mockThrowErrorPublish = false;
+  describe("subscribe handler", () => {
+    afterEach(() => {
+      config.isEventQueueActive = true;
+    });
+
+    test("straight forward should call runEventCombinationForTenant", async () => {
+      const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+      checkLockExistsSpy.mockResolvedValueOnce(false);
+      await insertEventEntry(tx);
+      await tx.commit();
+
+      expect(mockRedisPublishCalls).toHaveLength(1);
+      await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][2]);
+      expect(runnerSpy).toHaveBeenCalledTimes(1);
+      expect(runnerSpy).toHaveBeenCalledWith(expect.any(Object), "Notifications", "Task", {
+        lockId: expect.any(String),
+        shouldTrace: true,
+      });
+    });
+
+    test("should do nothing if isEventQueueActive=false", async () => {
+      const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+      checkLockExistsSpy.mockResolvedValueOnce(false);
+      await insertEventEntry(tx);
+      await tx.commit();
+
+      config.isEventQueueActive = false;
+      expect(mockRedisPublishCalls).toHaveLength(1);
+      await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][2]);
+      expect(runnerSpy).toHaveBeenCalledTimes(0);
+    });
+
+    test("should not fail for not existing config", async () => {
+      const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+      checkLockExistsSpy.mockResolvedValueOnce(false);
+      await insertEventEntry(tx);
+      await tx.commit();
+
+      expect(mockRedisPublishCalls).toHaveLength(1);
+      const data = JSON.parse(mockRedisPublishCalls[0][2]);
+
+      await redisSub.__._messageHandlerProcessEvents({ ...data, type: "NOT_EXISTING" });
+      expect(runnerSpy).toHaveBeenCalledTimes(0);
+    });
+
+    test("should skip processing if not relevant for app", async () => {
+      const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+      checkLockExistsSpy.mockResolvedValueOnce(false);
+      await insertEventEntry(tx, { type: "AppSpecific", subType: "AppA" });
+      await tx.commit();
+
+      expect(mockRedisPublishCalls).toHaveLength(1);
+
+      await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][2]);
+      expect(runnerSpy).toHaveBeenCalledTimes(0);
+    });
   });
 });
