@@ -1,6 +1,6 @@
 {
   "name": "@cap-js-community/event-queue",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "description": "An event queue that enables secure transactional processing of asynchronous and periodic events, featuring instant event processing with Redis Pub/Sub and load distribution across all application instances.",
   "main": "src/index.js",
   "types": "src/index.d.ts",
@@ -44,12 +44,12 @@
   },
   "dependencies": {
     "@sap/xssec": "^3.6.1",
-    "redis": "^4.6.14",
+    "redis": "^4.6.15",
     "verror": "^1.10.1",
     "yaml": "^2.4.2"
   },
   "devDependencies": {
-    "@cap-js/hana": "^1.0.0",
+    "@cap-js/hana": "^1.1.0",
     "@cap-js/sqlite": "^1.7.2",
     "@sap/cds": "^7.9.2",
     "@sap/cds-dk": "^7.8.0",
