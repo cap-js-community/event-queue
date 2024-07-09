@@ -35,23 +35,6 @@ const _messageHandlerProcessEvents = async (messageData) => {
       return;
     }
 
-    if (!(config.getEventConfig(type, subType) && config.shouldBeProcessedInThisApplication(type, subType))) {
-      logger.debug("event is not configured to be processed on this app-name", {
-        tenantId,
-        type,
-        subType,
-      });
-      return;
-    }
-
-    const user = await cds.tx({ tenant: tenantId }, async () => {
-      return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
-    });
-    const tenantContext = {
-      tenant: tenantId,
-      user,
-    };
-
     if (!config.getEventConfig(type, subType)) {
       if (config.isCapOutboxEvent(type)) {
         try {
@@ -72,6 +55,23 @@ const _messageHandlerProcessEvents = async (messageData) => {
         return;
       }
     }
+
+    if (!(config.getEventConfig(type, subType) && config.shouldBeProcessedInThisApplication(type, subType))) {
+      logger.debug("event is not configured to be processed on this app-name", {
+        tenantId,
+        type,
+        subType,
+      });
+      return;
+    }
+
+    const user = await cds.tx({ tenant: tenantId }, async () => {
+      return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
+    });
+    const tenantContext = {
+      tenant: tenantId,
+      user,
+    };
 
     return await cds.tx(tenantContext, async ({ context }) => {
       return await runnerHelper.runEventCombinationForTenant(context, type, subType, { lockId, shouldTrace: true });
