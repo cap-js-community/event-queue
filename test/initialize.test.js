@@ -65,8 +65,9 @@ describe("initialize", () => {
       configFilePath: path.join(__dirname, "asset", "config.yml"),
       processEventsAfterPublish: false,
     });
-
     const fileContent = config.fileContent;
+    const originalEvents = [...fileContent.events];
+
     delete fileContent.periodicEvents[0].impl;
     expect(() => {
       config.fileContent = fileContent;
@@ -108,6 +109,19 @@ describe("initialize", () => {
     expect(() => {
       config.fileContent = fileContent;
     }).not.toThrow();
+
+    const event = originalEvents.find((event) => event.subType === "AppA");
+    event.appNames = "test";
+    fileContent.events.push({ ...event });
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"The app names property must be an array and only contain strings."`);
+
+    event.appNames = [1];
+    fileContent.events.push({ ...event });
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"The app names property must be an array and only contain strings."`);
   });
 
   describe("runner mode registration", () => {
