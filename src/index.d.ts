@@ -117,6 +117,7 @@ export declare class EventQueueProcessorBase {
   setShouldRollbackTransaction(key: string): void;
   shouldRollbackTransaction(key: string): boolean;
   beforeProcessingEvents(): Promise<void>;
+  addEntryToProcessingMap(key: string, queueEntry: EventEntity, payload: Object): void;
 
   set logger(value: CdsLogger);
   get logger(): CdsLogger;
