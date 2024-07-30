@@ -43,16 +43,16 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@sap/xssec": "^3.6.1",
-    "redis": "^4.6.15",
+    "@sap/xssec": "^4.2.1",
+    "redis": "^4.7.0",
     "verror": "^1.10.1",
-    "yaml": "^2.4.2"
+    "yaml": "^2.5.0"
   },
   "devDependencies": {
-    "@cap-js/hana": "^1.1.0",
-    "@cap-js/sqlite": "^1.7.2",
-    "@sap/cds": "^7.9.2",
-    "@sap/cds-dk": "^7.8.0",
+    "@cap-js/hana": "^1.1.1",
+    "@cap-js/sqlite": "^1.7.3",
+    "@sap/cds": "^8.1.0",
+    "@sap/cds-dk": "^8.1.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jest": "^28.6.0",
