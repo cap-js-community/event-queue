@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- added more js doc for addEntryToProcessingMap
+- JSDocs: added addEntryToProcessingMap for EventQueueProcessorBase
+- Enhanced Event Processing: Events will continue to be processed even if the initial processing time is exceeded. Events are now broadcast, allowing different application instances to pick them up. The existing worker queue is used to ensure proper load balancing.
 
 ## v1.6.0 - 2024-07-09
 

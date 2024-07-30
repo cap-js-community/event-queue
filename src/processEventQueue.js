@@ -120,7 +120,7 @@ const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime
     return true;
   }
 
-  eventTypeInstance.logTimeExceeded(iterationCounter);
+  eventTypeInstance.logTimeExceededAndPublishContinue(iterationCounter);
   return false;
 };
 
