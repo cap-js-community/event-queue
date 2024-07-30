@@ -1,13 +1,9 @@
 "use strict";
 
 const crypto = require("crypto");
-const { promisify } = require("util");
 
 const cds = require("@sap/cds");
 const xssec = require("@sap/xssec");
-
-const getAuthTokenAsync = promisify(xssec.requests.requestClientCredentialsToken);
-const getCreateSecurityContextAsync = promisify(xssec.createSecurityContext);
 
 const MARGIN_AUTH_INFO_EXPIRY = 60 * 1000;
 const COMPONENT_NAME = "/eventQueue/common";
@@ -93,7 +89,7 @@ const getAuthInfo = async (tenantId) => {
   if (!cds.requires?.auth?.credentials) {
     return null; // no credentials not authInfo
   }
-  if (!cds.env.requires?.auth.kind.match(/jwt|xsuaa/i)) {
+  if (!cds.requires?.auth.kind.match(/jwt|xsuaa/i)) {
     cds.log(COMPONENT_NAME).warn("Only 'jwt' or 'xsuaa' are supported as values for auth.kind.");
     return null;
   }
