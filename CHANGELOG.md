@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - upgrade to @sap/xssec 4
 - Testing with cds 8
 
+### Added
+
+- added more js doc for addEntryToProcessingMap
+
 ## v1.6.0 - 2024-07-09
 
 ### Added
