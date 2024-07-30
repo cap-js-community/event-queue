@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.6.1 - 2024-08-XX
+
+### Changed
+
+- upgrade to @sap/xssec 4
+- Testing with cds 8
+
 ## v1.6.0 - 2024-07-09
 
 ### Added

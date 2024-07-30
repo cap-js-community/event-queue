@@ -1,15 +1,10 @@
 "use strict";
 
 const crypto = require("crypto");
-const { promisify } = require("util");
 
 const cds = require("@sap/cds");
 const xssec = require("@sap/xssec");
 
-const getAuthTokenAsync = promisify(xssec.requests.requestClientCredentialsToken);
-const getCreateSecurityContextAsync = promisify(xssec.createSecurityContext);
-
-let authInfoCache = {};
 const MARGIN_AUTH_INFO_EXPIRY = 60 * 1000;
 const COMPONENT_NAME = "/eventQueue/common";
 
@@ -74,9 +69,14 @@ const processChunkedSync = (inputs, chunkSize, chunkHandler) => {
 const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(value)).digest("base64").slice(0, 32);
 
 const _getNewAuthInfo = async (tenantId) => {
+  const authInfoCache = getAuthInfo._authInfoCache ?? {};
   try {
-    const token = await getAuthTokenAsync(null, cds.requires.auth.credentials, null, tenantId);
-    const authInfo = await getCreateSecurityContextAsync(token, cds.requires.auth.credentials);
+    if (!_getNewAuthInfo._xsuaaService) {
+      _getNewAuthInfo._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
+    }
+    const authService = _getNewAuthInfo._xsuaaService;
+    const token = await authService.fetchClientCredentialsToken();
+    const authInfo = await authService.createSecurityContext(token);
     authInfoCache[tenantId].expireTs = authInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
     return authInfo;
   } catch (err) {
@@ -89,7 +89,12 @@ const getAuthInfo = async (tenantId) => {
   if (!cds.requires?.auth?.credentials) {
     return null; // no credentials not authInfo
   }
+  if (!cds.requires?.auth.kind.match(/jwt|xsuaa/i)) {
+    cds.log(COMPONENT_NAME).warn("Only 'jwt' or 'xsuaa' are supported as values for auth.kind.");
+    return null;
+  }
 
+  const authInfoCache = getAuthInfo._authInfoCache ?? {};
   // not existing or existing but expired
   if (
     !authInfoCache[tenantId] ||
@@ -110,6 +115,6 @@ module.exports = {
   hashStringTo32Bit,
   getAuthInfo,
   __: {
-    clearAuthInfoCache: () => (authInfoCache = {}),
+    clearAuthInfoCache: () => (getAuthInfo._authInfoCache = {}),
   },
 };
