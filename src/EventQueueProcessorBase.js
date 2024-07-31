@@ -163,12 +163,13 @@ class EventQueueProcessorBase {
     );
   }
 
-  logTimeExceeded(iterationCounter) {
-    this.logger.info("Exiting event queue processing as max time exceeded", {
+  logTimeExceededAndPublishContinue(iterationCounter) {
+    this.logger.info("Exiting event queue processing as max time exceeded - but broadcast to trigger processing", {
       eventType: this.#eventType,
       eventSubType: this.#eventSubType,
       iterationCounter,
     });
+    this.#eventSchedulerInstance.scheduleEvent(this.__context.tenant, this.#eventType, this.#eventSubType, new Date());
   }
 
   logStartMessage() {

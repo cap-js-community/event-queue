@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.6.1 - 2024-08-XX
+## v1.6.1 - 2024-07-30
 
 ### Changed
 
@@ -14,8 +14,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- added more js doc for addEntryToProcessingMap
 - Export `WorkerQueue` for monitoring purposes to provide insights into the running load of the application.
+- JSDocs: added addEntryToProcessingMap for EventQueueProcessorBase
+- Enhanced Event Processing: Events will continue to be processed even if the initial processing time is exceeded. Events are now broadcast, allowing different application instances to pick them up. The existing worker queue is used to ensure proper load balancing.
 
 ## v1.6.0 - 2024-07-09
 

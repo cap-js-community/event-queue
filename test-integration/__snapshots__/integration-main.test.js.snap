@@ -149,6 +149,18 @@ exports[`integration-main if process event throws an error --> tx should be roll
 }
 `;
 
+exports[`integration-main if processing time is exceeded broadcast should trigger processing again 1`] = `
+{
+  "BEGIN": 8,
+  "COMMIT": 5,
+  "CREATE": 2,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 2,
+  "UPDATE": 3,
+}
+`;
+
 exports[`integration-main insert one delayed entry and process - should not be processed 1`] = `
 {
   "BEGIN": 4,
