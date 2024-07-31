@@ -69,14 +69,15 @@ const processChunkedSync = (inputs, chunkSize, chunkHandler) => {
 const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(value)).digest("base64").slice(0, 32);
 
 const _getNewAuthInfo = async (tenantId) => {
-  const authInfoCache = getAuthInfo._authInfoCache ?? {};
+  const authInfoCache = getAuthInfo._authInfoCache;
+  authInfoCache[tenantId] = authInfoCache[tenantId] ?? {};
   try {
     if (!_getNewAuthInfo._xsuaaService) {
       _getNewAuthInfo._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
     }
     const authService = _getNewAuthInfo._xsuaaService;
     const token = await authService.fetchClientCredentialsToken();
-    const authInfo = await authService.createSecurityContext(token);
+    const authInfo = await authService.createSecurityContext(token.access_token);
     authInfoCache[tenantId].expireTs = authInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
     return authInfo;
   } catch (err) {
@@ -94,7 +95,8 @@ const getAuthInfo = async (tenantId) => {
     return null;
   }
 
-  const authInfoCache = getAuthInfo._authInfoCache ?? {};
+  getAuthInfo._authInfoCache = getAuthInfo._authInfoCache ?? {};
+  const authInfoCache = getAuthInfo._authInfoCache;
   // not existing or existing but expired
   if (
     !authInfoCache[tenantId] ||
