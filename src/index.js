@@ -10,4 +10,5 @@ module.exports = {
   ...require("./constants"),
   ...require("./publishEvent"),
   EventQueueProcessorBase: require("./EventQueueProcessorBase"),
+  WorkerQueue: require("./shared/WorkerQueue"),
 };

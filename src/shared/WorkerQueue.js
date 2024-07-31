@@ -8,7 +8,7 @@ const { Priorities } = require("../constants");
 const SetIntervalDriftSafe = require("./SetIntervalDriftSafe");
 
 const PRIORITIES = Object.values(Priorities).reverse();
-const PRIORITY_MULTIPLICATOR = PRIORITIES.reduce((result, element, index) => {
+const PRIORITY_MULTIPLICATION = PRIORITIES.reduce((result, element, index) => {
   result[element] = index + 1;
   return result;
 }, {});
@@ -152,6 +152,10 @@ class WorkerQueue {
     return this.#queue;
   }
 
+  get runningLoad() {
+    return this.#runningLoad;
+  }
+
   #checkAndLogWaitingTime(startTime, label, priority) {
     const ts = Date.now();
     if (ts - lastLogTs <= 1000) {
@@ -159,7 +163,7 @@ class WorkerQueue {
     }
     lastLogTs = ts;
     const diffMs = Math.round(Number(process.hrtime.bigint() - startTime) / NANO_TO_MS);
-    const priorityMultiplication = PRIORITY_MULTIPLICATOR[priority];
+    const priorityMultiplication = PRIORITY_MULTIPLICATION[priority];
     let logLevel;
     if (diffMs >= THRESHOLD.ERROR * priorityMultiplication) {
       logLevel = "error";

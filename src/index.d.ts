@@ -215,3 +215,38 @@ declare class Config {
 }
 
 export const config: Config;
+
+export const workerQueue: WorkerQueue;
+
+declare class WorkerQueue {
+  constructor(concurrency: number);
+
+  addToQueue(load: number, label: string, priority?: Priorities, cb?: () => any): Promise<any>;
+
+  _executeFunction(
+    load: number,
+    label: string,
+    cb: () => any,
+    resolve: (value?: unknown) => void,
+    reject: (reason?: any) => void,
+    startTime: bigint,
+    priority: string
+  ): void;
+
+  get runningPromises(): Array<Promise<any>>;
+  get runningLoad(): number;
+
+  static get instance(): WorkerQueue;
+
+  get queue(): Record<
+    string,
+    Array<[number, string, () => any, (value?: unknown) => void, (reason?: any) => void, bigint]>
+  >;
+}
+
+interface Priorities {
+  Low: string;
+  Medium: string;
+  High: string;
+  VeryHigh: string;
+}

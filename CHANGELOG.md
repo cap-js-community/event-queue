@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - added more js doc for addEntryToProcessingMap
+- Export `WorkerQueue` for monitoring purposes to provide insights into the running load of the application.
 
 ## v1.6.0 - 2024-07-09
 
