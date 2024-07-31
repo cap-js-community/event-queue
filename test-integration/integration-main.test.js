@@ -271,7 +271,7 @@ describe("integration-main", () => {
     let doCheck = true;
     db.prepend(() => {
       db.on("READ", "*", async (context, next) => {
-        if (doCheck && context.query.SELECT.forUpdate && context.query.SELECT.columns.length === 2) {
+        if (doCheck && context.query.SELECT.forUpdate && context.query.SELECT.columns?.length === 2) {
           throw new Error("all bad");
         }
         return await next();
