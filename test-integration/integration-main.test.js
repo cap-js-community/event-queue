@@ -262,8 +262,7 @@ describe("integration-main", () => {
     eventQueue.config.dbUser = null;
   });
 
-  const onlyOldDbService = /true/i.test(process.env.NEW_DB_SERVICE) ? it.skip : it;
-  onlyOldDbService("lock wait timeout during keepAlive", async () => {
+  it("lock wait timeout during keepAlive", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
     const event = eventQueue.config.events[0];
@@ -272,7 +271,7 @@ describe("integration-main", () => {
     let doCheck = true;
     db.prepend(() => {
       db.on("READ", "*", async (context, next) => {
-        if (doCheck && context.query.SELECT.forUpdate && context.query.SELECT.columns.length === 2) {
+        if (doCheck && context.query.SELECT.forUpdate && context.query.SELECT.columns?.length === 2) {
           throw new Error("all bad");
         }
         return await next();
@@ -305,6 +304,39 @@ describe("integration-main", () => {
       );
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
+    expect(processSpy).toHaveBeenCalledTimes(1);
+    await testHelper.selectEventQueueAndExpectOpen(tx);
+    expect(dbCounts).toMatchSnapshot();
+
+    jest.spyOn(EventQueueTest.prototype, "processEvent").mockRestore();
+    event.checkForNextChunk = false;
+  });
+
+  it("if processing time is exceeded broadcast should trigger processing again", async () => {
+    await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
+    dbCounts = {};
+    const event = eventQueue.config.events[0];
+    event.checkForNextChunk = true;
+    const scheduler = jest.spyOn(eventScheduler.getInstance(), "scheduleEvent").mockReturnValueOnce(null);
+    const processSpy = jest
+      .spyOn(EventQueueTest.prototype, "processEvent")
+      .mockImplementation(async function (processContext, __, queueEntries) {
+        await testHelper.insertEventEntry(cds.tx(processContext), {
+          numberOfEntries: 1,
+          type: this.eventType,
+          subType: this.subEventType,
+          randomGuid: true,
+        });
+        return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Open]);
+      });
+    await eventQueue.processEventQueue(
+      context,
+      event.type,
+      event.subType,
+      new Date(Date.now() - eventQueue.config.runInterval)
+    );
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    expect(scheduler).toHaveBeenCalledTimes(1);
     expect(processSpy).toHaveBeenCalledTimes(1);
     await testHelper.selectEventQueueAndExpectOpen(tx);
     expect(dbCounts).toMatchSnapshot();
