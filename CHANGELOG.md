@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
+- Export `WorkerQueue` for monitoring purposes to provide insights into the running load of the application.
 - JSDocs: added addEntryToProcessingMap for EventQueueProcessorBase
 - Enhanced Event Processing: Events will continue to be processed even if the initial processing time is exceeded. Events are now broadcast, allowing different application instances to pick them up. The existing worker queue is used to ensure proper load balancing.
 
