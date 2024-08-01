@@ -76,7 +76,7 @@ const _getNewAuthInfo = async (tenantId) => {
       _getNewAuthInfo._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
     }
     const authService = _getNewAuthInfo._xsuaaService;
-    const token = await authService.fetchClientCredentialsToken();
+    const token = await authService.fetchClientCredentialsToken({ tenant: tenantId });
     const authInfo = await authService.createSecurityContext(token.access_token);
     authInfoCache[tenantId].expireTs = authInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
     return authInfo;
