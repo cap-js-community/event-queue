@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
-- passed correct tenant to fetch authInfo 
+- pass correct tenant to fetch authInfo 
 
 ## v1.6.1 - 2024-07-30
 
