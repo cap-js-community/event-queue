@@ -384,38 +384,46 @@ class EventQueueProcessorBase {
    * The function accepts no arguments as there are dedicated functions to set the status of events (e.g. setEventStatus)
    */
   async persistEventStatus(tx, { skipChecks, statusMap = this.__statusMap } = {}) {
-    return await trace(this.baseContext, "persist-event-status", async () => {
-      this.logger.debug("entering persistEventStatus", {
+    this.logger.debug("entering persistEventStatus", {
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
+    });
+    this.#ensureOnlySelectedQueueEntries(statusMap);
+    if (!skipChecks) {
+      this.#ensureEveryQueueEntryHasStatus();
+    }
+    this.#ensureEveryStatusIsAllowed(statusMap);
+
+    const { success, failed, exceeded, invalidAttempts } = Object.entries(statusMap).reduce(
+      (result, [notificationEntityId, processingStatus]) => {
+        this.__commitedStatusMap[notificationEntityId] = processingStatus;
+        if (processingStatus === EventProcessingStatus.Open) {
+          result.invalidAttempts.push(notificationEntityId);
+        } else if (processingStatus === EventProcessingStatus.Done) {
+          result.success.push(notificationEntityId);
+        } else if (processingStatus === EventProcessingStatus.Error) {
+          result.failed.push(notificationEntityId);
+        } else if (processingStatus === EventProcessingStatus.Exceeded) {
+          result.exceeded.push(notificationEntityId);
+        }
+        return result;
+      },
+      {
+        success: [],
+        failed: [],
+        exceeded: [],
+        invalidAttempts: [],
+      }
+    );
+    if (![success, failed, exceeded, invalidAttempts].some((statusArray) => statusArray.length)) {
+      this.logger.debug("exiting persistEventStatus", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
       });
-      this.#ensureOnlySelectedQueueEntries(statusMap);
-      if (!skipChecks) {
-        this.#ensureEveryQueueEntryHasStatus();
-      }
-      this.#ensureEveryStatusIsAllowed(statusMap);
+      return;
+    }
 
-      const { success, failed, exceeded, invalidAttempts } = Object.entries(statusMap).reduce(
-        (result, [notificationEntityId, processingStatus]) => {
-          this.__commitedStatusMap[notificationEntityId] = processingStatus;
-          if (processingStatus === EventProcessingStatus.Open) {
-            result.invalidAttempts.push(notificationEntityId);
-          } else if (processingStatus === EventProcessingStatus.Done) {
-            result.success.push(notificationEntityId);
-          } else if (processingStatus === EventProcessingStatus.Error) {
-            result.failed.push(notificationEntityId);
-          } else if (processingStatus === EventProcessingStatus.Exceeded) {
-            result.exceeded.push(notificationEntityId);
-          }
-          return result;
-        },
-        {
-          success: [],
-          failed: [],
-          exceeded: [],
-          invalidAttempts: [],
-        }
-      );
+    return await trace(this.baseContext, "persist-event-status", async () => {
       this.logger.debug("persistEventStatus for entries", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
@@ -455,10 +463,6 @@ class EventQueueProcessorBase {
             .where("ID IN", eventIds)
         );
       }
-      this.logger.debug("exiting persistEventStatus", {
-        eventType: this.#eventType,
-        eventSubType: this.#eventSubType,
-      });
     });
   }
 
