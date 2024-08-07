@@ -37,8 +37,8 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false 
     };
     const onDone = () => {
       try {
-        if (span.status.code !== otel.SpanStatusCode.UNSET && !span.ended) {
-          span.end();
+        if (span.status?.code !== otel.SpanStatusCode.UNSET && !span.ended) {
+          span.end?.();
         }
       } catch (err) {
         cds.log(COMPONENT_NAME).error("error in tracing", err, {
