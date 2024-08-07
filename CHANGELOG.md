@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
-- avoid empty openTelemetry traces for persist-event-status
+- [openTelemetry] avoid empty traces for persist-event-status
+- [openTelemetry] more resilient for finished spans
 
 ## v1.6.2 - 2024-08-31
 
