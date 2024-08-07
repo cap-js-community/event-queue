@@ -10,6 +10,8 @@ try {
 
 const config = require("../config");
 
+const COMPONENT_NAME = "/shared/openTelemetry";
+
 const trace = async (context, label, fn, { attributes = {}, newRootSpan = false } = {}) => {
   if (!config.enableCAPTelemetry || !otel || !cds._telemetry?.tracer) {
     return fn();
@@ -34,8 +36,14 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false 
       throw e;
     };
     const onDone = () => {
-      if (span.status.code !== otel.SpanStatusCode.UNSET && !span.ended) {
-        span.end();
+      try {
+        if (span.status?.code !== otel.SpanStatusCode.UNSET && !span.ended) {
+          span.end?.();
+        }
+      } catch (err) {
+        cds.log(COMPONENT_NAME).error("error in tracing", err, {
+          span,
+        });
       }
     };
 
