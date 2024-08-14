@@ -920,7 +920,7 @@ class EventQueueProcessorBase {
       return;
     }
     try {
-      await trace(this.baseContext, "persist-release-lock", async () => {
+      await trace(this.baseContext, "release-lock", async () => {
         await distributedLock.releaseLock(this.context, [this.#eventType, this.#eventSubType].join("##"));
       });
     } catch (err) {
@@ -1159,6 +1159,10 @@ class EventQueueProcessorBase {
 
   get isPeriodicEvent() {
     return this.#eventConfig.isPeriodic;
+  }
+
+  get eventConfig() {
+    return this.#eventConfig;
   }
 }
 

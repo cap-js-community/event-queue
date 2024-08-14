@@ -49,11 +49,16 @@ following parameters, which are mapped to the corresponding configuration parame
 | chunkSize   | selectMaxChunkSize      | 100               |
 | maxAttempts | retryAttempts           | 20                |
 | parallel    | parallelEventProcessing | yes (mapped to 5) |
+| -           | useEventQueueUser       | false             |
 
 The `parallel` parameter is treated specially. The CAP outbox supports `true` or `false` as values for this parameter.
 Since the event-queue allows specifying concurrency with a number, `parallel=true` is mapped
 to `parallelEventProcessing=5`, and `parallel=false` is mapped to `parallelEventProcessing=1`. For full flexibility, the
 configuration prioritizes the `parallelEventProcessing` parameter over `parallel`.
+
+The useEventQueueUser parameter can be set to true or false. When set to true, the user defined in the [general
+configuration](/event-queue/setup/#initialization-parameters) will be used as the cds context user (context.user.id). This influences actions such as updating managed
+database fields like modifiedBy. The default value for this parameter is false.
 
 Parameters are managed via the `cds.require` section, not through the config yml file as with other events. For details
 on maintaining the `cds.requires` section, refer to
@@ -187,7 +192,8 @@ marked as an error and will be retried based on the event configuration.
 
 ### Event-Queue properties
 
-The event queue properties that are available for the native event queue processor (refer to [this documentation](/event-queue/implement-event/#minimal-implementation-for-ad-hoc-events)) are
+The event queue properties that are available for the native event queue processor (refer
+to [this documentation](/event-queue/implement-event/#minimal-implementation-for-ad-hoc-events)) are
 also accessible for outboxed services utilizing the event queue. These properties can be accessed via the cds context.
 The following properties are available:
 

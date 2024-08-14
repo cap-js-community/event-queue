@@ -106,6 +106,7 @@ describe("event-queue outbox", () => {
         registerAsEventProcessor: false,
         insertEventsBeforeCommit: true,
         useAsCAPOutbox: true,
+        userId: "dummyTestUser",
       });
       cds.emit("connect", await cds.connect.to("db"));
     });
@@ -351,6 +352,7 @@ describe("event-queue outbox", () => {
           "subType": "NotificationService",
           "transactionMode": undefined,
           "type": "CAP_OUTBOX",
+          "useEventQueueUser": undefined,
         }
       `);
     });
@@ -393,6 +395,7 @@ describe("event-queue outbox", () => {
           "subType": "NotificationServiceOutboxedByConfig",
           "transactionMode": "alwaysRollback",
           "type": "CAP_OUTBOX",
+          "useEventQueueUser": undefined,
         }
       `);
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -442,6 +445,7 @@ describe("event-queue outbox", () => {
         processEventsAfterPublish: false,
         registerAsEventProcessor: false,
         useAsCAPOutbox: true,
+        userId: "dummyTestUser",
       });
 
       const service = await cds.connect.to("NotificationService");
@@ -570,6 +574,37 @@ describe("event-queue outbox", () => {
         expect(loggerMock.callsLengths().error).toEqual(1);
         expect(runEventCombinationForTenantSpy).toHaveBeenCalledTimes(0);
       });
+    });
+
+    it("option to use eventQueue.userId in outboxed services", async () => {
+      const outboxedService = await cds.connect.to("NotificationServiceOutboxedByConfigUserId", {
+        impl: "./srv/service/service.js",
+        outbox: {
+          kind: "persistent-outbox",
+          transactionMode: "alwaysRollback",
+          useEventQueueUser: true,
+        },
+      });
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+
+      await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
+      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1])
+        .toMatchInlineSnapshot(`
+        {
+          "data": {
+            "body": "body",
+            "subject": "subject",
+            "to": "to",
+          },
+          "eventQueueId": "NotificationServiceOutboxedByConfigUserId",
+          "user": "dummyTestUser",
+        }
+      `);
+      expect(loggerMock.callsLengths().error).toEqual(0);
     });
   });
 

@@ -282,6 +282,7 @@ class Config {
       checkForNextChunk: config.checkForNextChunk,
       deleteFinishedEventsAfterDays: config.deleteFinishedEventsAfterDays,
       appNames: config.appNames,
+      useEventQueueUser: config.useEventQueueUser,
       internalEvent: true,
     };
     eventConfig._appNameMap = eventConfig.appNames
