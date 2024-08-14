@@ -63,6 +63,24 @@ type EventConfigType = {
   isPeriodic: boolean;
 };
 
+export type EventConfig = {
+  type: string;
+  subType: string;
+  load: number;
+  impl: string;
+  selectMaxChunkSize: number | undefined;
+  parallelEventProcessing: boolean;
+  retryAttempts: number | undefined;
+  transactionMode: string | undefined;
+  processAfterCommit: boolean | undefined;
+  eventOutdatedCheck: boolean | undefined;
+  checkForNextChunk: boolean | undefined;
+  deleteFinishedEventsAfterDays: number | undefined;
+  appNames: string[] | undefined;
+  useEventQueueUser: boolean | undefined;
+  internalEvent: true;
+};
+
 // Define Status Type
 type Status = 0 | 1 | 2 | 3 | 4;
 
@@ -126,6 +144,7 @@ export declare class EventQueueProcessorBase {
   get isPeriodicEvent(): boolean;
   get eventType(): String;
   get eventSubType(): String;
+  get eventConfig(): EventConfig;
 }
 
 export function publishEvent(
