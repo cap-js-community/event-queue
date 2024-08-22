@@ -459,7 +459,7 @@ class EventQueueProcessorBase {
         }
         let startAfter;
         if (status === EventProcessingStatus.Error) {
-          startAfter = new Date(Date.now() + this.#retryFailedAfter).toISOString();
+          startAfter = new Date(Date.now() + this.#retryFailedAfter);
           this.#eventSchedulerInstance.scheduleEvent(
             this.__context.tenant,
             this.#eventType,
@@ -473,7 +473,7 @@ class EventQueueProcessorBase {
             .set({
               status: status,
               lastAttemptTimestamp: ts,
-              ...(status === EventProcessingStatus.Error ? { startAfter } : {}),
+              ...(status === EventProcessingStatus.Error ? { startAfter: startAfter.toISOString() } : {}),
             })
             .where("ID IN", eventIds)
         );
