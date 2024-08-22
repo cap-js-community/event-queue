@@ -1,5 +1,29 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`integration-main  should register event processing with check for next interval false 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main  should register event processing with check for next interval true 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 2,
+  "UPDATE": 2,
+}
+`;
+
 exports[`integration-main empty queue - nothing to do 1`] = `
 {
   "BEGIN": 4,
@@ -260,6 +284,30 @@ exports[`integration-main periodic events transactions modes no tx mode should c
   "CREATE": 2,
   "DELETE": 1,
   "READ": 2,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main register retry for failed event after default interval 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 3,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main retryFailedAfter failed events after should register event processing with check for next interval true 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 1,
   "UPDATE": 2,
 }
 `;

@@ -345,6 +345,57 @@ describe("integration-main", () => {
     event.checkForNextChunk = false;
   });
 
+  it("register retry for failed event after configured interval", async () => {
+    const type = "Test";
+    const subType = "retryFailedAfter";
+    await cds.tx({}, (tx2) =>
+      testHelper.insertEventEntry(tx2, {
+        type,
+        subType,
+      })
+    );
+    dbCounts = {};
+    const scheduler = jest.spyOn(eventScheduler.getInstance(), "scheduleEvent").mockReturnValueOnce(null);
+    const { retryFailedAfter } = eventQueue.config.getEventConfig(type, subType);
+    jest
+      .spyOn(EventQueueTest.prototype, "processEvent")
+      .mockImplementationOnce(async (processContext, key, queueEntries) => {
+        return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Error]);
+      });
+    await eventQueue.processEventQueue(context, type, subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    const [event] = await testHelper.selectEventQueueAndReturn(tx);
+    expect(event.status).toEqual(EventProcessingStatus.Error);
+    expect(new Date(Date.now() + retryFailedAfter) - new Date(event.startAfter)).toBeLessThan(1000); // diff should be lower than 1 second
+    expect(scheduler).toHaveBeenCalledTimes(1);
+    expect(dbCounts).toMatchSnapshot();
+  });
+
+  it("register retry for failed event after default interval", async () => {
+    const type = "Test";
+    const subType = "NoProcessAfterCommit";
+    await cds.tx({}, (tx2) =>
+      testHelper.insertEventEntry(tx2, {
+        type,
+        subType,
+      })
+    );
+    dbCounts = {};
+    const scheduler = jest.spyOn(eventScheduler.getInstance(), "scheduleEvent").mockReturnValueOnce(null);
+    jest
+      .spyOn(EventQueueTest.prototype, "processEvent")
+      .mockImplementationOnce(async (processContext, key, queueEntries) => {
+        return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Error]);
+      });
+    await eventQueue.processEventQueue(context, type, subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    const [event] = await testHelper.selectEventQueueAndReturn(tx);
+    expect(event.status).toEqual(EventProcessingStatus.Error);
+    expect(new Date(Date.now() + 5 * 60 * 1000) - new Date(event.startAfter)).toBeLessThan(1000); // diff should be lower than 1 second
+    expect(scheduler).toHaveBeenCalledTimes(1);
+    expect(dbCounts).toMatchSnapshot();
+  });
+
   describe("transactionMode=isolated", () => {
     it("first processed register tx rollback - only first should be rolled back", async () => {
       await cds.tx({}, (tx2) =>

@@ -17,6 +17,16 @@ events:
     transactionMode: alwaysRollback
 
   - type: Test
+    subType: retryFailedAfter
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    parallelEventProcessing: 5
+    processAfterCommit: true
+    transactionMode: alwaysRollback
+    retryFailedAfter: 3000
+    checkForNextChunk: true
+
+  - type: Test
     subType: NoProcessAfterCommit
     impl: ./test/asset/EventQueueTest
     load: 1
