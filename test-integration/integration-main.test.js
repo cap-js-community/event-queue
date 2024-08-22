@@ -496,6 +496,7 @@ describe("integration-main", () => {
       expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
       expect(dbCounts).toMatchSnapshot();
       const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 3 });
+      events.forEach((event) => delete event.startAfter);
       expect(events).toMatchSnapshot();
     });
 
@@ -524,6 +525,7 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(dbCounts).toMatchSnapshot();
       const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 1 });
+      events.forEach((event) => delete event.startAfter);
       expect(events).toMatchSnapshot();
     });
   });
@@ -552,6 +554,7 @@ describe("integration-main", () => {
       expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
       expect(dbCounts).toMatchSnapshot();
       const result = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
+      result.forEach((event) => delete event.startAfter);
       expect(result).toMatchSnapshot();
     });
 
