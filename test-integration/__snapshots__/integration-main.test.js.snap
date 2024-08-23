@@ -264,6 +264,30 @@ exports[`integration-main periodic events transactions modes no tx mode should c
 }
 `;
 
+exports[`integration-main register retry for failed event after configured interval 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main register retry for failed event after default interval 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 3,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
 exports[`integration-main returning exceeded status should be allowed 1`] = `
 {
   "BEGIN": 6,
@@ -323,7 +347,6 @@ exports[`integration-main transactionMode=alwaysCommit one green with register r
 [
   {
     "attempts": 1,
-    "startAfter": null,
     "status": 2,
   },
 ]
@@ -345,17 +368,14 @@ exports[`integration-main transactionMode=alwaysCommit one with error + one with
 [
   {
     "attempts": 0,
-    "startAfter": null,
     "status": 0,
   },
   {
     "attempts": 1,
-    "startAfter": null,
     "status": 2,
   },
   {
     "attempts": 1,
-    "startAfter": null,
     "status": 3,
   },
 ]
@@ -399,12 +419,10 @@ exports[`integration-main transactionMode=alwaysRollback one with error + one wi
 [
   {
     "attempts": 1,
-    "startAfter": null,
     "status": 2,
   },
   {
     "attempts": 1,
-    "startAfter": null,
     "status": 3,
   },
 ]

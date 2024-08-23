@@ -24,6 +24,7 @@ const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 const ETAG_CHECK_AFTER_MIN = 10;
 const SUFFIX_PERIODIC = "_PERIODIC";
+const DEFAULT_RETRY_AFTER = 5 * 60 * 1000;
 
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
@@ -37,6 +38,7 @@ class EventQueueProcessorBase {
   #eventConfig;
   #isPeriodic;
   #lastSuccessfulRunTimestamp;
+  #retryFailedAfter;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -57,6 +59,7 @@ class EventQueueProcessorBase {
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
+    this.#retryFailedAfter = this.#eventConfig.retryFailedAfter ?? DEFAULT_RETRY_AFTER;
     // NOTE: keep the feature, this might be needed again
     this.__concurrentEventProcessing = false;
     this.__startTime = this.#eventConfig.startTime ?? new Date();
@@ -454,11 +457,23 @@ class EventQueueProcessorBase {
         if (!eventIds.length) {
           continue;
         }
+        let startAfter;
+        if (status === EventProcessingStatus.Error) {
+          startAfter = new Date(Date.now() + this.#retryFailedAfter);
+          this.#eventSchedulerInstance.scheduleEvent(
+            this.__context.tenant,
+            this.#eventType,
+            this.#eventSubType,
+            startAfter
+          );
+        }
+
         await tx.run(
           UPDATE.entity(this.#config.tableNameEventQueue)
             .set({
               status: status,
               lastAttemptTimestamp: ts,
+              ...(status === EventProcessingStatus.Error ? { startAfter: startAfter.toISOString() } : {}),
             })
             .where("ID IN", eventIds)
         );
@@ -552,7 +567,8 @@ class EventQueueProcessorBase {
    */
   async getQueueEntriesAndSetToInProgress() {
     let result = [];
-    const refDateStartAfter = new Date(Date.now() + this.#config.runInterval * 1.2);
+    const baseDate = Date.now();
+    const refDateStartAfter = new Date(baseDate + this.#config.runInterval * 1.2);
     await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
       const entries = await tx.run(
         SELECT.from(this.#config.tableNameEventQueue)
@@ -574,7 +590,7 @@ class EventQueueProcessorBase {
                   "OR lastAttemptTimestamp IS NULL ) OR ( status =",
                   EventProcessingStatus.InProgress,
                   "AND lastAttemptTimestamp <=",
-                  new Date(new Date().getTime() - this.#config.globalTxTimeout).toISOString(),
+                  new Date(baseDate - this.#config.globalTxTimeout).toISOString(),
                   ") )",
                 ]
               : [
@@ -585,7 +601,7 @@ class EventQueueProcessorBase {
                   ") OR ( status =",
                   EventProcessingStatus.InProgress,
                   "AND lastAttemptTimestamp <=",
-                  new Date(new Date().getTime() - this.#config.globalTxTimeout).toISOString(),
+                  new Date(baseDate - this.#config.globalTxTimeout).toISOString(),
                   ") )",
                 ])
           )

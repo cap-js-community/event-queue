@@ -1,6 +1,6 @@
 {
   "name": "@cap-js-community/event-queue",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "An event queue that enables secure transactional processing of asynchronous and periodic events, featuring instant event processing with Redis Pub/Sub and load distribution across all application instances.",
   "main": "src/index.js",
   "types": "src/index.d.ts",
@@ -27,7 +27,7 @@
     "test:all:coverage": "jest --runInBand --forceExit --collect-coverage",
     "test:prepare": "npm run build:ci --prefix=./test-integration/_env",
     "test:deploySchema": "node test-integration/_env/srv/hana/deploy.js",
-    "test:cleanSchemas": "node test-integration/_env/srv/hana/cleanObsoletSchemas.js",
+    "test:cleanSchemas": "node test-integration/_env/srv/hana/deleteTestSchema.js ",
     "lint": "npm run eslint && npm run prettier",
     "lint:ci": "npm run eslint:ci && npm run prettier:ci",
     "eslint": "eslint --fix .",

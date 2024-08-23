@@ -17,7 +17,6 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
   logger.info("Loading csn");
   const csn = await cds.load("*");
   try {
-    await helper.prepareHana();
     const credentials = await helper.prepareTestSchema(schemaGuid);
     cds.env.requires.db = {
       kind: "hana",
