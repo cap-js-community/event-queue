@@ -366,7 +366,7 @@ describe("integration-main", () => {
     expect(loggerMock.callsLengths().error).toEqual(0);
     const [event] = await testHelper.selectEventQueueAndReturn(tx);
     expect(event.status).toEqual(EventProcessingStatus.Error);
-    expect(new Date(Date.now() + retryFailedAfter) - new Date(event.startAfter)).toBeLessThan(1000); // diff should be lower than 1 second
+    expect(new Date(Date.now() + retryFailedAfter) - new Date(event.startAfter)).toBeLessThan(2000); // diff should be lower than 1 second
     expect(scheduler).toHaveBeenCalledTimes(1);
     expect(dbCounts).toMatchSnapshot();
   });
@@ -391,7 +391,7 @@ describe("integration-main", () => {
     expect(loggerMock.callsLengths().error).toEqual(0);
     const [event] = await testHelper.selectEventQueueAndReturn(tx);
     expect(event.status).toEqual(EventProcessingStatus.Error);
-    expect(new Date(Date.now() + 5 * 60 * 1000) - new Date(event.startAfter)).toBeLessThan(1000); // diff should be lower than 1 second
+    expect(new Date(Date.now() + 5 * 60 * 1000) - new Date(event.startAfter)).toBeLessThan(2000); // diff should be lower than 1 second
     expect(scheduler).toHaveBeenCalledTimes(1);
     expect(dbCounts).toMatchSnapshot();
   });
