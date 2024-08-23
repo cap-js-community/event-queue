@@ -33,7 +33,7 @@ jobs:
       - run: npm run test:prepare
       - run: npm run test:unit
         env:
-         NEW_DB_SERVICE: ${{ matrix.cds-new-db-service }}
+          NEW_DB_SERVICE: ${{ matrix.cds-new-db-service }}
       - run: npm run test:integration
         env:
           GITHUB_ACTION_HANA: true
