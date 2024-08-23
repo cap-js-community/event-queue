@@ -32,6 +32,8 @@ jobs:
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
       - run: npm run test:prepare
       - run: npm run test:unit
+        env:
+         NEW_DB_SERVICE: ${{ matrix.cds-new-db-service }}
       - run: npm run test:integration
         env:
           GITHUB_ACTION_HANA: true
