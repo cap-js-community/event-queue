@@ -50,6 +50,7 @@ describe("baseFunctionality", () => {
     jest.spyOn(cds, "log").mockImplementation((layer) => {
       return mockLogger(layer);
     });
+    process.exit(-1);
   });
 
   beforeEach(async () => {
