@@ -9,7 +9,6 @@ const logger = cds.log("test/hana/deploy");
 const DB_CREDENTIALS = JSON.parse(process.env.HANA_DB_CREDENTIALS);
 const { SYSTEM_USER, DB_CONNECTION } = DB_CREDENTIALS;
 const EVENT_QUEUE_PREFIX = "AFC_TEST_EVENT_QUEUE";
-const DELETE_SCHEMAS_AFTER = 10 * 60 * 1000;
 
 const procedureLogLevelMap = Object.freeze({
   ERROR: "error",
