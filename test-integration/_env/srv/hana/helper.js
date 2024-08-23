@@ -66,15 +66,17 @@ async function createNewSchema(client, schemaName) {
   logger.info("Schema created", { schema: schemaName, createdAt: new Date().toISOString() });
 }
 
-async function deleteTestSchema(name, client) {
-  await callStoredProcedure(client, `CALL dbadmin.afc_drop_test_schema ('${name}', ?)`);
-  logger.info("Schema deleted", { schema: name });
+async function deleteTestSchema(schemaGuid) {
+  const schema = generateSchemaName(schemaGuid);
+  const client = await createClient(Object.assign({}, SYSTEM_USER, DB_CONNECTION));
+  await callStoredProcedure(client, `CALL dbadmin.afc_drop_test_schema ('${schema}', ?)`);
+  logger.info("Schema deleted", { schema });
 }
 
 async function createTestSchema(customSchemaName) {
-  const testAdmin = await createClient(Object.assign({}, SYSTEM_USER, DB_CONNECTION));
-  await createNewSchema(testAdmin, customSchemaName);
-  await testAdmin.disconnect();
+  const client = await createClient(Object.assign({}, SYSTEM_USER, DB_CONNECTION));
+  await createNewSchema(client, customSchemaName);
+  await client.disconnect();
 }
 
 async function prepareTestSchema(schemaGuid) {
@@ -118,28 +120,9 @@ const deployToHana = async (csn) => {
   }
 };
 
-async function deleteExistingSchema() {
-  const testAdmin = await createClient(Object.assign({}, SYSTEM_USER, DB_CONNECTION));
-  const obsoleteSchemas = await testAdmin.exec(
-    `SELECT SCHEMA_NAME, CREATE_TIME
-         FROM SYS.SCHEMAS
-         WHERE SCHEMA_NAME LIKE '${EVENT_QUEUE_PREFIX}%'
-           AND CREATE_TIME <= '${new Date(Date.now() - DELETE_SCHEMAS_AFTER).toISOString()}'`
-  );
-
-  obsoleteSchemas.length &&
-    logger.info("deleting obsolete schemas...", {
-      count: obsoleteSchemas.length,
-    });
-  for (const { SCHEMA_NAME: schemaName } of obsoleteSchemas) {
-    await deleteTestSchema(schemaName, testAdmin);
-  }
-  await testAdmin.disconnect();
-}
-
 module.exports = {
   prepareTestSchema,
   deployToHana,
   generateCredentialsForCds,
-  deleteExistingSchema,
+  deleteTestSchema,
 };

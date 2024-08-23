@@ -38,6 +38,10 @@ jobs:
           SCHEMA_GUID: ${{steps.generateId.outputs.id}}
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
           NEW_DB_SERVICE: ${{ matrix.cds-new-db-service }}
+      - run: npm run test:cleanSchemas
+        env:
+          HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
+          SCHEMA_GUID: ${{steps.generateId.outputs.id}}
 
   lint:
     runs-on: ubuntu-latest

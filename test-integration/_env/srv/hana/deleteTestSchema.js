@@ -10,7 +10,12 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
 (async () => {
   const logger = cds.log(COMPONENT_NAME);
   try {
-    await helper.deleteExistingSchema();
+    const schemaGuid = process.env.SCHEMA_GUID?.replace(/-/g, "_");
+    if (!schemaGuid) {
+      logger.error("process.env.SCHEMA_GUID not provided!");
+      process.exit(-1);
+    }
+    await helper.deleteTestSchema(schemaGuid);
     process.exit(0);
   } catch (error) {
     logger.error(error);
