@@ -44,6 +44,20 @@ describe("getAuthInfo", () => {
     expect(cds.log().warn.mock.calls).toHaveLength(0);
   });
 
+  it("should correctly pass tenant id to xssec", async () => {
+    const fetchClientCredentialsTokenSpy = jest
+      .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
+      .mockResolvedValueOnce({ access_token: "token" });
+    jest.spyOn(xssec.XsuaaService.prototype, "createSecurityContext").mockResolvedValueOnce({
+      getExpirationDate: () => new Date(),
+    });
+    const result = await getAuthInfo("1");
+    expect(result).toBeDefined();
+    expect(fetchClientCredentialsTokenSpy).toHaveBeenCalledWith({ zid: "1" });
+    expect(cds.log().warn.mock.calls).toHaveLength(0);
+    fetchClientCredentialsTokenSpy;
+  });
+
   it("should use cache for the second call", async () => {
     jest
       .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
