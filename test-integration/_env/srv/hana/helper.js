@@ -7,16 +7,33 @@ const cds = require("@sap/cds");
 
 const logger = cds.log("test/hana/deploy");
 const DB_CREDENTIALS = JSON.parse(process.env.HANA_DB_CREDENTIALS);
-const { SYSTEM_USER, TEST_ADMIN, TEST_WORKER, DB_CONNECTION } = DB_CREDENTIALS;
-const EVENT_QUEUE_PREFIX = "EVENT_QUEUE";
+const { SYSTEM_USER, DB_CONNECTION } = DB_CREDENTIALS;
+const EVENT_QUEUE_PREFIX = "AFC_TEST_EVENT_QUEUE";
 const DELETE_SCHEMAS_AFTER = 10 * 60 * 1000;
+
+const procedureLogLevelMap = Object.freeze({
+  ERROR: "error",
+  WARNING: "warn",
+  INFO: "info",
+  SUCCESS: "info",
+  DEBUG: "debug",
+});
 
 const createClient = async (credentials) => {
   const _client = hdb.createClient(credentials);
   const connect = promisify(_client.connect).bind(_client);
   const disconnect = promisify(_client.disconnect).bind(_client);
   const prepare = promisify(_client.prepare).bind(_client);
-  const exec = promisify(_client.exec).bind(_client);
+  const exec = (command) =>
+    new Promise((resolve, reject) => {
+      _client.exec(command, (err, values, ...results) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve({ values, results });
+        }
+      });
+    });
   const commit = promisify(_client.commit).bind(_client);
   await connect();
   return {
@@ -29,65 +46,33 @@ const createClient = async (credentials) => {
   };
 };
 
-async function prepare() {
-  logger.info("Using DB connection", { connection: DB_CONNECTION });
-  if (SYSTEM_USER.user && SYSTEM_USER.password) {
-    const systemClient = await createClient(Object.assign({}, SYSTEM_USER, DB_CONNECTION));
-    await prepareUsers(systemClient);
-    await systemClient.disconnect();
-  } else {
-    logger.info("SYSTEM_USER is not set up. Test users need to exist already\nDelete of old test schemes skipped");
-  }
-}
-
-async function prepareUsers(client) {
-  const users = await getTestUsers(client);
-  if (!users.find((user) => user.USER_NAME === TEST_ADMIN.user)) {
-    await createPrepareUser(client);
-  }
-  if (!users.find((user) => user.USER_NAME === TEST_WORKER.user)) {
-    await createTestUser(client);
-  }
-  logger.info(`Test users prepared`);
-}
-
-async function createPrepareUser(client) {
-  await client.exec(
-    `CREATE USER ${TEST_ADMIN.user} PASSWORD "${TEST_ADMIN.password}" NO FORCE_FIRST_PASSWORD_CHANGE SET USERGROUP DEFAULT;`
-  );
-  await client.exec(`ALTER USER ${TEST_ADMIN.user} DISABLE PASSWORD LIFETIME;`);
-  await client.exec(`GRANT CREATE SCHEMA TO  ${TEST_ADMIN.user};`);
-}
-
-async function createTestUser(client) {
-  await client.exec(
-    `CREATE USER ${TEST_WORKER.user} PASSWORD "${TEST_WORKER.password}" NO FORCE_FIRST_PASSWORD_CHANGE SET USERGROUP DEFAULT;`
-  );
-  await client.exec(`ALTER USER ${TEST_WORKER.user} DISABLE PASSWORD LIFETIME;`);
-}
-
-async function getTestUsers(client) {
-  return await client.exec(
-    `Select USER_NAME, USER_ID
-         from SYS.USERS
-         WHERE USER_DEACTIVATED = 'FALSE'
-           AND USER_NAME LIKE 'AFC_%'`
-  );
-}
+const callStoredProcedure = async (client, sql) => {
+  /*
+   * Execute a stored procedure and log the messages
+   * Only good for stored procedures that return a message table and nothing else
+   * Will not process any other parameters
+   * Example procedures: https://github.wdf.sap.corp/S4HANAFIN/SQL_snippets/blob/main/11_test_schema_administration.sql
+   */
+  const response = await client.exec(sql);
+  const messages = response.results[0];
+  messages.forEach((message) => {
+    logger[procedureLogLevelMap[message.SEVERITY]](message.MESSAGE);
+  });
+  return response;
+};
 
 async function createNewSchema(client, schemaName) {
-  await client.exec(`CREATE SCHEMA ${schemaName}`);
+  await callStoredProcedure(client, `CALL dbadmin.afc_create_test_schema ('${schemaName}', ?)`);
   logger.info("Schema created", { schema: schemaName, createdAt: new Date().toISOString() });
-  await client.exec(`GRANT ALL PRIVILEGES ON SCHEMA ${schemaName} TO ${TEST_WORKER.user}`);
 }
 
 async function deleteTestSchema(name, client) {
-  await client.exec(`DROP SCHEMA ${name} CASCADE`);
+  await callStoredProcedure(client, `CALL dbadmin.afc_drop_test_schema ('${name}', ?)`);
   logger.info("Schema deleted", { schema: name });
 }
 
 async function createTestSchema(customSchemaName) {
-  const testAdmin = await createClient(Object.assign({}, TEST_ADMIN, DB_CONNECTION));
+  const testAdmin = await createClient(Object.assign({}, SYSTEM_USER, DB_CONNECTION));
   await createNewSchema(testAdmin, customSchemaName);
   await testAdmin.disconnect();
 }
@@ -108,8 +93,8 @@ const generateCredentialsForCds = (schemaGuid) => ({
     DB_CONNECTION.useTLS
   }&currentschema=${generateSchemaName(schemaGuid)}`,
   schema: generateSchemaName(schemaGuid),
-  user: TEST_WORKER.user,
-  password: TEST_WORKER.password,
+  user: SYSTEM_USER.user,
+  password: SYSTEM_USER.password,
 });
 
 const generateSchemaName = (schemaGuid) => `${EVENT_QUEUE_PREFIX}_${schemaGuid}`;
@@ -134,7 +119,7 @@ const deployToHana = async (csn) => {
 };
 
 async function deleteExistingSchema() {
-  const testAdmin = await createClient(Object.assign({}, TEST_ADMIN, DB_CONNECTION));
+  const testAdmin = await createClient(Object.assign({}, SYSTEM_USER, DB_CONNECTION));
   const obsoleteSchemas = await testAdmin.exec(
     `SELECT SCHEMA_NAME, CREATE_TIME
          FROM SYS.SCHEMAS
@@ -155,7 +140,6 @@ async function deleteExistingSchema() {
 module.exports = {
   prepareTestSchema,
   deployToHana,
-  prepareHana: prepare,
   generateCredentialsForCds,
   deleteExistingSchema,
 };
