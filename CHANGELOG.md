@@ -5,17 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.6.6 - 2024-08-XX
+## v1.6.6 - 2024-08-28
 
 ### Fixed
 
 - In some cases the event broadcasting is delayed if a periodic event can't obtain the processing lock
 
-## v1.6.5 - 2024-08-22
+## v1.6.5 - 2024-08-23
 
 ### Added
 
 - Introduced the `retryFailedAfter` configuration option, allowing you to specify the interval (in milliseconds) after which failed events should be retried, provided the retry limit has not been exceeded.
+- Increased test coverage for fetching authInfo with @sap/xssec
 
 ## v1.6.4 - 2024-08-14
 
