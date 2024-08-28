@@ -142,7 +142,8 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
             if (!entries.length) {
               return;
             }
-            await redisPub.broadcastEvent(tenantId, entries).catch((err) => {
+            // Do not wait until this is finished - as broadcastEvent has a retry mechanism and can delay this loop
+            redisPub.broadcastEvent(tenantId, entries).catch((err) => {
               logger.error("broadcasting event failed", err, {
                 tenantId,
                 entries: entries.length,
