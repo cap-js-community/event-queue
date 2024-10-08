@@ -20,6 +20,7 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
     const credentials = await helper.prepareTestSchema(schemaGuid);
     cds.env.requires.db = {
       kind: "hana",
+      impl: "@cap-js/hana",
       credentials,
     };
     await cds.connect.to("db");
