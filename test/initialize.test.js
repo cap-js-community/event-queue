@@ -110,7 +110,7 @@ describe("initialize", () => {
       config.fileContent = fileContent;
     }).not.toThrow();
 
-    const event = originalEvents.find((event) => event.subType === "AppA");
+    const event = originalEvents.find((event) => event.subType === "AppName");
     event.appNames = "test";
     fileContent.events.push({ ...event });
     expect(() => {

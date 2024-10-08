@@ -337,6 +337,7 @@ describe("event-queue outbox", () => {
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationService");
       expect(config).toMatchInlineSnapshot(`
         {
+          "_appInstancesMap": null,
           "_appNameMap": null,
           "appInstances": undefined,
           "appNames": undefined,
@@ -381,6 +382,7 @@ describe("event-queue outbox", () => {
       delete config.startTime;
       expect(config).toMatchInlineSnapshot(`
         {
+          "_appInstancesMap": null,
           "_appNameMap": null,
           "appInstances": undefined,
           "appNames": undefined,

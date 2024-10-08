@@ -3,7 +3,7 @@
 exports[`baseFunctionality basic insert all new events 1`] = `
 [
   [
-    "1/1 | inserting chunk of changed or new periodic events",
+    "1/2 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
@@ -13,9 +13,26 @@ exports[`baseFunctionality basic insert all new events 1`] = `
         },
         {
           "interval": 30,
-          "subType": "AppA",
+          "subType": "AppName",
           "type": "AppSpecific_PERIODIC",
         },
+        {
+          "interval": 30,
+          "subType": "AppInstance",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "subType": "both",
+          "type": "AppSpecific_PERIODIC",
+        },
+      ],
+    },
+  ],
+  [
+    "2/2 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
         {
           "interval": 86400,
           "subType": "DELETE_EVENTS",
@@ -44,13 +61,23 @@ exports[`baseFunctionality basic insert all new events 2`] = `
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
   },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
 ]
 `;
 
 exports[`baseFunctionality delta insert 1`] = `
 [
   [
-    "1/1 | inserting chunk of changed or new periodic events",
+    "1/2 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
@@ -60,9 +87,26 @@ exports[`baseFunctionality delta insert 1`] = `
         },
         {
           "interval": 30,
-          "subType": "AppA",
+          "subType": "AppName",
           "type": "AppSpecific_PERIODIC",
         },
+        {
+          "interval": 30,
+          "subType": "AppInstance",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "subType": "both",
+          "type": "AppSpecific_PERIODIC",
+        },
+      ],
+    },
+  ],
+  [
+    "2/2 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
         {
           "interval": 86400,
           "subType": "DELETE_EVENTS",
@@ -88,6 +132,16 @@ exports[`baseFunctionality delta insert 1`] = `
 
 exports[`baseFunctionality delta insert 2`] = `
 [
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
