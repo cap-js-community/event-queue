@@ -3,9 +3,10 @@
 const { EventProcessingStatus } = require("../src/constants");
 const eventQueue = require("../src");
 
-const _selectEventQueueAndExpect = async (tx, status, { expectedLength = 1, attempts, type } = {}) => {
+const _selectEventQueueAndExpect = async (tx, status, { expectedLength = 1, attempts, type, subType } = {}) => {
   const baseCqn = SELECT.from("sap.eventqueue.Event");
   type && baseCqn.where({ type });
+  subType && baseCqn.where({ subType });
   const events = await tx.run(baseCqn);
   expect(events).toHaveLength(expectedLength);
   for (const event of events) {
@@ -63,21 +64,22 @@ const insertEventEntry = async (
   await tx.run(INSERT.into("sap.eventqueue.Event").entries(entries));
 };
 
-const selectEventQueueAndExpectDone = async (tx, { expectedLength = 1, attempts, type } = {}) =>
-  _selectEventQueueAndExpect(tx, EventProcessingStatus.Done, { expectedLength, attempts, type });
+const selectEventQueueAndExpectDone = async (tx, { expectedLength = 1, attempts, type, subType } = {}) =>
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Done, { expectedLength, attempts, type, subType });
 
-const selectEventQueueAndExpectOpen = async (tx, { expectedLength = 1, attempts, type } = {}) =>
-  _selectEventQueueAndExpect(tx, EventProcessingStatus.Open, { expectedLength, attempts, type });
+const selectEventQueueAndExpectOpen = async (tx, { expectedLength = 1, attempts, type, subType } = {}) =>
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Open, { expectedLength, attempts, type, subType });
 
-const selectEventQueueAndExpectError = async (tx, { expectedLength = 1, attempts, type } = {}) =>
-  _selectEventQueueAndExpect(tx, EventProcessingStatus.Error, { expectedLength, attempts, type });
+const selectEventQueueAndExpectError = async (tx, { expectedLength = 1, attempts, type, subType } = {}) =>
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Error, { expectedLength, attempts, type, subType });
 
-const selectEventQueueAndExpectExceeded = async (tx, { expectedLength = 1, attempts, type } = {}) =>
-  _selectEventQueueAndExpect(tx, EventProcessingStatus.Exceeded, { expectedLength, attempts, type });
+const selectEventQueueAndExpectExceeded = async (tx, { expectedLength = 1, attempts, type, subType } = {}) =>
+  _selectEventQueueAndExpect(tx, EventProcessingStatus.Exceeded, { expectedLength, attempts, type, subType });
 
-const selectEventQueueAndReturn = async (tx, { expectedLength = 1, type, additionalColumns = [] } = {}) => {
+const selectEventQueueAndReturn = async (tx, { expectedLength = 1, type, subType, additionalColumns = [] } = {}) => {
   const baseCqn = SELECT.from("sap.eventqueue.Event").columns("status", "attempts", "startAfter", ...additionalColumns);
   type && baseCqn.where({ type });
+  subType && baseCqn.where({ subType });
   const events = await tx.run(baseCqn);
   expect(events).toHaveLength(expectedLength);
   return events;

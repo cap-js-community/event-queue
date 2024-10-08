@@ -37,18 +37,25 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
             return;
           }
           cds.outboxed(service);
-          if (filterAppSpecificEvents && eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
+          if (filterAppSpecificEvents) {
+            if (eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
+              result.push({ type, subType });
+            }
+          } else {
             result.push({ type, subType });
           }
         })
         .catch(() => {});
     } else {
-      if (
-        eventConfig.getEventConfig(type, subType) &&
-        filterAppSpecificEvents &&
-        eventConfig.shouldBeProcessedInThisApplication(type, subType)
-      ) {
-        result.push({ type, subType });
+      if (filterAppSpecificEvents) {
+        if (
+          eventConfig.getEventConfig(type, subType) &&
+          eventConfig.shouldBeProcessedInThisApplication(type, subType)
+        ) {
+          result.push({ type, subType });
+        }
+      } else {
+        eventConfig.getEventConfig(type, subType) && result.push({ type, subType });
       }
     }
   }

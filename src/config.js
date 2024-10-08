@@ -307,9 +307,7 @@ class Config {
       useEventQueueUser: config.useEventQueueUser,
       internalEvent: true,
     };
-    eventConfig._appNameMap = eventConfig.appNames
-      ? Object.fromEntries(new Map(eventConfig.appNames.map((a) => [a, true])))
-      : null;
+    this.#basicEventTransformationAfterValidate(eventConfig);
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
   }
