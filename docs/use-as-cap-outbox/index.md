@@ -45,7 +45,7 @@ default parameters of the CAP outbox and the event-queue. Currently, the CAP out
 following parameters, which are mapped to the corresponding configuration parameters of the event-queue:
 
 | CAP outbox  | event-queue             | CAP default       |
-|-------------|-------------------------|-------------------|
+| ----------- | ----------------------- | ----------------- |
 | chunkSize   | selectMaxChunkSize      | 100               |
 | maxAttempts | retryAttempts           | 20                |
 | parallel    | parallelEventProcessing | yes (mapped to 5) |
@@ -104,12 +104,12 @@ via `cds.env.requires`, the service needs to inherit from `cds.Service`.
 
 ```js
 class TaskService extends cds.Service {
-    async init() {
-        await super.init();
-        this.on("process", async function (req) {
-            // add your code here
-        });
-    }
+  async init() {
+    await super.init();
+    this.on("process", async function (req) {
+      // add your code here
+    });
+  }
 }
 ```
 
@@ -142,13 +142,13 @@ configuration (`cds.env.requires`). Nevertheless, outboxing can be performed man
 ```js
 const service = await cds.connect.to("task-service");
 const outboxedService = cds.outboxed(service, {
-    kind: "persitent-outbox",
-    transactionMode: "alwaysRollback",
-    checkForNextChunk: true,
+  kind: "persitent-outbox",
+  transactionMode: "alwaysRollback",
+  checkForNextChunk: true,
 });
 await outboxedService.send("process", {
-    ID: 1,
-    comment: "done",
+  ID: 1,
+  comment: "done",
 });
 ```
 
@@ -162,13 +162,13 @@ To implement this feature, include the `x-eventqueue-startAfter` header attribut
 ```js
 const outboxedService = await cds.connect.to("task-service");
 await outboxedService.send(
-    "process",
-    {
-        ID: 1,
-        comment: "done",
-    },
-    // delay the processing 4 minutes
-    {"x-eventqueue-startAfter": new Date(Date.now() + 4 * 60 * 1000).toISOString()}
+  "process",
+  {
+    ID: 1,
+    comment: "done",
+  },
+  // delay the processing 4 minutes
+  { "x-eventqueue-startAfter": new Date(Date.now() + 4 * 60 * 1000).toISOString() }
 );
 ```
 
@@ -185,16 +185,16 @@ below for an implementation reference.
 
 ```js
 class TaskService extends cds.Service {
-    async init() {
-        await super.init();
-        this.on("rejectEvent", (req) => {
-            req.reject(404, "error occured");
-        });
+  async init() {
+    await super.init();
+    this.on("rejectEvent", (req) => {
+      req.reject(404, "error occured");
+    });
 
-        this.on("errorEvent", (req) => {
-            req.error(404, "error occured");
-        });
-    }
+    this.on("errorEvent", (req) => {
+      req.error(404, "error occured");
+    });
+  }
 }
 ```
 
@@ -215,11 +215,11 @@ The following properties are available:
 
 ```js
 class TaskService extends cds.Service {
-    async init() {
-        await super.init();
-        this.on("send", (req) => {
-            const {processor, queueEntries, payload, key} = req.context._eventQueue;
-        });
-    }
+  async init() {
+    await super.init();
+    this.on("send", (req) => {
+      const { processor, queueEntries, payload, key } = req.context._eventQueue;
+    });
+  }
 }
 ```
