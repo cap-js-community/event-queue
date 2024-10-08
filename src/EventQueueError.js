@@ -19,6 +19,7 @@ const ERROR_CODES = {
   LOAD_HIGHER_THAN_LIMIT: "LOAD_HIGHER_THAN_LIMIT",
   NOT_ALLOWED_PRIORITY: "NOT_ALLOWED_PRIORITY",
   APP_NAMES_FORMAT: "APP_NAMES_FORMAT",
+  APP_INSTANCES_FORMAT: "APP_INSTANCES_FORMAT",
 };
 
 const ERROR_CODES_META = {
@@ -70,6 +71,9 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.APP_NAMES_FORMAT]: {
     message: "The app names property must be an array and only contain strings.",
+  },
+  [ERROR_CODES.APP_INSTANCES_FORMAT]: {
+    message: "The app instances property must be an array and only contain numbers.",
   },
 };
 
@@ -246,6 +250,17 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.APP_NAMES_FORMAT,
         info: { type, subType, appNames },
+      },
+      message
+    );
+  }
+
+  static appInstancesFormat(type, subType, appInstances) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.APP_INSTANCES_FORMAT];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.APP_INSTANCES_FORMAT,
+        info: { type, subType, appInstances },
       },
       message
     );

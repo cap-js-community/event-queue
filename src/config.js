@@ -22,6 +22,7 @@ const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
 const CAP_EVENT_TYPE = "CAP_OUTBOX";
 const CAP_PARALLEL_DEFAULT = 5;
 const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
+const PRIORITIES = Object.values(Priorities);
 
 const BASE_PERIODIC_EVENTS = [
   {
@@ -110,7 +111,27 @@ class Config {
 
   shouldBeProcessedInThisApplication(type, subType) {
     const config = this.#eventMap[this.generateKey(type, subType)];
-    return !config._appNameMap || config._appNameMap[this.#env.applicationName];
+    const appNameConfig = config._appNameMap;
+    const appInstanceConfig = config._appInstancesMap;
+    if (!appNameConfig && !appInstanceConfig) {
+      return true;
+    }
+
+    if (appNameConfig) {
+      const shouldBeProcessedBasedOnAppName = appNameConfig[this.#env.applicationName];
+      if (!shouldBeProcessedBasedOnAppName) {
+        return false;
+      }
+    }
+
+    if (appInstanceConfig) {
+      const shouldBeProcessedBasedOnAppInstance = appInstanceConfig[this.#env.applicationInstance];
+      if (!shouldBeProcessedBasedOnAppInstance) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   checkRedisEnabled() {
@@ -282,6 +303,7 @@ class Config {
       checkForNextChunk: config.checkForNextChunk,
       deleteFinishedEventsAfterDays: config.deleteFinishedEventsAfterDays,
       appNames: config.appNames,
+      appInstances: config.appInstances,
       useEventQueueUser: config.useEventQueueUser,
       internalEvent: true,
     };
@@ -324,55 +346,78 @@ class Config {
     config.events = config.events ?? [];
     config.periodicEvents = (config.periodicEvents ?? []).concat(BASE_PERIODIC_EVENTS.map((event) => ({ ...event })));
     this.#eventMap = config.events.reduce((result, event) => {
-      event.load = event.load ?? DEFAULT_LOAD;
-      event.priority = event.priority ?? DEFAULT_PRIORITY;
-      this.validateAdHocEvents(result, event);
-      event._appNameMap = event.appNames ? Object.fromEntries(new Map(event.appNames.map((a) => [a, true]))) : null;
+      this.#basicEventTransformation(event);
+      this.#validateAdHocEvents(result, event);
       result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
-      event.load = event.load ?? DEFAULT_LOAD;
       event.priority = event.priority ?? DEFAULT_PRIORITY;
       event.type = `${event.type}${SUFFIX_PERIODIC}`;
       event.isPeriodic = true;
-      this.validatePeriodicConfig(result, event);
-      event._appNameMap = event.appNames ? Object.fromEntries(new Map(event.appNames.map((a) => [a, true]))) : null;
+      this.#basicEventTransformation(event);
+      this.#validatePeriodicConfig(result, event);
       result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, this.#eventMap);
   }
 
-  validatePeriodicConfig(eventMap, config) {
-    const key = this.generateKey(config.type, config.subType);
-    if (eventMap[key] && eventMap[key].isPeriodic) {
-      throw EventQueueError.duplicateEventRegistration(config.type, config.subType);
+  #basicEventTransformation(event) {
+    event.load = event.load ?? DEFAULT_LOAD;
+    event.priority = event.priority ?? DEFAULT_PRIORITY;
+    event._appNameMap = event.appNames ? Object.fromEntries(new Map(event.appNames.map((a) => [a, true]))) : null;
+    event._appInstancesMap = event.appInstances
+      ? Object.fromEntries(new Map(event.appInstances.map((a) => [a, true])))
+      : null;
+  }
+
+  #basicEventValidation(event) {
+    if (!event.impl) {
+      throw EventQueueError.missingImpl(event.type, event.subType);
     }
 
-    if (!config.interval || config.interval <= MIN_INTERVAL_SEC) {
-      throw EventQueueError.invalidInterval(config.type, config.subType, config.interval);
+    if (event.appNames) {
+      if (!Array.isArray(event.appNames) || event.appNames.some((appName) => typeof appName !== "string")) {
+        throw EventQueueError.appNamesFormat(event.type, event.subType, event.appNames);
+      }
     }
 
-    if (!config.impl) {
-      throw EventQueueError.missingImpl(config.type, config.subType);
+    if (event.appInstances) {
+      if (
+        !Array.isArray(event.appInstances) ||
+        event.appInstances.some((appInstance) => typeof appInstance !== "number")
+      ) {
+        throw EventQueueError.appInstancesFormat(event.type, event.subType, event.appInstances);
+      }
+    }
+
+    if (!PRIORITIES.includes(event.priority)) {
+      throw EventQueueError.priorityNotAllowed(event.priority, "initEvent");
+    }
+
+    if (event.load > this.#instanceLoadLimit) {
+      throw EventQueueError.loadHigherThanLimit(event.load, "initEvent");
     }
   }
 
-  validateAdHocEvents(eventMap, config) {
-    const key = this.generateKey(config.type, config.subType);
+  #validatePeriodicConfig(eventMap, event) {
+    const key = this.generateKey(event.type, event.subType);
+    if (eventMap[key] && eventMap[key].isPeriodic) {
+      throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
+    }
+
+    if (!event.interval || event.interval <= MIN_INTERVAL_SEC) {
+      throw EventQueueError.invalidInterval(event.type, event.subType, event.interval);
+    }
+    this.#basicEventValidation(event);
+  }
+
+  #validateAdHocEvents(eventMap, event) {
+    const key = this.generateKey(event.type, event.subType);
     if (eventMap[key] && !eventMap[key].isPeriodic) {
-      throw EventQueueError.duplicateEventRegistration(config.type, config.subType);
+      throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
     }
-
-    if (!config.impl) {
-      throw EventQueueError.missingImpl(config.type, config.subType);
-    }
-
-    if (config.appNames) {
-      if (!Array.isArray(config.appNames) || config.appNames.some((appName) => typeof appName !== "string")) {
-        throw EventQueueError.appNamesFormat(config.type, config.subType, config.appNames);
-      }
-    }
+    this.#basicEventValidation(event);
   }
 
   generateKey(type, subType) {

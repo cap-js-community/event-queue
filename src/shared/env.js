@@ -24,6 +24,10 @@ class Env {
     return this.#vcapApplication.application_name;
   }
 
+  get applicationInstance() {
+    return Number(process.env.CF_INSTANCE_INDEX);
+  }
+
   set vcapServices(value) {
     this.#vcapServices = value;
   }

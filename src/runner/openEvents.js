@@ -5,7 +5,7 @@ const cds = require("@sap/cds");
 const eventConfig = require("../config");
 const { EventProcessingStatus } = require("../constants");
 
-const getOpenQueueEntries = async (tx) => {
+const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
   const startTime = new Date();
   const refDateStartAfter = new Date(startTime.getTime() + eventConfig.runInterval * 1.2);
   const entries = await tx.run(
@@ -37,13 +37,17 @@ const getOpenQueueEntries = async (tx) => {
             return;
           }
           cds.outboxed(service);
-          if (eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
+          if (filterAppSpecificEvents && eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
             result.push({ type, subType });
           }
         })
         .catch(() => {});
     } else {
-      if (eventConfig.getEventConfig(type, subType) && eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
+      if (
+        eventConfig.getEventConfig(type, subType) &&
+        filterAppSpecificEvents &&
+        eventConfig.shouldBeProcessedInThisApplication(type, subType)
+      ) {
         result.push({ type, subType });
       }
     }
