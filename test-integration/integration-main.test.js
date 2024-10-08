@@ -1198,7 +1198,7 @@ describe("integration-main", () => {
 
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 13 });
+        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 15 });
       });
 
       it("should events which are eligible for deletion -> should be deleted after 7 days", async () => {
@@ -1226,7 +1226,7 @@ describe("integration-main", () => {
 
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 3 });
+        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 5 });
       });
     });
 
