@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.6.7 - 2024-10-08
+
+### Added
+
+- Enhanced the configuration options to specify not only the application name but also the instance index where the event should be processed. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#parameters).
+
 ## v1.6.6 - 2024-08-28
 
 ### Fixed
