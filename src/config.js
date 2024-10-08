@@ -348,6 +348,7 @@ class Config {
     this.#eventMap = config.events.reduce((result, event) => {
       this.#basicEventTransformation(event);
       this.#validateAdHocEvents(result, event);
+      this.#basicEventTransformationAfterValidate(event);
       result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, {});
@@ -357,6 +358,7 @@ class Config {
       event.isPeriodic = true;
       this.#basicEventTransformation(event);
       this.#validatePeriodicConfig(result, event);
+      this.#basicEventTransformationAfterValidate(event);
       result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, this.#eventMap);
@@ -365,6 +367,9 @@ class Config {
   #basicEventTransformation(event) {
     event.load = event.load ?? DEFAULT_LOAD;
     event.priority = event.priority ?? DEFAULT_PRIORITY;
+  }
+
+  #basicEventTransformationAfterValidate(event) {
     event._appNameMap = event.appNames ? Object.fromEntries(new Map(event.appNames.map((a) => [a, true]))) : null;
     event._appInstancesMap = event.appInstances
       ? Object.fromEntries(new Map(event.appInstances.map((a) => [a, true])))

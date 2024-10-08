@@ -338,6 +338,7 @@ describe("event-queue outbox", () => {
       expect(config).toMatchInlineSnapshot(`
         {
           "_appNameMap": null,
+          "appInstances": undefined,
           "appNames": undefined,
           "checkForNextChunk": undefined,
           "deleteFinishedEventsAfterDays": undefined,
@@ -381,6 +382,7 @@ describe("event-queue outbox", () => {
       expect(config).toMatchInlineSnapshot(`
         {
           "_appNameMap": null,
+          "appInstances": undefined,
           "appNames": undefined,
           "checkForNextChunk": undefined,
           "deleteFinishedEventsAfterDays": undefined,
