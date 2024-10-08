@@ -45,6 +45,7 @@ jest.mock("../src/shared/redis", () => {
 });
 
 const redis = require("../src/shared/redis");
+const { getEnvInstance } = require("../src/shared/env");
 
 describe("eventQueue Redis Events and DB Handlers", () => {
   let context;
@@ -231,16 +232,45 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(runnerSpy).toHaveBeenCalledTimes(0);
     });
 
-    test("should skip processing if not relevant for app", async () => {
-      const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
-      checkLockExistsSpy.mockResolvedValueOnce(false);
-      await insertEventEntry(tx, { type: "AppSpecific", subType: "AppA" });
-      await tx.commit();
+    describe("should skip processing if not relevant for app", () => {
+      test("appName", async () => {
+        const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+        checkLockExistsSpy.mockResolvedValueOnce(false);
+        await insertEventEntry(tx, { type: "AppSpecific", subType: "AppInstance" });
+        await tx.commit();
 
-      expect(mockRedisPublishCalls).toHaveLength(1);
+        expect(mockRedisPublishCalls).toHaveLength(1);
 
-      await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][2]);
-      expect(runnerSpy).toHaveBeenCalledTimes(0);
+        await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][2]);
+        expect(runnerSpy).toHaveBeenCalledTimes(0);
+      });
+
+      test("appInstance", async () => {
+        const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+        checkLockExistsSpy.mockResolvedValueOnce(false);
+        await insertEventEntry(tx, { type: "AppSpecific", subType: "AppInstance" });
+        await tx.commit();
+
+        expect(mockRedisPublishCalls).toHaveLength(1);
+
+        await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][2]);
+        expect(runnerSpy).toHaveBeenCalledTimes(0);
+      });
+
+      test("combination", async () => {
+        const env = getEnvInstance();
+        env.vcapApplication = { application_name: "app-b" };
+        env.applicationInstance = [1];
+        const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+        checkLockExistsSpy.mockResolvedValueOnce(false);
+        await insertEventEntry(tx, { type: "AppSpecific", subType: "both" });
+        await tx.commit();
+
+        expect(mockRedisPublishCalls).toHaveLength(1);
+
+        await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][2]);
+        expect(runnerSpy).toHaveBeenCalledTimes(0);
+      });
     });
   });
 });
