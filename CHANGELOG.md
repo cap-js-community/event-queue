@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - Enhanced the configuration options to specify not only the application name but also the instance index where the event should be processed. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#parameters).
+- Enable more event publish properties for CDS outboxed service. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#parameters).
 
 ## v1.6.6 - 2024-08-28
 
