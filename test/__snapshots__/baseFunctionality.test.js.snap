@@ -142,10 +142,45 @@ exports[`baseFunctionality getOpenQueueEntries return open event types 2`] = `
 ]
 `;
 
+exports[`baseFunctionality getOpenQueueEntries should respect app instance configuration both open event relevant for app 2`] = `
+[
+  {
+    "subType": "AppInstance",
+    "type": "AppSpecific",
+  },
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+]
+`;
+
+exports[`baseFunctionality getOpenQueueEntries should respect app instance configuration one open event for app and one not for this app 2`] = `
+[
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+]
+`;
+
+exports[`baseFunctionality getOpenQueueEntries should respect app instance configuration one open event for app and one not for this app but redis should ignore filter 2`] = `
+[
+  {
+    "subType": "AppInstance",
+    "type": "AppSpecific",
+  },
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+]
+`;
+
 exports[`baseFunctionality getOpenQueueEntries should respect app name configuration both open event relevant for app 2`] = `
 [
   {
-    "subType": "AppA",
+    "subType": "AppName",
     "type": "AppSpecific",
   },
   {
@@ -157,6 +192,19 @@ exports[`baseFunctionality getOpenQueueEntries should respect app name configura
 
 exports[`baseFunctionality getOpenQueueEntries should respect app name configuration one open event for app and one not for this app 2`] = `
 [
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+]
+`;
+
+exports[`baseFunctionality getOpenQueueEntries should respect app name configuration one open event for app and one not for this app but redis should ignore filter 2`] = `
+[
+  {
+    "subType": "AppName",
+    "type": "AppSpecific",
+  },
   {
     "subType": "Task",
     "type": "Notifications",

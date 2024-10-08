@@ -59,11 +59,27 @@ events:
     transactionMode: isolated
 
   - type: AppSpecific
-    subType: AppA
+    subType: AppName
     impl: ./test/asset/EventQueueTest
     load: 1
     appNames:
       - app-a
+
+  - type: AppSpecific
+    subType: AppInstance
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    appInstances:
+      - 1
+
+  - type: AppSpecific
+    subType: both
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    appNames:
+      - app-a
+    appInstances:
+      - 1
 
 periodicEvents:
   - type: HealthCheck
@@ -74,9 +90,27 @@ periodicEvents:
     interval: 30
 
   - type: AppSpecific
-    subType: AppA
+    subType: AppName
     impl: ./test/asset/EventQueueHealthCheckDb
     load: 1
     interval: 30
     appNames:
       - app-a
+
+  - type: AppSpecific
+    subType: AppInstance
+    impl: ./test/asset/EventQueueHealthCheckDb
+    load: 1
+    interval: 30
+    appInstances:
+      - 1
+
+  - type: AppSpecific
+    subType: both
+    impl: ./test/asset/EventQueueHealthCheckDb
+    load: 1
+    interval: 30
+    appNames:
+      - app-a
+    appInstances:
+      - 1

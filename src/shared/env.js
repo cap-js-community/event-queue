@@ -5,6 +5,7 @@ let instance;
 class Env {
   #vcapServices;
   #vcapApplication;
+  #vcapApplicationInstance;
 
   constructor() {
     try {
@@ -14,6 +15,7 @@ class Env {
       this.#vcapServices = {};
       this.#vcapApplication = {};
     }
+    this.#vcapApplicationInstance = Number(process.env.CF_INSTANCE_INDEX);
   }
 
   get redisCredentialsFromEnv() {
@@ -24,12 +26,20 @@ class Env {
     return this.#vcapApplication.application_name;
   }
 
+  get applicationInstance() {
+    return this.#vcapApplicationInstance;
+  }
+
   set vcapServices(value) {
     this.#vcapServices = value;
   }
 
   get vcapServices() {
     return this.#vcapServices;
+  }
+
+  set applicationInstance(value) {
+    this.#vcapApplicationInstance = value;
   }
 
   set vcapApplication(value) {

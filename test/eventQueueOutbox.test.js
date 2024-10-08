@@ -188,21 +188,28 @@ describe("event-queue outbox", () => {
         },
         {
           "x-eventqueue-startAfter": date,
+          "x-eventqueue-referenceEntity": "sap.eventqueue.Event",
+          "x-eventqueue-referenceEntityKey": "6b61308d-e199-41ce-aa9d-a73fc3b218ac",
         }
       );
 
       await commitAndOpenNew();
       const [event] = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 1,
-        additionalColumns: ["payload"],
+        additionalColumns: ["payload", "referenceEntity", "referenceEntityKey"],
       });
       expect(event).toMatchObject({
         status: EventProcessingStatus.Open,
         startAfter: date,
+        referenceEntity: "sap.eventqueue.Event",
+        referenceEntityKey: "6b61308d-e199-41ce-aa9d-a73fc3b218ac",
       });
-      expect(JSON.parse(event.payload)).toMatchSnapshot();
-      expect(JSON.parse(event.payload).headers["x-eventqueue-startAfter"]).toBeUndefined();
-      expect(JSON.parse(event.payload).headers["x-eventqueue-startafter"]).toBeUndefined();
+      const parsedPayload = JSON.parse(event.payload);
+      expect(parsedPayload).toMatchSnapshot();
+      ["startAfter", "referenceEntity", "referenceEntityKey"].forEach((key) => {
+        expect(parsedPayload.headers[`x-eventqueue-${key}`]).toBeUndefined();
+        expect(parsedPayload.headers[`x-eventqueue-${key.toLocaleLowerCase()}`]).toBeUndefined();
+      });
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
@@ -337,7 +344,9 @@ describe("event-queue outbox", () => {
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationService");
       expect(config).toMatchInlineSnapshot(`
         {
+          "_appInstancesMap": null,
           "_appNameMap": null,
+          "appInstances": undefined,
           "appNames": undefined,
           "checkForNextChunk": undefined,
           "deleteFinishedEventsAfterDays": undefined,
@@ -380,7 +389,9 @@ describe("event-queue outbox", () => {
       delete config.startTime;
       expect(config).toMatchInlineSnapshot(`
         {
+          "_appInstancesMap": null,
           "_appNameMap": null,
+          "appInstances": undefined,
           "appNames": undefined,
           "checkForNextChunk": undefined,
           "deleteFinishedEventsAfterDays": undefined,

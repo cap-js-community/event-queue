@@ -134,7 +134,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
               id: config.userId,
               authInfo: await common.getAuthInfo(tenantId),
             });
-            const entries = await openEvents.getOpenQueueEntries(tx);
+            const entries = await openEvents.getOpenQueueEntries(tx, false);
             logger.info("broadcasting events for run", {
               tenantId,
               entries: entries.length,

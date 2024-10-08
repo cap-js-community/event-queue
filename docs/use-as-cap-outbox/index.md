@@ -13,7 +13,7 @@ nav_order: 5
 <!-- prettier-ignore -->
 
 - TOC
-{: toc}
+  {: toc}
 
 <!-- prettier-ignore-end -->
 
@@ -56,9 +56,15 @@ Since the event-queue allows specifying concurrency with a number, `parallel=tru
 to `parallelEventProcessing=5`, and `parallel=false` is mapped to `parallelEventProcessing=1`. For full flexibility, the
 configuration prioritizes the `parallelEventProcessing` parameter over `parallel`.
 
-The useEventQueueUser parameter can be set to true or false. When set to true, the user defined in the [general
-configuration](/event-queue/setup/#initialization-parameters) will be used as the cds context user (context.user.id). This influences actions such as updating managed
+The `useEventQueueUser` parameter can be set to true or false. When set to true, the user defined in the [general
+configuration](/event-queue/setup/#initialization-parameters) will be used as the cds context user (context.user.id).
+This influences actions such as updating managed
 database fields like modifiedBy. The default value for this parameter is false.
+
+All supported parameters available for [EventQueueProcessors](/event-queue/configure-event/#parameters) are also
+available for CAP outboxed services. This means
+that you can use the same configuration settings and options that you would use with EventQueueProcessors when
+configuring CAP outboxed services, ensuring consistent behavior and flexibility across both use cases.
 
 Parameters are managed via the `cds.require` section, not through the config yml file as with other events. For details
 on maintaining the `cds.requires` section, refer to
@@ -85,8 +91,8 @@ using the event-queue to outbox the `@cap-js/audit-logging` service:
 
 The parameters in the outbox section of a service are passed as configuration to the event-queue.
 The `persistent-outbox` kind allows the event-queue to persist events instead of executing them in memory, mirroring the
-behavior of the [CAP outbox](https://cap.cloud.sap/docs/node.js/outbox). The
-parameters `transactionMode`, `checkForNextChunk`, and `parallelEventProcessing` are
+behavior of the [CAP outbox](https://cap.cloud.sap/docs/node.js/outbox). The parameters `transactionMode`,
+`checkForNextChunk`, and `parallelEventProcessing` are
 exclusive to the event-queue.
 
 ## Example of a Custom Outboxed Service
@@ -165,6 +171,11 @@ await outboxedService.send(
   { "x-eventqueue-startAfter": new Date(Date.now() + 4 * 60 * 1000).toISOString() }
 );
 ```
+
+### Additional parameters Outboxed Service Calls
+
+Similar to delaying published events, it is also possible to provide other parameters when publishing events. All event
+publication properties can be found [here](/event-queue/publish-event/#function-parameters).
 
 ### Error Handling in a Custom Outboxed Service
 

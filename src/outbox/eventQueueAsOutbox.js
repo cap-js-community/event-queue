@@ -7,10 +7,9 @@ const config = require("../config");
 
 const OUTBOXED = Symbol("outboxed");
 const UNBOXED = Symbol("unboxed");
-
 const CDS_EVENT_TYPE = "CAP_OUTBOX";
-
 const COMPONENT_NAME = "/eventQueue/eventQueueAsOutbox";
+const EVENT_QUEUE_SPECIFIC_FIELDS = ["startAfter", "referenceEntity", "referenceEntityKey"];
 
 function outboxed(srv, customOpts) {
   // outbox max. once
@@ -74,12 +73,14 @@ function unboxed(srv) {
 }
 
 const _mapToEventAndPublish = async (context, name, req) => {
-  let startAfter;
+  const eventQueueSpecificValues = {};
   for (const header in req.headers ?? {}) {
-    if (header.toLocaleLowerCase() === "x-eventqueue-startafter") {
-      startAfter = req.headers[header];
-      delete req.headers[header];
-      break;
+    for (const field of EVENT_QUEUE_SPECIFIC_FIELDS) {
+      if (header.toLocaleLowerCase() === `x-eventqueue-${field.toLocaleLowerCase()}`) {
+        eventQueueSpecificValues[field] = req.headers[header];
+        delete req.headers[header];
+        break;
+      }
     }
   }
   const event = {
@@ -96,7 +97,7 @@ const _mapToEventAndPublish = async (context, name, req) => {
     type: CDS_EVENT_TYPE,
     subType: name,
     payload: JSON.stringify(event),
-    ...(startAfter && { startAfter }),
+    ...eventQueueSpecificValues,
   });
 };
 

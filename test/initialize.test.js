@@ -110,18 +110,35 @@ describe("initialize", () => {
       config.fileContent = fileContent;
     }).not.toThrow();
 
-    const event = originalEvents.find((event) => event.subType === "AppA");
+    const event = originalEvents.find((event) => event.subType === "AppName");
     event.appNames = "test";
     fileContent.events.push({ ...event });
     expect(() => {
       config.fileContent = fileContent;
     }).toThrowErrorMatchingInlineSnapshot(`"The app names property must be an array and only contain strings."`);
+    fileContent.events.splice(1);
 
     event.appNames = [1];
     fileContent.events.push({ ...event });
     expect(() => {
       config.fileContent = fileContent;
     }).toThrowErrorMatchingInlineSnapshot(`"The app names property must be an array and only contain strings."`);
+    fileContent.events.splice(1);
+
+    event.appNames = null;
+    event.appInstances = ["1"];
+    fileContent.events.push({ ...event });
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"The app instances property must be an array and only contain numbers."`);
+    fileContent.events.splice(1);
+
+    event.appInstances = "1";
+    fileContent.events.push({ ...event });
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"The app instances property must be an array and only contain numbers."`);
+    fileContent.events.splice(1);
   });
 
   describe("runner mode registration", () => {
