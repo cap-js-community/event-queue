@@ -13,7 +13,7 @@ nav_order: 5
 <!-- prettier-ignore -->
 
 - TOC
-  {: toc}
+{: toc}
 
 <!-- prettier-ignore-end -->
 
