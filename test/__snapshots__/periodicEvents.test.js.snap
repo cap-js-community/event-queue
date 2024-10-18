@@ -8,21 +8,25 @@ exports[`baseFunctionality basic insert all new events 1`] = `
       "events": [
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppName",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppInstance",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "both",
           "type": "AppSpecific_PERIODIC",
         },
@@ -34,7 +38,20 @@ exports[`baseFunctionality basic insert all new events 1`] = `
     {
       "events": [
         {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "UTC",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "Local",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
           "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
@@ -71,6 +88,16 @@ exports[`baseFunctionality basic insert all new events 2`] = `
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
   },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
 ]
 `;
 
@@ -82,21 +109,25 @@ exports[`baseFunctionality delta insert 1`] = `
       "events": [
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppName",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppInstance",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "both",
           "type": "AppSpecific_PERIODIC",
         },
@@ -108,7 +139,20 @@ exports[`baseFunctionality delta insert 1`] = `
     {
       "events": [
         {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "UTC",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "Local",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
           "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
@@ -121,6 +165,7 @@ exports[`baseFunctionality delta insert 1`] = `
       "events": [
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB2",
           "type": "HealthCheck_PERIODIC",
         },
@@ -162,22 +207,71 @@ exports[`baseFunctionality delta insert 2`] = `
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
   },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
 ]
 `;
 
 exports[`baseFunctionality if periodic event is in progress - no insert should happen 1`] = `
 [
   [
-    "1/1 | inserting chunk of changed or new periodic events",
+    "1/2 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
-          "interval": 10,
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppName",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppInstance",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "both",
+          "type": "AppSpecific_PERIODIC",
+        },
+      ],
+    },
+  ],
+  [
+    "2/2 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "UTC",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "Local",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
           "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
@@ -199,22 +293,86 @@ exports[`baseFunctionality if periodic event is in progress - no insert should h
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 1,
   },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
 ]
 `;
 
 exports[`baseFunctionality interval changed 1`] = `
 [
   [
-    "1/1 | inserting chunk of changed or new periodic events",
+    "1/2 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppName",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppInstance",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "both",
+          "type": "AppSpecific_PERIODIC",
+        },
+      ],
+    },
+  ],
+  [
+    "2/2 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "UTC",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "Local",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
           "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
@@ -229,17 +387,75 @@ exports[`baseFunctionality interval changed 1`] = `
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
+        {
+          "subType": "AppName",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "subType": "AppInstance",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "subType": "both",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "subType": "UTC",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
+          "subType": "Local",
+          "type": "TimeSpecific_PERIODIC",
+        },
       ],
     },
   ],
   [
-    "1/1 | inserting chunk of changed or new periodic events",
+    "1/2 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
           "interval": 10,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppName",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppInstance",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "both",
+          "type": "AppSpecific_PERIODIC",
+        },
+      ],
+    },
+  ],
+  [
+    "2/2 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "UTC",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "Local",
+          "type": "TimeSpecific_PERIODIC",
         },
       ],
     },
@@ -252,6 +468,132 @@ exports[`baseFunctionality interval changed 2`] = `
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:30.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality startTime should use UTC time for event start 1`] = `
+[
+  [
+    "1/2 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DB",
+          "type": "HealthCheck_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppName",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppInstance",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "both",
+          "type": "AppSpecific_PERIODIC",
+        },
+      ],
+    },
+  ],
+  [
+    "2/2 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "UTC",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "Local",
+          "type": "TimeSpecific_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality startTime should use UTC time for event start 2`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
   },
   {

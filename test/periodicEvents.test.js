@@ -1,8 +1,10 @@
 "use strict";
 
 const path = require("path");
+const fs = require("fs");
 
 const cds = require("@sap/cds/lib");
+const yaml = require("yaml");
 
 const eventQueue = require("../src");
 const { Logger: mockLogger } = require("./mocks/logger");
@@ -25,6 +27,7 @@ describe("baseFunctionality", () => {
       registerAsEventProcessor: false,
       updatePeriodicEvents: false,
     });
+
     loggerMock = mockLogger();
     jest.spyOn(cds, "log").mockImplementation((layer) => {
       return mockLogger(layer);
@@ -35,6 +38,8 @@ describe("baseFunctionality", () => {
     jest.clearAllMocks();
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
+    config.fileContent = yaml.parse(fs.readFileSync(path.join(__dirname, "asset", "config.yml"), "utf8").toString());
+
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
     await tx.run(DELETE.from("sap.eventqueue.Event"));
   });
@@ -48,7 +53,7 @@ describe("baseFunctionality", () => {
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 5 })).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 7 })).toMatchSnapshot();
   });
 
   it("delta insert", async () => {
@@ -71,7 +76,7 @@ describe("baseFunctionality", () => {
     config.fileContent = fileContent;
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 6 })).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 8 })).toMatchSnapshot();
   });
 
   it("interval changed", async () => {
@@ -88,7 +93,7 @@ describe("baseFunctionality", () => {
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 7 })).toMatchSnapshot();
   });
 
   it("if periodic event is in progress - no insert should happen", async () => {
@@ -103,6 +108,15 @@ describe("baseFunctionality", () => {
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 7 })).toMatchSnapshot();
+  });
+
+  describe("startTime", () => {
+    it("should use UTC time for event start", async () => {
+      await checkAndInsertPeriodicEvents(context);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(loggerMock.calls().info).toMatchSnapshot();
+      expect(await selectEventQueueAndReturn(tx, { expectedLength: 7 })).toMatchSnapshot();
+    });
   });
 });

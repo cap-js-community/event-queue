@@ -85,28 +85,73 @@ const checkAndInsertPeriodicEvents = async (context) => {
   return await insertPeriodEvents(tx, newOrChangedEvents);
 };
 
+const calculateFutureDate = (intervalInSeconds, desiredTime, isUTC = true) => {
+  const [hours, minutes] = desiredTime.split(":").map(Number);
+  const now = new Date();
+
+  const year = isUTC ? now.getUTCFullYear() : now.getFullYear();
+  const month = isUTC ? now.getUTCMonth() : now.getMonth();
+  const day = isUTC ? now.getUTCDate() : now.getDate();
+  const hour = isUTC ? now.getUTCHours() : now.getHours();
+  const minute = isUTC ? now.getUTCMinutes() : now.getMinutes();
+  const seconds = isUTC ? now.getUTCSeconds() : now.getSeconds();
+
+  let dateWithTime = isUTC
+    ? new Date(Date.UTC(year, month, day, hours, minutes, 0, 0))
+    : new Date(year, month, day, hours, minutes, 0, 0);
+  let timeDifferenceInSeconds = Math.round((now - dateWithTime) / 1000);
+  if (timeDifferenceInSeconds % intervalInSeconds === 0) {
+    return isUTC
+      ? new Date(Date.UTC(year, month, day, hour, minute, seconds))
+      : new Date(year, month, day, hour, minute, seconds);
+  }
+
+  const additionalIntervals = Math.floor(timeDifferenceInSeconds / intervalInSeconds);
+  dateWithTime = new Date(dateWithTime.getTime() + additionalIntervals * intervalInSeconds * 1000);
+  if (isUTC) {
+    dateWithTime = new Date(
+      Date.UTC(
+        dateWithTime.getUTCFullYear(),
+        dateWithTime.getUTCMonth(),
+        dateWithTime.getUTCDate(),
+        dateWithTime.getUTCHours(),
+        dateWithTime.getUTCMinutes(),
+        dateWithTime.getUTCSeconds()
+      )
+    );
+  }
+  return dateWithTime;
+};
+
 const insertPeriodEvents = async (tx, events) => {
   const startAfter = new Date();
   let counter = 1;
   const chunks = Math.ceil(events.length / CHUNK_SIZE_INSERT_PERIODIC_EVENTS);
   const logger = cds.log(COMPONENT_NAME);
-  processChunkedSync(events, CHUNK_SIZE_INSERT_PERIODIC_EVENTS, (chunk) => {
+  const eventsToBeInserted = events.map((event) => {
+    const base = { type: event.type, subType: event.subType };
+    let startTime = startAfter;
+    if (event.startTimeUTC) {
+      startTime = calculateFutureDate(event.interval, event.startTimeUTC, true);
+    } else if (event.startTimeLocal) {
+      startTime = calculateFutureDate(event.interval, event.startTimeLocal);
+    }
+    base.startAfter = startTime.toISOString();
+    return base;
+  }, []);
+
+  processChunkedSync(eventsToBeInserted, CHUNK_SIZE_INSERT_PERIODIC_EVENTS, (chunk) => {
     logger.info(`${counter}/${chunks} | inserting chunk of changed or new periodic events`, {
-      events: chunk.map(({ type, subType }) => {
+      events: chunk.map(({ type, subType, startAfter }) => {
         const { interval } = eventConfig.getEventConfig(type, subType);
-        return { type, subType, interval };
+        return { type, subType, interval, ...(startAfter && { startAfter }) };
       }),
     });
     counter++;
   });
-  const periodEventsInsert = events.map((periodicEvent) => ({
-    type: periodicEvent.type,
-    subType: periodicEvent.subType,
-    startAfter: startAfter,
-  }));
 
   tx._skipEventQueueBroadcase = true;
-  await tx.run(INSERT.into(eventConfig.tableNameEventQueue).entries(periodEventsInsert));
+  await tx.run(INSERT.into(eventConfig.tableNameEventQueue).entries(eventsToBeInserted));
   tx._skipEventQueueBroadcase = false;
 };
 
@@ -114,4 +159,5 @@ const _generateKey = ({ type, subType }) => [type, subType].join("##");
 
 module.exports = {
   checkAndInsertPeriodicEvents,
+  calculateFutureDate,
 };
