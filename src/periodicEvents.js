@@ -106,11 +106,6 @@ const calculateFutureDate = (intervalInSeconds, desiredTime, isUTC = true) => {
       : new Date(year, month, day, hour, minute, seconds);
   }
 
-  if (timeDifferenceInSeconds < 0) {
-    // If the desired time is in the future, move to the previous occurrence of the event.
-    timeDifferenceInSeconds = -Math.abs(timeDifferenceInSeconds);
-  }
-
   const additionalIntervals = Math.floor(timeDifferenceInSeconds / intervalInSeconds);
   dateWithTime = new Date(dateWithTime.getTime() + additionalIntervals * intervalInSeconds * 1000);
   if (isUTC) {
