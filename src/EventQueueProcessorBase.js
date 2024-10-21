@@ -964,7 +964,7 @@ class EventQueueProcessorBase {
     const newEvent = {
       type: this.#eventType,
       subType: this.#eventSubType,
-      startAfter: this.#eventConfig.cron ? next : new Date(new Date(queueEntry.startAfter).getTime() + intervalInMs),
+      startAfter: next ?? new Date(new Date(queueEntry.startAfter).getTime() + intervalInMs),
     };
     const { relative } = this.#eventSchedulerInstance.calculateOffset(
       this.#eventType,
