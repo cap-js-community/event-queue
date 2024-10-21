@@ -414,6 +414,10 @@ class Config {
       throw EventQueueError.noCronOrInterval(event.type, event.subType);
     }
 
+    if (event.cron && event.interval) {
+      throw EventQueueError.cronAndInterval(event.type, event.subType);
+    }
+
     if (event.cron) {
       let cron;
       try {

@@ -16,6 +16,7 @@ const ERROR_CODES = {
   CANT_PARSE_CRON: "CANT_PARSE_CRON",
   CRON_INTERVAL: "CRON_INTERVAL",
   NO_INTERVAL_OR_CRON: "NO_INTERVAL_OR_CRON",
+  INTERVAL_AND_CRON: "INTERVAL_AND_CRON",
   MISSING_IMPL: "MISSING_IMPL",
   DUPLICATE_EVENT_REGISTRATION: "DUPLICATE_EVENT_REGISTRATION",
   NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
@@ -85,7 +86,10 @@ const ERROR_CODES_META = {
     message: "The difference between two cron execution must be greater than 10 seconds.",
   },
   [ERROR_CODES.NO_INTERVAL_OR_CRON]: {
-    message: "For periodic events either either the cron or interval parameter must be defined!",
+    message: "For periodic events either the cron or interval parameter must be defined!",
+  },
+  [ERROR_CODES.INTERVAL_AND_CRON]: {
+    message: "For periodic events only the cron or interval parameter can be defined!",
   },
 };
 
@@ -229,6 +233,17 @@ class EventQueueError extends VError {
     return new EventQueueError(
       {
         name: ERROR_CODES.CRON_INTERVAL,
+        info: { type, subType },
+      },
+      message
+    );
+  }
+
+  static cronAndInterval(type, subType) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.INTERVAL_AND_CRON];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.INTERVAL_AND_CRON,
         info: { type, subType },
       },
       message
