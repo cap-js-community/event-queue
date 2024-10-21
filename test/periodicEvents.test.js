@@ -148,7 +148,7 @@ describe("baseFunctionality", () => {
 
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(loggerMock.calls().info).toMatchSnapshot();
-      expect(await selectEventQueueAndReturn(tx, { expectedLength: 6 })).toMatchSnapshot();
+      expect(await selectEventQueueAndReturn(tx, { expectedLength: 5 })).toMatchSnapshot();
     });
   });
 

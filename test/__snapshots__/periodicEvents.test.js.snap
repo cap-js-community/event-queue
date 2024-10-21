@@ -1068,6 +1068,36 @@ exports[`baseFunctionality interval events if periodic event is in progress - no
 ]
 `;
 
+exports[`baseFunctionality interval events if periodic event is in progress - no insert should happen 2`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+]
+`;
+
 exports[`baseFunctionality interval events interval change if interval is increased next event will autocorrect 1`] = `
 [
   [
