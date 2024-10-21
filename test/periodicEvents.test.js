@@ -186,6 +186,27 @@ describe("baseFunctionality", () => {
         expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
       });
 
+      it("should calculate different dates for UTC yes/no", async () => {
+        config.fileContent = {
+          events: fileContent.events,
+          periodicEvents: [
+            ...fileContent.periodicEvents
+              .filter((e) => e.cron)
+              .map((e, index) => {
+                e.cron = "30 8 * * 1-5"; // Runs at 8:30 AM, Monday through Friday.
+                e.utc = !!index;
+                return e;
+              }),
+          ],
+        };
+        await checkAndInsertPeriodicEvents(context);
+        const events = await selectEventQueueAndReturn(tx, { expectedLength: 3, additionalColumns: ["type"] });
+        const cronEvents = events.filter((e) => e.type.startsWith("TimeSpecific"));
+        expect(cronEvents[0].startAfter).toMatchInlineSnapshot(`"2023-11-14T07:30:00.000Z"`);
+        expect(cronEvents[1].startAfter).toMatchInlineSnapshot(`"2023-11-14T08:30:00.000Z"`);
+        expect(cronEvents).toMatchSnapshot();
+      });
+
       describe("changed intervals", () => {
         it("not changed interval --> no update", async () => {
           config.fileContent = {

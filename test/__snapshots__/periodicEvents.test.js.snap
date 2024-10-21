@@ -459,6 +459,23 @@ exports[`baseFunctionality startTime Cron expression tests changed intervals not
 ]
 `;
 
+exports[`baseFunctionality startTime Cron expression tests should calculate different dates for UTC yes/no 3`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-14T07:30:00.000Z",
+    "status": 0,
+    "type": "TimeSpecificEveryMin_PERIODIC_PERIODIC",
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-14T08:30:00.000Z",
+    "status": 0,
+    "type": "TimeSpecificEveryFiveMin_PERIODIC_PERIODIC",
+  },
+]
+`;
+
 exports[`baseFunctionality startTime Cron expression tests should test cron expression: '* * * * *' 1`] = `
 [
   {
