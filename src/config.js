@@ -1,6 +1,7 @@
 "use strict";
 
 const cds = require("@sap/cds");
+const cronParser = require("cron-parser");
 
 const { getEnvInstance } = require("./shared/env");
 const redis = require("./shared/redis");
@@ -407,6 +408,30 @@ class Config {
     const key = this.generateKey(event.type, event.subType);
     if (eventMap[key] && eventMap[key].isPeriodic) {
       throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
+    }
+
+    if (!event.cron && !event.interval) {
+      throw EventQueueError.noCronOrInterval(event.type, event.subType);
+    }
+
+    if (event.cron && event.interval) {
+      throw EventQueueError.cronAndInterval(event.type, event.subType);
+    }
+
+    if (event.cron) {
+      let cron;
+      try {
+        cron = cronParser.parseExpression(event.cron);
+      } catch {
+        throw EventQueueError.cantParseCronExpression(event.type, event.subType, event.cron);
+      }
+      const next = cron.next();
+      const afterNext = cron.next();
+      const diffInSeconds = (afterNext.getTime() - next.getTime()) / 1000;
+      if (diffInSeconds <= MIN_INTERVAL_SEC) {
+        throw EventQueueError.invalidIntervalBetweenCron(event.type, event.subType, diffInSeconds);
+      }
+      return this.#basicEventValidation(event);
     }
 
     if (!event.interval || event.interval <= MIN_INTERVAL_SEC) {

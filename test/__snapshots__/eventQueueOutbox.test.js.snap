@@ -107,6 +107,14 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true return open event types 1`
     "subType": "Task",
     "type": "Notifications",
   },
+  {
+    "subType": "everyFiveMin",
+    "type": "TimeSpecificEveryFiveMin_PERIODIC",
+  },
+  {
+    "subType": "cron",
+    "type": "TimeSpecificEveryMin_PERIODIC",
+  },
 ]
 `;
 

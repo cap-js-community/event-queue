@@ -528,7 +528,7 @@ describe("baseFunctionality", () => {
       await testHelper.insertEventEntry(tx);
       await checkAndInsertPeriodicEvents(context);
       const result = await getOpenQueueEntries(tx);
-      expect(result.length).toMatchInlineSnapshot(`3`); // 1 ad-hoc and 2 periodic
+      expect(result.length).toMatchInlineSnapshot(`5`); // 1 ad-hoc and 4 periodic
       expect(result).toMatchSnapshot();
     });
 
@@ -537,7 +537,7 @@ describe("baseFunctionality", () => {
       await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ status: EventProcessingStatus.InProgress }));
       await checkAndInsertPeriodicEvents(context);
       const result = await getOpenQueueEntries(tx);
-      expect(result.length).toMatchInlineSnapshot(`2`); // 2 periodic
+      expect(result.length).toMatchInlineSnapshot(`4`); // periodic
       expect(result).toMatchSnapshot();
     });
 
@@ -546,7 +546,7 @@ describe("baseFunctionality", () => {
       await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ status: EventProcessingStatus.Error }));
       await checkAndInsertPeriodicEvents(context);
       const result = await getOpenQueueEntries(tx);
-      expect(result.length).toMatchInlineSnapshot(`3`); // 1 ad-hoc and 2 periodic
+      expect(result.length).toMatchInlineSnapshot(`5`); // 1 ad-hoc and 4 periodic
       expect(result).toMatchSnapshot();
     });
 
