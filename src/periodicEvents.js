@@ -30,7 +30,7 @@ const checkAndInsertPeriodicEvents = async (context) => {
       },
     ])
     .groupBy("type", "subType", "createdAt")
-    .columns(["type", "subType", "createdAt", "max(startAfter)"]);
+    .columns(["type", "subType", "createdAt", "max(startAfter) as startAfter"]);
   const currentPeriodEvents = await tx.run(baseCqn);
   currentPeriodEvents.length &&
     (await tx.run(_addWhere(SELECT.from(eventConfig.tableNameEventQueue).columns("ID"), currentPeriodEvents)));
