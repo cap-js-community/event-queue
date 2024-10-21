@@ -34,6 +34,24 @@ describe("calculateFutureDate function", () => {
     expect(result.toISOString()).toEqual("2024-10-18T14:00:00.000Z");
   });
 
+  test("Current time is after the desired time bla bla", () => {
+    const now = new Date("2024-10-18T14:01:00.000Z");
+    jest.setSystemTime(now);
+    const interval = 60 * 60; // 1 hour
+    const desiredTime = "14:00";
+    const result = calculateFutureDate(interval, desiredTime, true);
+    expect(result.toISOString()).toEqual("2024-10-18T14:00:00.000Z");
+  });
+
+  test("Current time is after the desired time bla bla bla", () => {
+    const now = new Date("2024-10-18T14:59:00.000Z");
+    jest.setSystemTime(now);
+    const interval = 60 * 60; // 1 hour
+    const desiredTime = "14:00";
+    const result = calculateFutureDate(interval, desiredTime, true);
+    expect(result.toISOString()).toEqual("2024-10-18T14:00:00.000Z");
+  });
+
   test("Should also work for 24 hour intervals - desired shortly before current time", () => {
     const now = new Date("2024-10-18T14:00:00.000Z");
     jest.setSystemTime(now);

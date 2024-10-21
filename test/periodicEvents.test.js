@@ -16,10 +16,10 @@ const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
 describe("baseFunctionality", () => {
-  let loggerMock, context, tx;
+  let loggerMock, context, tx, fileContent;
   beforeAll(async () => {
     jest.useFakeTimers();
-    jest.setSystemTime(new Date(1699873200000));
+    jest.setSystemTime(new Date("2023-11-13T11:00:00.000Z"));
     const configFilePath = path.join(__dirname, "asset", "config.yml");
     await eventQueue.initialize({
       configFilePath,
@@ -38,7 +38,8 @@ describe("baseFunctionality", () => {
     jest.clearAllMocks();
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
-    config.fileContent = yaml.parse(fs.readFileSync(path.join(__dirname, "asset", "config.yml"), "utf8").toString());
+    fileContent = yaml.parse(fs.readFileSync(path.join(__dirname, "asset", "config.yml"), "utf8").toString());
+    config.fileContent = fileContent;
 
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
     await tx.run(DELETE.from("sap.eventqueue.Event"));
@@ -53,7 +54,7 @@ describe("baseFunctionality", () => {
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 7 })).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 6 })).toMatchSnapshot();
   });
 
   it("delta insert", async () => {
@@ -76,24 +77,57 @@ describe("baseFunctionality", () => {
     config.fileContent = fileContent;
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 8 })).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 7 })).toMatchSnapshot();
   });
 
-  it("interval changed", async () => {
-    await checkAndInsertPeriodicEvents(context);
-    const eventConfig = config.periodicEvents[0];
-    eventConfig.interval = 10;
+  describe("interval change", () => {
+    it("if too far in future update", async () => {
+      const refEvent = fileContent.periodicEvents[0];
+      config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+      await checkAndInsertPeriodicEvents(context);
+      refEvent.interval = 450;
+      config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
 
-    await tx.run(
-      UPDATE.entity("sap.eventqueue.Event").set({
-        startAfter: new Date(1699873200000 + 30 * 1000),
-      })
-    );
-    await checkAndInsertPeriodicEvents(context);
+      // events are inserted with current date --> so we need to update
+      await tx.run(
+        UPDATE.entity("sap.eventqueue.Event")
+          .set({
+            startAfter: new Date("2023-11-13T12:00:00.000Z"),
+          })
+          .where({ subType: refEvent.subType })
+      );
+      await checkAndInsertPeriodicEvents(context);
 
-    expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 7 })).toMatchSnapshot();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(loggerMock.calls().info).toMatchSnapshot();
+      expect(
+        await selectEventQueueAndReturn(tx, { expectedLength: 2, additionalColumns: ["type", "subType"] })
+      ).toMatchSnapshot();
+    });
+
+    it("if interval is increased next event will autocorrect", async () => {
+      const refEvent = fileContent.periodicEvents[0];
+      config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+      await checkAndInsertPeriodicEvents(context);
+      refEvent.interval = 450;
+      config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+
+      // events are inserted with current date --> so we need to update
+      await tx.run(
+        UPDATE.entity("sap.eventqueue.Event")
+          .set({
+            startAfter: new Date("2023-11-13T10:00:00.000Z"),
+          })
+          .where({ subType: refEvent.subType })
+      );
+      await checkAndInsertPeriodicEvents(context);
+
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(loggerMock.calls().info).toMatchSnapshot();
+      expect(
+        await selectEventQueueAndReturn(tx, { expectedLength: 2, additionalColumns: ["type", "subType"] })
+      ).toMatchSnapshot();
+    });
   });
 
   it("if periodic event is in progress - no insert should happen", async () => {
@@ -108,15 +142,94 @@ describe("baseFunctionality", () => {
 
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 7 })).toMatchSnapshot();
+    expect(await selectEventQueueAndReturn(tx, { expectedLength: 6 })).toMatchSnapshot();
   });
 
   describe("startTime", () => {
-    it("should use UTC time for event start", async () => {
-      await checkAndInsertPeriodicEvents(context);
-      expect(loggerMock.callsLengths().error).toEqual(0);
-      expect(loggerMock.calls().info).toMatchSnapshot();
-      expect(await selectEventQueueAndReturn(tx, { expectedLength: 7 })).toMatchSnapshot();
+    const cronExpressions = [
+      "0 * * * *", // Runs at the start of every hour.
+      "* * * * *", // Runs every minute.
+      "0 0 * * *", // Runs at midnight every day.
+      "0 0 * * 0", // Runs at midnight every Sunday.
+      "30 8 * * 1-5", // Runs at 8:30 AM, Monday through Friday.
+      "0 9,17 * * *", // Runs at 9:00 AM and 5:00 PM every day.
+      "0 12 * * 1", // Runs at 12:00 PM every Monday.
+      "15 14 1 * *", // Runs at 2:15 PM on the 1st of every month.
+      "0 22 * * 5", // Runs at 10:00 PM every Friday.
+      "0 5 1 1 *", // Runs at 5:00 AM on January 1st each year.
+      "*/15 * * * *", // Runs every 15 minutes.
+      "0 0 1-7 * 0", // Runs at midnight on the first Sunday of every month.
+      "0 8-17/2 * * *", // Runs every 2 hours between 8:00 AM and 5:00 PM.
+      "0 0 1 * *", // Runs at midnight on the first day of every month.
+      "0 0 1 1 *", // Runs at midnight on January 1st every year.
+      "0 3 * * 2", // Runs at 3:00 AM every Tuesday.
+      "45 23 * * *", // Runs at 11:45 PM every day.
+      "5,10,15 10 * * *", // Runs at 10:05, 10:10, and 10:15 every day.
+      "0 0 * 5 *", // Runs at midnight every day in May.
+      "0 6 * * 2-4", // Runs at 6:00 AM every Tuesday, Wednesday, and Thursday.
+    ];
+
+    describe("Cron expression tests", () => {
+      it.each(cronExpressions)("should test cron expression: '%s'", async (cronExpression) => {
+        config.fileContent = {
+          events: fileContent.events,
+          periodicEvents: [
+            {
+              ...fileContent.periodicEvents.find((e) => e.cron === "* * * * *"),
+              cron: cronExpression,
+            },
+          ],
+        };
+        await checkAndInsertPeriodicEvents(context);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(loggerMock.calls().info).toMatchSnapshot(cronExpression);
+        expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
+      });
+
+      describe("changed intervals", () => {
+        it("not changed interval --> no update", async () => {
+          config.fileContent = {
+            events: fileContent.events,
+            periodicEvents: [
+              {
+                ...fileContent.periodicEvents.find((e) => e.cron === "* * * * *"),
+                cron: "* * * * *",
+              },
+            ],
+          };
+          await checkAndInsertPeriodicEvents(context);
+          jest.clearAllMocks();
+          await checkAndInsertPeriodicEvents(context);
+          expect(loggerMock.calls().info).toMatchSnapshot();
+          expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
+        });
+
+        it("changed interval", async () => {
+          config.fileContent = {
+            events: fileContent.events,
+            periodicEvents: [
+              {
+                ...fileContent.periodicEvents.find((e) => e.cron === "* * * * *"),
+                cron: "* * * * *",
+              },
+            ],
+          };
+          await checkAndInsertPeriodicEvents(context);
+          jest.clearAllMocks();
+          config.fileContent = {
+            events: fileContent.events,
+            periodicEvents: [
+              {
+                ...fileContent.periodicEvents.find((e) => e.cron === "* * * * *"),
+                cron: "0 0 * * *",
+              },
+            ],
+          };
+          await checkAndInsertPeriodicEvents(context);
+          expect(loggerMock.calls().info).toMatchSnapshot();
+          expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
+        });
+      });
     });
   });
 });

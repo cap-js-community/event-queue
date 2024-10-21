@@ -120,11 +120,5 @@ periodicEvents:
     impl: ./test/asset/EventQueueHealthCheckDb
     load: 1
     interval: 30
-    startTimeUTC: 14:00
-
-  - type: TimeSpecific
-    subType: Local
-    impl: ./test/asset/EventQueueHealthCheckDb
-    load: 1
-    interval: 30
-    startTimeServerLocal: 15:00
+    cron: "* * * * *"
+    utc: true
