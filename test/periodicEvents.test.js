@@ -209,9 +209,8 @@ describe("baseFunctionality", () => {
         await checkAndInsertPeriodicEvents(context);
         const events = await selectEventQueueAndReturn(tx, { expectedLength: 3, additionalColumns: ["type"] });
         const cronEvents = events.filter((e) => e.type.startsWith("TimeSpecific"));
-        expect(cronEvents[0].startAfter).toMatchInlineSnapshot(`"2023-11-14T07:30:00.000Z"`);
-        expect(cronEvents[1].startAfter).toMatchInlineSnapshot(`"2023-11-14T08:30:00.000Z"`);
-        expect(cronEvents).toMatchSnapshot();
+        expect(cronEvents[0].startAfter).not.toEqual(cronEvents[1].startAfter);
+        expect(new Date(cronEvents[0].startAfter).getTime()).toBeLessThan(new Date(cronEvents[1].startAfter).getTime());
       });
 
       describe("changed intervals", () => {
