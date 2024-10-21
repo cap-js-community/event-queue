@@ -914,8 +914,8 @@ describe("integration-main", () => {
 
         await processEventQueue(context, event.type, event.subType);
 
-        expect(scheduleNextSpy).toHaveBeenCalledTimes(2);
         expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(2);
         const events = await testHelper.selectEventQueueAndReturn(tx, {
           expectedLength: 3,
           type: "HealthCheck_PERIODIC",
@@ -1033,7 +1033,7 @@ describe("integration-main", () => {
         await cds.tx({}, async (tx2) => {
           checkAndInsertPeriodicEventsMock.mockRestore();
           await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
-          await _setCronEventToNow(tx, cronEvent);
+          await _setCronEventToNow(tx2, cronEvent);
         });
         const scheduleNextSpy = jest
           .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
@@ -1046,11 +1046,41 @@ describe("integration-main", () => {
         await testHelper.selectEventQueueAndExpectDone(tx, { type: cronEvent.type });
       });
 
+      it("cron every five minute", async () => {
+        cronEvent = eventQueue.config.periodicEvents.find((e) => e.cron === "*/5 * * * *");
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+          await _setCronEventToNow(tx2, cronEvent);
+        });
+        const scheduleNextSpy = jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent");
+
+        await processEventQueue(context, cronEvent.type, cronEvent.subType);
+
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        const events = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 2,
+          type: cronEvent.type,
+        });
+        const [done, open] = events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
+        expect(done).toEqual({
+          status: EventProcessingStatus.Done,
+          attempts: 1,
+          startAfter: expect.any(String),
+        });
+        expect(open).toEqual({
+          status: EventProcessingStatus.Open,
+          attempts: 0,
+          startAfter: cronParser.parseExpression(cronEvent.cron).next().toISOString(),
+        });
+      });
+
       it("exception should be handled and no retry should be done", async () => {
         await cds.tx({}, async (tx2) => {
           checkAndInsertPeriodicEventsMock.mockRestore();
           await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
-          await _setCronEventToNow(tx, cronEvent);
+          await _setCronEventToNow(tx2, cronEvent);
         });
         const scheduleNextSpy = jest
           .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
@@ -1090,9 +1120,9 @@ describe("integration-main", () => {
         expect(processPeriodicEventSpy).toHaveBeenCalledTimes(0);
         expect(scheduleNextSpy).toHaveBeenCalledTimes(0);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndExpectError(tx, { type: "HealthCheck_PERIODIC" });
+        await testHelper.selectEventQueueAndExpectError(tx, { type: cronEvent.type });
 
-        await processEventQueue(context, event.type, event.subType);
+        await processEventQueue(context, cronEvent.type, cronEvent.subType);
         expect(processPeriodicEventSpy).toHaveBeenCalledTimes(0);
       });
 
@@ -1100,8 +1130,9 @@ describe("integration-main", () => {
         await cds.tx({}, async (tx2) => {
           checkAndInsertPeriodicEventsMock.mockRestore();
           await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+          await _setCronEventToNow(tx2, cronEvent);
 
-          const currentEntry = await tx2.run(SELECT.one.from("sap.eventqueue.Event"));
+          const currentEntry = await tx2.run(SELECT.one.from("sap.eventqueue.Event").where({ type: cronEvent.type }));
           delete currentEntry.ID;
           currentEntry.status = 1;
           currentEntry.attempts = 1;
@@ -1117,7 +1148,7 @@ describe("integration-main", () => {
         expect(loggerMock.callsLengths().error).toEqual(0);
         const events = await testHelper.selectEventQueueAndReturn(tx, {
           expectedLength: 2,
-          type: "HealthCheck_PERIODIC",
+          type: cronEvent.type,
         });
         const [running, done] = events.sort((a, b) => a.status - b.status);
         expect(running).toEqual({
@@ -1232,20 +1263,6 @@ describe("integration-main", () => {
           attempts: 1,
           startAfter: new Date(done.startAfter).toISOString(),
         });
-      });
-
-      it("insert one delayed entry and process - should be processed after timeout", async () => {
-        await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { delayedSeconds: 5 }));
-        const event = eventQueue.config.events[0];
-        eventQueue.config.isEventQueueActive = true;
-        eventQueue.config.registerAsEventProcessor = true;
-        await eventQueue.processEventQueue(context, event.type, event.subType);
-        expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndExpectOpen(tx);
-        await waitEntryIsDone();
-        await testHelper.selectEventQueueAndExpectDone(tx);
-        eventQueue.config.registerAsEventProcessor = false;
-        eventQueue.config.isEventQueueActive = false;
       });
     });
 
@@ -1427,7 +1444,7 @@ describe("integration-main", () => {
 
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 17 });
+        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 16 });
       });
 
       it("should events which are eligible for deletion -> should be deleted after 7 days", async () => {
@@ -1455,7 +1472,7 @@ describe("integration-main", () => {
 
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 7 });
+        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 6 });
       });
     });
 

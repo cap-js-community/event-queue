@@ -980,8 +980,8 @@ class EventQueueProcessorBase {
     );
 
     // more than one interval behind - shift tick to keep up
-    // handle cron here --> not complety correct or is t??
-    if (relative < 0 && (Math.abs(relative) >= intervalInMs || next.getTime() !== lastInPastIfPossible.getTime())) {
+    // add comment for cron
+    if (relative < 0 && Math.abs(relative) >= intervalInMs) {
       const plannedStartAfter = newEvent.startAfter;
       newEvent.startAfter = lastInPastIfPossible ?? new Date(Date.now() + 5 * 1000);
       this.logger.info("interval adjusted because shifted more than one interval", {

@@ -409,7 +409,7 @@ class Config {
       throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
     }
 
-    if (!event.interval || event.interval <= MIN_INTERVAL_SEC) {
+    if (!event.cron && (!event.interval || event.interval <= MIN_INTERVAL_SEC)) {
       throw EventQueueError.invalidInterval(event.type, event.subType, event.interval);
     }
     this.#basicEventValidation(event);

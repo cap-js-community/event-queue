@@ -115,10 +115,16 @@ periodicEvents:
     appInstances:
       - 1
 
-  - type: TimeSpecific
-    subType: UTC
+  - type: TimeSpecificEveryMin
+    subType: cron
     impl: ./test/asset/EventQueueHealthCheckDb
     load: 1
-    interval: 30
     cron: "* * * * *"
+    utc: false
+
+  - type: TimeSpecificEveryFiveMin
+    subType: everyFiveMin
+    impl: ./test/asset/EventQueueHealthCheckDb
+    load: 1
+    cron: "*/5 * * * *"
     utc: false
