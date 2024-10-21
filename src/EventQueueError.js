@@ -13,6 +13,9 @@ const ERROR_CODES = {
   TYPE_MISMATCH_TABLE: "TYPE_MISMATCH_TABLE",
   NO_VALID_DATE: "NO_VALID_DATE",
   INVALID_INTERVAL: "INVALID_INTERVAL",
+  CANT_PARSE_CRON: "CANT_PARSE_CRON",
+  CRON_INTERVAL: "CRON_INTERVAL",
+  NO_INTERVAL_OR_CRON: "NO_INTERVAL_OR_CRON",
   MISSING_IMPL: "MISSING_IMPL",
   DUPLICATE_EVENT_REGISTRATION: "DUPLICATE_EVENT_REGISTRATION",
   NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
@@ -74,6 +77,15 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.APP_INSTANCES_FORMAT]: {
     message: "The app instances property must be an array and only contain numbers.",
+  },
+  [ERROR_CODES.CANT_PARSE_CRON]: {
+    message: "The cron expression is syntactically not correct and can't be parsed!",
+  },
+  [ERROR_CODES.INVALID_INTERVAL]: {
+    message: "The difference between two cron execution must be greater than 10 seconds.",
+  },
+  [ERROR_CODES.NO_INTERVAL_OR_CRON]: {
+    message: "For periodic events either either the cron or interval parameter must be defined!",
   },
 };
 
@@ -185,6 +197,39 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.INVALID_INTERVAL,
         info: { type, subType, interval },
+      },
+      message
+    );
+  }
+
+  static cantParseCronExpression(type, subType, expression) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.CANT_PARSE_CRON];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.CANT_PARSE_CRON,
+        info: { type, subType, expression },
+      },
+      message
+    );
+  }
+
+  static invalidIntervalBetweenCron(type, subType, interval) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.CRON_INTERVAL];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.CRON_INTERVAL,
+        info: { type, subType, interval },
+      },
+      message
+    );
+  }
+
+  static noCronOrInterval(type, subType) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.NO_INTERVAL_OR_CRON];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.CRON_INTERVAL,
+        info: { type, subType },
       },
       message
     );
