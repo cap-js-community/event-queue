@@ -83,15 +83,15 @@ instance is overloaded.
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                                                                   | Default Value |
-|-------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |---------------|
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                   | -             |
 | type                          | Specifies the type of the periodic event.                                                                                                                                                                                                                     | -             |
 | subType                       | Specifies the subtype of the periodic event, further categorizing the event type.                                                                                                                                                                             | -             |
 | load                          | Indicates the load of the event, affecting the processing concurrency.                                                                                                                                                                                        | 1             |
 | transactionMode               | Specifies the transaction mode for the periodic event. For allowed values, refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes).                                                                                             | isolated      |
 | interval                      | The interval, in seconds, at which the periodic event should be triggered.                                                                                                                                                                                    | -             |
-| cron                          | Defines the schedule of the periodic event using a cron expression. This allows for precise scheduling options like specific days, hours, or minutes.                                                                                                                                                                                    | -             |
-| utc                           | Specifies whether the cron expression should be interpreted in UTC time. If set to true, the schedule will follow UTC; otherwise, it will use the server's local time zone.                                                                                                                                                                                    | true          |
+| cron                          | Defines the schedule of the periodic event using a cron expression. This allows for precise scheduling options like specific days, hours, or minutes.                                                                                                         | -             |
+| utc                           | Specifies whether the cron expression should be interpreted in UTC time. If set to true, the schedule will follow UTC; otherwise, it will use the server's local time zone.                                                                                   | true          |
 | deleteFinishedEventsAfterDays | Specifies the number of days after which finished events are deleted, regardless of their status. A value of `0` indicates that event entries are never deleted from the database.                                                                            | 7             |
 | priority                      | Specifies the priority level of the event. More details can be found [here](#priority-of-events).                                                                                                                                                             | Medium        |
 | appNames                      | Specifies the application names on which the event should be processed. The application name is extracted from the environment variable `VCAP_APPLICATION`. If not defined, the event is processed on all connected applications.                             | null          |
@@ -119,12 +119,12 @@ periodicEvents:
 
 Periodic events in the Event-Queue framework can now be scheduled using cron expressions for greater precision and
 flexibility. When a cron expression is used (with the cron and utc parameters defined), the interval parameter cannot
-be specified, and vice versa. Cron jobs in the framework support granular scheduling down to seconds (e.g., * * * * * *),
+be specified, and vice versa. Cron jobs in the framework support granular scheduling down to seconds (e.g., \* \* \* \* \* \*),
 allowing for highly specific timing control. However, to prevent system overload, the minimum allowed interval between
 two executions is 10 seconds.
 
 The event's next execution time is calculated only after the current event has been executed. This approach ensures that
-the system dynamically adapts to real-world conditions but also means that the execution might not strictly follow the 
+the system dynamically adapts to real-world conditions but also means that the execution might not strictly follow the
 cron schedule. For example, if the CAP application is not running or if there is a high load on the system causing delays,
 the event might not execute exactly as scheduled.
 
@@ -135,9 +135,8 @@ offer flexibility in specifying when and how often events should occur, ranging 
 or months. Please note that the minimum interval allowed between two executions is 10 seconds, ensuring that the system
 maintains stability and avoids overloading.
 
-
 | Cron Expression     | Description                                                               |
-|---------------------|---------------------------------------------------------------------------|
+| ------------------- | ------------------------------------------------------------------------- |
 | `0 * * * *`         | Runs at the start of every hour.                                          |
 | `* * * * *`         | Runs every minute.                                                        |
 | `0 0 * * *`         | Runs at midnight every day.                                               |
@@ -164,7 +163,6 @@ maintains stability and avoids overloading.
 | `0 0 25 12 *`       | Runs at midnight on Christmas Day, December 25th.                         |
 | `0 0 L * *`         | Runs at midnight on the last day of every month.                          |
 | `0 6,18 * * *`      | Runs at 6:00 AM and 6:00 PM every day.                                    |
-
 
 # Runtime Configuration Changes
 
