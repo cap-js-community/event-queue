@@ -120,11 +120,11 @@ periodicEvents:
     impl: ./test/asset/EventQueueHealthCheckDb
     load: 1
     cron: "* * * * *"
-    utc: false
+    utc: true
 
   - type: TimeSpecificEveryFiveMin
     subType: everyFiveMin
     impl: ./test/asset/EventQueueHealthCheckDb
     load: 1
     cron: "*/5 * * * *"
-    utc: false
+    utc: true

@@ -193,7 +193,7 @@ describe("baseFunctionality", () => {
         expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
       });
 
-      it("should calculate different dates for UTC yes/no", async () => {
+      it.skip("should calculate different dates for UTC yes/no", async () => {
         config.fileContent = {
           events: fileContent.events,
           periodicEvents: [

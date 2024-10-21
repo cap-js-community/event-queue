@@ -172,7 +172,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-13T23:00:00.000Z",
+    "startAfter": "2023-11-14T00:00:00.000Z",
     "status": 0,
   },
   {
@@ -191,7 +191,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-13T23:00:00.000Z",
+          "startAfter": "2023-11-14T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -211,7 +211,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-18T23:00:00.000Z",
+    "startAfter": "2023-11-19T00:00:00.000Z",
     "status": 0,
   },
   {
@@ -230,7 +230,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-18T23:00:00.000Z",
+          "startAfter": "2023-11-19T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -250,7 +250,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2024-04-30T22:00:00.000Z",
+    "startAfter": "2024-05-01T00:00:00.000Z",
     "status": 0,
   },
   {
@@ -269,7 +269,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2024-04-30T22:00:00.000Z",
+          "startAfter": "2024-05-01T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -289,7 +289,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-30T23:00:00.000Z",
+    "startAfter": "2023-12-01T00:00:00.000Z",
     "status": 0,
   },
   {
@@ -308,7 +308,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-30T23:00:00.000Z",
+          "startAfter": "2023-12-01T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -328,7 +328,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-12-31T23:00:00.000Z",
+    "startAfter": "2024-01-01T00:00:00.000Z",
     "status": 0,
   },
   {
@@ -347,7 +347,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-12-31T23:00:00.000Z",
+          "startAfter": "2024-01-01T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -367,7 +367,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-18T23:00:00.000Z",
+    "startAfter": "2023-11-19T00:00:00.000Z",
     "status": 0,
   },
   {
@@ -386,7 +386,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-18T23:00:00.000Z",
+          "startAfter": "2023-11-19T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -406,7 +406,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-14T02:00:00.000Z",
+    "startAfter": "2023-11-14T03:00:00.000Z",
     "status": 0,
   },
   {
@@ -425,7 +425,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-14T02:00:00.000Z",
+          "startAfter": "2023-11-14T03:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -445,7 +445,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2024-01-01T04:00:00.000Z",
+    "startAfter": "2024-01-01T05:00:00.000Z",
     "status": 0,
   },
   {
@@ -464,7 +464,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2024-01-01T04:00:00.000Z",
+          "startAfter": "2024-01-01T05:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -484,7 +484,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-14T05:00:00.000Z",
+    "startAfter": "2023-11-14T06:00:00.000Z",
     "status": 0,
   },
   {
@@ -503,7 +503,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-14T05:00:00.000Z",
+          "startAfter": "2023-11-14T06:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -523,7 +523,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-13T13:00:00.000Z",
+    "startAfter": "2023-11-13T12:00:00.000Z",
     "status": 0,
   },
   {
@@ -542,7 +542,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-13T13:00:00.000Z",
+          "startAfter": "2023-11-13T12:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -562,7 +562,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-13T16:00:00.000Z",
+    "startAfter": "2023-11-13T17:00:00.000Z",
     "status": 0,
   },
   {
@@ -581,7 +581,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-13T16:00:00.000Z",
+          "startAfter": "2023-11-13T17:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -601,7 +601,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-20T11:00:00.000Z",
+    "startAfter": "2023-11-13T12:00:00.000Z",
     "status": 0,
   },
   {
@@ -620,7 +620,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-20T11:00:00.000Z",
+          "startAfter": "2023-11-13T12:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -640,7 +640,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-17T21:00:00.000Z",
+    "startAfter": "2023-11-17T22:00:00.000Z",
     "status": 0,
   },
   {
@@ -659,7 +659,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-17T21:00:00.000Z",
+          "startAfter": "2023-11-17T22:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -679,7 +679,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-14T09:05:00.000Z",
+    "startAfter": "2023-11-14T10:05:00.000Z",
     "status": 0,
   },
   {
@@ -698,7 +698,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-14T09:05:00.000Z",
+          "startAfter": "2023-11-14T10:05:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -718,7 +718,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-12-01T13:15:00.000Z",
+    "startAfter": "2023-12-01T14:15:00.000Z",
     "status": 0,
   },
   {
@@ -737,7 +737,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-12-01T13:15:00.000Z",
+          "startAfter": "2023-12-01T14:15:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -757,7 +757,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-14T07:30:00.000Z",
+    "startAfter": "2023-11-14T08:30:00.000Z",
     "status": 0,
   },
   {
@@ -776,7 +776,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-14T07:30:00.000Z",
+          "startAfter": "2023-11-14T08:30:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -796,7 +796,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-13T22:45:00.000Z",
+    "startAfter": "2023-11-13T23:45:00.000Z",
     "status": 0,
   },
   {
@@ -815,7 +815,7 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-13T22:45:00.000Z",
+          "startAfter": "2023-11-13T23:45:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
