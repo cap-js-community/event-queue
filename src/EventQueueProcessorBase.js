@@ -947,26 +947,19 @@ class EventQueueProcessorBase {
 
   #calculateCronDates(queueEntry) {
     if (!this.#eventConfig.cron) {
-      return {};
+      return null;
     }
 
     const cronExpression = cronParser.parseExpression(this.#eventConfig.cron, {
       startDate: queueEntry.startAfter,
       utc: this.#eventConfig.utc,
     });
-    const next = cronExpression.next();
-    let lastInPastIfPossible = next;
-    const now = Date.now(); // utc???
-    while (cronExpression.hasNext() && now >= lastInPastIfPossible.getTime()) {
-      lastInPastIfPossible = cronExpression.next();
-    }
-
-    return { next, lastInPastIfPossible };
+    return cronExpression.next();
   }
 
   async scheduleNextPeriodEvent(queueEntry) {
     const intervalInMs = this.#eventConfig.cron ? null : this.#eventConfig.interval * 1000;
-    const { next, lastInPastIfPossible } = this.#calculateCronDates(queueEntry);
+    const next = this.#calculateCronDates(queueEntry);
 
     const newEvent = {
       type: this.#eventType,
@@ -980,10 +973,10 @@ class EventQueueProcessorBase {
     );
 
     // more than one interval behind - shift tick to keep up
-    // add comment for cron
+    // cron package always calc the next future date --> not needed for crone
     if (relative < 0 && Math.abs(relative) >= intervalInMs) {
       const plannedStartAfter = newEvent.startAfter;
-      newEvent.startAfter = lastInPastIfPossible ?? new Date(Date.now() + 5 * 1000);
+      newEvent.startAfter = new Date(Date.now() + 5 * 1000);
       this.logger.info("interval adjusted because shifted more than one interval", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
@@ -1007,7 +1000,7 @@ class EventQueueProcessorBase {
         this.#eventSubType,
         newEvent.startAfter
       );
-      // next tick is already behind schedule --> execute direct
+      // NOTE: can only happen for interval events: next tick is already behind schedule --> execute direct
       if (relativeAfterSchedule <= 0) {
         this.logger.info("running behind schedule - executing next tick immediately", {
           eventType: this.#eventType,
