@@ -427,6 +427,7 @@ class Config {
       if (diffInSeconds <= MIN_INTERVAL_SEC) {
         throw EventQueueError.invalidIntervalBetweenCron(event.type, event.subType, diffInSeconds);
       }
+      return this.#basicEventValidation(event);
     }
 
     if (!event.interval || event.interval <= MIN_INTERVAL_SEC) {

@@ -57,7 +57,9 @@ describe("initialize", () => {
     delete fileContent.periodicEvents[0].interval;
     expect(() => {
       config.fileContent = fileContent;
-    }).toThrowErrorMatchingInlineSnapshot(`"Invalid interval, the value needs to greater than 10 seconds."`);
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"For periodic events either either the cron or interval parameter must be defined!"`
+    );
   });
 
   test("registration checks", async () => {

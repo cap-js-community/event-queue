@@ -39,7 +39,6 @@ describe("baseFunctionality", () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
     fileContent = yaml.parse(fs.readFileSync(path.join(__dirname, "asset", "config.yml"), "utf8").toString());
-    config.fileContent = fileContent;
 
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
     await tx.run(DELETE.from("sap.eventqueue.Event"));
@@ -49,103 +48,111 @@ describe("baseFunctionality", () => {
     await tx.rollback();
   });
 
-  it("basic insert all new events", async () => {
-    await checkAndInsertPeriodicEvents(context);
-
-    expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 6 })).toMatchSnapshot();
-  });
-
-  it("delta insert", async () => {
-    await checkAndInsertPeriodicEvents(context);
-
-    const fileContent = config.fileContent;
-    fileContent.periodicEvents[0].type = "HealthCheck";
-    fileContent.periodicEvents = [fileContent.periodicEvents[0]];
-    fileContent.periodicEvents.push({
-      ...config.fileContent.periodicEvents[0],
-      type: "HealthCheck",
-      subType: "DB2",
+  describe("interval events", () => {
+    beforeEach(() => {
+      config.fileContent = {
+        periodicEvents: fileContent.periodicEvents.filter((e) => !e.cron).map((e) => ({ ...e })),
+      };
     });
-    config.fileContent = fileContent;
-
-    await checkAndInsertPeriodicEvents(context);
-
-    fileContent.periodicEvents.splice(1, 2);
-    fileContent.periodicEvents[0].type = "HealthCheck";
-    config.fileContent = fileContent;
-    expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 7 })).toMatchSnapshot();
-  });
-
-  describe("interval change", () => {
-    it("if too far in future update", async () => {
-      const refEvent = fileContent.periodicEvents[0];
-      config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+    it("basic insert all new events", async () => {
       await checkAndInsertPeriodicEvents(context);
-      refEvent.interval = 450;
-      config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
 
-      // events are inserted with current date --> so we need to update
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(loggerMock.calls().info).toMatchSnapshot();
+      expect(await selectEventQueueAndReturn(tx, { expectedLength: 5 })).toMatchSnapshot();
+    });
+
+    it("delta insert", async () => {
+      await checkAndInsertPeriodicEvents(context);
+
+      const fileContent = config.fileContent;
+      fileContent.periodicEvents[0].type = "HealthCheck";
+      fileContent.periodicEvents = [fileContent.periodicEvents[0]];
+      fileContent.periodicEvents.push({
+        ...config.fileContent.periodicEvents[0],
+        type: "HealthCheck",
+        subType: "DB2",
+      });
+      config.fileContent = fileContent;
+
+      await checkAndInsertPeriodicEvents(context);
+
+      fileContent.periodicEvents.splice(1, 2);
+      fileContent.periodicEvents[0].type = "HealthCheck";
+      config.fileContent = fileContent;
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(loggerMock.calls().info).toMatchSnapshot();
+      const test = await selectEventQueueAndReturn(tx, { expectedLength: 6, additionalColumns: ["type", "subType"] });
+      expect(test).toMatchSnapshot();
+    });
+
+    describe("interval change", () => {
+      it("if too far in future update", async () => {
+        const refEvent = fileContent.periodicEvents[0];
+        config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+        await checkAndInsertPeriodicEvents(context);
+        refEvent.interval = 450;
+        config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+
+        // events are inserted with current date --> so we need to update
+        await tx.run(
+          UPDATE.entity("sap.eventqueue.Event")
+            .set({
+              startAfter: new Date("2023-11-13T12:00:00.000Z"),
+            })
+            .where({ subType: refEvent.subType })
+        );
+        await checkAndInsertPeriodicEvents(context);
+
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(loggerMock.calls().info).toMatchSnapshot();
+        expect(
+          await selectEventQueueAndReturn(tx, { expectedLength: 2, additionalColumns: ["type", "subType"] })
+        ).toMatchSnapshot();
+      });
+
+      it("if interval is increased next event will autocorrect", async () => {
+        const refEvent = fileContent.periodicEvents[0];
+        config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+        await checkAndInsertPeriodicEvents(context);
+        refEvent.interval = 450;
+        config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+
+        // events are inserted with current date --> so we need to update
+        await tx.run(
+          UPDATE.entity("sap.eventqueue.Event")
+            .set({
+              startAfter: new Date("2023-11-13T10:00:00.000Z"),
+            })
+            .where({ subType: refEvent.subType })
+        );
+        await checkAndInsertPeriodicEvents(context);
+
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(loggerMock.calls().info).toMatchSnapshot();
+        expect(
+          await selectEventQueueAndReturn(tx, { expectedLength: 2, additionalColumns: ["type", "subType"] })
+        ).toMatchSnapshot();
+      });
+    });
+
+    it("if periodic event is in progress - no insert should happen", async () => {
+      await checkAndInsertPeriodicEvents(context);
+
       await tx.run(
-        UPDATE.entity("sap.eventqueue.Event")
-          .set({
-            startAfter: new Date("2023-11-13T12:00:00.000Z"),
-          })
-          .where({ subType: refEvent.subType })
+        UPDATE.entity("sap.eventqueue.Event").set({
+          status: EventProcessingStatus.InProgress,
+        })
       );
       await checkAndInsertPeriodicEvents(context);
 
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(loggerMock.calls().info).toMatchSnapshot();
-      expect(
-        await selectEventQueueAndReturn(tx, { expectedLength: 2, additionalColumns: ["type", "subType"] })
-      ).toMatchSnapshot();
-    });
-
-    it("if interval is increased next event will autocorrect", async () => {
-      const refEvent = fileContent.periodicEvents[0];
-      config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
-      await checkAndInsertPeriodicEvents(context);
-      refEvent.interval = 450;
-      config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
-
-      // events are inserted with current date --> so we need to update
-      await tx.run(
-        UPDATE.entity("sap.eventqueue.Event")
-          .set({
-            startAfter: new Date("2023-11-13T10:00:00.000Z"),
-          })
-          .where({ subType: refEvent.subType })
-      );
-      await checkAndInsertPeriodicEvents(context);
-
-      expect(loggerMock.callsLengths().error).toEqual(0);
-      expect(loggerMock.calls().info).toMatchSnapshot();
-      expect(
-        await selectEventQueueAndReturn(tx, { expectedLength: 2, additionalColumns: ["type", "subType"] })
-      ).toMatchSnapshot();
+      expect(await selectEventQueueAndReturn(tx, { expectedLength: 6 })).toMatchSnapshot();
     });
   });
 
-  it("if periodic event is in progress - no insert should happen", async () => {
-    await checkAndInsertPeriodicEvents(context);
-
-    await tx.run(
-      UPDATE.entity("sap.eventqueue.Event").set({
-        status: EventProcessingStatus.InProgress,
-      })
-    );
-    await checkAndInsertPeriodicEvents(context);
-
-    expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(loggerMock.calls().info).toMatchSnapshot();
-    expect(await selectEventQueueAndReturn(tx, { expectedLength: 6 })).toMatchSnapshot();
-  });
-
-  describe("startTime", () => {
+  describe("cron events", () => {
     const cronExpressions = [
       "0 * * * *", // Runs at the start of every hour.
       "* * * * *", // Runs every minute.

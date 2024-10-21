@@ -81,7 +81,7 @@ const ERROR_CODES_META = {
   [ERROR_CODES.CANT_PARSE_CRON]: {
     message: "The cron expression is syntactically not correct and can't be parsed!",
   },
-  [ERROR_CODES.INVALID_INTERVAL]: {
+  [ERROR_CODES.CRON_INTERVAL]: {
     message: "The difference between two cron execution must be greater than 10 seconds.",
   },
   [ERROR_CODES.NO_INTERVAL_OR_CRON]: {
