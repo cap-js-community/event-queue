@@ -121,4 +121,4 @@ periodicEvents:
     load: 1
     interval: 30
     cron: "* * * * *"
-    utc: true
+    utc: false

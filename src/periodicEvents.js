@@ -6,12 +6,12 @@ const cronParser = require("cron-parser");
 const { EventProcessingStatus } = require("./constants");
 const { processChunkedSync } = require("./shared/common");
 const eventConfig = require("./config");
-const config = require("./config");
 
 const COMPONENT_NAME = "/eventQueue/periodicEvents";
 const CHUNK_SIZE_INSERT_PERIODIC_EVENTS = 4;
 
 const checkAndInsertPeriodicEvents = async (context) => {
+  const now = new Date();
   const tx = cds.tx(context);
   const baseCqn = SELECT.from(eventConfig.tableNameEventQueue)
     .where([
@@ -29,13 +29,15 @@ const checkAndInsertPeriodicEvents = async (context) => {
         list: [{ val: EventProcessingStatus.Open }, { val: EventProcessingStatus.InProgress }],
       },
     ])
-    .groupBy("type", "subType")
-    .columns(["type", "subType", "createdAt", "max(startAfter) as startAfter"]);
-  const currentPeriodEvents = await tx.run(baseCqn.forUpdate({ wait: config.forUpdateTimeout }));
+    .groupBy("type", "subType", "createdAt")
+    .columns(["type", "subType", "createdAt", "max(startAfter)"]);
+  const currentPeriodEvents = await tx.run(baseCqn);
+  currentPeriodEvents.length &&
+    (await tx.run(_addWhere(SELECT.from(eventConfig.tableNameEventQueue).columns("ID"), currentPeriodEvents)));
 
   if (!currentPeriodEvents.length) {
     // fresh insert all
-    return await insertPeriodEvents(tx, eventConfig.periodicEvents);
+    return await _insertPeriodEvents(tx, eventConfig.periodicEvents, now);
   }
 
   const exitingEventMap = currentPeriodEvents.reduce((result, current) => {
@@ -62,10 +64,9 @@ const checkAndInsertPeriodicEvents = async (context) => {
     { newEvents: [], existingEventsCron: [], existingEventsInterval: [] }
   );
 
-  const currentDate = new Date();
   const exitingWithNotMatchingInterval = []
-    .concat(_determineChangedInterval(existingEventsInterval, currentDate))
-    .concat(_determineChangedCron(existingEventsCron, currentDate));
+    .concat(_determineChangedInterval(existingEventsInterval, now))
+    .concat(_determineChangedCron(existingEventsCron, now));
 
   exitingWithNotMatchingInterval.length &&
     cds.log(COMPONENT_NAME).info("deleting periodic events because they have changed", {
@@ -74,11 +75,7 @@ const checkAndInsertPeriodicEvents = async (context) => {
 
   if (exitingWithNotMatchingInterval.length) {
     const cqnBase = DELETE.from(eventConfig.tableNameEventQueue);
-    let or = false;
-    for (const { type, subType, createdAt, startAfter } of exitingWithNotMatchingInterval) {
-      cqnBase[or ? "or" : "where"]({ type, subType, createdAt, startAfter });
-      or = true;
-    }
+    _addWhere(cqnBase, exitingWithNotMatchingInterval);
     const deleteCount = await tx.run(cqnBase);
     if (deleteCount !== exitingWithNotMatchingInterval.length) {
       cds.log(COMPONENT_NAME).warn("deletion count doesn't match expected count", {
@@ -93,7 +90,16 @@ const checkAndInsertPeriodicEvents = async (context) => {
     return;
   }
 
-  return await insertPeriodEvents(tx, newOrChangedEvents);
+  return await _insertPeriodEvents(tx, newOrChangedEvents, now);
+};
+
+const _addWhere = (cqnBase, events) => {
+  let or = false;
+  for (const { type, subType, createdAt, startAfter } of events) {
+    cqnBase[or ? "or" : "where"]({ type, subType, createdAt, startAfter });
+    or = true;
+  }
+  return cqnBase;
 };
 
 const _determineChangedInterval = (existingEvents, currentDate) => {
@@ -119,16 +125,15 @@ const _determineChangedCron = (existingEventsCron) => {
   });
 };
 
-const insertPeriodEvents = async (tx, events) => {
-  const startAfter = new Date();
+const _insertPeriodEvents = async (tx, events, now) => {
   let counter = 1;
   const chunks = Math.ceil(events.length / CHUNK_SIZE_INSERT_PERIODIC_EVENTS);
   const logger = cds.log(COMPONENT_NAME);
   const eventsToBeInserted = events.map((event) => {
     const base = { type: event.type, subType: event.subType };
-    let startTime = startAfter;
+    let startTime = now;
     if (event.cron) {
-      startTime = cronParser.parseExpression(event.cron, { utc: event.utc }).next();
+      startTime = cronParser.parseExpression(event.cron, { startDate: now, utc: event.utc }).next();
     }
     base.startAfter = startTime.toISOString();
     return base;

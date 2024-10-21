@@ -1,6 +1,7 @@
 "use strict";
 
 const cds = require("@sap/cds");
+const cronParser = require("cron-parser");
 
 const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
 const { EventProcessingStatus, TransactionMode } = require("./constants");
@@ -944,12 +945,33 @@ class EventQueueProcessorBase {
     }
   }
 
+  #calculateCronDates(queueEntry) {
+    if (!this.#eventConfig.cron) {
+      return {};
+    }
+
+    const cronExpression = cronParser.parseExpression(this.#eventConfig.cron, {
+      startDate: queueEntry.startAfter,
+      utc: this.#eventConfig.utc,
+    });
+    const next = cronExpression.next();
+    let lastInPastIfPossible = next;
+    const now = Date.now(); // utc???
+    while (cronExpression.hasNext() && now >= lastInPastIfPossible.getTime()) {
+      lastInPastIfPossible = cronExpression.next();
+    }
+
+    return { next, lastInPastIfPossible };
+  }
+
   async scheduleNextPeriodEvent(queueEntry) {
-    const intervalInMs = this.#eventConfig.interval * 1000;
+    const intervalInMs = this.#eventConfig.cron ? null : this.#eventConfig.interval * 1000;
+    const { next, lastInPastIfPossible } = this.#calculateCronDates(queueEntry);
+
     const newEvent = {
       type: this.#eventType,
       subType: this.#eventSubType,
-      startAfter: new Date(new Date(queueEntry.startAfter).getTime() + intervalInMs),
+      startAfter: this.#eventConfig.cron ? next : new Date(new Date(queueEntry.startAfter).getTime() + intervalInMs),
     };
     const { relative } = this.#eventSchedulerInstance.calculateOffset(
       this.#eventType,
@@ -958,9 +980,10 @@ class EventQueueProcessorBase {
     );
 
     // more than one interval behind - shift tick to keep up
-    if (relative < 0 && Math.abs(relative) >= intervalInMs) {
+    // handle cron here --> not complety correct or is t??
+    if (relative < 0 && (Math.abs(relative) >= intervalInMs || next.getTime() !== lastInPastIfPossible.getTime())) {
       const plannedStartAfter = newEvent.startAfter;
-      newEvent.startAfter = new Date(Date.now() + 5 * 1000);
+      newEvent.startAfter = lastInPastIfPossible ?? new Date(Date.now() + 5 * 1000);
       this.logger.info("interval adjusted because shifted more than one interval", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
@@ -970,7 +993,12 @@ class EventQueueProcessorBase {
     }
 
     this.tx._skipEventQueueBroadcase = true;
-    await this.tx.run(INSERT.into(this.#config.tableNameEventQueue).entries({ ...newEvent }));
+    await this.tx.run(
+      INSERT.into(this.#config.tableNameEventQueue).entries({
+        ...newEvent,
+        startAfter: newEvent.startAfter.toISOString(),
+      })
+    );
     this.tx._skipEventQueueBroadcase = false;
     if (intervalInMs < this.#config.runInterval * 1.5) {
       this.#handleDelayedEvents([newEvent]);
