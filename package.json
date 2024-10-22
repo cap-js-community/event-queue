@@ -75,9 +75,10 @@
         "disableRedis": false
       },
       "[test]": {
-        "registerAsEventProcessor": false,
         "isRunnerDeactivated": true,
-        "updatePeriodicEvents": false
+        "registerAsEventProcessor": false,
+        "updatePeriodicEvents": false,
+        "insertEventsBeforeCommit": false
       }
     },
     "requires": {

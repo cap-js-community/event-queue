@@ -74,6 +74,7 @@ class Config {
   #enableCAPTelemetry;
   #unsubscribeHandlers = [];
   #unsubscribedTenants = {};
+  #cronTimezone;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -527,6 +528,14 @@ class Config {
 
   set initialized(value) {
     this.#initialized = value;
+  }
+
+  get cronTimezone() {
+    return this.#cronTimezone;
+  }
+
+  set cronTimezone(value) {
+    this.#cronTimezone = value;
   }
 
   get instanceLoadLimit() {

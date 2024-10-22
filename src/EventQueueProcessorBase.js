@@ -945,21 +945,22 @@ class EventQueueProcessorBase {
     }
   }
 
-  #calculateCronDates(queueEntry) {
+  #calculateCronDates() {
     if (!this.#eventConfig.cron) {
       return null;
     }
 
+    // NOTE: do not pass current date as we always want to calc. a future date
     const cronExpression = cronParser.parseExpression(this.#eventConfig.cron, {
-      startDate: queueEntry.startAfter,
       utc: this.#eventConfig.utc,
+      tz: this.#config.cronTimezone,
     });
     return cronExpression.next();
   }
 
   async scheduleNextPeriodEvent(queueEntry) {
     const intervalInMs = this.#eventConfig.cron ? null : this.#eventConfig.interval * 1000;
-    const next = this.#calculateCronDates(queueEntry);
+    const next = this.#calculateCronDates();
 
     const newEvent = {
       type: this.#eventType,
