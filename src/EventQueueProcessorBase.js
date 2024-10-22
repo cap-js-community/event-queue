@@ -953,7 +953,7 @@ class EventQueueProcessorBase {
     // NOTE: do not pass current date as we always want to calc. a future date
     const cronExpression = cronParser.parseExpression(this.#eventConfig.cron, {
       utc: this.#eventConfig.utc,
-      tz: this.#config.cronTimezone,
+      ...(this.#eventConfig.useCronTimezone && { tz: this.#config.cronTimezone }),
     });
     return cronExpression.next();
   }
