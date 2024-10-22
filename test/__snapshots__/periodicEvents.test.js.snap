@@ -44,9 +44,9 @@ exports[`baseFunctionality cron events Cron expression tests changed intervals c
 ]
 `;
 
-exports[`baseFunctionality cron events Cron expression tests changed intervals not changed interval --> no update 1`] = `[]`;
+exports[`baseFunctionality cron events Cron expression tests changed intervals interval multiple times overdue 1`] = `[]`;
 
-exports[`baseFunctionality cron events Cron expression tests changed intervals not changed interval --> no update 2`] = `
+exports[`baseFunctionality cron events Cron expression tests changed intervals interval multiple times overdue 2`] = `
 [
   {
     "attempts": 0,
@@ -61,19 +61,19 @@ exports[`baseFunctionality cron events Cron expression tests changed intervals n
 ]
 `;
 
-exports[`baseFunctionality cron events Cron expression tests should calculate different dates for UTC yes/no 3`] = `
+exports[`baseFunctionality cron events Cron expression tests changed intervals not changed interval --> no update 1`] = `[]`;
+
+exports[`baseFunctionality cron events Cron expression tests changed intervals not changed interval --> no update 2`] = `
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-14T07:30:00.000Z",
+    "startAfter": "2023-11-13T11:01:00.000Z",
     "status": 0,
-    "type": "TimeSpecificEveryMin_PERIODIC",
   },
   {
     "attempts": 0,
-    "startAfter": "2023-11-14T08:30:00.000Z",
+    "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
-    "type": "TimeSpecificEveryFiveMin_PERIODIC",
   },
 ]
 `;

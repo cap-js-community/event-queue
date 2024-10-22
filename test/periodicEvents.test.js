@@ -36,6 +36,7 @@ describe("baseFunctionality", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    jest.setSystemTime(new Date("2023-11-13T11:00:00.000Z"));
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
     fileContent = yaml.parse(fs.readFileSync(path.join(__dirname, "asset", "config.yml"), "utf8").toString());
@@ -193,24 +194,36 @@ describe("baseFunctionality", () => {
         expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
       });
 
-      it.skip("should calculate different dates for UTC yes/no", async () => {
+      it("should calculate different dates for timezones", async () => {
+        const periodicEventsCron = fileContent.periodicEvents
+          .filter((e) => e.cron)
+          .map((e) => {
+            e.cron = "30 8 * * 1-5"; // Runs at 8:30 AM, Monday through Friday.
+            e.utc = false;
+            return e;
+          });
         config.fileContent = {
           events: fileContent.events,
-          periodicEvents: [
-            ...fileContent.periodicEvents
-              .filter((e) => e.cron)
-              .map((e, index) => {
-                e.cron = "30 8 * * 1-5"; // Runs at 8:30 AM, Monday through Friday.
-                e.utc = !!index;
-                return e;
-              }),
-          ],
+          periodicEvents: [periodicEventsCron[0]],
         };
+        config.cronTimezone = "US/Hawaii";
         await checkAndInsertPeriodicEvents(context);
-        const events = await selectEventQueueAndReturn(tx, { expectedLength: 3, additionalColumns: ["type"] });
-        const cronEvents = events.filter((e) => e.type.startsWith("TimeSpecific"));
-        expect(cronEvents[0].startAfter).not.toEqual(cronEvents[1].startAfter);
-        expect(new Date(cronEvents[0].startAfter).getTime()).toBeLessThan(new Date(cronEvents[1].startAfter).getTime());
+        const events = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 1,
+          additionalColumns: ["type"],
+        });
+        expect(events[0].startAfter).toMatchInlineSnapshot(`"2023-11-13T18:30:00.000Z"`);
+
+        config.cronTimezone = "Europe/Berlin";
+        await checkAndInsertPeriodicEvents(context);
+
+        const eventsAfterTimezoneChange = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 1,
+          additionalColumns: ["type"],
+        });
+        expect(eventsAfterTimezoneChange[0].startAfter).toMatchInlineSnapshot(`"2023-11-13T11:00:00.000Z"`);
       });
 
       describe("changed intervals", () => {
@@ -249,6 +262,35 @@ describe("baseFunctionality", () => {
               {
                 ...fileContent.periodicEvents.find((e) => e.cron === "* * * * *"),
                 cron: "0 0 * * *",
+              },
+            ],
+          };
+          await checkAndInsertPeriodicEvents(context);
+          expect(loggerMock.calls().info).toMatchSnapshot();
+          expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
+        });
+
+        it("interval multiple times overdue", async () => {
+          config.fileContent = {
+            events: fileContent.events,
+            periodicEvents: [
+              {
+                ...fileContent.periodicEvents.find((e) => e.cron === "* * * * *"),
+                cron: "* * * * *",
+              },
+            ],
+          };
+          await checkAndInsertPeriodicEvents(context);
+          jest.clearAllMocks();
+
+          // NOTE: same interval but expedited by one day
+          jest.setSystemTime(new Date("2023-11-14T11:00:00.000Z"));
+          config.fileContent = {
+            events: fileContent.events,
+            periodicEvents: [
+              {
+                ...fileContent.periodicEvents.find((e) => e.cron === "* * * * *"),
+                cron: "* * * * *",
               },
             ],
           };
