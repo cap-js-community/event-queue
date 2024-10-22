@@ -1,6 +1,7 @@
 "use strict";
 
 const cds = require("@sap/cds");
+const cronParser = require("cron-parser");
 
 const { getEnvInstance } = require("./shared/env");
 const redis = require("./shared/redis");
@@ -23,6 +24,8 @@ const CAP_EVENT_TYPE = "CAP_OUTBOX";
 const CAP_PARALLEL_DEFAULT = 5;
 const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
 const PRIORITIES = Object.values(Priorities);
+const UTC_DEFAULT = false;
+const USE_CRON_TZ_DEFAULT = true;
 
 const BASE_PERIODIC_EVENTS = [
   {
@@ -72,6 +75,7 @@ class Config {
   #enableCAPTelemetry;
   #unsubscribeHandlers = [];
   #unsubscribedTenants = {};
+  #cronTimezone;
   #publishEventBlockList;
   static #instance;
   constructor() {
@@ -410,6 +414,32 @@ class Config {
       throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
     }
 
+    if (!event.cron && !event.interval) {
+      throw EventQueueError.noCronOrInterval(event.type, event.subType);
+    }
+
+    if (event.cron && event.interval) {
+      throw EventQueueError.cronAndInterval(event.type, event.subType);
+    }
+
+    if (event.cron) {
+      let cron;
+      event.utc = event.utc ?? UTC_DEFAULT;
+      event.useCronTimezone = event.useCronTimezone ?? USE_CRON_TZ_DEFAULT;
+      try {
+        cron = cronParser.parseExpression(event.cron);
+      } catch {
+        throw EventQueueError.cantParseCronExpression(event.type, event.subType, event.cron);
+      }
+      const next = cron.next();
+      const afterNext = cron.next();
+      const diffInSeconds = (afterNext.getTime() - next.getTime()) / 1000;
+      if (diffInSeconds <= MIN_INTERVAL_SEC) {
+        throw EventQueueError.invalidIntervalBetweenCron(event.type, event.subType, diffInSeconds);
+      }
+      return this.#basicEventValidation(event);
+    }
+
     if (!event.interval || event.interval <= MIN_INTERVAL_SEC) {
       throw EventQueueError.invalidInterval(event.type, event.subType, event.interval);
     }
@@ -509,6 +539,14 @@ class Config {
 
   set initialized(value) {
     this.#initialized = value;
+  }
+
+  get cronTimezone() {
+    return this.#cronTimezone;
+  }
+
+  set cronTimezone(value) {
+    this.#cronTimezone = value;
   }
 
   get instanceLoadLimit() {

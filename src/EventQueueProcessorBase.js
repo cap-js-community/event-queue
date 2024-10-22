@@ -1,6 +1,7 @@
 "use strict";
 
 const cds = require("@sap/cds");
+const cronParser = require("cron-parser");
 
 const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
 const { EventProcessingStatus, TransactionMode } = require("./constants");
@@ -944,12 +945,27 @@ class EventQueueProcessorBase {
     }
   }
 
+  #calculateCronDates() {
+    if (!this.#eventConfig.cron) {
+      return null;
+    }
+
+    // NOTE: do not pass current date as we always want to calc. a future date
+    const cronExpression = cronParser.parseExpression(this.#eventConfig.cron, {
+      utc: this.#eventConfig.utc,
+      ...(this.#eventConfig.useCronTimezone && { tz: this.#config.cronTimezone }),
+    });
+    return cronExpression.next();
+  }
+
   async scheduleNextPeriodEvent(queueEntry) {
-    const intervalInMs = this.#eventConfig.interval * 1000;
+    const intervalInMs = this.#eventConfig.cron ? null : this.#eventConfig.interval * 1000;
+    const next = this.#calculateCronDates();
+
     const newEvent = {
       type: this.#eventType,
       subType: this.#eventSubType,
-      startAfter: new Date(new Date(queueEntry.startAfter).getTime() + intervalInMs),
+      startAfter: next ?? new Date(new Date(queueEntry.startAfter).getTime() + intervalInMs),
     };
     const { relative } = this.#eventSchedulerInstance.calculateOffset(
       this.#eventType,
@@ -958,6 +974,7 @@ class EventQueueProcessorBase {
     );
 
     // more than one interval behind - shift tick to keep up
+    // cron package always calc the next future date --> not needed for crone
     if (relative < 0 && Math.abs(relative) >= intervalInMs) {
       const plannedStartAfter = newEvent.startAfter;
       newEvent.startAfter = new Date(Date.now() + 5 * 1000);
@@ -970,7 +987,12 @@ class EventQueueProcessorBase {
     }
 
     this.tx._skipEventQueueBroadcase = true;
-    await this.tx.run(INSERT.into(this.#config.tableNameEventQueue).entries({ ...newEvent }));
+    await this.tx.run(
+      INSERT.into(this.#config.tableNameEventQueue).entries({
+        ...newEvent,
+        startAfter: newEvent.startAfter.toISOString(),
+      })
+    );
     this.tx._skipEventQueueBroadcase = false;
     if (intervalInMs < this.#config.runInterval * 1.5) {
       this.#handleDelayedEvents([newEvent]);
@@ -979,7 +1001,7 @@ class EventQueueProcessorBase {
         this.#eventSubType,
         newEvent.startAfter
       );
-      // next tick is already behind schedule --> execute direct
+      // NOTE: can only happen for interval events: next tick is already behind schedule --> execute direct
       if (relativeAfterSchedule <= 0) {
         this.logger.info("running behind schedule - executing next tick immediately", {
           eventType: this.#eventType,

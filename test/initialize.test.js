@@ -57,7 +57,9 @@ describe("initialize", () => {
     delete fileContent.periodicEvents[0].interval;
     expect(() => {
       config.fileContent = fileContent;
-    }).toThrowErrorMatchingInlineSnapshot(`"Invalid interval, the value needs to greater than 10 seconds."`);
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"For periodic events either the cron or interval parameter must be defined!"`
+    );
   });
 
   test("registration checks", async () => {
@@ -139,6 +141,35 @@ describe("initialize", () => {
       config.fileContent = fileContent;
     }).toThrowErrorMatchingInlineSnapshot(`"The app instances property must be an array and only contain numbers."`);
     fileContent.events.splice(1);
+
+    fileContent.periodicEvents = [];
+    fileContent.periodicEvents.push({ ...fileContent.events[0], cron: 30 });
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"The cron expression is syntactically not correct and can't be parsed!"`);
+    fileContent.periodicEvents = [];
+
+    fileContent.periodicEvents.push({ ...fileContent.events[0], cron: "*/10 * * * * *" });
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"The difference between two cron execution must be greater than 10 seconds."`
+    );
+    fileContent.periodicEvents = [];
+
+    fileContent.periodicEvents.push({ ...fileContent.events[0], interval: 20, cron: "*/15 * * * * *" });
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(`"For periodic events only the cron or interval parameter can be defined!"`);
+    fileContent.periodicEvents = [];
+
+    fileContent.periodicEvents.push({ ...fileContent.events[0] });
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"For periodic events either the cron or interval parameter must be defined!"`
+    );
+    fileContent.periodicEvents = [];
   });
 
   describe("runner mode registration", () => {
