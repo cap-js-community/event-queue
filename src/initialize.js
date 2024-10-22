@@ -37,7 +37,7 @@ const CONFIG_VARS = [
   ["redisOptions", {}],
   ["insertEventsBeforeCommit", true],
   ["enableCAPTelemetry", false],
-  ["defaultTimezoneForCron", null],
+  ["cronTimezone", null],
   ["publishEventBlockList", true],
 ];
 
@@ -59,7 +59,7 @@ const CONFIG_VARS = [
  * @param {Object} [options.redisOptions={}] - Configuration options for Redis.
  * @param {boolean} [options.insertEventsBeforeCommit=true] - Insert events into the queue before committing the transaction.
  * @param {boolean} [options.enableCAPTelemetry=false] - Enable telemetry for CAP.
- * @param {string} [options.defaultTimezoneForCron=null] - Default timezone for cron jobs.
+ * @param {string} [options.cronTimezone=null] - Default timezone for cron jobs.
  * @param {string} [options.publishEventBlockList=true] - If redis is available event blocklist is distributed to all application instances
  */
 const initialize = async (options = {}) => {
