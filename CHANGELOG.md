@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - Added support for defining periodic event schedules using cron expressions, providing more flexible and precise scheduling options beyond simple intervals in seconds. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#cron-schedule).
+- `triggerEventProcessingRedis` is a public api now. This can trigger the processing of multiple events via redis.
+- The central configuration property `publishEventBlockList` has been introduced, enabling the option to disable the publication of the event block list to all application instances. The default value is set to `true` to prevent immediate impact on existing functionality.
 
 ### Fixed
 

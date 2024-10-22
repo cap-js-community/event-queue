@@ -18,7 +18,37 @@ const SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT = 30 * 1000;
 
 const wait = promisify(setTimeout);
 
-const broadcastEvent = async (tenantId, events) => {
+/**
+ * Broadcasts events to the event queue, either locally or through Redis.
+ *
+ * This function checks if the event queue is active before proceeding to broadcast the events.
+ * If the event queue is deactivated, broadcasting is skipped. If Redis is not enabled,
+ * events will be processed locally without Redis. The function handles periodic events
+ * by checking for locks and only publishing when locks are available.
+ *
+ * @async
+ * @param {string} tenantId - The ID of the tenant for which the events are being broadcasted.
+ * @param {Array<{ type: string; subType: string }>} events - An array of event objects, each containing
+ *        a type and a subtype that specify the kind of event to be broadcasted.
+ * @param {boolean} [forceBroadcast=false] - If true, forces the broadcast of periodic events even
+ *        when locks are not available. Defaults to false.
+ * @returns {Promise<void>} A promise that resolves when the events have been successfully broadcasted.
+ *
+ * @throws {Error} Throws an error if publishing events fails.
+ *
+ * @example
+ * // Example usage of broadcastEvent function
+ * const tenantId = '12345';
+ * const events = [
+ *   { type: 'orderCreated', subType: 'online' },
+ *   { type: 'paymentProcessed', subType: 'creditCard' }
+ * ];
+ *
+ * broadcastEvent(tenantId, events)
+ *   .then(() => console.log('Events broadcasted successfully!'))
+ *   .catch(err => console.error('Failed to broadcast events:', err));
+ */
+const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
   const logger = cds.log(COMPONENT_NAME);
 
   if (!config.isEventQueueActive) {
@@ -46,7 +76,7 @@ const broadcastEvent = async (tenantId, events) => {
                 isPeriodic: eventConfig.isPeriodic,
                 waitInterval: SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT,
               });
-              if (!eventConfig.isPeriodic) {
+              if (!eventConfig.isPeriodic && !forceBroadcast) {
                 break;
               }
               await wait(SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT);

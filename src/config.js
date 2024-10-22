@@ -76,6 +76,7 @@ class Config {
   #unsubscribeHandlers = [];
   #unsubscribedTenants = {};
   #cronTimezone;
+  #publishEventBlockList;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -240,7 +241,7 @@ class Config {
     }
     const key = this.generateKey(typeWithSuffix, subType);
     this.#blockEventLocalState(key, tenant);
-    if (!this.redisEnabled) {
+    if (!this.redisEnabled || !this.publishEventBlockList) {
       return;
     }
 
@@ -499,6 +500,14 @@ class Config {
 
   set forUpdateTimeout(value) {
     this.#forUpdateTimeout = value;
+  }
+
+  get publishEventBlockList() {
+    return this.#publishEventBlockList;
+  }
+
+  set publishEventBlockList(value) {
+    this.#publishEventBlockList = value;
   }
 
   set globalTxTimeout(value) {

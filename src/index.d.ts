@@ -106,6 +106,11 @@ interface EventEntityPublish {
   payload?: string;
 }
 
+interface EventTriggerProcessing {
+  type: string;
+  subType: string;
+}
+
 interface QueueEntriesPayloadMap {
   [key: string]: {
     queueEntry: EventEntity;
@@ -161,6 +166,12 @@ export function processEventQueue(
   eventType: string,
   eventSubType: string,
   startTime: Date
+): Promise<any>;
+
+export function triggerEventProcessingRedis(
+  tenantId: string,
+  events: EventTriggerProcessing[],
+  forceBroadcast?: boolean
 ): Promise<any>;
 
 declare class Config {
