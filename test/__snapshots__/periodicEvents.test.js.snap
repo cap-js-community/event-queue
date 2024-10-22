@@ -19,7 +19,7 @@ exports[`baseFunctionality cron events Cron expression tests changed intervals c
       "events": [
         {
           "interval": undefined,
-          "startAfter": "2023-11-13T11:00:00.000Z",
+          "startAfter": "2023-11-14T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
@@ -38,7 +38,7 @@ exports[`baseFunctionality cron events Cron expression tests changed intervals c
   },
   {
     "attempts": 0,
-    "startAfter": "2023-11-13T11:00:00.000Z",
+    "startAfter": "2023-11-14T00:00:00.000Z",
     "status": 0,
   },
 ]
