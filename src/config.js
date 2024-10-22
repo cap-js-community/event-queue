@@ -25,6 +25,7 @@ const CAP_PARALLEL_DEFAULT = 5;
 const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
 const PRIORITIES = Object.values(Priorities);
 const UTC_DEFAULT = false;
+const USE_CRON_TZ_DEFAULT = true;
 
 const BASE_PERIODIC_EVENTS = [
   {
@@ -423,6 +424,7 @@ class Config {
     if (event.cron) {
       let cron;
       event.utc = event.utc ?? UTC_DEFAULT;
+      event.useCronTimezone = event.useCronTimezone ?? USE_CRON_TZ_DEFAULT;
       try {
         cron = cronParser.parseExpression(event.cron);
       } catch {
