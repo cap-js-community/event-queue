@@ -15,7 +15,7 @@ nav_order: 4
 
 <!-- prettier-ignore -->
 - TOC
-{: toc}
+  {: toc}
 
 # Ad-Hoc events
 
@@ -119,18 +119,48 @@ periodicEvents:
 
 Periodic events in the Event-Queue framework can now be scheduled using cron expressions for greater precision and
 flexibility. When a cron expression is used (with the cron and utc parameters defined), the interval parameter cannot
-be specified, and vice versa. Cron jobs in the framework support granular scheduling down to seconds (e.g., \* \* \* \* \* \*),
+be specified, and vice versa. Cron jobs in the framework support granular scheduling down to seconds (
+e.g., \* \* \* \* \* \*),
 allowing for highly specific timing control. However, to prevent system overload, the minimum allowed interval between
 two executions is 10 seconds.
 
 The event's next execution time is calculated only after the current event has been executed. This approach ensures that
 the system dynamically adapts to real-world conditions but also means that the execution might not strictly follow the
-cron schedule. For example, if the CAP application is not running or if there is a high load on the system causing delays,
+cron schedule. For example, if the CAP application is not running or if there is a high load on the system causing
+delays,
 the event might not execute exactly as scheduled.
+
+### Timezone Configuration
+
+The Event-Queue framework provides flexibility in handling timezones for periodic events. A central setting,
+`cronTimezone`, can be configured to define the global timezone used when calculating the cron schedule for all events.
+This allows events to execute according to specific local time zones rather than Coordinated Universal Time (UTC), which
+is useful for applications operating across different regions.
+
+#### Event-Specific Timezone Control
+
+In addition to the global `cronTimezone` setting, each event can independently control its timezone behavior using two
+parameters:
+
+1. **useCronTimezone**: This parameter controls whether the global `cronTimezone` should be applied to an event. If
+   `useCronTimezone` is set to `true` (the default), the event will use the global `cronTimezone`. If set to `false`,
+   the event will ignore the global setting and fall back to its own configuration.
+
+2. **UTC**: If no timezone is set, the `UTC` parameter on an event level determines whether the event should run in
+   Coordinated Universal Time (UTC) or in the server's local time. When `UTC` is set to `true`, the event will execute
+   based on UTC time.
+
+#### Example
+
+If `cronTimezone` is set to `Europe/Berlin` and `useCronTimezone` is `true` for an event, a cron expression like
+`0 8 * * *` will trigger at 8:00 AM in Berlin time. If `useCronTimezone` is set to `false`, the event will either use
+its own timezone (if defined) or revert to the `UTC` setting to decide whether it should follow UTC time or the server's
+local time.
 
 ### Common Examples
 
-The following table provides examples of cron expressions that can be used to schedule periodic events. These expressions
+The following table provides examples of cron expressions that can be used to schedule periodic events. These
+expressions
 offer flexibility in specifying when and how often events should occur, ranging from precise intervals to specific days
 or months. Please note that the minimum interval allowed between two executions is 10 seconds, ensuring that the system
 maintains stability and avoids overloading.
@@ -249,7 +279,8 @@ config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
 ## Unsubscribe Handler
 
 The event-queue listens for unsubscribe events from `cds-mtxs` and stops processing events for an unsubscribed tenant.
-Additionally, the event-queue federates the unsubscribe event to all application instances bound to the same Redis instance.
+Additionally, the event-queue federates the unsubscribe event to all application instances bound to the same Redis
+instance.
 To react to unsubscribe events across all application instances, the event-queue allows the registration of callbacks
 that are triggered when a tenant is unsubscribed. Follow the code example below:
 
@@ -266,7 +297,8 @@ config.attachUnsubscribeHandler(async (tenantId) => {
 });
 ```
 
-This ensures that your application can handle tenant unsubscription events consistently, even in a distributed environment.
+This ensures that your application can handle tenant unsubscription events consistently, even in a distributed
+environment.
 
 # Delete Processed Events
 
