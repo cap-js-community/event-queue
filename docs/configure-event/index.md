@@ -11,11 +11,12 @@ nav_order: 4
 
 # Configure Events
 
-<!-- prettier-ignore-end -->
 
-<!-- prettier-ignore -->
+
 - TOC
-  {: toc}
+<!-- prettier-ignore -->
+{: toc}
+<!-- prettier-ignore-end -->
 
 # Ad-Hoc events
 
@@ -31,7 +32,7 @@ The configuration YAML file is where all the required information regarding even
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                                                                   | Default Value   |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                   | -               |
 | type                          | Specifies the type of the event.                                                                                                                                                                                                                              | -               |
 | subType                       | Specifies the subtype of the event, further categorizing the event type.                                                                                                                                                                                      | -               |
@@ -83,7 +84,7 @@ instance is overloaded.
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                                                                   | Default Value |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                   | -             |
 | type                          | Specifies the type of the periodic event.                                                                                                                                                                                                                     | -             |
 | subType                       | Specifies the subtype of the periodic event, further categorizing the event type.                                                                                                                                                                             | -             |
@@ -92,6 +93,7 @@ instance is overloaded.
 | interval                      | The interval, in seconds, at which the periodic event should be triggered.                                                                                                                                                                                    | -             |
 | cron                          | Defines the schedule of the periodic event using a cron expression. This allows for precise scheduling options like specific days, hours, or minutes.                                                                                                         | -             |
 | utc                           | Specifies whether the cron expression should be interpreted in UTC time. If set to true, the schedule will follow UTC; otherwise, it will use the server's local time zone.                                                                                   | true          |
+| useCronTimezone               | Determines whether the global `cronTimezone` setting should be applied to the event. If set to `true`, the event will follow the `cronTimezone`; if set to `false`, it will revert to the `UTC` setting or local time.                                        | true          |
 | deleteFinishedEventsAfterDays | Specifies the number of days after which finished events are deleted, regardless of their status. A value of `0` indicates that event entries are never deleted from the database.                                                                            | 7             |
 | priority                      | Specifies the priority level of the event. More details can be found [here](#priority-of-events).                                                                                                                                                             | Medium        |
 | appNames                      | Specifies the application names on which the event should be processed. The application name is extracted from the environment variable `VCAP_APPLICATION`. If not defined, the event is processed on all connected applications.                             | null          |
@@ -133,7 +135,7 @@ the event might not execute exactly as scheduled.
 ### Timezone Configuration
 
 The Event-Queue framework provides flexibility in handling timezones for periodic events. A central setting,
-`cronTimezone`, can be configured to define the global timezone used when calculating the cron schedule for all events.
+[cronTimezone](/event-queue/setup/#initialization-parameters), can be configured to define the global timezone used when calculating the cron schedule for all events.
 This allows events to execute according to specific local time zones rather than Coordinated Universal Time (UTC), which
 is useful for applications operating across different regions.
 
@@ -166,7 +168,7 @@ or months. Please note that the minimum interval allowed between two executions 
 maintains stability and avoids overloading.
 
 | Cron Expression     | Description                                                               |
-| ------------------- | ------------------------------------------------------------------------- |
+|---------------------|---------------------------------------------------------------------------|
 | `0 * * * *`         | Runs at the start of every hour.                                          |
 | `* * * * *`         | Runs every minute.                                                        |
 | `0 0 * * *`         | Runs at midnight every day.                                               |
@@ -210,7 +212,7 @@ The initialization configuration can be changed by setting the value of the corr
 config class instance. Here is an example:
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 config.runInterval = 5 * 60 * 1000; // 5 minutes
 ```
@@ -220,7 +222,7 @@ config.runInterval = 5 * 60 * 1000; // 5 minutes
 To change the configuration of a specific event, you can refer to the example below:
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 const eventConfig = config.getEventConfig("HealthCheck", "DB");
 eventConfig.load = 5;
@@ -247,7 +249,7 @@ accomplished.
 ## Blocking/Unblocking based on configuration
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 // Block type: HealthCheck and subType: DB for tenant 123
 const isPeriodicEvent = true;
@@ -269,10 +271,10 @@ For greater flexibility, the decision to block an event can be determined based 
 The example below shows how to register the callback.
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
-  // Perform custom check and return true or false
+    // Perform custom check and return true or false
 };
 ```
 
@@ -285,15 +287,15 @@ To react to unsubscribe events across all application instances, the event-queue
 that are triggered when a tenant is unsubscribed. Follow the code example below:
 
 ```javascript
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 config.attachUnsubscribeHandler(async (tenantId) => {
-  try {
-    cds.log("server").info("received unsubscribe event via event-queue", { tenantId });
-    await cds.db.disconnect(tenantId);
-  } catch (err) {
-    logger.error("disconnect db failed!", { tenantId }, err);
-  }
+    try {
+        cds.log("server").info("received unsubscribe event via event-queue", {tenantId});
+        await cds.db.disconnect(tenantId);
+    } catch (err) {
+        logger.error("disconnect db failed!", {tenantId}, err);
+    }
 });
 ```
 

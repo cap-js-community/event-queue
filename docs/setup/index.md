@@ -8,8 +8,10 @@ nav_order: 3
 
 
 {: .no_toc}
+
 # Setup
 
+<!-- prettier-ignore -->
 - TOC
 {: toc}
 
@@ -49,7 +51,7 @@ Call the initialize function in your server.js. Check here the available setting
 
 ```js
 eventQueue.initialize({
-  configFilePath: "./srv/eventConfig.yml",
+    configFilePath: "./srv/eventConfig.yml",
 });
 ```
 
@@ -61,7 +63,7 @@ such as the configuration file path, event processing behavior, load balancing, 
 The table includes the parameter name, a description of its purpose, and the default value if not specified.
 
 | Name                                 | Description                                                                                                                                                                                                                                                                                                                                      | Default        | Can be changed at runtime |
-| :----------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------- | :------------------------ |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------|:--------------------------|
 | configFilePath                       | Path to the configuration file.                                                                                                                                                                                                                                                                                                                  | null           | no                        |
 | registerAsEventProcessor             | Whether or not to register as an event processor. If false, the app can publish events but doesn't process events.                                                                                                                                                                                                                               | true           | no                        |
 | processEventsAfterPublish            | Whether or not to process events immediately after publish. Events are distributed via Redis to all available app instances.                                                                                                                                                                                                                     | true           | no                        |
@@ -76,6 +78,7 @@ The table includes the parameter name, a description of its purpose, and the def
 | redisOptions                         | The option is provided to customize settings when creating Redis clients. The object is spread at the root level for creating a client and within the `default` options for cluster clients.                                                                                                                                                     | {}             | no                        |
 | insertEventsBeforeCommit             | If enabled, this feature allows events (including those for outboxed services) to be inserted in bulk using the before commit handler. This is performed to improve performance by mass inserting events instead of single insert operations. This can be disabled by the parameter `skipInsertEventsBeforeCommit` in the function publishEvent. | false          | yes                       |
 | enableCAPTelemetry                   | If enabled in combination with `cap-js/telemetry`, OpenTelemetry traces about all event-queue activities are written using the `cap-js/telemetry` tracer.                                                                                                                                                                                        | false          | yes                       |
+| useCronTimezone                      | Determines whether to apply the central `cronTimezone` setting for scheduling events. If set to `true`, the event will use the defined `cronTimezone`. If set to `false`, the event will use UTC or the server's local time, based on the `utc` setting.                                                                                         | null           | yes                       |
 
 # Configure Redis
 
