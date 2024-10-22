@@ -1,6 +1,6 @@
 "use strict";
 
-// TODO: add tests for config --> similar to csn check
+const redisPubSub = require("./redis/redisPub");
 
 module.exports = {
   ...require("./initialize"),
@@ -11,4 +11,5 @@ module.exports = {
   ...require("./publishEvent"),
   EventQueueProcessorBase: require("./EventQueueProcessorBase"),
   WorkerQueue: require("./shared/WorkerQueue"),
+  triggerEventProcessingRedis: redisPubSub.broadcastEvent,
 };

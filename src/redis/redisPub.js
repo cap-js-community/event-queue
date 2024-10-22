@@ -18,7 +18,7 @@ const SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT = 30 * 1000;
 
 const wait = promisify(setTimeout);
 
-const broadcastEvent = async (tenantId, events) => {
+const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
   const logger = cds.log(COMPONENT_NAME);
 
   if (!config.isEventQueueActive) {
@@ -46,7 +46,7 @@ const broadcastEvent = async (tenantId, events) => {
                 isPeriodic: eventConfig.isPeriodic,
                 waitInterval: SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT,
               });
-              if (!eventConfig.isPeriodic) {
+              if (!eventConfig.isPeriodic && !forceBroadcast) {
                 break;
               }
               await wait(SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT);

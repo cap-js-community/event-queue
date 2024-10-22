@@ -88,12 +88,12 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(loggerMock.calls().error).toHaveLength(0);
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
-      [
-        {},
-        "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
-      ]
-    `);
+              [
+                {},
+                "EVENT_QUEUE_MESSAGE_CHANNEL",
+                "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
+              ]
+          `);
     });
 
     test("should do nothing no lock is available", async () => {
@@ -116,12 +116,32 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(setTimeoutSpy.mock.lastCall[0]).toMatchInlineSnapshot(`30000`);
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
-      [
-        {},
-        "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
-      ]
-    `);
+              [
+                {},
+                "EVENT_QUEUE_MESSAGE_CHANNEL",
+                "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
+              ]
+          `);
+    });
+
+    test("should also try use retries if force parameter is set", async () => {
+      await tx.rollback();
+      const event = eventQueue.config.events[0];
+      checkLockExistsSpy.mockResolvedValueOnce(true);
+      checkLockExistsSpy.mockResolvedValueOnce(false);
+
+      await redisPub.broadcastEvent(123, { type: event.type, subType: event.subType }, true);
+      expect(loggerMock.calls().error).toHaveLength(0);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+      expect(setTimeoutSpy.mock.lastCall[0]).toMatchInlineSnapshot(`30000`);
+      expect(mockRedisPublishCalls).toHaveLength(1);
+      expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
+        [
+          {},
+          "EVENT_QUEUE_MESSAGE_CHANNEL",
+          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","tenantId":123,"type":"Notifications","subType":"Task"}",
+        ]
+      `);
     });
 
     test("publish event should be called only once even if the same combination is inserted twice", async () => {
@@ -130,12 +150,12 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       await tx.commit();
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
-      [
-        {},
-        "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
-      ]
-    `);
+              [
+                {},
+                "EVENT_QUEUE_MESSAGE_CHANNEL",
+                "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
+              ]
+          `);
     });
 
     test("publish event should be called only once even if the same combination is inserted twice - two inserts", async () => {
@@ -144,12 +164,12 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       await tx.commit();
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
-      [
-        {},
-        "EVENT_QUEUE_MESSAGE_CHANNEL",
-        "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
-      ]
-    `);
+              [
+                {},
+                "EVENT_QUEUE_MESSAGE_CHANNEL",
+                "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
+              ]
+          `);
     });
 
     test("different event combinations should result in two requests", async () => {
@@ -160,19 +180,19 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       await tx.commit();
       expect(mockRedisPublishCalls).toHaveLength(2);
       expect(mockRedisPublishCalls).toMatchInlineSnapshot(`
-      [
-        [
-          {},
-          "EVENT_QUEUE_MESSAGE_CHANNEL",
-          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
-        ],
-        [
-          {},
-          "EVENT_QUEUE_MESSAGE_CHANNEL",
-          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Fiori","subType":"Task"}",
-        ],
-      ]
-    `);
+              [
+                [
+                  {},
+                  "EVENT_QUEUE_MESSAGE_CHANNEL",
+                  "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task"}",
+                ],
+                [
+                  {},
+                  "EVENT_QUEUE_MESSAGE_CHANNEL",
+                  "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Fiori","subType":"Task"}",
+                ],
+              ]
+          `);
     });
 
     test("publish event throws an error", async () => {
