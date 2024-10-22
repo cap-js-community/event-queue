@@ -71,6 +71,12 @@ const initialize = async (options = {}) => {
   mixConfigVarsWithEnv(options);
 
   const logger = cds.log(COMPONENT);
+  if (!config.useAsCAPOutbox && !config.configFilePath) {
+    logger.info(
+      "Event queue initialization skipped: no configFilePath provided, and event queue is not configured as a CAP outbox."
+    );
+  }
+
   const redisEnabled = config.checkRedisEnabled();
   let resolveFn;
   let initFinished = new Promise((resolve) => (resolveFn = resolve));

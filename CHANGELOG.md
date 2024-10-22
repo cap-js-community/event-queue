@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 - calculation of changed cron patterns
+- fix init event-queue if no config
 
 ## v1.7.1 - 2024-10-22
 
