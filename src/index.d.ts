@@ -163,6 +163,12 @@ export function processEventQueue(
   startTime: Date
 ): Promise<any>;
 
+export function triggerEventProcessingRedis(
+  tenantId: string,
+  events: { type: string; subtype: string }[],
+  forceBroadcast?: boolean
+): Promise<any>;
+
 declare class Config {
   constructor();
 
