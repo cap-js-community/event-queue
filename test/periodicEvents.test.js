@@ -223,7 +223,7 @@ describe("baseFunctionality", () => {
           expectedLength: 1,
           additionalColumns: ["type"],
         });
-        expect(eventsAfterTimezoneChange[0].startAfter).toMatchInlineSnapshot(`"2023-11-13T11:00:00.000Z"`);
+        expect(eventsAfterTimezoneChange[0].startAfter).toMatchInlineSnapshot(`"2023-11-14T07:30:00.000Z"`);
       });
 
       describe("changed intervals", () => {
