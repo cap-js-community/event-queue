@@ -109,6 +109,14 @@ exports[`baseFunctionality getOpenQueueEntries event types in error should be co
     "subType": "Task",
     "type": "Notifications",
   },
+  {
+    "subType": "everyFiveMin",
+    "type": "TimeSpecificEveryFiveMin_PERIODIC",
+  },
+  {
+    "subType": "cron",
+    "type": "TimeSpecificEveryMin_PERIODIC",
+  },
 ]
 `;
 
@@ -121,6 +129,14 @@ exports[`baseFunctionality getOpenQueueEntries event types in progress should be
   {
     "subType": "DB",
     "type": "HealthCheck_PERIODIC",
+  },
+  {
+    "subType": "everyFiveMin",
+    "type": "TimeSpecificEveryFiveMin_PERIODIC",
+  },
+  {
+    "subType": "cron",
+    "type": "TimeSpecificEveryMin_PERIODIC",
   },
 ]
 `;
@@ -138,6 +154,14 @@ exports[`baseFunctionality getOpenQueueEntries return open event types 2`] = `
   {
     "subType": "Task",
     "type": "Notifications",
+  },
+  {
+    "subType": "everyFiveMin",
+    "type": "TimeSpecificEveryFiveMin_PERIODIC",
+  },
+  {
+    "subType": "cron",
+    "type": "TimeSpecificEveryMin_PERIODIC",
   },
 ]
 `;

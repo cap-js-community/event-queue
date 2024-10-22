@@ -6,16 +6,15 @@ nav_order: 4
 
 <!-- prettier-ignore-start -->
 
-
 {: .no_toc}
 
 # Configure Events
 
-<!-- prettier-ignore-end -->
-
 <!-- prettier-ignore -->
 - TOC
 {: toc}
+
+<!-- prettier-ignore-end -->
 
 # Ad-Hoc events
 
@@ -82,8 +81,6 @@ instance is overloaded.
 
 ## Parameters
 
-## Parameters
-
 | Property                      | Description                                                                                                                                                                                                                                                   | Default Value |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                   | -             |
@@ -92,6 +89,9 @@ instance is overloaded.
 | load                          | Indicates the load of the event, affecting the processing concurrency.                                                                                                                                                                                        | 1             |
 | transactionMode               | Specifies the transaction mode for the periodic event. For allowed values, refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes).                                                                                             | isolated      |
 | interval                      | The interval, in seconds, at which the periodic event should be triggered.                                                                                                                                                                                    | -             |
+| cron                          | Defines the schedule of the periodic event using a cron expression. This allows for precise scheduling options like specific days, hours, or minutes.                                                                                                         | -             |
+| utc                           | Specifies whether the cron expression should be interpreted in UTC time. If set to true, the schedule will follow UTC; otherwise, it will use the server's local time zone.                                                                                   | true          |
+| useCronTimezone               | Determines whether the global `cronTimezone` setting should be applied to the event. If set to `true`, the event will follow the `cronTimezone`; if set to `false`, it will revert to the `UTC` setting or local time.                                        | true          |
 | deleteFinishedEventsAfterDays | Specifies the number of days after which finished events are deleted, regardless of their status. A value of `0` indicates that event entries are never deleted from the database.                                                                            | 7             |
 | priority                      | Specifies the priority level of the event. More details can be found [here](#priority-of-events).                                                                                                                                                             | Medium        |
 | appNames                      | Specifies the application names on which the event should be processed. The application name is extracted from the environment variable `VCAP_APPLICATION`. If not defined, the event is processed on all connected applications.                             | null          |
@@ -114,6 +114,85 @@ periodicEvents:
     transactionMode: alwaysRollback
     interval: 30
 ```
+
+## Cron Schedule
+
+Periodic events in the Event-Queue framework can now be scheduled using cron expressions for greater precision and
+flexibility. When a cron expression is used (with the cron and utc parameters defined), the interval parameter cannot
+be specified, and vice versa. Cron jobs in the framework support granular scheduling down to seconds (
+e.g., \* \* \* \* \* \*),
+allowing for highly specific timing control. However, to prevent system overload, the minimum allowed interval between
+two executions is 10 seconds.
+
+The event's next execution time is calculated only after the current event has been executed. This approach ensures that
+the system dynamically adapts to real-world conditions but also means that the execution might not strictly follow the
+cron schedule. For example, if the CAP application is not running or if there is a high load on the system causing
+delays,
+the event might not execute exactly as scheduled.
+
+### Timezone Configuration
+
+The Event-Queue framework provides flexibility in handling timezones for periodic events. A central setting,
+[cronTimezone](/event-queue/setup/#initialization-parameters), can be configured to define the global timezone used when calculating the cron schedule for all events.
+This allows events to execute according to specific local time zones rather than Coordinated Universal Time (UTC), which
+is useful for applications operating across different regions.
+
+#### Event-Specific Timezone Control
+
+In addition to the global `cronTimezone` setting, each event can independently control its timezone behavior using two
+parameters:
+
+1. **useCronTimezone**: This parameter controls whether the global `cronTimezone` should be applied to an event. If
+   `useCronTimezone` is set to `true` (the default), the event will use the global `cronTimezone`. If set to `false`,
+   the event will ignore the global setting and fall back to its own configuration.
+
+2. **UTC**: If no timezone is set, the `UTC` parameter on an event level determines whether the event should run in
+   Coordinated Universal Time (UTC) or in the server's local time. When `UTC` is set to `true`, the event will execute
+   based on UTC time.
+
+#### Example
+
+If `cronTimezone` is set to `Europe/Berlin` and `useCronTimezone` is `true` for an event, a cron expression like
+`0 8 * * *` will trigger at 8:00 AM in Berlin time. If `useCronTimezone` is set to `false`, the event will either use
+its own timezone (if defined) or revert to the `UTC` setting to decide whether it should follow UTC time or the server's
+local time.
+
+### Common Examples
+
+The following table provides examples of cron expressions that can be used to schedule periodic events. These
+expressions
+offer flexibility in specifying when and how often events should occur, ranging from precise intervals to specific days
+or months. Please note that the minimum interval allowed between two executions is 10 seconds, ensuring that the system
+maintains stability and avoids overloading.
+
+| Cron Expression     | Description                                                               |
+| ------------------- | ------------------------------------------------------------------------- |
+| `0 * * * *`         | Runs at the start of every hour.                                          |
+| `* * * * *`         | Runs every minute.                                                        |
+| `0 0 * * *`         | Runs at midnight every day.                                               |
+| `0 0 * * 0`         | Runs at midnight every Sunday.                                            |
+| `30 8 * * 1-5`      | Runs at 8:30 AM, Monday through Friday.                                   |
+| `0 9,17 * * *`      | Runs at 9:00 AM and 5:00 PM every day.                                    |
+| `0 12 * * 1`        | Runs at 12:00 PM every Monday.                                            |
+| `15 14 1 * *`       | Runs at 2:15 PM on the 1st of every month.                                |
+| `0 22 * * 5`        | Runs at 10:00 PM every Friday.                                            |
+| `0 5 1 1 *`         | Runs at 5:00 AM on January 1st each year.                                 |
+| `*/15 * * * *`      | Runs every 15 minutes.                                                    |
+| `0 0 1-7 * 0`       | Runs at midnight on the first Sunday of every month.                      |
+| `0 8-17/2 * * *`    | Runs every 2 hours between 8:00 AM and 5:00 PM.                           |
+| `0 0 1 * *`         | Runs at midnight on the first day of every month.                         |
+| `0 0 1 1 *`         | Runs at midnight on January 1st every year.                               |
+| `0 3 * * 2`         | Runs at 3:00 AM every Tuesday.                                            |
+| `45 23 * * *`       | Runs at 11:45 PM every day.                                               |
+| `5,10,15 10 * * *`  | Runs at 10:05, 10:10, and 10:15 every day.                                |
+| `0 0 * 5 *`         | Runs at midnight every day in May.                                        |
+| `0 6 * * 2-4`       | Runs at 6:00 AM every Tuesday, Wednesday, and Thursday.                   |
+| `0 8,12,16 * * 1-5` | Runs at 8:00 AM, 12:00 PM, and 4:00 PM, Monday through Friday.            |
+| `10 * 9-17 * *`     | Runs every day at 10 minutes past every hour between 9:00 AM and 5:00 PM. |
+| `*/10 * * * * *`    | Runs every 10 seconds (minimum allowed interval).                         |
+| `0 0 25 12 *`       | Runs at midnight on Christmas Day, December 25th.                         |
+| `0 0 L * *`         | Runs at midnight on the last day of every month.                          |
+| `0 6,18 * * *`      | Runs at 6:00 AM and 6:00 PM every day.                                    |
 
 # Runtime Configuration Changes
 
@@ -200,7 +279,8 @@ config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
 ## Unsubscribe Handler
 
 The event-queue listens for unsubscribe events from `cds-mtxs` and stops processing events for an unsubscribed tenant.
-Additionally, the event-queue federates the unsubscribe event to all application instances bound to the same Redis instance.
+Additionally, the event-queue federates the unsubscribe event to all application instances bound to the same Redis
+instance.
 To react to unsubscribe events across all application instances, the event-queue allows the registration of callbacks
 that are triggered when a tenant is unsubscribed. Follow the code example below:
 
@@ -217,7 +297,8 @@ config.attachUnsubscribeHandler(async (tenantId) => {
 });
 ```
 
-This ensures that your application can handle tenant unsubscription events consistently, even in a distributed environment.
+This ensures that your application can handle tenant unsubscription events consistently, even in a distributed
+environment.
 
 # Delete Processed Events
 

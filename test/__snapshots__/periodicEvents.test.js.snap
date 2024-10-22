@@ -1,40 +1,113 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`baseFunctionality basic insert all new events 1`] = `
+exports[`baseFunctionality cron events Cron expression tests changed intervals changed interval 1`] = `
 [
   [
-    "1/2 | inserting chunk of changed or new periodic events",
+    "deleting periodic events because they have changed",
     {
-      "events": [
+      "changedEvents": [
         {
-          "interval": 30,
-          "subType": "DB",
-          "type": "HealthCheck_PERIODIC",
-        },
-        {
-          "interval": 30,
-          "subType": "AppName",
-          "type": "AppSpecific_PERIODIC",
-        },
-        {
-          "interval": 30,
-          "subType": "AppInstance",
-          "type": "AppSpecific_PERIODIC",
-        },
-        {
-          "interval": 30,
-          "subType": "both",
-          "type": "AppSpecific_PERIODIC",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
         },
       ],
     },
   ],
   [
-    "2/2 | inserting chunk of changed or new periodic events",
+    "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
+          "interval": undefined,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests changed intervals changed interval 2`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests changed intervals interval multiple times overdue 1`] = `[]`;
+
+exports[`baseFunctionality cron events Cron expression tests changed intervals interval multiple times overdue 2`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:01:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests changed intervals not changed interval --> no update 1`] = `[]`;
+
+exports[`baseFunctionality cron events Cron expression tests changed intervals not changed interval --> no update 2`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:01:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '* * * * *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:01:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '* * * * *': * * * * * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-13T11:01:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
           "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
@@ -44,7 +117,797 @@ exports[`baseFunctionality basic insert all new events 1`] = `
 ]
 `;
 
-exports[`baseFunctionality basic insert all new events 2`] = `
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '*/15 * * * *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:15:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '*/15 * * * *': */15 * * * * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-13T11:15:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 * * * *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T12:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 * * * *': 0 * * * * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-13T12:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 * * *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-14T00:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 * * *': 0 0 * * * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-14T00:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 * * 0' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-19T00:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 * * 0': 0 0 * * 0 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-19T00:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 * 5 *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2024-05-01T00:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 * 5 *': 0 0 * 5 * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2024-05-01T00:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 1 * *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-12-01T00:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 1 * *': 0 0 1 * * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-12-01T00:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 1 1 *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2024-01-01T00:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 1 1 *': 0 0 1 1 * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2024-01-01T00:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 1-7 * 0' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-19T00:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 1-7 * 0': 0 0 1-7 * 0 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-19T00:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 3 * * 2' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-14T03:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 3 * * 2': 0 3 * * 2 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-14T03:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 5 1 1 *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2024-01-01T05:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 5 1 1 *': 0 5 1 1 * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2024-01-01T05:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 6 * * 2-4' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-14T06:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 6 * * 2-4': 0 6 * * 2-4 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-14T06:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 8-17/2 * * *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T12:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 8-17/2 * * *': 0 8-17/2 * * * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-13T12:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 9,17 * * *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T17:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 9,17 * * *': 0 9,17 * * * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-13T17:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 12 * * 1' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T12:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 12 * * 1': 0 12 * * 1 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-13T12:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 22 * * 5' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-17T22:00:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 22 * * 5': 0 22 * * 5 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-17T22:00:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '5,10,15 10 * * *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-14T10:05:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '5,10,15 10 * * *': 5,10,15 10 * * * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-14T10:05:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '15 14 1 * *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-12-01T14:15:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '15 14 1 * *': 15 14 1 * * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-12-01T14:15:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '30 8 * * 1-5' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-14T08:30:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '30 8 * * 1-5': 30 8 * * 1-5 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-14T08:30:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '45 23 * * *' 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T23:45:00.000Z",
+    "status": 0,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+  },
+]
+`;
+
+exports[`baseFunctionality cron events Cron expression tests should test cron expression: '45 23 * * *': 45 23 * * * 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": undefined,
+          "startAfter": "2023-11-13T23:45:00.000Z",
+          "subType": "cron",
+          "type": "TimeSpecificEveryMin_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality interval events basic insert all new events 1`] = `
+[
+  [
+    "1/2 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DB",
+          "type": "HealthCheck_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppName",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppInstance",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "both",
+          "type": "AppSpecific_PERIODIC",
+        },
+      ],
+    },
+  ],
+  [
+    "2/2 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality interval events basic insert all new events 2`] = `
 [
   {
     "attempts": 0,
@@ -74,7 +937,7 @@ exports[`baseFunctionality basic insert all new events 2`] = `
 ]
 `;
 
-exports[`baseFunctionality delta insert 1`] = `
+exports[`baseFunctionality interval events delta insert 1`] = `
 [
   [
     "1/2 | inserting chunk of changed or new periodic events",
@@ -82,21 +945,25 @@ exports[`baseFunctionality delta insert 1`] = `
       "events": [
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppName",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppInstance",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "both",
           "type": "AppSpecific_PERIODIC",
         },
@@ -109,6 +976,7 @@ exports[`baseFunctionality delta insert 1`] = `
       "events": [
         {
           "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
@@ -121,6 +989,7 @@ exports[`baseFunctionality delta insert 1`] = `
       "events": [
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB2",
           "type": "HealthCheck_PERIODIC",
         },
@@ -130,54 +999,93 @@ exports[`baseFunctionality delta insert 1`] = `
 ]
 `;
 
-exports[`baseFunctionality delta insert 2`] = `
+exports[`baseFunctionality interval events delta insert 2`] = `
 [
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
+    "subType": "DB",
+    "type": "HealthCheck_PERIODIC",
   },
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
+    "subType": "AppName",
+    "type": "AppSpecific_PERIODIC",
   },
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
+    "subType": "AppInstance",
+    "type": "AppSpecific_PERIODIC",
   },
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
+    "subType": "both",
+    "type": "AppSpecific_PERIODIC",
   },
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
+    "subType": "DELETE_EVENTS",
+    "type": "EVENT_QUEUE_BASE_PERIODIC",
   },
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
+    "subType": "DB2",
+    "type": "HealthCheck_PERIODIC",
   },
 ]
 `;
 
-exports[`baseFunctionality if periodic event is in progress - no insert should happen 1`] = `
+exports[`baseFunctionality interval events if periodic event is in progress - no insert should happen 1`] = `
 [
   [
-    "1/1 | inserting chunk of changed or new periodic events",
+    "1/2 | inserting chunk of changed or new periodic events",
     {
       "events": [
         {
-          "interval": 10,
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppName",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "AppInstance",
+          "type": "AppSpecific_PERIODIC",
+        },
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "both",
+          "type": "AppSpecific_PERIODIC",
+        },
+      ],
+    },
+  ],
+  [
+    "2/2 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
           "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
@@ -187,8 +1095,23 @@ exports[`baseFunctionality if periodic event is in progress - no insert should h
 ]
 `;
 
-exports[`baseFunctionality if periodic event is in progress - no insert should happen 2`] = `
+exports[`baseFunctionality interval events if periodic event is in progress - no insert should happen 2`] = `
 [
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 1,
+  },
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
@@ -202,7 +1125,7 @@ exports[`baseFunctionality if periodic event is in progress - no insert should h
 ]
 `;
 
-exports[`baseFunctionality interval changed 1`] = `
+exports[`baseFunctionality interval events interval change if interval is increased next event will autocorrect 1`] = `
 [
   [
     "1/1 | inserting chunk of changed or new periodic events",
@@ -210,11 +1133,56 @@ exports[`baseFunctionality interval changed 1`] = `
       "events": [
         {
           "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
           "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DELETE_EVENTS",
+          "type": "EVENT_QUEUE_BASE_PERIODIC",
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`baseFunctionality interval events interval change if interval is increased next event will autocorrect 2`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T10:00:00.000Z",
+    "status": 0,
+    "subType": "DB",
+    "type": "HealthCheck_PERIODIC",
+  },
+  {
+    "attempts": 0,
+    "startAfter": "2023-11-13T11:00:00.000Z",
+    "status": 0,
+    "subType": "DELETE_EVENTS",
+    "type": "EVENT_QUEUE_BASE_PERIODIC",
+  },
+]
+`;
+
+exports[`baseFunctionality interval events interval change if too far in future update 1`] = `
+[
+  [
+    "1/1 | inserting chunk of changed or new periodic events",
+    {
+      "events": [
+        {
+          "interval": 30,
+          "startAfter": "2023-11-13T11:00:00.000Z",
+          "subType": "DB",
+          "type": "HealthCheck_PERIODIC",
+        },
+        {
+          "interval": 86400,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
@@ -237,7 +1205,8 @@ exports[`baseFunctionality interval changed 1`] = `
     {
       "events": [
         {
-          "interval": 10,
+          "interval": 450,
+          "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
@@ -247,17 +1216,21 @@ exports[`baseFunctionality interval changed 1`] = `
 ]
 `;
 
-exports[`baseFunctionality interval changed 2`] = `
+exports[`baseFunctionality interval events interval change if too far in future update 2`] = `
 [
   {
     "attempts": 0,
-    "startAfter": "2023-11-13T11:00:30.000Z",
+    "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
+    "subType": "DELETE_EVENTS",
+    "type": "EVENT_QUEUE_BASE_PERIODIC",
   },
   {
     "attempts": 0,
     "startAfter": "2023-11-13T11:00:00.000Z",
     "status": 0,
+    "subType": "DB",
+    "type": "HealthCheck_PERIODIC",
   },
 ]
 `;

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.7.0 - 2024-10-XX
 
+### Added
+
+- Added support for defining periodic event schedules using cron expressions, providing more flexible and precise scheduling options beyond simple intervals in seconds. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#cron-schedule).
+
 ### Fixed
 
 - do not initialize the event-queue during cds build/compile steps

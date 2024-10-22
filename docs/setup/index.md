@@ -8,8 +8,10 @@ nav_order: 3
 
 
 {: .no_toc}
+
 # Setup
 
+<!-- prettier-ignore -->
 - TOC
 {: toc}
 
@@ -76,6 +78,7 @@ The table includes the parameter name, a description of its purpose, and the def
 | redisOptions                         | The option is provided to customize settings when creating Redis clients. The object is spread at the root level for creating a client and within the `default` options for cluster clients.                                                                                                                                                     | {}             | no                        |
 | insertEventsBeforeCommit             | If enabled, this feature allows events (including those for outboxed services) to be inserted in bulk using the before commit handler. This is performed to improve performance by mass inserting events instead of single insert operations. This can be disabled by the parameter `skipInsertEventsBeforeCommit` in the function publishEvent. | false          | yes                       |
 | enableCAPTelemetry                   | If enabled in combination with `cap-js/telemetry`, OpenTelemetry traces about all event-queue activities are written using the `cap-js/telemetry` tracer.                                                                                                                                                                                        | false          | yes                       |
+| useCronTimezone                      | Determines whether to apply the central `cronTimezone` setting for scheduling events. If set to `true`, the event will use the defined `cronTimezone`. If set to `false`, the event will use UTC or the server's local time, based on the `utc` setting.                                                                                         | null           | yes                       |
 
 # Configure Redis
 

@@ -35,47 +35,38 @@ const CONFIG_VARS = [
   ["userId", null],
   ["cleanupLocksAndEventsForDev", false],
   ["redisOptions", {}],
-  ["insertEventsBeforeCommit", false],
+  ["insertEventsBeforeCommit", true],
   ["enableCAPTelemetry", false],
+  ["defaultTimezoneForCron", null],
 ];
 
-const initialize = async ({
-  configFilePath,
-  registerAsEventProcessor,
-  processEventsAfterPublish,
-  isEventQueueActive,
-  runInterval,
-  disableRedis,
-  updatePeriodicEvents,
-  thresholdLoggingEventProcessing,
-  useAsCAPOutbox,
-  userId,
-  cleanupLocksAndEventsForDev,
-  redisOptions,
-  insertEventsBeforeCommit,
-  enableCAPTelemetry,
-} = {}) => {
+/**
+ * Initializes the event queue with the provided options.
+ *
+ * @param {Object} options - The configuration options.
+ * @param {string} [options.configFilePath=null] - Path to the configuration file.
+ * @param {boolean} [options.registerAsEventProcessor=true] - Register the instance as an event processor.
+ * @param {boolean} [options.processEventsAfterPublish=true] - Process events immediately after publishing.
+ * @param {boolean} [options.isEventQueueActive=true] - Flag to activate/deactivate the event queue.
+ * @param {number} [options.runInterval=1500000] - Interval for running event queue processing (in milliseconds).
+ * @param {boolean} [options.disableRedis=true] - Disable Redis usage for event handling.
+ * @param {boolean} [options.updatePeriodicEvents=true] - Automatically update periodic events.
+ * @param {number} [options.thresholdLoggingEventProcessing=50] - Threshold for logging event processing time (in milliseconds).
+ * @param {boolean} [options.useAsCAPOutbox=false] - Use the event queue as a CAP Outbox.
+ * @param {string} [options.userId=null] - ID of the user initiating the process.
+ * @param {boolean} [options.cleanupLocksAndEventsForDev=false] - Cleanup locks and events for development environments.
+ * @param {Object} [options.redisOptions={}] - Configuration options for Redis.
+ * @param {boolean} [options.insertEventsBeforeCommit=true] - Insert events into the queue before committing the transaction.
+ * @param {boolean} [options.enableCAPTelemetry=false] - Enable telemetry for CAP.
+ * @param {string} [options.defaultTimezoneForCron=null] - Default timezone for cron jobs.
+ */
+const initialize = async (options = {}) => {
   if (config.initialized) {
     return;
   }
   config.initialized = true;
 
-  mixConfigVarsWithEnv(
-    configFilePath,
-    registerAsEventProcessor,
-    processEventsAfterPublish,
-    isEventQueueActive,
-    runInterval,
-    disableRedis,
-    updatePeriodicEvents,
-    thresholdLoggingEventProcessing,
-    useAsCAPOutbox,
-    userId,
-    cleanupLocksAndEventsForDev,
-    redisOptions,
-    insertEventsBeforeCommit,
-    enableCAPTelemetry
-  );
+  mixConfigVarsWithEnv(options);
 
   const logger = cds.log(COMPONENT);
   const redisEnabled = config.checkRedisEnabled();
@@ -167,9 +158,9 @@ const monkeyPatchCAPOutbox = () => {
   }
 };
 
-const mixConfigVarsWithEnv = (...args) => {
-  CONFIG_VARS.forEach(([configName, defaultValue], index) => {
-    const configValue = args[index];
+const mixConfigVarsWithEnv = (options) => {
+  CONFIG_VARS.forEach(([configName, defaultValue]) => {
+    const configValue = options[configName];
     config[configName] = configValue ?? cds.env.eventQueue?.[configName] ?? defaultValue;
   });
 };
