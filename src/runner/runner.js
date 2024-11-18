@@ -27,11 +27,13 @@ let OFFSET_FIRST_RUN = 10 * 1000;
 let tenantIdHash;
 let singleRunDone;
 
-const singleTenant = () => _scheduleFunction(_checkPeriodicEventsSingleTenantOneTime, _singleTenantDb);
+const singleTenantDb = () => _scheduleFunction(_checkPeriodicEventsSingleTenantOneTime, _singleTenantDb);
 
 const multiTenancyDb = () => _scheduleFunction(async () => {}, _multiTenancyDb);
 
 const multiTenancyRedis = () => _scheduleFunction(async () => {}, _multiTenancyRedis);
+
+const singleTenantRedis = () => _scheduleFunction(_checkPeriodicEventsSingleTenantOneTime, _singleTenantRedis);
 
 const _scheduleFunction = async (singleRunFn, periodicFn) => {
   const logger = cds.log(COMPONENT_NAME);
@@ -300,6 +302,54 @@ const _singleTenantDb = async () => {
   );
 };
 
+const _singleTenantRedis = async () => {
+  const id = cds.utils.uuid();
+  const logger = cds.log(COMPONENT_NAME);
+  try {
+    // NOTE: do checks for open events on one app instance distribute from this instance to all others
+    const dummyContext = new cds.EventContext({});
+    const couldAcquireLock = await trace(
+      dummyContext,
+      "acquire-lock-master-runner",
+      async () => {
+        return await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_RUN_REDIS_CHECK, {
+          expiryTime: eventQueueConfig.runInterval * 0.95,
+          tenantScoped: false,
+        });
+      },
+      { newRootSpan: true }
+    );
+    if (!couldAcquireLock) {
+      return;
+    }
+
+    await trace(
+      { id },
+      "get-openEvents-and-publish",
+      async () => {
+        return await cds.tx({}, async (tx) => {
+          const entries = await openEvents.getOpenQueueEntries(tx);
+          logger.info("broadcasting events for run", {
+            entries: entries.length,
+          });
+          if (!entries.length) {
+            return;
+          }
+          // Do not wait until this is finished - as broadcastEvent has a retry mechanism and can delay this loop
+          redisPub.broadcastEvent(null, entries).catch((err) => {
+            logger.error("broadcasting event failed", err, {
+              entries: entries.length,
+            });
+          });
+        });
+      },
+      { newRootSpan: true }
+    );
+  } catch (err) {
+    logger.info("executing event queue run for single tenant via redis", err);
+  }
+};
+
 const _acquireRunId = async (context) => {
   let runId = randomUUID();
   const couldSetValue = await distributedLock.setValueWithExpire(context, EVENT_QUEUE_RUN_ID, runId, {
@@ -429,9 +479,10 @@ const _checkPeriodicEventsSingleTenant = async (context) => {
 };
 
 module.exports = {
-  singleTenant,
+  singleTenantDb,
   multiTenancyDb,
   multiTenancyRedis,
+  singleTenantRedis,
   __: {
     _singleTenantDb,
     _multiTenancyRedis,
