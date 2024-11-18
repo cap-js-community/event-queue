@@ -12,7 +12,7 @@ jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValue(null);
 const eventQueue = require("../src");
 const runners = require("../src/runner/runner");
 const dbHandler = require("../src/dbHandler");
-jest.spyOn(runners, "singleTenant").mockResolvedValue();
+jest.spyOn(runners, "singleTenantDb").mockResolvedValue();
 const testHelper = require("../test/helper");
 const EventQueueTest = require("../test/asset/EventQueueTest");
 const EventQueueHealthCheckDb = require("../test/asset/EventQueueHealthCheckDb");
