@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - allow redis mode for single tenant applications
+- error message if redis is not available during connection check
+- add option `crashOnRedisUnavailable` to crash the app if redis is not available during the connection check
 
 ## v1.7.2 - 2024-10-22
 

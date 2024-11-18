@@ -16,6 +16,7 @@ const eventQueueAsOutbox = require("./outbox/eventQueueAsOutbox");
 const { getAllTenantIds } = require("./shared/cdsHelper");
 const { EventProcessingStatus } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
+const EventQueueError = require("./EventQueueError");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -39,6 +40,7 @@ const CONFIG_VARS = [
   ["enableCAPTelemetry", false],
   ["cronTimezone", null],
   ["publishEventBlockList", true],
+  ["crashOnRedisUnavailable", false],
 ];
 
 /**
@@ -61,6 +63,7 @@ const CONFIG_VARS = [
  * @param {boolean} [options.enableCAPTelemetry=false] - Enable telemetry for CAP.
  * @param {string} [options.cronTimezone=null] - Default timezone for cron jobs.
  * @param {string} [options.publishEventBlockList=true] - If redis is available event blocklist is distributed to all application instances
+ * @param {string} [options.crashOnRedisUnavailable=true] - If enabled an error is thrown if the redis connection check is not successful
  */
 const initialize = async (options = {}) => {
   if (config.initialized) {
@@ -89,6 +92,9 @@ const initialize = async (options = {}) => {
   });
   if (redisEnabled) {
     config.redisEnabled = await redis.connectionCheck(config.redisOptions);
+    if (!config.redisEnabled && config.crashOnRedisUnavailable) {
+      throw EventQueueError.redisConnectionFailure();
+    }
   }
   config.fileContent = await readConfigFromFile(config.configFilePath);
 

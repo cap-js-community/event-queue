@@ -182,6 +182,8 @@ declare class Config {
   hasEventAfterCommitFlag(type: string, subType: string): boolean;
   _checkRedisIsBound(): boolean;
   checkRedisEnabled(): boolean;
+  publishEventBlockList(): boolean;
+  crashOnRedisUnavailable(): boolean;
   attachConfigChangeHandler(): void;
   attachRedisUnsubscribeHandler(): void;
   executeUnsubscribeHandlers(tenantId: string): void;

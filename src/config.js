@@ -77,6 +77,7 @@ class Config {
   #unsubscribedTenants = {};
   #cronTimezone;
   #publishEventBlockList;
+  #crashOnRedisUnavailable;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -508,6 +509,14 @@ class Config {
 
   set publishEventBlockList(value) {
     this.#publishEventBlockList = value;
+  }
+
+  get crashOnRedisUnavailable() {
+    return this.#crashOnRedisUnavailable;
+  }
+
+  set crashOnRedisUnavailable(value) {
+    this.#crashOnRedisUnavailable = value;
   }
 
   set globalTxTimeout(value) {
