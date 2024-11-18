@@ -41,7 +41,7 @@ const ERROR_CODES_META = {
     message: "error during create client with redis-cache service",
   },
   [ERROR_CODES.REDIS_LOCAL_NO_RECONNECT]: {
-    message: "disabled reconnect, because we are not running on cloud foundry",
+    message: "disabled reconnect, because not running on cloud foundry",
   },
   [ERROR_CODES.MISSING_TABLE_DEFINITION]: {
     message: "Could not find table in csn. Make sure the provided table name is correct and the table is known by CDS.",
@@ -135,7 +135,7 @@ class EventQueueError extends VError {
     return new EventQueueError(
       {
         name: ERROR_CODES.REDIS_CREATE_CLIENT,
-        cause: err,
+        ...(err && { cause: err }),
       },
       message
     );
@@ -324,6 +324,10 @@ class EventQueueError extends VError {
       },
       message
     );
+  }
+
+  static isRedisConnectionFailure(err) {
+    return err instanceof VError && err.name === ERROR_CODES.REDIS_CREATE_CLIENT;
   }
 }
 

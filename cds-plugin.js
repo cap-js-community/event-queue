@@ -4,6 +4,7 @@ const cds = require("@sap/cds");
 const cdsPackage = require("@sap/cds/package.json");
 
 const eventQueue = require("./src");
+const EventQueueError = require("./src/EventQueueError");
 const COMPONENT_NAME = "/eventQueue/plugin";
 const SERVE_COMMAND = "serve";
 
@@ -18,5 +19,10 @@ if ((doLegacyBuildDetection && isBuild) || (!doLegacyBuildDetection && !isServe)
 }
 
 if (Object.keys(cds.env.eventQueue ?? {}).length) {
-  module.exports = eventQueue.initialize().catch((err) => cds.log(COMPONENT_NAME).error(err));
+  module.exports = eventQueue.initialize().catch((err) => {
+    if (EventQueueError.isRedisConnectionFailure(err) && eventQueue.config.crashOnRedisUnavailable) {
+      throw err;
+    }
+    cds.log(COMPONENT_NAME).error(err);
+  });
 }

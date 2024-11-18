@@ -5,11 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.7.3 - 2024-10-XX
+## v1.7.3 - 2024-11-19
 
 ### Added
 
 - allow redis mode for single tenant applications
+- error message if redis is not available during connection check
+- add option `crashOnRedisUnavailable` to crash the app if redis is not available during the connection check
 
 ## v1.7.2 - 2024-10-22
 

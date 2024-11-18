@@ -50,25 +50,27 @@ const _createClientBase = (redisOptions) => {
   }
 };
 
-const createClientAndConnect = async (options, errorHandlerCreateClient) => {
+const createClientAndConnect = async (options, errorHandlerCreateClient, isConnectionCheck) => {
   try {
     const client = _createClientBase(options);
-    await client.connect();
-    client.on("error", (err) => {
-      const dateNow = Date.now();
-      if (dateNow - lastErrorLog > LOG_AFTER_SEC * 1000) {
-        cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
-        lastErrorLog = dateNow;
-      }
-    });
+    if (!isConnectionCheck) {
+      client.on("error", (err) => {
+        const dateNow = Date.now();
+        if (dateNow - lastErrorLog > LOG_AFTER_SEC * 1000) {
+          cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
+          lastErrorLog = dateNow;
+        }
+      });
 
-    client.on("reconnecting", () => {
-      const dateNow = Date.now();
-      if (dateNow - lastErrorLog > LOG_AFTER_SEC * 1000) {
-        cds.log(COMPONENT_NAME).info("redis client trying reconnect...");
-        lastErrorLog = dateNow;
-      }
-    });
+      client.on("reconnecting", () => {
+        const dateNow = Date.now();
+        if (dateNow - lastErrorLog > LOG_AFTER_SEC * 1000) {
+          cds.log(COMPONENT_NAME).info("redis client trying reconnect...");
+          lastErrorLog = dateNow;
+        }
+      });
+    }
+    await client.connect();
     return client;
   } catch (err) {
     errorHandlerCreateClient(err);
@@ -119,7 +121,7 @@ const _resilientClientClose = async (client) => {
 
 const connectionCheck = async (options) => {
   return new Promise((resolve, reject) => {
-    createClientAndConnect(options, reject)
+    createClientAndConnect(options, reject, true)
       .then((client) => {
         if (client) {
           _resilientClientClose(client);
@@ -131,7 +133,10 @@ const connectionCheck = async (options) => {
       .catch(reject);
   })
     .then(() => true)
-    .catch(() => false);
+    .catch((err) => {
+      cds.log(COMPONENT_NAME).error("Redis connection check failed! Falling back to NO_REDIS mode", err);
+      return false;
+    });
 };
 
 module.exports = {
