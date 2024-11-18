@@ -19,6 +19,7 @@ const procedureLogLevelMap = Object.freeze({
 });
 
 const createClient = async (credentials) => {
+  console.log(credentials.host);
   const _client = hdb.createClient(credentials);
   const connect = promisify(_client.connect).bind(_client);
   const disconnect = promisify(_client.disconnect).bind(_client);
