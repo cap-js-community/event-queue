@@ -82,84 +82,159 @@ describe("runner", () => {
   });
 
   describe("redis", () => {
-    it("no open events", async () => {
-      const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
-      const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
-      const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
-      const checkAndInsertPeriodicEventsSpy = jest
-        .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
-        .mockResolvedValue();
-      getAllTenantIdsSpy
-        .mockResolvedValueOnce(tenantIds)
-        .mockResolvedValueOnce(tenantIds)
-        .mockResolvedValueOnce(tenantIds);
-      const p1 = runner.__._multiTenancyRedis();
-      const p2 = runner.__._multiTenancyRedis();
+    describe("multi tenant", () => {
+      it("no open events", async () => {
+        const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+        const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+        const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
+        const checkAndInsertPeriodicEventsSpy = jest
+          .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
+          .mockResolvedValue();
+        getAllTenantIdsSpy
+          .mockResolvedValueOnce(tenantIds)
+          .mockResolvedValueOnce(tenantIds)
+          .mockResolvedValueOnce(tenantIds);
+        const p1 = runner.__._multiTenancyRedis();
+        const p2 = runner.__._multiTenancyRedis();
 
-      await Promise.allSettled([p1, p2]);
-      await Promise.allSettled(WorkerQueue.instance.runningPromises);
+        await Promise.allSettled([p1, p2]);
+        await Promise.allSettled(WorkerQueue.instance.runningPromises);
 
-      // check now tenant independent events --> 2 calls of _multiTenancyRedis * 1 update periodic events (but only for
-      // one calls because of tenant hash) + 1 event run check (number of calls is independent for open events)
-      expect(acquireLockSpy).toHaveBeenCalledTimes(3);
-      // one check per tenant
-      expect(getOpenQueueEntriesSpy).toHaveBeenCalledTimes(3);
-      expect(checkAndInsertPeriodicEventsSpy).toHaveBeenCalledTimes(3);
-      // no open events to broadcast
-      expect(redisPubSpy).toHaveBeenCalledTimes(0);
-      // remove context from arguments for snapshot
-      expect(acquireLockSpy.mock.calls.map((call) => [call[1], call[2]])).toMatchSnapshot();
-      expect(mockRedis.getState()).toMatchSnapshot();
+        // check now tenant independent events --> 2 calls of _multiTenancyRedis * 1 update periodic events (but only for
+        // one calls because of tenant hash) + 1 event run check (number of calls is independent for open events)
+        expect(acquireLockSpy).toHaveBeenCalledTimes(3);
+        // one check per tenant
+        expect(getOpenQueueEntriesSpy).toHaveBeenCalledTimes(3);
+        expect(checkAndInsertPeriodicEventsSpy).toHaveBeenCalledTimes(3);
+        // no open events to broadcast
+        expect(redisPubSpy).toHaveBeenCalledTimes(0);
+        // remove context from arguments for snapshot
+        expect(acquireLockSpy.mock.calls.map((call) => [call[1], call[2]])).toMatchSnapshot();
+        expect(mockRedis.getState()).toMatchSnapshot();
 
-      // another run within 5 minutes should do nothing
-      await runner.__._multiTenancyRedis();
-      await Promise.allSettled(WorkerQueue.instance.runningPromises);
-      // 3 of the previous calls + 1 for the new call
-      expect(acquireLockSpy).toHaveBeenCalledTimes(4);
-      expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
-      expect(loggerMock.callsLengths().error).toEqual(0);
+        // another run within 5 minutes should do nothing
+        await runner.__._multiTenancyRedis();
+        await Promise.allSettled(WorkerQueue.instance.runningPromises);
+        // 3 of the previous calls + 1 for the new call
+        expect(acquireLockSpy).toHaveBeenCalledTimes(4);
+        expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("with open events - broadcast should be called", async () => {
+        await cds.tx({}, async (tx2) => {
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        });
+        const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+        const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+        const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
+        const checkAndInsertPeriodicEventsSpy = jest
+          .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
+          .mockResolvedValue();
+        getAllTenantIdsSpy
+          .mockResolvedValueOnce(tenantIds)
+          .mockResolvedValueOnce(tenantIds)
+          .mockResolvedValueOnce(tenantIds);
+        const p1 = runner.__._multiTenancyRedis();
+        const p2 = runner.__._multiTenancyRedis();
+
+        await Promise.allSettled([p1, p2]);
+        await Promise.allSettled(WorkerQueue.instance.runningPromises);
+
+        // check now tenant independent events --> 2 calls of _multiTenancyRedis * 1 update periodic events (but only for
+        // one calls because of tenant hash) + 1 event run check (number of calls is independent for open events)
+        expect(acquireLockSpy).toHaveBeenCalledTimes(3);
+        // one check per tenant
+        expect(getOpenQueueEntriesSpy).toHaveBeenCalledTimes(3);
+        expect(checkAndInsertPeriodicEventsSpy).toHaveBeenCalledTimes(3);
+        // open events - 3 periodic events
+        expect(redisPubSpy).toHaveBeenCalledTimes(3);
+        expect(redisPubSpy.mock.calls).toMatchSnapshot();
+        // remove context from arguments for snapshot
+        expect(acquireLockSpy.mock.calls.map((call) => [call[1], call[2]])).toMatchSnapshot();
+        expect(mockRedis.getState()).toMatchSnapshot();
+
+        // another run within 5 minutes should do nothing
+        await runner.__._multiTenancyRedis();
+        await Promise.allSettled(WorkerQueue.instance.runningPromises);
+        // 3 of the previous calls + 1 for the new call
+        expect(acquireLockSpy).toHaveBeenCalledTimes(4);
+        expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
     });
 
-    it("with open events - broadcast should be called", async () => {
-      await cds.tx({}, async (tx2) => {
-        await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+    describe("single tenant", () => {
+      it("no open events", async () => {
+        const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+        const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+        const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
+        const checkAndInsertPeriodicEventsSpy = jest
+          .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
+          .mockResolvedValue();
+        const p1 = runner.__._singleTenantRedis();
+        const p2 = runner.__._singleTenantRedis();
+
+        await Promise.allSettled([p1, p2]);
+        await Promise.allSettled(WorkerQueue.instance.runningPromises);
+
+        // once per _singleTenantRedis
+        expect(acquireLockSpy).toHaveBeenCalledTimes(2);
+        // only once
+        expect(getOpenQueueEntriesSpy).toHaveBeenCalledTimes(1);
+        // not at all as in different coding path (single call function)
+        expect(checkAndInsertPeriodicEventsSpy).toHaveBeenCalledTimes(0);
+        // no open events to broadcast
+        expect(redisPubSpy).toHaveBeenCalledTimes(0);
+        // remove context from arguments for snapshot
+        expect(acquireLockSpy.mock.calls.map((call) => [call[1], call[2]])).toMatchSnapshot();
+        expect(mockRedis.getState()).toMatchSnapshot();
+
+        // another run within 5 minutes should do nothing
+        await runner.__._singleTenantRedis();
+        await Promise.allSettled(WorkerQueue.instance.runningPromises);
+        // 2 of the previous calls + 1 for the new call
+        expect(acquireLockSpy).toHaveBeenCalledTimes(3);
+        expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
+        expect(loggerMock.callsLengths().error).toEqual(0);
       });
-      const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
-      const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
-      const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
-      const checkAndInsertPeriodicEventsSpy = jest
-        .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
-        .mockResolvedValue();
-      getAllTenantIdsSpy
-        .mockResolvedValueOnce(tenantIds)
-        .mockResolvedValueOnce(tenantIds)
-        .mockResolvedValueOnce(tenantIds);
-      const p1 = runner.__._multiTenancyRedis();
-      const p2 = runner.__._multiTenancyRedis();
 
-      await Promise.allSettled([p1, p2]);
-      await Promise.allSettled(WorkerQueue.instance.runningPromises);
+      it("with open events - broadcast should be called", async () => {
+        await cds.tx({}, async (tx2) => {
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        });
+        const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+        const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+        const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
+        const checkAndInsertPeriodicEventsSpy = jest
+          .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
+          .mockResolvedValue();
+        const p1 = runner.__._singleTenantRedis();
+        const p2 = runner.__._singleTenantRedis();
 
-      // check now tenant independent events --> 2 calls of _multiTenancyRedis * 1 update periodic events (but only for
-      // one calls because of tenant hash) + 1 event run check (number of calls is independent for open events)
-      expect(acquireLockSpy).toHaveBeenCalledTimes(3);
-      // one check per tenant
-      expect(getOpenQueueEntriesSpy).toHaveBeenCalledTimes(3);
-      expect(checkAndInsertPeriodicEventsSpy).toHaveBeenCalledTimes(3);
-      // open events - 3 periodic events
-      expect(redisPubSpy).toHaveBeenCalledTimes(3);
-      expect(redisPubSpy.mock.calls).toMatchSnapshot();
-      // remove context from arguments for snapshot
-      expect(acquireLockSpy.mock.calls.map((call) => [call[1], call[2]])).toMatchSnapshot();
-      expect(mockRedis.getState()).toMatchSnapshot();
+        await Promise.allSettled([p1, p2]);
+        await Promise.allSettled(WorkerQueue.instance.runningPromises);
 
-      // another run within 5 minutes should do nothing
-      await runner.__._multiTenancyRedis();
-      await Promise.allSettled(WorkerQueue.instance.runningPromises);
-      // 3 of the previous calls + 1 for the new call
-      expect(acquireLockSpy).toHaveBeenCalledTimes(4);
-      expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
-      expect(loggerMock.callsLengths().error).toEqual(0);
+        // once per _singleTenantRedis
+        expect(acquireLockSpy).toHaveBeenCalledTimes(2);
+        // only once
+        expect(getOpenQueueEntriesSpy).toHaveBeenCalledTimes(1);
+        // not at all as in different coding path (single call function)
+        expect(checkAndInsertPeriodicEventsSpy).toHaveBeenCalledTimes(0);
+        // no open events to broadcast
+        expect(redisPubSpy).toHaveBeenCalledTimes(1);
+        // remove context from arguments for snapshot
+        expect(acquireLockSpy.mock.calls.map((call) => [call[1], call[2]])).toMatchSnapshot();
+        expect(mockRedis.getState()).toMatchSnapshot();
+
+        // another run within 5 minutes should do nothing
+        await runner.__._singleTenantRedis();
+        await Promise.allSettled(WorkerQueue.instance.runningPromises);
+        // 2 of the previous calls + 1 for the new call
+        expect(acquireLockSpy).toHaveBeenCalledTimes(3);
+        expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
     });
   });
 

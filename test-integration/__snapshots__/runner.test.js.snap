@@ -82,6 +82,104 @@ exports[`runner multi tenant db open periodic events 1`] = `
 ]
 `;
 
+exports[`runner redis multi tenant no open events 1`] = `
+[
+  [
+    "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
+    {
+      "expiryTime": 60000,
+      "tenantScoped": false,
+    },
+  ],
+  [
+    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    {
+      "expiryTime": 1425000,
+      "tenantScoped": false,
+    },
+  ],
+  [
+    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    {
+      "expiryTime": 1425000,
+      "tenantScoped": false,
+    },
+  ],
+]
+`;
+
+exports[`runner redis multi tenant no open events 2`] = `
+{
+  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": "true",
+  "EVENT_QUEUE_EVENT_QUEUE_UPDATE_PERIODIC_EVENTS": "true",
+}
+`;
+
+exports[`runner redis multi tenant with open events - broadcast should be called 1`] = `
+[
+  [
+    "cd805323-879c-4bf7-b19c-8ffbbee22e1f",
+    [
+      {
+        "subType": "DELETE_EVENTS",
+        "type": "EVENT_QUEUE_BASE_PERIODIC",
+      },
+    ],
+  ],
+  [
+    "9f3ed8f0-8aaf-439e-a96a-04cd5b680c59",
+    [
+      {
+        "subType": "DELETE_EVENTS",
+        "type": "EVENT_QUEUE_BASE_PERIODIC",
+      },
+    ],
+  ],
+  [
+    "e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792",
+    [
+      {
+        "subType": "DELETE_EVENTS",
+        "type": "EVENT_QUEUE_BASE_PERIODIC",
+      },
+    ],
+  ],
+]
+`;
+
+exports[`runner redis multi tenant with open events - broadcast should be called 2`] = `
+[
+  [
+    "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
+    {
+      "expiryTime": 60000,
+      "tenantScoped": false,
+    },
+  ],
+  [
+    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    {
+      "expiryTime": 1425000,
+      "tenantScoped": false,
+    },
+  ],
+  [
+    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    {
+      "expiryTime": 1425000,
+      "tenantScoped": false,
+    },
+  ],
+]
+`;
+
+exports[`runner redis multi tenant with open events - broadcast should be called 3`] = `
+{
+  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": "true",
+  "EVENT_QUEUE_EVENT_QUEUE_UPDATE_PERIODIC_EVENTS": "true",
+}
+`;
+
 exports[`runner redis no open events 1`] = `
 [
   [
@@ -112,6 +210,56 @@ exports[`runner redis no open events 2`] = `
 {
   "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": "true",
   "EVENT_QUEUE_EVENT_QUEUE_UPDATE_PERIODIC_EVENTS": "true",
+}
+`;
+
+exports[`runner redis single tenant no open events 1`] = `
+[
+  [
+    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    {
+      "expiryTime": 1425000,
+      "tenantScoped": false,
+    },
+  ],
+  [
+    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    {
+      "expiryTime": 1425000,
+      "tenantScoped": false,
+    },
+  ],
+]
+`;
+
+exports[`runner redis single tenant no open events 2`] = `
+{
+  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": "true",
+}
+`;
+
+exports[`runner redis single tenant with open events - broadcast should be called 1`] = `
+[
+  [
+    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    {
+      "expiryTime": 1425000,
+      "tenantScoped": false,
+    },
+  ],
+  [
+    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    {
+      "expiryTime": 1425000,
+      "tenantScoped": false,
+    },
+  ],
+]
+`;
+
+exports[`runner redis single tenant with open events - broadcast should be called 2`] = `
+{
+  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": "true",
 }
 `;
 

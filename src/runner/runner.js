@@ -486,6 +486,7 @@ module.exports = {
   __: {
     _singleTenantDb,
     _multiTenancyRedis,
+    _singleTenantRedis,
     _multiTenancyDb,
     _calculateOffsetForFirstRun,
     _acquireRunId,
