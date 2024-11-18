@@ -87,6 +87,10 @@ const _getNewAuthInfo = async (tenantId) => {
 };
 
 const getAuthInfo = async (tenantId) => {
+  if (!tenantId) {
+    return null;
+  }
+
   if (!cds.requires?.auth?.credentials) {
     return null; // no credentials not authInfo
   }

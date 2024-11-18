@@ -177,8 +177,8 @@ describe("initialize", () => {
       cds._events.connect.splice?.(1, cds._events.connect.length - 1);
     });
 
-    test("single tenant", async () => {
-      const singleTenantSpy = jest.spyOn(runner, "singleTenant").mockResolvedValueOnce();
+    test("single tenant db", async () => {
+      const singleTenantSpy = jest.spyOn(runner, "singleTenantDb").mockResolvedValueOnce();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -204,7 +204,7 @@ describe("initialize", () => {
     });
 
     test("calling initialize twice should only processed once", async () => {
-      const singleTenant = jest.spyOn(runner, "singleTenant").mockResolvedValueOnce();
+      const singleTenant = jest.spyOn(runner, "singleTenantDb").mockResolvedValueOnce();
       const p1 = eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -242,6 +242,26 @@ describe("initialize", () => {
       cds.requires.multitenancy = null;
     });
 
+    test("single tenant with redis", async () => {
+      const env = getEnvInstance();
+      env.vcapServices = {
+        "redis-cache": [{ credentials: { hostname: "123" } }],
+      };
+      const singleTenantRedisSpy = jest.spyOn(runner, "singleTenantRedis").mockResolvedValueOnce();
+      jest.spyOn(redis, "connectionCheck").mockResolvedValueOnce(true);
+      jest.spyOn(redis, "subscribeRedisChannel").mockResolvedValue();
+      await eventQueue.initialize({
+        configFilePath,
+        processEventsAfterPublish: false,
+        disableRedis: false,
+        registerAsEventProcessor: true,
+      });
+      cds.emit("connect", await cds.connect.to("db"));
+      await promisify(setImmediate)();
+      expect(singleTenantRedisSpy).toHaveBeenCalledTimes(1);
+      cds.requires.multitenancy = null;
+    });
+
     test("multi tenancy with redis - option to disable redis", async () => {
       cds.requires.multitenancy = {};
       const env = getEnvInstance();
@@ -260,15 +280,17 @@ describe("initialize", () => {
 
     test("mode none should not register any runner", async () => {
       const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis");
-      const singleTenantSpy = jest.spyOn(runner, "singleTenant");
+      const singleTenantDbSpy = jest.spyOn(runner, "singleTenantDb");
       const multiTenancyDbSpy = jest.spyOn(runner, "multiTenancyDb");
+      const singleTenantRedis = jest.spyOn(runner, "singleTenantRedis");
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
         registerAsEventProcessor: false,
       });
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(0);
-      expect(singleTenantSpy).toHaveBeenCalledTimes(0);
+      expect(singleTenantRedis).toHaveBeenCalledTimes(0);
+      expect(singleTenantDbSpy).toHaveBeenCalledTimes(0);
       expect(multiTenancyDbSpy).toHaveBeenCalledTimes(0);
     });
 

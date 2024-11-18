@@ -145,17 +145,21 @@ const registerEventProcessors = () => {
 
   const errorHandler = (err) => cds.log(COMPONENT).error("error during init runner", err);
 
-  if (!config.isMultiTenancy) {
-    runner.singleTenant().catch(errorHandler);
-    return;
-  }
-
   if (config.redisEnabled) {
     initEventQueueRedisSubscribe();
     config.attachConfigChangeHandler();
-    runner.multiTenancyRedis().catch(errorHandler);
-  } else {
+    if (config.isMultiTenancy) {
+      runner.multiTenancyRedis().catch(errorHandler);
+    } else {
+      runner.singleTenantRedis().catch(errorHandler);
+    }
+    return;
+  }
+
+  if (config.isMultiTenancy) {
     runner.multiTenancyDb().catch(errorHandler);
+  } else {
+    runner.singleTenantDb().catch(errorHandler);
   }
 };
 
