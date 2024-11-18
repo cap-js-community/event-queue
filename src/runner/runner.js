@@ -451,9 +451,33 @@ const _multiTenancyPeriodicEvents = async (tenantIds) => {
   }
 };
 
-const _checkPeriodicEventsSingleTenantOneTime = async () =>
-  eventQueueConfig.updatePeriodicEvents &&
-  cds.tx({}, async (tx) => await periodicEvents.checkAndInsertPeriodicEvents(tx.context));
+const _checkPeriodicEventsSingleTenantOneTime = async () => {
+  const logger = cds.log(COMPONENT_NAME);
+  if (!eventQueueConfig.updatePeriodicEvents || !eventQueueConfig.periodicEvents.length) {
+    logger.info("updating of periodic events is disabled or no periodic events configured", {
+      updateEnabled: eventQueueConfig.updatePeriodicEvents,
+      events: eventQueueConfig.periodicEvents.length,
+    });
+    return;
+  }
+
+  const dummyContext = new cds.EventContext({});
+  return await trace(
+    dummyContext,
+    "update-periodic-events",
+    async () => {
+      const couldAcquireLock = await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
+        expiryTime: 60 * 1000,
+        tenantScoped: false,
+      });
+      if (!couldAcquireLock) {
+        return;
+      }
+      return await cds.tx({}, async (tx) => await periodicEvents.checkAndInsertPeriodicEvents(tx.context));
+    },
+    { newRootSpan: true }
+  );
+};
 
 const _checkPeriodicEventsSingleTenant = async (context) => {
   const logger = cds.log(COMPONENT_NAME);
