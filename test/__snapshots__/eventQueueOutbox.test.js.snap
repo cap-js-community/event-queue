@@ -14,6 +14,18 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true accept event-queue specifi
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true error in srv.after 1`] = `
+[
+  [
+    "error processing outboxed service call",
+    [Error: sendFiori error],
+    {
+      "serviceName": "NotificationService",
+    },
+  ],
+]
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true req error should be caught for emit 1`] = `
 [
   [
