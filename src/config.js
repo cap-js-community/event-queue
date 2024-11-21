@@ -78,6 +78,7 @@ class Config {
   #cronTimezone;
   #publishEventBlockList;
   #crashOnRedisUnavailable;
+  #tenantIdFilterCb;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -517,6 +518,14 @@ class Config {
 
   set crashOnRedisUnavailable(value) {
     this.#crashOnRedisUnavailable = value;
+  }
+
+  get tenantIdFilterCb() {
+    return this.#tenantIdFilterCb;
+  }
+
+  set tenantIdFilterCb(value) {
+    this.#tenantIdFilterCb = value;
   }
 
   set globalTxTimeout(value) {

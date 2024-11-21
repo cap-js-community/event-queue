@@ -4,6 +4,7 @@ const crypto = require("crypto");
 
 const cds = require("@sap/cds");
 const xssec = require("@sap/xssec");
+const config = require("../config");
 
 const MARGIN_AUTH_INFO_EXPIRY = 60 * 1000;
 const COMPONENT_NAME = "/eventQueue/common";
@@ -87,7 +88,7 @@ const _getNewAuthInfo = async (tenantId) => {
 };
 
 const getAuthInfo = async (tenantId) => {
-  if (!tenantId) {
+  if (!isTenantIdValidCb(tenantId)) {
     return null;
   }
 
@@ -113,6 +114,17 @@ const getAuthInfo = async (tenantId) => {
   return await authInfoCache[tenantId].value;
 };
 
+const isTenantIdValidCb = (tenantId) => {
+  if (config.tenantIdFilterCb) {
+    return config.tenantIdFilterCb(tenantId);
+  } else {
+    return _isTenantId(tenantId);
+  }
+};
+
+const _isTenantId = (tenantId) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantId);
+
 module.exports = {
   arrayToFlatMap,
   limiter,
@@ -120,6 +132,7 @@ module.exports = {
   processChunkedSync,
   hashStringTo32Bit,
   getAuthInfo,
+  isTenantIdValidCb,
   __: {
     clearAuthInfoCache: () => (getAuthInfo._authInfoCache = {}),
   },
