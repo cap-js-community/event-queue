@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
+- Added suspended status for events. This status is used to suspend the processing of an event. The event will not be
+  processed until the status is changed back to open. This can be used to prevent the processing of an event if the
+  event is not ready to be processed.
+
 ## v1.7.3 - 2024-11-19
 
 ### Added
@@ -34,9 +38,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- Added support for defining periodic event schedules using cron expressions, providing more flexible and precise scheduling options beyond simple intervals in seconds. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#cron-schedule).
+- Added support for defining periodic event schedules using cron expressions, providing more flexible and precise
+  scheduling options beyond simple intervals in seconds.
+  See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#cron-schedule).
 - `triggerEventProcessingRedis` is a public api now. This can trigger the processing of multiple events via redis.
-- The central configuration property `publishEventBlockList` has been introduced, enabling the option to disable the publication of the event block list to all application instances. The default value is set to `true` to prevent immediate impact on existing functionality.
+- The central configuration property `publishEventBlockList` has been introduced, enabling the option to disable the
+  publication of the event block list to all application instances. The default value is set to `true` to prevent
+  immediate impact on existing functionality.
 
 ### Fixed
 
@@ -46,8 +54,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- Enhanced the configuration options to specify not only the application name but also the instance index where the event should be processed. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#parameters).
-- Enable more event publish properties for CDS outboxed service. See [documentation](https://cap-js-community.github.io/event-queue/publish-event/#function-parameters).
+- Enhanced the configuration options to specify not only the application name but also the instance index where the
+  event should be processed.
+  See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#parameters).
+- Enable more event publish properties for CDS outboxed service.
+  See [documentation](https://cap-js-community.github.io/event-queue/publish-event/#function-parameters).
 
 ## v1.6.6 - 2024-08-28
 
@@ -59,7 +70,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- Introduced the `retryFailedAfter` configuration option, allowing you to specify the interval (in milliseconds) after which failed events should be retried, provided the retry limit has not been exceeded.
+- Introduced the `retryFailedAfter` configuration option, allowing you to specify the interval (in milliseconds) after
+  which failed events should be retried, provided the retry limit has not been exceeded.
 - Increased test coverage for fetching authInfo with @sap/xssec
 
 ## v1.6.4 - 2024-08-14
@@ -92,13 +104,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Export `WorkerQueue` for monitoring purposes to provide insights into the running load of the application.
 - JSDocs: added addEntryToProcessingMap for EventQueueProcessorBase
-- Enhanced Event Processing: Events will continue to be processed even if the initial processing time is exceeded. Events are now broadcast, allowing different application instances to pick them up. The existing worker queue is used to ensure proper load balancing.
+- Enhanced Event Processing: Events will continue to be processed even if the initial processing time is exceeded.
+  Events are now broadcast, allowing different application instances to pick them up. The existing worker queue is used
+  to ensure proper load balancing.
 
 ## v1.6.0 - 2024-07-09
 
 ### Added
 
-- Added an option to events to specify which application instance should process the event. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#parameters).
+- Added an option to events to specify which application instance should process the event.
+  See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#parameters).
 
 ### Fixed
 
@@ -129,7 +144,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
-- Bug in CDS 7.9.2: Introduced a bug affecting the instant processing of events. This release includes a temporary workaround until the bug is fixed.
+- Bug in CDS 7.9.2: Introduced a bug affecting the instant processing of events. This release includes a temporary
+  workaround until the bug is fixed.
 - Memory Leaks: Fixed memory leaks caused by setTimeout returning an object instead of a primitive value
 
 ## v1.5.0 - 2024-06-13
@@ -149,7 +165,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- federate unsubscribe events via redis to all application instances and allow to register custom handler for unsubscribe events
+- federate unsubscribe events via redis to all application instances and allow to register custom handler for
+  unsubscribe events
 - types for event-queue config
 
 ### Fixed
@@ -183,7 +200,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- [cds-outboxed] Add eventQueue processor, key, queueEntries, and payload to req (can be accessed via req.context.\_eventQueue)
+- [cds-outboxed] Add eventQueue processor, key, queueEntries, and payload to req (can be accessed via
+  req.context.\_eventQueue)
 - Add option `insertEventsBeforeCommit` to improve performance for `publishEvent`.
 - Add cds shutdown handler to clear existing redis locks before shutdown of the instance.
 
@@ -195,7 +213,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
-- Removed authInfo from context.http.req and moved to a full-fledged xssec/xsuaa authInfo attached to context.user.authInfo
+- Removed authInfo from context.http.req and moved to a full-fledged xssec/xsuaa authInfo attached to
+  context.user.authInfo
 - [cds-plugin] return promise for init for cds to wait until plugin is fully initialized
 
 ## v1.4.0 - 2024-03-21
@@ -206,7 +225,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
-- Reworked periodic processing of all events to be more efficient and to reduce the load on the database and use less database connections.
+- Reworked periodic processing of all events to be more efficient and to reduce the load on the database and use less
+  database connections.
 - Removed support for custom tables. The event-queue now uses always the provided tables.
 
 ## v1.3.6 - 2024-03-14
@@ -236,14 +256,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 
 - Default for runInterval changed from 5 minutes to 25 minutes. This is to reduce the load on the database.
-- The load of the internal periodic event DELETE_EVENTS is increased to 20 to only process 5 tenants in parallel. This is to reduce the load on the database.
+- The load of the internal periodic event DELETE_EVENTS is increased to 20 to only process 5 tenants in parallel. This
+  is to reduce the load on the database.
 - The max processing time for the event-queue is set to the runInterval.
 
 ## v1.3.2 - 2024-03-01
 
 ### Added
 
-- option for delayed events for cds outboxed services: [documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#how-to-delay-outboxed-service-calls)
+- option for delayed events for cds outboxed
+  services: [documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#how-to-delay-outboxed-service-calls)
 
 ### Fixed
 
@@ -264,8 +286,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- add option to block ad-hoc events. More information in [documentation](https://cap-js-community.github.io/event-queue/configure-event/##blocking-events).
-- Define priorities for event types. More information in [documentation](https://cap-js-community.github.io/event-queue/configure-event/#priority-of-events).
+- add option to block ad-hoc events. More information
+  in [documentation](https://cap-js-community.github.io/event-queue/configure-event/##blocking-events).
+- Define priorities for event types. More information
+  in [documentation](https://cap-js-community.github.io/event-queue/configure-event/#priority-of-events).
 
 ### Fixed
 

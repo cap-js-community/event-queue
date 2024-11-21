@@ -7,6 +7,7 @@ module.exports = {
     Done: 2,
     Error: 3,
     Exceeded: 4,
+    Suspended: 5,
   },
   TransactionMode: {
     isolated: "isolated",
