@@ -7,12 +7,13 @@ nav_order: 10
 <!-- prettier-ignore-start -->
 
 # Event Status Handling
+
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
 - TOC
-{: toc}
+  {: toc}
 
 # Overview
 
@@ -26,10 +27,12 @@ The available status values are listed in the table below.
 | Done                  | 2     | The event has been processed successfully.                 |
 | Error                 | 3     | An error occurred while processing the event.              |
 | Exceeded              | 4     | The event exceeded the maximum processing attempts.        |
+| Suspended             | 5     | The event is suspended for processing.                     |
 
 ## Open
 
-Events are generally processed with a very short delay after the transaction in which the event was written is committed.
+Events are generally processed with a very short delay after the transaction in which the event was written is
+committed.
 This may differ if the event is configured not to run directly after the event data is committed. For more information,
 please refer to the dedicated chapter on [event configuration](/event-queue/configure-event).
 
@@ -58,6 +61,20 @@ may be picked up again for reprocessing, depending on the event configuration.
 ## Exceeded
 
 An event's status changes to `Exceeded` when it fails to process successfully after a certain number of attempts.
-This status is used to prevent the system from getting stuck in a loop trying to process an event that continually fails.
+This status is used to prevent the system from getting stuck in a loop trying to process an event that continually
+fails.
 When an event's status is `Exceeded`, it typically requires manual intervention to resolve the issue causing the
 processing failure. Once resolved, the event can be reset and reprocessed.
+
+## Suspended
+
+The `Suspended` status indicates an event is temporarily on hold and excluded from processing. This can be set manually
+or programmatically.
+
+### Key Points
+
+- **No Processing:** Suspended events are skipped in the processing cycle and do not increment retry counters.
+- **Resumption:** Events can be resumed by updating their status to `Open`.
+- **Use Cases:** Useful for aligning with dependencies, issue resolution, or administrative control.
+
+Suspending events ensures flexibility in managing workflows without removing events from the queue.
