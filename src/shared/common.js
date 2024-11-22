@@ -118,12 +118,9 @@ const isTenantIdValidCb = (tenantId) => {
   if (config.tenantIdFilterCb) {
     return config.tenantIdFilterCb(tenantId);
   } else {
-    return _isTenantId(tenantId);
+    return true;
   }
 };
-
-const _isTenantId = (tenantId) =>
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantId);
 
 module.exports = {
   arrayToFlatMap,

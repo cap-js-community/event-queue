@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- Added suspended status for events. This status is used to suspend the processing of an event. The event will not be
-  processed until the status is changed back to open. This can be used to prevent the processing of an event if the
-  event is not ready to be processed.
+- Added a suspended status for events. Events in this status won't be processed until changed back to open. Useful for
+  delaying processing when the event isn't ready.
+- Added an option to filter tenant lists when checking for open events. Published events are still processed for all
+  tenants, but periodic events can be filtered.
 
 ## v1.7.3 - 2024-11-19
 

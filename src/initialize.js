@@ -65,7 +65,7 @@ const CONFIG_VARS = [
  * @param {string} [options.cronTimezone=null] - Default timezone for cron jobs.
  * @param {string} [options.publishEventBlockList=true] - If redis is available event blocklist is distributed to all application instances
  * @param {string} [options.crashOnRedisUnavailable=true] - If enabled an error is thrown if the redis connection check is not successful
- * @param {string} [options.tenantIdFilterCb=null] - Allows to set customer filter function to filter the tenants ids which should be processed in the event-queue
+ * @param {function} [options.tenantIdFilterCb=null] - Allows to set customer filter function to filter the tenants ids which should be processed in the event-queue
  */
 const initialize = async (options = {}) => {
   if (config.initialized) {
