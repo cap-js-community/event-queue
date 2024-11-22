@@ -35,6 +35,7 @@ const insertEventEntry = async (
     subType = "Task",
     randomGuid = false,
     delayedSeconds = null,
+    status = EventProcessingStatus.Open,
   } = {}
 ) => {
   if (!entries || entries?.length === 0) {
@@ -46,6 +47,7 @@ const insertEventEntry = async (
         type,
         subType,
         startAfter,
+        status,
       },
     ];
     Array(numberOfEntries - 1)
@@ -58,6 +60,7 @@ const insertEventEntry = async (
             testPayload: 123,
           }),
           startAfter,
+          status,
         });
       });
   }

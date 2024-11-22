@@ -84,6 +84,16 @@ describe("baseFunctionality", () => {
       await testHelper.selectEventQueueAndExpectDone(tx);
     });
 
+    test("should not process events that are suspended", async () => {
+      await testHelper.insertEventEntry(tx, { status: EventProcessingStatus.Suspended });
+      const event = eventQueue.config.events[0];
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      const eventFresh = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 1 });
+      expect(eventFresh[0].status).toEqual(EventProcessingStatus.Suspended);
+      expect(eventFresh[0].attempts).toEqual(0);
+    });
+
     test("insert one delayed entry - should not directly be processed", async () => {
       await testHelper.insertEventEntry(tx, { delayedSeconds: 15 });
       const event = eventQueue.config.events[0];

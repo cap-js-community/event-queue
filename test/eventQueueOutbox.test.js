@@ -543,6 +543,27 @@ describe("event-queue outbox", () => {
       expect(loggerMock.calls().error).toMatchSnapshot();
     });
 
+    it("error in srv.after", async () => {
+      const service = await cds.connect.to("NotificationService");
+      service.after("sendFiori", async () => {
+        await tx.run(SELECT.one.from("sap.eventqueue.Event"));
+        throw new Error("sendFiori error");
+      });
+      const outboxedService = cds.outboxed(service).tx(context);
+      await outboxedService.emit("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      await commitAndOpenNew();
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error).toMatchSnapshot();
+    });
+
     describe("not connected service should lazily connect and create configuration", () => {
       beforeEach(() => {
         eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");
