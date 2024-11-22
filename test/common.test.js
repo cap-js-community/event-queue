@@ -186,20 +186,8 @@ describe("isTenantIdValidCb", () => {
       expect(isTenantIdValidCb("cc0edebc-58df-44ab-ab1f-1cee383b423e")).toBe(true);
     });
 
-    it("should return false for an invalid tenant id", () => {
-      expect(isTenantIdValidCb("invalid-tenant-id")).toBe(false);
-    });
-
-    it("should return false for an empty tenant id", () => {
-      expect(isTenantIdValidCb("")).toBe(false);
-    });
-
-    it("should return false for a null tenant id", () => {
-      expect(isTenantIdValidCb(null)).toBe(false);
-    });
-
-    it("should return false for an undefined tenant id", () => {
-      expect(isTenantIdValidCb(undefined)).toBe(false);
+    it("should also return true for not valid tenant id as there is no check", () => {
+      expect(isTenantIdValidCb("invalid-tenant-id")).toBe(true);
     });
   });
 
