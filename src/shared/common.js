@@ -78,9 +78,9 @@ const _getNewAuthInfo = async (tenantId) => {
     }
     const authService = _getNewAuthInfo._xsuaaService;
     const token = await authService.fetchClientCredentialsToken({ zid: tenantId });
-    const authInfo = await authService.createSecurityContext(token.access_token);
-    authInfoCache[tenantId].expireTs = authInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
-    return authInfo;
+    const tokenInfo = new xssec.XsuaaToken(token.access_token);
+    authInfoCache[tenantId].expireTs = tokenInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
+    return tokenInfo;
   } catch (err) {
     authInfoCache[tenantId] = null;
     cds.log(COMPONENT_NAME).warn("failed to request authInfo", err);
