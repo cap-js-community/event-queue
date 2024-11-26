@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added an option to filter tenant lists when checking for open events. Published events are still processed for all
   tenants, but periodic events can be filtered.
 
+### Changed
+
+- replace `req.user.authInfo` with `req.user.tokenInfo` to following the standard of CAP Node.js 
+
 ## v1.7.3 - 2024-11-19
 
 ### Added
