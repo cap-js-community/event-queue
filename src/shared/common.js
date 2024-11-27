@@ -69,46 +69,46 @@ const processChunkedSync = (inputs, chunkSize, chunkHandler) => {
 
 const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(value)).digest("base64").slice(0, 32);
 
-const _getNewAuthInfo = async (tenantId) => {
-  const authInfoCache = getAuthInfo._authInfoCache;
+const _getNewTokenInfo = async (tenantId) => {
+  const authInfoCache = getTokenInfo._authInfoCache;
   authInfoCache[tenantId] = authInfoCache[tenantId] ?? {};
   try {
-    if (!_getNewAuthInfo._xsuaaService) {
-      _getNewAuthInfo._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
+    if (!_getNewTokenInfo._xsuaaService) {
+      _getNewTokenInfo._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
     }
-    const authService = _getNewAuthInfo._xsuaaService;
+    const authService = _getNewTokenInfo._xsuaaService;
     const token = await authService.fetchClientCredentialsToken({ zid: tenantId });
     const tokenInfo = new xssec.XsuaaToken(token.access_token);
     authInfoCache[tenantId].expireTs = tokenInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
     return tokenInfo;
   } catch (err) {
     authInfoCache[tenantId] = null;
-    cds.log(COMPONENT_NAME).warn("failed to request authInfo", err);
+    cds.log(COMPONENT_NAME).warn("failed to request tokenInfo", err);
   }
 };
 
-const getAuthInfo = async (tenantId) => {
+const getTokenInfo = async (tenantId) => {
   if (!isTenantIdValidCb(tenantId)) {
     return null;
   }
 
   if (!cds.requires?.auth?.credentials) {
-    return null; // no credentials not authInfo
+    return null; // no credentials not tokenInfo
   }
   if (!cds.requires?.auth.kind.match(/jwt|xsuaa/i)) {
     cds.log(COMPONENT_NAME).warn("Only 'jwt' or 'xsuaa' are supported as values for auth.kind.");
     return null;
   }
 
-  getAuthInfo._authInfoCache = getAuthInfo._authInfoCache ?? {};
-  const authInfoCache = getAuthInfo._authInfoCache;
+  getTokenInfo._authInfoCache = getTokenInfo._authInfoCache ?? {};
+  const authInfoCache = getTokenInfo._authInfoCache;
   // not existing or existing but expired
   if (
     !authInfoCache[tenantId] ||
     (authInfoCache[tenantId] && authInfoCache[tenantId].expireTs && Date.now() > authInfoCache[tenantId].expireTs)
   ) {
     authInfoCache[tenantId] ??= {};
-    authInfoCache[tenantId].value = _getNewAuthInfo(tenantId);
+    authInfoCache[tenantId].value = _getNewTokenInfo(tenantId);
     authInfoCache[tenantId].expireTs = null;
   }
   return await authInfoCache[tenantId].value;
@@ -128,9 +128,9 @@ module.exports = {
   isValidDate,
   processChunkedSync,
   hashStringTo32Bit,
-  getAuthInfo,
+  getTokenInfo,
   isTenantIdValidCb,
   __: {
-    clearAuthInfoCache: () => (getAuthInfo._authInfoCache = {}),
+    clearAuthInfoCache: () => (getTokenInfo._authInfoCache = {}),
   },
 };

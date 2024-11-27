@@ -134,7 +134,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
           async () => {
             tx.context.user = new cds.User.Privileged({
               id: config.userId,
-              authInfo: await common.getAuthInfo(tenantId),
+              authInfo: await common.getTokenInfo(tenantId),
             });
             const entries = await openEvents.getOpenQueueEntries(tx, false);
             logger.info("broadcasting events for run", {
@@ -168,10 +168,10 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
     let tenantContext;
     const events = await trace(
       { id, tenant: tenantId },
-      "fetch-openEvents-and-authInfo",
+      "fetch-openEvents-and-tokenInfo",
       async () => {
         const user = await cds.tx({ tenant: tenantId }, async () => {
-          return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
+          return new cds.User.Privileged({ id: config.userId, tokenInfo: await common.getTokenInfo(tenantId) });
         });
         tenantContext = {
           tenant: tenantId,
@@ -229,7 +229,7 @@ const _executePeriodicEventsAllTenants = async (tenantIds) => {
   for (const tenantId of tenantIds) {
     try {
       const user = await cds.tx({ tenant: tenantId }, async () => {
-        return new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(tenantId) });
+        return new cds.User.Privileged({ id: config.userId, tokenInfo: await common.getTokenInfo(tenantId) });
       });
       const tenantContext = {
         tenant: tenantId,
@@ -260,7 +260,7 @@ const _singleTenantDb = async () => {
   const id = cds.utils.uuid();
   const events = await trace(
     { id },
-    "fetch-openEvents-and-authInfo",
+    "fetch-openEvents-and-tokenInfo",
     async () => {
       return await cds.tx({}, async (tx) => {
         return await openEvents.getOpenQueueEntries(tx);
@@ -491,7 +491,7 @@ const _checkPeriodicEventsSingleTenant = async (context) => {
   try {
     logger.info("executing updating periodic events", {
       tenantId: context.tenant,
-      subdomain: context.user?.authInfo?.getSubdomain(),
+      subdomain: context.user?.tokenInfo?.getSubdomain(),
     });
     await periodicEvents.checkAndInsertPeriodicEvents(context);
   } catch (err) {
