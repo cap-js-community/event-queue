@@ -8,7 +8,7 @@ jest.mock("@sap/cds", () => ({
 jest.mock("@sap/xssec");
 
 const {
-  getAuthInfo,
+  getTokenInfo,
   isTenantIdValidCb,
   __: { clearTokenInfoCache },
 } = require("../src/shared/common");
@@ -20,7 +20,7 @@ const config = require("../src/config");
 const tenantId1 = "cc0edebc-58df-44ab-ab1f-1cee383b423e";
 const tenantId2 = "61d0f6f5-449d-49c2-980f-cc6b45310b5d";
 
-describe("getAuthInfo", () => {
+describe("getTokenInfo", () => {
   beforeEach(() => {
     clearTokenInfoCache();
     xssec.XsuaaService.mockRestore();
@@ -33,7 +33,7 @@ describe("getAuthInfo", () => {
 
   it("should return null when no credentials provided", async () => {
     cds.requires.auth.credentials = null;
-    const result = await getAuthInfo(tenantId1);
+    const result = await getTokenInfo(tenantId1);
     expect(result).toBeNull();
     expect(cds.log().warn.mock.calls).toHaveLength(0);
   });
@@ -45,7 +45,7 @@ describe("getAuthInfo", () => {
     jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockReturnValueOnce({
       getExpirationDate: () => new Date(),
     });
-    const result = await getAuthInfo(tenantId1);
+    const result = await getTokenInfo(tenantId1);
     expect(result).toBeDefined();
     expect(cds.log().warn.mock.calls).toHaveLength(0);
   });
@@ -57,7 +57,7 @@ describe("getAuthInfo", () => {
     jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockReturnValueOnce({
       getExpirationDate: () => new Date(),
     });
-    const result = await getAuthInfo(tenantId1);
+    const result = await getTokenInfo(tenantId1);
     expect(result).toBeDefined();
     expect(fetchClientCredentialsTokenSpy).toHaveBeenCalledWith({ zid: tenantId1 });
     expect(cds.log().warn.mock.calls).toHaveLength(0);
@@ -72,10 +72,10 @@ describe("getAuthInfo", () => {
       getExpirationDate: () => new Date(Date.now() + 61 * 1000),
     });
 
-    const result = await getAuthInfo(tenantId1);
+    const result = await getTokenInfo(tenantId1);
     expect(result).toBeDefined();
 
-    const result2 = await getAuthInfo(tenantId1);
+    const result2 = await getTokenInfo(tenantId1);
     expect(result).toEqual(result2);
 
     expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(1);
@@ -91,8 +91,8 @@ describe("getAuthInfo", () => {
       getExpirationDate: () => new Date(Date.now() + 65 * 1000),
     });
 
-    const resultPromise = getAuthInfo(tenantId1);
-    const resultPromise2 = getAuthInfo(tenantId1);
+    const resultPromise = getTokenInfo(tenantId1);
+    const resultPromise2 = getTokenInfo(tenantId1);
 
     const [result1, result2] = await Promise.all([resultPromise, resultPromise2]);
 
@@ -109,10 +109,10 @@ describe("getAuthInfo", () => {
     jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockImplementation(() => ({
       getExpirationDate: () => new Date(Date.now() + 59 * 1000),
     }));
-    const result = await getAuthInfo(tenantId1);
+    const result = await getTokenInfo(tenantId1);
     expect(result).toBeDefined();
 
-    const result2 = await getAuthInfo(tenantId1);
+    const result2 = await getTokenInfo(tenantId1);
     expect(result).not.toEqual(result2);
 
     expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(2);
@@ -127,10 +127,10 @@ describe("getAuthInfo", () => {
     jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockImplementation(() => ({
       getExpirationDate: () => new Date(Date.now() + 59 * 1000),
     }));
-    const result = await getAuthInfo(tenantId1);
+    const result = await getTokenInfo(tenantId1);
     expect(result).toBeDefined();
 
-    const result2 = await getAuthInfo(tenantId2);
+    const result2 = await getTokenInfo(tenantId2);
     expect(result).not.toEqual(result2);
 
     expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(2);
@@ -140,14 +140,14 @@ describe("getAuthInfo", () => {
 
   it("should handle error", async () => {
     jest.spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken").mockRejectedValueOnce(new Error());
-    const result = await getAuthInfo(tenantId1);
+    const result = await getTokenInfo(tenantId1);
     expect(result).toBeUndefined();
     expect(cds.log().warn.mock.calls).toMatchSnapshot();
   });
 
   it("should clear cache for error case", async () => {
     jest.spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken").mockRejectedValueOnce(new Error());
-    const result = await getAuthInfo(tenantId1);
+    const result = await getTokenInfo(tenantId1);
     expect(result).toBeUndefined();
     expect(cds.log().warn.mock.calls).toMatchSnapshot();
 
@@ -157,14 +157,14 @@ describe("getAuthInfo", () => {
     jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockReturnValueOnce({
       getExpirationDate: () => new Date(Date.now() + 120 * 1000),
     });
-    const result2 = await getAuthInfo(tenantId1);
+    const result2 = await getTokenInfo(tenantId1);
     expect(result2).toBeDefined();
   });
 
   it("two parallel requests should get the same error", async () => {
     jest.spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken").mockRejectedValueOnce(new Error());
-    const resultPromise = getAuthInfo(tenantId1);
-    const resultPromise2 = getAuthInfo(tenantId1);
+    const resultPromise = getTokenInfo(tenantId1);
+    const resultPromise2 = getTokenInfo(tenantId1);
 
     const [result1, result2] = await Promise.all([resultPromise, resultPromise2]);
 
