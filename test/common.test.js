@@ -42,7 +42,7 @@ describe("getAuthInfo", () => {
     jest
       .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
       .mockResolvedValueOnce({ access_token: "token" });
-    jest.spyOn(xssec.XsuaaService.prototype, "createSecurityContext").mockResolvedValueOnce({
+    jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockReturnValueOnce({
       getExpirationDate: () => new Date(),
     });
     const result = await getAuthInfo(tenantId1);
@@ -54,7 +54,7 @@ describe("getAuthInfo", () => {
     const fetchClientCredentialsTokenSpy = jest
       .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
       .mockResolvedValueOnce({ access_token: "token" });
-    jest.spyOn(xssec.XsuaaService.prototype, "createSecurityContext").mockResolvedValueOnce({
+    jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockReturnValueOnce({
       getExpirationDate: () => new Date(),
     });
     const result = await getAuthInfo(tenantId1);
@@ -68,7 +68,7 @@ describe("getAuthInfo", () => {
     jest
       .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
       .mockResolvedValueOnce({ access_token: "token" });
-    jest.spyOn(xssec.XsuaaService.prototype, "createSecurityContext").mockResolvedValueOnce({
+    jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockReturnValueOnce({
       getExpirationDate: () => new Date(Date.now() + 61 * 1000),
     });
 
@@ -79,7 +79,7 @@ describe("getAuthInfo", () => {
     expect(result).toEqual(result2);
 
     expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(1);
-    expect(xssec.XsuaaService.prototype.createSecurityContext).toHaveBeenCalledTimes(1);
+    expect(xssec.XsuaaToken.prototype.constructor).toHaveBeenCalledTimes(1);
     expect(cds.log().warn.mock.calls).toHaveLength(0);
   });
 
@@ -87,7 +87,7 @@ describe("getAuthInfo", () => {
     jest.spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken").mockImplementationOnce(() => {
       return new Promise((resolve) => setTimeout(() => resolve({ access_token: "token" }), 5));
     });
-    jest.spyOn(xssec.XsuaaService.prototype, "createSecurityContext").mockResolvedValueOnce({
+    jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockReturnValueOnce({
       getExpirationDate: () => new Date(Date.now() + 65 * 1000),
     });
 
@@ -98,7 +98,7 @@ describe("getAuthInfo", () => {
 
     expect(result1).toEqual(result2);
     expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(1);
-    expect(xssec.XsuaaService.prototype.createSecurityContext).toHaveBeenCalledTimes(1);
+    expect(xssec.XsuaaToken.prototype.constructor).toHaveBeenCalledTimes(1);
     expect(cds.log().warn.mock.calls).toHaveLength(0);
   });
 
@@ -106,11 +106,9 @@ describe("getAuthInfo", () => {
     jest
       .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
       .mockResolvedValue({ access_token: "token" });
-    jest.spyOn(xssec.XsuaaService.prototype, "createSecurityContext").mockImplementation(async () => {
-      return {
-        getExpirationDate: () => new Date(Date.now() + 59 * 1000),
-      };
-    });
+    jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockImplementation(() => ({
+      getExpirationDate: () => new Date(Date.now() + 59 * 1000),
+    }));
     const result = await getAuthInfo(tenantId1);
     expect(result).toBeDefined();
 
@@ -118,7 +116,7 @@ describe("getAuthInfo", () => {
     expect(result).not.toEqual(result2);
 
     expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(2);
-    expect(xssec.XsuaaService.prototype.createSecurityContext).toHaveBeenCalledTimes(2);
+    expect(xssec.XsuaaToken.prototype.constructor).toHaveBeenCalledTimes(2);
     expect(cds.log().warn.mock.calls).toHaveLength(0);
   });
 
@@ -126,11 +124,9 @@ describe("getAuthInfo", () => {
     jest
       .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
       .mockResolvedValue({ access_token: "token" });
-    jest.spyOn(xssec.XsuaaService.prototype, "createSecurityContext").mockImplementation(async () => {
-      return {
-        getExpirationDate: () => new Date(Date.now() + 120 * 1000),
-      };
-    });
+    jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockImplementation(() => ({
+      getExpirationDate: () => new Date(Date.now() + 59 * 1000),
+    }));
     const result = await getAuthInfo(tenantId1);
     expect(result).toBeDefined();
 
@@ -138,7 +134,7 @@ describe("getAuthInfo", () => {
     expect(result).not.toEqual(result2);
 
     expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(2);
-    expect(xssec.XsuaaService.prototype.createSecurityContext).toHaveBeenCalledTimes(2);
+    expect(xssec.XsuaaToken.prototype.constructor).toHaveBeenCalledTimes(2);
     expect(cds.log().warn.mock.calls).toHaveLength(0);
   });
 
@@ -158,10 +154,8 @@ describe("getAuthInfo", () => {
     jest
       .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
       .mockResolvedValue({ access_token: "token" });
-    jest.spyOn(xssec.XsuaaService.prototype, "createSecurityContext").mockImplementation(async () => {
-      return {
-        getExpirationDate: () => new Date(Date.now() + 120 * 1000),
-      };
+    jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockReturnValueOnce({
+      getExpirationDate: () => new Date(Date.now() + 120 * 1000),
     });
     const result2 = await getAuthInfo(tenantId1);
     expect(result2).toBeDefined();
@@ -176,7 +170,7 @@ describe("getAuthInfo", () => {
 
     expect(result1).toEqual(result2);
     expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(1);
-    expect(xssec.XsuaaService.prototype.createSecurityContext).toHaveBeenCalledTimes(0);
+    expect(xssec.XsuaaToken.prototype.constructor).toHaveBeenCalledTimes(0);
   });
 });
 
