@@ -70,8 +70,8 @@ const processChunkedSync = (inputs, chunkSize, chunkHandler) => {
 const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(value)).digest("base64").slice(0, 32);
 
 const _getNewTokenInfo = async (tenantId) => {
-  const authInfoCache = getTokenInfo._authInfoCache;
-  authInfoCache[tenantId] = authInfoCache[tenantId] ?? {};
+  const tokenInfoCache = getTokenInfo._tokenInfoCache;
+  tokenInfoCache[tenantId] = tokenInfoCache[tenantId] ?? {};
   try {
     if (!_getNewTokenInfo._xsuaaService) {
       _getNewTokenInfo._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
@@ -79,10 +79,10 @@ const _getNewTokenInfo = async (tenantId) => {
     const authService = _getNewTokenInfo._xsuaaService;
     const token = await authService.fetchClientCredentialsToken({ zid: tenantId });
     const tokenInfo = new xssec.XsuaaToken(token.access_token);
-    authInfoCache[tenantId].expireTs = tokenInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
+    tokenInfoCache[tenantId].expireTs = tokenInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
     return tokenInfo;
   } catch (err) {
-    authInfoCache[tenantId] = null;
+    tokenInfoCache[tenantId] = null;
     cds.log(COMPONENT_NAME).warn("failed to request tokenInfo", err);
   }
 };
@@ -100,18 +100,18 @@ const getTokenInfo = async (tenantId) => {
     return null;
   }
 
-  getTokenInfo._authInfoCache = getTokenInfo._authInfoCache ?? {};
-  const authInfoCache = getTokenInfo._authInfoCache;
+  getTokenInfo._tokenInfoCache = getTokenInfo._tokenInfoCache ?? {};
+  const tokenInfoCache = getTokenInfo._tokenInfoCache;
   // not existing or existing but expired
   if (
-    !authInfoCache[tenantId] ||
-    (authInfoCache[tenantId] && authInfoCache[tenantId].expireTs && Date.now() > authInfoCache[tenantId].expireTs)
+    !tokenInfoCache[tenantId] ||
+    (tokenInfoCache[tenantId] && tokenInfoCache[tenantId].expireTs && Date.now() > tokenInfoCache[tenantId].expireTs)
   ) {
-    authInfoCache[tenantId] ??= {};
-    authInfoCache[tenantId].value = _getNewTokenInfo(tenantId);
-    authInfoCache[tenantId].expireTs = null;
+    tokenInfoCache[tenantId] ??= {};
+    tokenInfoCache[tenantId].value = _getNewTokenInfo(tenantId);
+    tokenInfoCache[tenantId].expireTs = null;
   }
-  return await authInfoCache[tenantId].value;
+  return await tokenInfoCache[tenantId].value;
 };
 
 const isTenantIdValidCb = (tenantId) => {
@@ -131,6 +131,6 @@ module.exports = {
   getTokenInfo,
   isTenantIdValidCb,
   __: {
-    clearAuthInfoCache: () => (getTokenInfo._authInfoCache = {}),
+    clearTokenInfoCache: () => (getTokenInfo._tokenInfoCache = {}),
   },
 };

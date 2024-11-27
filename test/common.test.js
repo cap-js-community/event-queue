@@ -10,7 +10,7 @@ jest.mock("@sap/xssec");
 const {
   getAuthInfo,
   isTenantIdValidCb,
-  __: { clearAuthInfoCache },
+  __: { clearTokenInfoCache },
 } = require("../src/shared/common");
 const xssec = require("@sap/xssec");
 const cds = require("@sap/cds");
@@ -22,7 +22,7 @@ const tenantId2 = "61d0f6f5-449d-49c2-980f-cc6b45310b5d";
 
 describe("getAuthInfo", () => {
   beforeEach(() => {
-    clearAuthInfoCache();
+    clearTokenInfoCache();
     xssec.XsuaaService.mockRestore();
     jest.clearAllMocks();
     cds.requires.auth = {
