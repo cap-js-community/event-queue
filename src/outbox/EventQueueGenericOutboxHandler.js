@@ -27,7 +27,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       delete msg.contextUser;
       processContext.user = new cds.User.Privileged({
         id: userId,
-        authInfo: await common.getAuthInfo(processContext.tenant),
+        authInfo: await common.getTokenInfo(processContext.tenant),
       });
       processContext._eventQueue = { processor: this, key, queueEntries, payload };
       await cds.unboxed(service).tx(processContext)[invocationFn](msg);
