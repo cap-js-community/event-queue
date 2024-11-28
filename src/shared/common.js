@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const cds = require("@sap/cds");
 const xssec = require("@sap/xssec");
 const config = require("../config");
+const { TenantIdCheckTypes } = require("../constants");
 
 const MARGIN_AUTH_INFO_EXPIRY = 60 * 1000;
 const COMPONENT_NAME = "/eventQueue/common";
@@ -88,7 +89,7 @@ const _getNewTokenInfo = async (tenantId) => {
 };
 
 const getTokenInfo = async (tenantId) => {
-  if (!isTenantIdValidCb(tenantId)) {
+  if (!isTenantIdValidCb(TenantIdCheckTypes.getTokenInfo, tenantId)) {
     return null;
   }
 
@@ -114,9 +115,9 @@ const getTokenInfo = async (tenantId) => {
   return await tokenInfoCache[tenantId].value;
 };
 
-const isTenantIdValidCb = (tenantId) => {
+const isTenantIdValidCb = (checkType, tenantId) => {
   if (config.tenantIdFilterCb) {
-    return config.tenantIdFilterCb(tenantId);
+    return config.tenantIdFilterCb(checkType, tenantId);
   } else {
     return true;
   }

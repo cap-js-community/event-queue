@@ -20,4 +20,8 @@ module.exports = {
     High: "high",
     VeryHigh: "veryHigh",
   },
+  TenantIdCheckTypes: {
+    getAllTenantIds: "getAllTenantIds",
+    getTokenInfo: "getTokenInfo",
+  },
 };

@@ -188,11 +188,11 @@ describe("isTenantIdValidCb", () => {
   describe("use callback", () => {
     it("always true", () => {
       config.tenantIdFilterCb = () => true;
-      expect(isTenantIdValidCb(undefined)).toBe(true);
+      expect(isTenantIdValidCb()).toBe(true);
     });
     it("always false", () => {
       config.tenantIdFilterCb = () => false;
-      expect(isTenantIdValidCb(undefined)).toBe(false);
+      expect(isTenantIdValidCb()).toBe(false);
     });
   });
 });

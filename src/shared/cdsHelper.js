@@ -5,6 +5,7 @@ const cds = require("@sap/cds");
 
 const config = require("../config");
 const common = require("./common");
+const { TenantIdCheckTypes } = require("../constants");
 
 const VERROR_CLUSTER_NAME = "ExecuteInNewTransactionError";
 const COMPONENT_NAME = "/eventQueue/cdsHelper";
@@ -114,7 +115,9 @@ const getAllTenantIds = async () => {
 
   const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
   const response = await ssp.get("/tenant");
-  return response.map((tenant) => tenant.subscribedTenantId ?? tenant.tenant).filter(common.isTenantIdValidCb);
+  return response
+    .map((tenant) => tenant.subscribedTenantId ?? tenant.tenant)
+    .filter((tenantId) => common.isTenantIdValidCb(TenantIdCheckTypes.getAllTenantIds, tenantId));
 };
 
 module.exports = {
