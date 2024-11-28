@@ -69,7 +69,7 @@ describe("EventScheduler", () => {
     expect(cds.log().error).toHaveBeenCalledTimes(0);
     expect(cds.log().debug.mock.calls[0]).toMatchSnapshot();
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
-    expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
+    expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`1000`);
     expect(broadcastEventSpy).not.toHaveBeenCalled();
   });
 
@@ -85,7 +85,7 @@ describe("EventScheduler", () => {
     expect(cds.log().debug).toHaveBeenCalledTimes(1);
     expect(cds.log().debug.mock.calls[0]).toMatchSnapshot();
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
-    expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
+    expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`1000`);
     expect(broadcastEventSpy).not.toHaveBeenCalled();
 
     await jest.runAllTimersAsync();
@@ -119,7 +119,7 @@ describe("EventScheduler", () => {
     expect(cds.log().debug.mock.calls[0]).toMatchSnapshot();
     expect(cds.log().error.mock.calls[0]).toMatchSnapshot();
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
-    expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
+    expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`1000`);
     expect(broadcastEventSpy).toHaveBeenCalledTimes(1);
     expect(broadcastEventSpy.mock.calls[0]).toMatchInlineSnapshot(`
       [
