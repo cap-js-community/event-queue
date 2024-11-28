@@ -491,7 +491,7 @@ const _checkPeriodicEventsSingleTenant = async (context) => {
   try {
     logger.info("executing updating periodic events", {
       tenantId: context.tenant,
-      subdomain: context.user?.tokenInfo?.getSubdomain(),
+      subdomain: context.user?.tokenInfo?.extAttributes?.zdn,
     });
     await periodicEvents.checkAndInsertPeriodicEvents(context);
   } catch (err) {
