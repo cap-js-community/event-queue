@@ -52,7 +52,7 @@ describe("EventScheduler", () => {
     expect(cds.log().debug).toHaveBeenCalledTimes(1);
     expect(cds.log().debug.mock.calls[0]).toMatchSnapshot();
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
-    expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`10000`);
+    expect(setTimeoutSpy.mock.calls[0][1]).toMatchInlineSnapshot(`1000`);
     expect(broadcastEventSpy).not.toHaveBeenCalled();
   });
 

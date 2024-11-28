@@ -50,7 +50,7 @@ exports[`EventScheduler should schedule an event 1`] = `
 [
   "scheduling event queue run for delayed event",
   {
-    "delaySeconds": 10,
+    "delaySeconds": 1,
     "subType": "subType",
     "type": "type",
   },
