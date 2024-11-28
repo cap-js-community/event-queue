@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
-- long blocked event-loop could lead to processing of events
+- long blocked event-loop could lead to stop processing of events
 
 ## v1.7.3 - 2024-11-19
 
