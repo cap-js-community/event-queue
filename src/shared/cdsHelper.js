@@ -23,7 +23,7 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
   try {
-    const user = new cds.User.Privileged({ id: config.userId, authInfo: await common.getAuthInfo(context.tenant) });
+    const user = new cds.User.Privileged({ id: config.userId, tokenInfo: await common.getTokenInfo(context.tenant) });
     if (cds.db.kind === "hana") {
       await cds.tx(
         {
@@ -114,12 +114,8 @@ const getAllTenantIds = async () => {
 
   const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
   const response = await ssp.get("/tenant");
-  return response
-    .map((tenant) => tenant.subscribedTenantId ?? tenant.tenant)
-    .filter((tenantId) => !isFakeTenant(tenantId));
+  return response.map((tenant) => tenant.subscribedTenantId ?? tenant.tenant).filter(common.isTenantIdValidCb);
 };
-
-const isFakeTenant = (tenantId) => /00000000-0000-4000-8000-\d{12}/.test(tenantId);
 
 module.exports = {
   executeInNewTransaction,
