@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`distributedLock redis only accepts integer as lock time 1`] = `
+{
+  "EVENT_QUEUE_123##key": {
+    "options": {
+      "NX": true,
+      "PX": 6,
+    },
+    "value": "true",
+  },
+}
+`;
