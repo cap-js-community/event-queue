@@ -110,8 +110,20 @@ exports[`runner redis multi tenant no open events 1`] = `
 
 exports[`runner redis multi tenant no open events 2`] = `
 {
-  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": "true",
-  "EVENT_QUEUE_EVENT_QUEUE_UPDATE_PERIODIC_EVENTS": "true",
+  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": {
+    "options": {
+      "NX": true,
+      "PX": 1425000,
+    },
+    "value": "true",
+  },
+  "EVENT_QUEUE_EVENT_QUEUE_UPDATE_PERIODIC_EVENTS": {
+    "options": {
+      "NX": true,
+      "PX": 60000,
+    },
+    "value": "true",
+  },
 }
 `;
 
@@ -175,8 +187,20 @@ exports[`runner redis multi tenant with open events - broadcast should be called
 
 exports[`runner redis multi tenant with open events - broadcast should be called 3`] = `
 {
-  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": "true",
-  "EVENT_QUEUE_EVENT_QUEUE_UPDATE_PERIODIC_EVENTS": "true",
+  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": {
+    "options": {
+      "NX": true,
+      "PX": 1425000,
+    },
+    "value": "true",
+  },
+  "EVENT_QUEUE_EVENT_QUEUE_UPDATE_PERIODIC_EVENTS": {
+    "options": {
+      "NX": true,
+      "PX": 60000,
+    },
+    "value": "true",
+  },
 }
 `;
 
@@ -201,7 +225,13 @@ exports[`runner redis single tenant no open events 1`] = `
 
 exports[`runner redis single tenant no open events 2`] = `
 {
-  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": "true",
+  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": {
+    "options": {
+      "NX": true,
+      "PX": 1425000,
+    },
+    "value": "true",
+  },
 }
 `;
 
@@ -226,6 +256,12 @@ exports[`runner redis single tenant with open events - broadcast should be calle
 
 exports[`runner redis single tenant with open events - broadcast should be called 2`] = `
 {
-  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": "true",
+  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": {
+    "options": {
+      "NX": true,
+      "PX": 1425000,
+    },
+    "value": "true",
+  },
 }
 `;
