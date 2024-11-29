@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 - long blocked event-loop could lead to stop processing of events
-- Redis integration: PX values for keys require integer input. Values are longer automatically rounded. 
+- Redis integration: PX values for keys require integer input. Values are longer automatically rounded.
 
 ## v1.7.3 - 2024-11-19
 
