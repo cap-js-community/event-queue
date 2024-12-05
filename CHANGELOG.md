@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.8.0 - 2024-11-XX
+## v1.8.0 - 2024-12-05
 
 ### Added
 
@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   delaying processing when the event isn't ready.
 - Added an option to filter tenant lists when checking for open events. Published events are still processed for all
   tenants, but periodic events can be filtered.
+  Distributed events via Redis that are not part of the current configuration to support DWC use cases where the same
+  app might have different software states.
 
 ### Changed
 
