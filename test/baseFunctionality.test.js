@@ -534,6 +534,61 @@ describe("baseFunctionality", () => {
   });
 
   describe("getOpenQueueEntries", () => {
+    describe("filterAppSpecificEvents", () => {
+      test("return open event types", async () => {
+        await testHelper.insertEventEntry(tx);
+        await checkAndInsertPeriodicEvents(context);
+        const result = await getOpenQueueEntries(tx, false);
+        expect(result.length).toMatchInlineSnapshot(`8`); // 1 ad-hoc and 4 periodic
+        expect(result).toMatchSnapshot();
+      });
+
+      test("should also return not existing events", async () => {
+        await testHelper.insertEventEntry(tx);
+        await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "123" }));
+        const result = await getOpenQueueEntries(tx, false);
+        expect(result.length).toMatchInlineSnapshot(`1`);
+      });
+
+      test("should not return not existing events if cratedAt older than 30 days", async () => {
+        await testHelper.insertEventEntry(tx);
+        await tx.run(
+          UPDATE.entity("sap.eventqueue.Event").set({
+            type: "123",
+            createdAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString(),
+          })
+        );
+        const result = await getOpenQueueEntries(tx, false);
+        expect(result.length).toMatchInlineSnapshot(`0`);
+      });
+
+      test("should return existing events if startAfter within 30 days but createdAt older than 30 days", async () => {
+        await testHelper.insertEventEntry(tx);
+        await tx.run(
+          UPDATE.entity("sap.eventqueue.Event").set({
+            type: "123",
+            createdAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString(),
+            startAfter: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString(),
+          })
+        );
+        const result = await getOpenQueueEntries(tx, false);
+        expect(result.length).toMatchInlineSnapshot(`1`);
+      });
+
+      test("should return not existing events if startAfter and createdAt is after 30 days", async () => {
+        await testHelper.insertEventEntry(tx);
+        await tx.run(
+          UPDATE.entity("sap.eventqueue.Event").set({
+            type: "123",
+            createdAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString(),
+            startAfter: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString(),
+          })
+        );
+        const result = await getOpenQueueEntries(tx, false);
+        expect(result.length).toMatchInlineSnapshot(`1`);
+      });
+    });
+
     test("return open event types", async () => {
       await testHelper.insertEventEntry(tx);
       await checkAndInsertPeriodicEvents(context);

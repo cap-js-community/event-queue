@@ -141,6 +141,43 @@ exports[`baseFunctionality getOpenQueueEntries event types in progress should be
 ]
 `;
 
+exports[`baseFunctionality getOpenQueueEntries filterAppSpecificEvents return open event types 2`] = `
+[
+  {
+    "subType": "AppInstance",
+    "type": "AppSpecific_PERIODIC",
+  },
+  {
+    "subType": "AppName",
+    "type": "AppSpecific_PERIODIC",
+  },
+  {
+    "subType": "both",
+    "type": "AppSpecific_PERIODIC",
+  },
+  {
+    "subType": "DELETE_EVENTS",
+    "type": "EVENT_QUEUE_BASE_PERIODIC",
+  },
+  {
+    "subType": "DB",
+    "type": "HealthCheck_PERIODIC",
+  },
+  {
+    "subType": "Task",
+    "type": "Notifications",
+  },
+  {
+    "subType": "everyFiveMin",
+    "type": "TimeSpecificEveryFiveMin_PERIODIC",
+  },
+  {
+    "subType": "cron",
+    "type": "TimeSpecificEveryMin_PERIODIC",
+  },
+]
+`;
+
 exports[`baseFunctionality getOpenQueueEntries return open event types 2`] = `
 [
   {

@@ -2,12 +2,15 @@
 
 const cds = require("@sap/cds/lib");
 
+const mockRedis = require("./mocks/redisMock");
+jest.mock("../src/shared/redis", () => mockRedis);
 const cdsHelper = require("../src/shared/cdsHelper");
 const executeInNewTransactionSpy = jest.spyOn(cdsHelper, "executeInNewTransaction");
 
 const { acquireLock, releaseLock } = require("../src/shared/distributedLock");
 const path = require("path");
 const eventQueue = require("../src");
+const config = require("../src/config");
 
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
@@ -38,6 +41,7 @@ describe("distributedLock", () => {
   });
 
   beforeEach(async () => {
+    config.redisEnabled = false;
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
@@ -59,6 +63,12 @@ describe("distributedLock", () => {
 
     const afterRelease = await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code LIKE '%key%'"));
     expect(afterRelease).toEqual(undefined);
+  });
+
+  it("redis only accepts integer as lock time", async () => {
+    config.redisEnabled = true;
+    await acquireLock(context, "key", { expiryTime: 5.5 });
+    expect(mockRedis.getState()).toMatchSnapshot();
   });
 
   it("acquire should return false if already exists", async () => {

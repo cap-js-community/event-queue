@@ -60,7 +60,7 @@ const checkLockExistsAndReturnValue = async (context, key, { tenantScoped = true
 const _acquireLockRedis = async (context, fullKey, expiryTime, { value = "true", overrideValue = false } = {}) => {
   const client = await redis.createMainClientAndConnect(config.redisOptions);
   const result = await client.set(fullKey, value, {
-    PX: expiryTime,
+    PX: Math.round(expiryTime),
     ...(overrideValue ? null : { NX: true }),
   });
   const isOk = result === REDIS_COMMAND_OK;
@@ -117,7 +117,10 @@ const _acquireLockDB = async (context, fullKey, expiryTime, { value = "true", ov
             .where("code =", fullKey)
         );
       }
-      if (overrideValue || (currentEntry && new Date(currentEntry.createdAt).getTime() + expiryTime <= Date.now())) {
+      if (
+        overrideValue ||
+        (currentEntry && new Date(currentEntry.createdAt).getTime() + Math.round(expiryTime) <= Date.now())
+      ) {
         await tx.run(
           UPDATE.entity(config.tableNameEventLock)
             .set({
