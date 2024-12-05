@@ -41,14 +41,14 @@ const _messageHandlerProcessEvents = async (messageData) => {
           const service = await cds.connect.to(subType);
           cds.outboxed(service);
         } catch (err) {
-          logger.error("could not connect to outboxed service", err, {
+          logger.warn("could not connect to outboxed service", err, {
             type,
             subType,
           });
           return;
         }
       } else {
-        logger.error("cannot find configuration for published event. Event won't be processed", {
+        logger.warn("cannot find configuration for published event. Event won't be processed", {
           type,
           subType,
         });
