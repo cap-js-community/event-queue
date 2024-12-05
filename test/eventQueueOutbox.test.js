@@ -603,7 +603,7 @@ describe("event-queue outbox", () => {
         );
         config = eventQueue.config.getEventConfig(type, subType);
         expect(config).toBeUndefined();
-        expect(loggerMock.callsLengths().error).toEqual(1);
+        expect(loggerMock.callsLengths().warn).toEqual(1);
         expect(runEventCombinationForTenantSpy).toHaveBeenCalledTimes(0);
       });
     });
