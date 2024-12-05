@@ -328,7 +328,7 @@ const _singleTenantRedis = async () => {
       "get-openEvents-and-publish",
       async () => {
         return await cds.tx({}, async (tx) => {
-          const entries = await openEvents.getOpenQueueEntries(tx);
+          const entries = await openEvents.getOpenQueueEntries(tx, false);
           logger.info("broadcasting events for run", {
             entries: entries.length,
           });
