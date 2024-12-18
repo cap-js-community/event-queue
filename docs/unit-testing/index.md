@@ -35,7 +35,7 @@ The preconfigured profiles with their respective configurations are as follows:
       },
       "[test]": {
         "registerAsEventProcessor": false,
-        "isRunnerDeactivated": true,
+        "isEventQueueActive": true,
         "updatePeriodicEvents": false
       }
     }
