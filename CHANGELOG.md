@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
-- Fixed old usage of isRunnerDeactivated
+- Fixed orphaned usage of isRunnerDeactivated
 
 ## v1.8.0 - 2024-12-05
 
