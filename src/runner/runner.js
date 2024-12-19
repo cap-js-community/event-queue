@@ -281,9 +281,11 @@ const _singleTenantDb = async () => {
             async () => {
               try {
                 const lockId = `${label}`;
-                const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
-                  expiryTime: eventQueueConfig.runInterval * 0.95,
-                });
+                const couldAcquireLock = eventConfig.skipExclusiveLocking
+                  ? true
+                  : await distributedLock.acquireLock(context, lockId, {
+                      expiryTime: eventQueueConfig.runInterval * 0.95,
+                    });
                 if (!couldAcquireLock) {
                   return;
                 }

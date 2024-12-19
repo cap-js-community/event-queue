@@ -1714,6 +1714,22 @@ describe("integration-main", () => {
       await tx.rollback();
     });
   });
+
+  describe("parallel event processing in the same instance", () => {
+    it("insert two entries and select with chunk size one --> should process in parallel", async () => {
+      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { numberOfEntries: 2 }));
+      dbCounts = {};
+      const event = eventQueue.config.events[0];
+      Object.assign(event, { selectMaxChunkSize: 1, skipExclusiveLocking: true });
+      await Promise.all([
+        eventQueue.processEventQueue(context, event.type, event.subType),
+        eventQueue.processEventQueue(context, event.type, event.subType),
+      ]);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+      expect(dbCounts).toMatchSnapshot();
+    });
+  });
 });
 
 const waitEntryIsDone = async () => {

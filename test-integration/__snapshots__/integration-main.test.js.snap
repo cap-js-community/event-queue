@@ -207,6 +207,16 @@ exports[`integration-main lock wait timeout during keepAlive 1`] = `
 }
 `;
 
+exports[`integration-main parallel event processing in the same instance insert two entries and select with chunk size one 1`] = `
+{
+  "BEGIN": 9,
+  "COMMIT": 4,
+  "READ": 7,
+  "ROLLBACK": 4,
+  "UPDATE": 4,
+}
+`;
+
 exports[`integration-main periodic events transactions modes always commit - use cds.context for db interaction 1`] = `
 {
   "BEGIN": 6,

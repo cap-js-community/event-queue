@@ -5,10 +5,9 @@ const config = require("../config");
 const cdsHelper = require("./cdsHelper");
 
 const KEY_PREFIX = "EVENT_QUEUE";
-
 const existingLocks = {};
-
 const REDIS_COMMAND_OK = "OK";
+const COMPONENT_NAME = "/eventQueue/distributedLock";
 
 const acquireLock = async (context, key, { tenantScoped = true, expiryTime = config.globalTxTimeout } = {}) => {
   const fullKey = _generateKey(context, tenantScoped, key);
@@ -146,7 +145,16 @@ const _generateKey = (context, tenantScoped, key) => {
 };
 
 const shutdownHandler = async () => {
-  await Promise.allSettled(Object.keys(existingLocks).map((key) => _releaseLockRedis(null, key)));
+  const logger = cds.log(COMPONENT_NAME);
+  logger.info("received shutdown event, trying to release all locks", {
+    numberOfLocks: Object.keys(existingLocks).length,
+  });
+  await Promise.allSettled(
+    Object.keys(existingLocks).map(async (key) => {
+      await _releaseLockRedis(null, key);
+      logger.info("lock released", { key });
+    })
+  );
 };
 
 module.exports = {
