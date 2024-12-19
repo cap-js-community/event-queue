@@ -24,6 +24,7 @@ const ERROR_CODES = {
   NOT_ALLOWED_PRIORITY: "NOT_ALLOWED_PRIORITY",
   APP_NAMES_FORMAT: "APP_NAMES_FORMAT",
   APP_INSTANCES_FORMAT: "APP_INSTANCES_FORMAT",
+  SKIP_EXLUSIVE_LOCK_NOT_ALLOWED: "SKIP_EXLUSIVE_LOCK_NOT_ALLOWED",
 };
 
 const ERROR_CODES_META = {
@@ -90,6 +91,9 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.INTERVAL_AND_CRON]: {
     message: "For periodic events only the cron or interval parameter can be defined!",
+  },
+  [ERROR_CODES.SKIP_EXLUSIVE_LOCK_NOT_ALLOWED]: {
+    message: "The config skipExclusiveLocking is currently only allowed for ad-hoc events and single-tenant-apps.",
   },
 };
 
@@ -321,6 +325,17 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.APP_INSTANCES_FORMAT,
         info: { type, subType, appInstances },
+      },
+      message
+    );
+  }
+
+  static skipExclusiveLockNotAllowed(type, subType) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.SKIP_EXLUSIVE_LOCK_NOT_ALLOWED];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.SKIP_EXLUSIVE_LOCK_NOT_ALLOWED,
+        info: { type, subType },
       },
       message
     );
