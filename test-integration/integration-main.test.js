@@ -556,7 +556,7 @@ describe("integration-main", () => {
       expect(dbCounts).toMatchSnapshot();
       const result = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
       result.forEach((event) => delete event.startAfter);
-      expect(result).toMatchSnapshot();
+      expect(result.sort((a, b) => a.status - b.status)).toMatchSnapshot();
     });
 
     it("one green --> tx rollback even all green", async () => {
