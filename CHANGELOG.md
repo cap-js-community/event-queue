@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.8.1 - 2024-12-XX
 
+### Added
+
+- adding logs for shutdown handler of redis connections
+
 ### Fixed
 
 - Addressed an orphaned usage of isRunnerDeactivated that could cause unexpected behavior.
