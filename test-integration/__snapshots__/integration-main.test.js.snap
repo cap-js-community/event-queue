@@ -443,14 +443,14 @@ exports[`integration-main transactionMode=isolated both processed register tx ro
 exports[`integration-main transactionMode=isolated first processed register tx rollback - only first should be rolled back 1`] = `
 [
   {
-    "attempts": 1,
-    "startAfter": null,
-    "status": 2,
-  },
-  {
     "attempts": 0,
     "startAfter": null,
     "status": 0,
+  },
+  {
+    "attempts": 1,
+    "startAfter": null,
+    "status": 2,
   },
   {
     "attempts": 1,
