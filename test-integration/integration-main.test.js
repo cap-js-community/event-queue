@@ -692,6 +692,7 @@ describe("integration-main", () => {
 
     it("hookForExceededEvents has 3 tries after that should be set to exceeded without invoking hook again", async () => {
       const code = cds.utils.uuid();
+
       async function mockFunction() {
         await this.tx.run(
           INSERT.into("sap.eventqueue.Lock").entries({
@@ -747,6 +748,7 @@ describe("integration-main", () => {
 
     it("one which is exceeded and one for which the exceeded event has been exceeded", async () => {
       const code = cds.utils.uuid();
+
       async function mockFunction() {
         await this.tx.run(
           INSERT.into("sap.eventqueue.Lock").entries({
@@ -754,6 +756,7 @@ describe("integration-main", () => {
           })
         );
       }
+
       jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents").mockImplementationOnce(mockFunction);
 
       await cds.tx({}, async (tx2) => {
@@ -777,6 +780,61 @@ describe("integration-main", () => {
       expect(loggerMock.callsLengths().warn).toEqual(1);
       await expectLockValue(tx, code);
       expect(jest.spyOn(EventQueueTest.prototype, "hookForExceededEvents")).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("parallel event processing in the same instance", () => {
+    afterAll(() => {
+      jest.spyOn(EventQueueTest.prototype, "processEvent").mockRestore();
+    });
+
+    const type = "SingleTenant";
+    const subType = "SkipExclusiveLocking";
+    it("insert two entries and select with chunk size one --> should process in parallel", async () => {
+      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { numberOfEntries: 2, type, subType }));
+      dbCounts = {};
+      const ids = Array(2)
+        .fill(1)
+        .map(() => cds.utils.uuid());
+      const spy = jest
+        .spyOn(EventQueueTest.prototype, "processEvent")
+        .mockImplementation(async (processContext, key, queueEntries) => {
+          await cds.tx(processContext).run(SELECT.from("sap.eventqueue.Lock"));
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+        });
+      await Promise.all(
+        ids.map((id) => cds.tx({ id }, (tx) => eventQueue.processEventQueue(tx.context, type, subType)))
+      );
+
+      // this tests that every event processor processed events
+      expect(spy.mock.calls.map(([t]) => t.id).sort()).toEqual(ids.sort());
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+      expect(dbCounts).toMatchSnapshot();
+    });
+
+    it("insert 4 entries and select with chunk size one --> should process in parallel - twice", async () => {
+      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { numberOfEntries: 4, type, subType }));
+      dbCounts = {};
+      const ids = Array(2)
+        .fill(1)
+        .map(() => cds.utils.uuid());
+      const spy = jest
+        .spyOn(EventQueueTest.prototype, "processEvent")
+        .mockImplementation(async (processContext, key, queueEntries) => {
+          await cds.tx(processContext).run(SELECT.from("sap.eventqueue.Lock"));
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+        });
+
+      await Promise.all(
+        ids.map((id) => cds.tx({ id }, (tx) => eventQueue.processEventQueue(tx.context, type, subType)))
+      );
+
+      // this tests that every event processor processed events
+      expect(spy.mock.calls.map(([t]) => t.id).sort()).toEqual([...ids, ...ids].sort());
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 4 });
+      expect(dbCounts).toMatchSnapshot();
     });
   });
 
@@ -1712,22 +1770,6 @@ describe("integration-main", () => {
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 0 });
       expect(loggerMock.callsLengths().error).toEqual(0);
       await tx.rollback();
-    });
-  });
-
-  describe("parallel event processing in the same instance", () => {
-    it("insert two entries and select with chunk size one --> should process in parallel", async () => {
-      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { numberOfEntries: 2 }));
-      dbCounts = {};
-      const event = eventQueue.config.events[0];
-      Object.assign(event, { selectMaxChunkSize: 1, skipExclusiveLocking: true });
-      await Promise.all([
-        eventQueue.processEventQueue(context, event.type, event.subType),
-        eventQueue.processEventQueue(context, event.type, event.subType),
-      ]);
-      expect(loggerMock.callsLengths().error).toEqual(0);
-      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
-      expect(dbCounts).toMatchSnapshot();
     });
   });
 });

@@ -207,14 +207,22 @@ exports[`integration-main lock wait timeout during keepAlive 1`] = `
 }
 `;
 
+exports[`integration-main parallel event processing in the same instance insert 4 entries and select with chunk size one --> should process in parallel - twice 1`] = `
+{
+  "BEGIN": 19,
+  "COMMIT": 14,
+  "READ": 15,
+  "ROLLBACK": 4,
+  "UPDATE": 8,
+}
+`;
+
 exports[`integration-main parallel event processing in the same instance insert two entries and select with chunk size one --> should process in parallel 1`] = `
 {
-  "BEGIN": 12,
-  "COMMIT": 7,
-  "CREATE": 1,
-  "DELETE": 1,
-  "READ": 8,
-  "ROLLBACK": 4,
+  "BEGIN": 11,
+  "COMMIT": 8,
+  "READ": 9,
+  "ROLLBACK": 2,
   "UPDATE": 4,
 }
 `;
