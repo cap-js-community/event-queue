@@ -159,12 +159,17 @@ const shutdownHandler = async () => {
   logger.info("received shutdown event, trying to release all locks", {
     numberOfLocks: Object.keys(existingLocks).length,
   });
-  await Promise.allSettled(
+  const result = await Promise.allSettled(
     Object.keys(existingLocks).map(async (key) => {
       await _releaseLockRedis(null, key);
       logger.info("lock released", { key });
     })
   );
+  const errors = result.filter((promise) => promise.reason);
+  logger.info("releasing locks finished ", {
+    numberOfErrors: errors.length,
+    ...(errors.length && { firstError: errors[0] }),
+  });
 };
 
 module.exports = {
