@@ -918,7 +918,8 @@ class EventQueueProcessorBase {
     return await trace(this.baseContext, "acquire-lock", async () => {
       const lockAcquired = await distributedLock.acquireLock(
         this.context,
-        [this.#eventType, this.#eventSubType].join("##")
+        [this.#eventType, this.#eventSubType].join("##"),
+        { keepTrackOfLock: true }
       );
       if (!lockAcquired) {
         this.logger.debug("no lock available, exit processing", {
