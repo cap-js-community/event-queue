@@ -170,6 +170,25 @@ describe("initialize", () => {
       `"For periodic events either the cron or interval parameter must be defined!"`
     );
     fileContent.periodicEvents = [];
+
+    fileContent.periodicEvents.push({ ...fileContent.events[0], interval: 20, skipExclusiveLocking: true });
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"The config skipExclusiveLocking is currently only allowed for ad-hoc events and single-tenant-apps."`
+    );
+    fileContent.periodicEvents = [];
+
+    const newEvent = fileContent.events[0];
+    fileContent.events = [];
+    fileContent.events.push({ ...newEvent, skipExclusiveLocking: true });
+    cds.requires.multitenancy = true;
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"The config skipExclusiveLocking is currently only allowed for ad-hoc events and single-tenant-apps."`
+    );
+    cds.requires.multitenancy = false;
   });
 
   describe("runner mode registration", () => {
