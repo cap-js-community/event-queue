@@ -28,13 +28,7 @@ describe("event-queue outbox", () => {
   executeInNewTransactionSpy.mockImplementation(
     // eslint-disable-next-line no-unused-vars
     async (context = {}, transactionTag, fn) => {
-      try {
-        return await fn(tx);
-      } catch (err) {
-        if (!(err instanceof cdsHelper.TriggerRollback)) {
-          throw err;
-        }
-      }
+      return await fn(tx);
     }
   );
   beforeEach(async () => {

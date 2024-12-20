@@ -3,7 +3,7 @@
 const cds = require("@sap/cds");
 const cronParser = require("cron-parser");
 
-const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
+const { executeInNewTransaction } = require("./shared/cdsHelper");
 const { EventProcessingStatus, TransactionMode } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
@@ -786,7 +786,7 @@ class EventQueueProcessorBase {
               await executeInNewTransaction(this.context, "error-hookForExceededEvents", async (tx) =>
                 this.#persistEventQueueStatusForExceeded(tx, [exceededEvent], EventProcessingStatus.Error)
               );
-              throw new TriggerRollback();
+              await tx.rollback();
             }
           }
         );

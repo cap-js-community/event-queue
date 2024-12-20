@@ -66,37 +66,23 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
       }
     }
   } catch (err) {
-    if (!(err instanceof TriggerRollback)) {
-      if (err instanceof VError) {
-        Object.assign(err.jse_info, {
-          newTx: info,
-        });
-        throw err;
-      } else {
-        throw new VError(
-          {
-            name: VERROR_CLUSTER_NAME,
-            cause: err,
-            info,
-          },
-          "Execution in new transaction failed"
-        );
-      }
+    if (err instanceof VError) {
+      Object.assign(err.jse_info, {
+        newTx: info,
+      });
+      throw err;
+    } else {
+      throw new VError(
+        {
+          name: VERROR_CLUSTER_NAME,
+          cause: err,
+          info,
+        },
+        "Execution in new transaction failed"
+      );
     }
-    return false;
   } finally {
     logger.debug("Execution in new transaction finished", info);
-  }
-  return true;
-}
-
-/**
- * Error class to be used to force rollback in executionInNewTransaction
- * Error will not be logged, as it assumes that error handling has been done before...
- */
-class TriggerRollback extends VError {
-  constructor() {
-    super("Rollback triggered");
   }
 }
 
