@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Fixed orphaned usage of isRunnerDeactivated
 
+### Changed
+
+- Different way of rollback transaction to avoid error in open telemtry
+
 ## v1.8.0 - 2024-12-05
 
 ### Added
