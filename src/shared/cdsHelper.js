@@ -108,6 +108,5 @@ const getAllTenantIds = async () => {
 
 module.exports = {
   executeInNewTransaction,
-  TriggerRollback,
   getAllTenantIds,
 };
