@@ -8,7 +8,7 @@ const config = require("./config");
 const { TransactionMode, EventProcessingStatus } = require("./constants");
 const { limiter } = require("./shared/common");
 
-const { executeInNewTransaction, TriggerRollback } = require("./shared/cdsHelper");
+const { executeInNewTransaction } = require("./shared/cdsHelper");
 const trace = require("./shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/processEventQueue";
@@ -65,7 +65,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
               eventTypeInstance.handleErrorDuringProcessing(err, queueEntry);
             }
           }
-          throw new TriggerRollback();
+          await tx.rollback();
         });
       });
       await eventTypeInstance.handleExceededEvents();
@@ -89,7 +89,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
                 eventTypeInstance.shouldRollbackTransaction(key)
               )
             ) {
-              throw new TriggerRollback();
+              await tx.rollback();
             }
           });
         });
@@ -167,7 +167,8 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
             } catch (err) {
               status = EventProcessingStatus.Error;
               eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
-              throw new TriggerRollback();
+              await tx.rollback();
+              return;
             } finally {
               eventTypeInstance.endPerformanceTracerPeriodicEvents();
             }
@@ -175,7 +176,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
               eventTypeInstance.transactionMode === TransactionMode.alwaysRollback ||
               eventTypeInstance.shouldRollbackTransaction(queueEntry.ID)
             ) {
-              throw new TriggerRollback();
+              await tx.rollback();
             }
           });
         }
@@ -222,7 +223,7 @@ const processEventMap = async (eventTypeInstance) => {
               eventTypeInstance.statusMapContainsError(statusMap) ||
               eventTypeInstance.shouldRollbackTransaction(key)
             ) {
-              throw new TriggerRollback();
+              await tx.rollback();
             }
           }
         );
