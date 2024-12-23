@@ -431,7 +431,7 @@ describe("integration-main", () => {
       await eventQueue.processEventQueue(context, "TransactionMode", "isolated");
       expect(loggerMock.callsLengths().error).toEqual(0);
       const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 3 });
-      expect(events).toMatchSnapshot();
+      expect(events.sort((a, b) => a.status - b.status)).toMatchSnapshot();
       expect(dbCounts).toMatchSnapshot();
     });
 
@@ -498,7 +498,7 @@ describe("integration-main", () => {
       expect(dbCounts).toMatchSnapshot();
       const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 3 });
       events.forEach((event) => delete event.startAfter);
-      expect(events).toMatchSnapshot();
+      expect(events.sort((a, b) => a.status - b.status)).toMatchSnapshot();
     });
 
     it("one green with register rollback in processEvent --> tx rollback even mode alwaysCommit", async () => {
@@ -556,7 +556,7 @@ describe("integration-main", () => {
       expect(dbCounts).toMatchSnapshot();
       const result = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
       result.forEach((event) => delete event.startAfter);
-      expect(result).toMatchSnapshot();
+      expect(result.sort((a, b) => a.status - b.status)).toMatchSnapshot();
     });
 
     it("one green --> tx rollback even all green", async () => {
