@@ -61,8 +61,7 @@ class EventQueueProcessorBase {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
     this.#retryFailedAfter = this.#eventConfig.retryFailedAfter ?? DEFAULT_RETRY_AFTER;
-    // NOTE: keep the feature, this might be needed again
-    this.__concurrentEventProcessing = false;
+    this.__concurrentEventProcessing = config.multiInstanceProcessing;
     this.__startTime = this.#eventConfig.startTime ?? new Date();
     this.__retryAttempts = this.#isPeriodic ? 1 : this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
     this.__selectMaxChunkSize = this.#eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;

@@ -5,7 +5,7 @@ const { promisify } = require("util");
 const cds = require("@sap/cds");
 
 const redis = require("../shared/redis");
-const { checkLockExistsAndReturnValue } = require("../shared/distributedLock");
+const distributedLock = require("../shared/distributedLock");
 const config = require("../config");
 const common = require("../shared/common");
 const { runEventCombinationForTenant } = require("../runner/runnerHelper");
@@ -67,7 +67,9 @@ const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
         for (const { type, subType } of events) {
           const eventConfig = config.getEventConfig(type, subType);
           for (let i = 0; i < TRIES_FOR_PUBLISH_PERIODIC_EVENT; i++) {
-            const result = await checkLockExistsAndReturnValue(context, [type, subType].join("##"));
+            const result = eventConfig.multiInstanceProcessing
+              ? false
+              : await distributedLock.checkLockExistsAndReturnValue(context, [type, subType].join("##"));
             if (result) {
               logger.debug("skip publish redis event as no lock is available", {
                 type,

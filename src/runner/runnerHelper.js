@@ -25,7 +25,7 @@ const runEventCombinationForTenant = async (context, type, subType, { skipWorker
         eventConfig.priority,
         AsyncResource.bind(async () => {
           const _exec = async () => {
-            if (lockId) {
+            if (!eventConfig.multiInstanceProcessing && lockId) {
               const lockAvailable = await distributedLock.acquireLock(context, lockId);
               if (!lockAvailable) {
                 return;
