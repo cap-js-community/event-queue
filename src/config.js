@@ -446,8 +446,8 @@ class Config {
       throw EventQueueError.invalidInterval(event.type, event.subType, event.interval);
     }
 
-    if (event.skipExclusiveLocking) {
-      throw EventQueueError.skipExclusiveLockNotAllowed(event.type, event.subType);
+    if (event.multiInstanceProcessing) {
+      throw EventQueueError.multiInstanceProcessingNotAllowed(event.type, event.subType);
     }
 
     this.#basicEventValidation(event);
@@ -459,8 +459,8 @@ class Config {
       throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
     }
 
-    if (this.isMultiTenancy && event.skipExclusiveLocking) {
-      throw EventQueueError.skipExclusiveLockNotAllowed(event.type, event.subType);
+    if (this.isMultiTenancy && event.multiInstanceProcessing) {
+      throw EventQueueError.multiInstanceProcessingNotAllowed(event.type, event.subType);
     }
 
     this.#basicEventValidation(event);

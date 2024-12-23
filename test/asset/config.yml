@@ -82,11 +82,11 @@ events:
       - 1
 
   - type: SingleTenant
-    subType: SkipExclusiveLocking
+    subType: MultiInstanceProcessing
     impl: ./test/asset/EventQueueTest
     load: 1
     selectMaxChunkSize: 1
-    skipExclusiveLocking: true
+    multiInstanceProcessing: true
     checkForNextChunk: true
 
 periodicEvents:

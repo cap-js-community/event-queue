@@ -281,7 +281,7 @@ const _singleTenantDb = async () => {
             async () => {
               try {
                 const lockId = `${label}`;
-                const couldAcquireLock = eventConfig.skipExclusiveLocking
+                const couldAcquireLock = eventConfig.multiInstanceProcessing
                   ? true
                   : await distributedLock.acquireLock(context, lockId, {
                       expiryTime: eventQueueConfig.runInterval * 0.95,

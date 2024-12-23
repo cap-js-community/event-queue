@@ -11,6 +11,11 @@ export declare const EventProcessingStatus: {
 declare type EventProcessingStatusKeysType = keyof typeof EventProcessingStatus;
 export declare type EventProcessingStatusType = (typeof EventProcessingStatus)[EventProcessingStatusKeysType];
 
+export declare const TenantIdCheck: {
+  getAllTenantIds: "getAllTenantIds";
+  getTokenInfo: "getTokenInfo";
+};
+
 export declare const TransactionMode: {
   isolated: "isolated";
   alwaysCommit: "alwaysCommit";

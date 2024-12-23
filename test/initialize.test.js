@@ -171,22 +171,22 @@ describe("initialize", () => {
     );
     fileContent.periodicEvents = [];
 
-    fileContent.periodicEvents.push({ ...fileContent.events[0], interval: 20, skipExclusiveLocking: true });
+    fileContent.periodicEvents.push({ ...fileContent.events[0], interval: 20, multiInstanceProcessing: true });
     expect(() => {
       config.fileContent = fileContent;
     }).toThrowErrorMatchingInlineSnapshot(
-      `"The config skipExclusiveLocking is currently only allowed for ad-hoc events and single-tenant-apps."`
+      `"The config multiInstanceProcessing is currently only allowed for ad-hoc events and single-tenant-apps."`
     );
     fileContent.periodicEvents = [];
 
     const newEvent = fileContent.events[0];
     fileContent.events = [];
-    fileContent.events.push({ ...newEvent, skipExclusiveLocking: true });
+    fileContent.events.push({ ...newEvent, multiInstanceProcessing: true });
     cds.requires.multitenancy = true;
     expect(() => {
       config.fileContent = fileContent;
     }).toThrowErrorMatchingInlineSnapshot(
-      `"The config skipExclusiveLocking is currently only allowed for ad-hoc events and single-tenant-apps."`
+      `"The config multiInstanceProcessing is currently only allowed for ad-hoc events and single-tenant-apps."`
     );
     cds.requires.multitenancy = false;
   });

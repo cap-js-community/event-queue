@@ -67,7 +67,7 @@ const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
         for (const { type, subType } of events) {
           const eventConfig = config.getEventConfig(type, subType);
           for (let i = 0; i < TRIES_FOR_PUBLISH_PERIODIC_EVENT; i++) {
-            const result = eventConfig.skipExclusiveLocking
+            const result = eventConfig.multiInstanceProcessing
               ? false
               : await distributedLock.checkLockExistsAndReturnValue(context, [type, subType].join("##"));
             if (result) {

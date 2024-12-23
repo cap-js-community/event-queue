@@ -789,7 +789,7 @@ describe("integration-main", () => {
     });
 
     const type = "SingleTenant";
-    const subType = "SkipExclusiveLocking";
+    const subType = "MultiInstanceProcessing";
     it("insert two entries and select with chunk size one --> should process in parallel", async () => {
       await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2, { numberOfEntries: 2, type, subType }));
       dbCounts = {};
