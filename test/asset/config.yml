@@ -81,6 +81,14 @@ events:
     appInstances:
       - 1
 
+  - type: SingleTenant
+    subType: MultiInstanceProcessing
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    selectMaxChunkSize: 1
+    multiInstanceProcessing: true
+    checkForNextChunk: true
+
 periodicEvents:
   - type: HealthCheck
     subType: DB

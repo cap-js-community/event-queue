@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.8.1 - 2024-12-XX
 
+### Added
+
+- adding logs for shutdown handler of redis connections
+- `multiInstanceProcessing` allows to process the same event type/subtype on multiple application instances
+
 ### Fixed
 
-- Fixed orphaned usage of isRunnerDeactivated
+- Addressed an orphaned usage of isRunnerDeactivated that could cause unexpected behavior.
+- Resolved a memory leak in the distributed locking mechanism, which occurred when tracking existing locks for a large number of events.
 
 ### Changed
 

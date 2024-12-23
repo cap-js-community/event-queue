@@ -298,6 +298,10 @@ describe("workerQueue", () => {
     cds.context = { id: "123" };
     const workerQueue = new WorkerQueue(1);
     const result = {};
+    jest.spyOn(cds, "log").mockReturnValueOnce({
+      info: jest.fn(),
+      error: jest.fn(),
+    });
     const fn = jest.fn().mockImplementation(() => {
       return new Promise((resolve, reject) => {
         result["fn"] = { called: true, done: false };

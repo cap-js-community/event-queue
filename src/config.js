@@ -445,6 +445,11 @@ class Config {
     if (!event.interval || event.interval <= MIN_INTERVAL_SEC) {
       throw EventQueueError.invalidInterval(event.type, event.subType, event.interval);
     }
+
+    if (event.multiInstanceProcessing) {
+      throw EventQueueError.multiInstanceProcessingNotAllowed(event.type, event.subType);
+    }
+
     this.#basicEventValidation(event);
   }
 
@@ -453,6 +458,11 @@ class Config {
     if (eventMap[key] && !eventMap[key].isPeriodic) {
       throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
     }
+
+    if (this.isMultiTenancy && event.multiInstanceProcessing) {
+      throw EventQueueError.multiInstanceProcessingNotAllowed(event.type, event.subType);
+    }
+
     this.#basicEventValidation(event);
   }
 
