@@ -4,9 +4,6 @@ const path = require("path");
 
 const cds = require("@sap/cds/lib");
 
-const cdsHelper = require("../src/shared/cdsHelper");
-const executeInNewTransactionSpy = jest.spyOn(cdsHelper, "executeInNewTransaction");
-
 const eventQueue = require("../src");
 const eventScheduler = require("../src/shared/eventScheduler");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
