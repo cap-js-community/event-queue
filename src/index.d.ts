@@ -11,7 +11,7 @@ export declare const EventProcessingStatus: {
 declare type EventProcessingStatusKeysType = keyof typeof EventProcessingStatus;
 export declare type EventProcessingStatusType = (typeof EventProcessingStatus)[EventProcessingStatusKeysType];
 
-export declare const TenantIdCheck: {
+export declare const TenantIdCheckTypes: {
   getAllTenantIds: "getAllTenantIds";
   getTokenInfo: "getTokenInfo";
 };
