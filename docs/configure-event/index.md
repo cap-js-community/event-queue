@@ -30,7 +30,7 @@ The configuration YAML file is where all the required information regarding even
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                                                                   | Default Value   |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                   | -               |
 | type                          | Specifies the type of the event.                                                                                                                                                                                                                              | -               |
 | subType                       | Specifies the subtype of the event, further categorizing the event type.                                                                                                                                                                                      | -               |
@@ -47,6 +47,7 @@ The configuration YAML file is where all the required information regarding even
 | appNames                      | Specifies the application names on which the event should be processed. The application name is extracted from the environment variable `VCAP_APPLICATION`. If not defined, the event is processed on all connected applications.                             | null            |
 | appInstances                  | Specifies the application instance numbers on which the event should be processed. The instance number is extracted from the environment variable `CF_INSTANCE_INDEX`. If not defined, the event is processed on all instances of the connected applications. | null            |
 | retryFailedAfter              | The duration (in milliseconds) after which failed events should be retried, provided the retry limit has not been exceeded.                                                                                                                                   | `5 * 60 * 1000` |
+| multiInstanceProcessing       | (Currently applicable only for Single Tenant) Allows processing of the same event type and subtype across multiple application instances.                                                                                                                     | false           |
 
 ## Configuration
 
