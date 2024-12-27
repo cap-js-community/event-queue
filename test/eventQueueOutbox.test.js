@@ -443,6 +443,7 @@ describe("event-queue outbox", () => {
       await eventQueue.initialize({
         processEventsAfterPublish: false,
         registerAsEventProcessor: false,
+        isEventQueueActive: true,
         useAsCAPOutbox: true,
         userId: "dummyTestUser",
       });

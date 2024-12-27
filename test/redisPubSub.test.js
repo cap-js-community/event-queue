@@ -56,6 +56,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     await eventQueue.initialize({
       configFilePath,
       processEventsAfterPublish: true,
+      isEventQueueActive: true,
     });
     config.redisEnabled = true;
     eventQueue.registerEventQueueDbHandler(cds.db);
