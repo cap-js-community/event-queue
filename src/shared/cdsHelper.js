@@ -62,7 +62,13 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
         } catch {
           /* empty */
         }
-        await fn(contextTx, ...parameters);
+        const txRollback = contextTx.rollback;
+        contextTx.rollback = async () => {
+          // tx should not be managed here as we did not open the tx
+          // change rollback to no opt - closing tx would cause follow-up usage to fail.
+          // the process that opened the tx needs to manage it
+        };
+        await fn(contextTx, ...parameters).finally(() => (contextTx.rollback = txRollback));
       }
     }
   } catch (err) {
