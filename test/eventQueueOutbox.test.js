@@ -3,7 +3,6 @@
 const cds = require("@sap/cds/lib");
 const eventQueue = require("../src");
 const path = require("path");
-const cdsHelper = require("../src/shared/cdsHelper");
 const testHelper = require("./helper");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { processEventQueue } = require("../src/processEventQueue");
@@ -16,21 +15,12 @@ const { getOpenQueueEntries } = require("../src/runner/openEvents");
 const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
 
-const executeInNewTransactionSpy = jest.spyOn(cdsHelper, "executeInNewTransaction");
-
 describe("event-queue outbox", () => {
   let context, tx, loggerMock;
 
   beforeAll(() => {
     loggerMock = mockLogger();
   });
-
-  executeInNewTransactionSpy.mockImplementation(
-    // eslint-disable-next-line no-unused-vars
-    async (context = {}, transactionTag, fn) => {
-      return await fn(tx);
-    }
-  );
   beforeEach(async () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
@@ -205,6 +195,7 @@ describe("event-queue outbox", () => {
         expect(parsedPayload.headers[`x-eventqueue-${key.toLocaleLowerCase()}`]).toBeUndefined();
       });
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -222,6 +213,7 @@ describe("event-queue outbox", () => {
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
       expect(loggerMock).sendFioriActionCalled();
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -377,6 +369,7 @@ describe("event-queue outbox", () => {
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
       await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
       expect(loggerMock).sendFioriActionCalled();
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationServiceOutboxedByConfig");
@@ -429,6 +422,7 @@ describe("event-queue outbox", () => {
       };
       mock();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error).toMatchInlineSnapshot(`
@@ -464,6 +458,7 @@ describe("event-queue outbox", () => {
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       expect(loggerMock).not.sendFioriActionCalled();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
       expect(loggerMock).sendFioriActionCalled();
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -481,6 +476,7 @@ describe("event-queue outbox", () => {
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error).toMatchSnapshot();
@@ -498,6 +494,7 @@ describe("event-queue outbox", () => {
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error).toMatchSnapshot();
@@ -515,6 +512,7 @@ describe("event-queue outbox", () => {
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error).toMatchSnapshot();
@@ -532,6 +530,7 @@ describe("event-queue outbox", () => {
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error).toMatchSnapshot();
@@ -540,7 +539,7 @@ describe("event-queue outbox", () => {
     it("error in srv.after", async () => {
       const service = await cds.connect.to("NotificationService");
       service.after("sendFiori", async () => {
-        await tx.run(SELECT.one.from("sap.eventqueue.Event"));
+        await SELECT.one.from("sap.eventqueue.Event");
         throw new Error("sendFiori error");
       });
       const outboxedService = cds.outboxed(service).tx(context);
@@ -552,8 +551,11 @@ describe("event-queue outbox", () => {
       await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
+      await commitAndOpenNew();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+      service.handlers.after = [];
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error).toMatchSnapshot();
     });
