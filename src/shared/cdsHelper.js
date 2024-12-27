@@ -62,41 +62,33 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
         } catch {
           /* empty */
         }
-        await fn(contextTx, ...parameters);
+        const txRollback = contextTx.rollback;
+        contextTx.rollback = async () => {
+          // tx should not be managed here as we did not open the tx
+          // change rollback to no opt - closing tx would cause follow-up usage to fail.
+          // the process that opened the tx needs to manage it
+        };
+        await fn(contextTx, ...parameters).finally(() => (contextTx.rollback = txRollback));
       }
     }
   } catch (err) {
-    if (!(err instanceof TriggerRollback)) {
-      if (err instanceof VError) {
-        Object.assign(err.jse_info, {
-          newTx: info,
-        });
-        throw err;
-      } else {
-        throw new VError(
-          {
-            name: VERROR_CLUSTER_NAME,
-            cause: err,
-            info,
-          },
-          "Execution in new transaction failed"
-        );
-      }
+    if (err instanceof VError) {
+      Object.assign(err.jse_info, {
+        newTx: info,
+      });
+      throw err;
+    } else {
+      throw new VError(
+        {
+          name: VERROR_CLUSTER_NAME,
+          cause: err,
+          info,
+        },
+        "Execution in new transaction failed"
+      );
     }
-    return false;
   } finally {
     logger.debug("Execution in new transaction finished", info);
-  }
-  return true;
-}
-
-/**
- * Error class to be used to force rollback in executionInNewTransaction
- * Error will not be logged, as it assumes that error handling has been done before...
- */
-class TriggerRollback extends VError {
-  constructor() {
-    super("Rollback triggered");
   }
 }
 
@@ -122,6 +114,5 @@ const getAllTenantIds = async () => {
 
 module.exports = {
   executeInNewTransaction,
-  TriggerRollback,
   getAllTenantIds,
 };

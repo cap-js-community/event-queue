@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Addressed an orphaned usage of isRunnerDeactivated that could cause unexpected behavior.
 - Resolved a memory leak in the distributed locking mechanism, which occurred when tracking existing locks for a large number of events.
 
+### Changed
+
+- Different way of rollback transaction to avoid error in open telemtry
+
 ## v1.8.0 - 2024-12-05
 
 ### Added
