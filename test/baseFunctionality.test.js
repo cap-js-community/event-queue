@@ -20,14 +20,7 @@ const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
 
 describe("baseFunctionality", () => {
-  let context, tx, loggerMock;
-
-  // executeInNewTransactionSpy.mockImplementation(
-  //   // eslint-disable-next-line no-unused-vars
-  //   async (context = {}, transactionTag, fn) => {
-  //     return await fn(tx);
-  //   }
-  // );
+  let context, loggerMock;
 
   beforeAll(async () => {
     const configFilePath = path.join(__dirname, "asset", "config.yml");
@@ -45,7 +38,6 @@ describe("baseFunctionality", () => {
 
   beforeEach(async () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
-    // tx = cds.tx(context);
     await cds.tx({}, async (tx) => {
       await tx.run(DELETE.from("sap.eventqueue.Lock"));
       await tx.run(DELETE.from("sap.eventqueue.Event"));
@@ -56,7 +48,6 @@ describe("baseFunctionality", () => {
   });
 
   afterEach(async () => {
-    // await tx.rollback();
     jest.clearAllMocks();
   });
 
