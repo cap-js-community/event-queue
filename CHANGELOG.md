@@ -5,21 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.8.1 - 2024-12-XX
+## v1.8.1 - 2024-12-27
 
 ### Added
 
-- adding logs for shutdown handler of redis connections
 - `multiInstanceProcessing` allows to process the same event type/subtype on multiple application instances
+- adding logs for shutdown handler of redis connections
 
 ### Fixed
 
-- Addressed an orphaned usage of isRunnerDeactivated that could cause unexpected behavior.
+- Addressed an orphaned usage of `isRunnerDeactivated`.
 - Resolved a memory leak in the distributed locking mechanism, which occurred when tracking existing locks for a large number of events.
 
 ### Changed
 
-- Different way of rollback transaction to avoid error in open telemtry
+- Different way of rollback transaction to avoid errors in open telemetry
 
 ## v1.8.0 - 2024-12-05
 
