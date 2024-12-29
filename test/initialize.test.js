@@ -10,7 +10,6 @@ cds.test(project);
 
 const redisSub = require("../src/redis/redisSub");
 const eventQueue = require("../src");
-const { getEnvInstance } = require("../src/shared/env");
 const runner = require("../src/runner/runner");
 const config = require("../src/config");
 const redis = require("../src/shared/redis");
