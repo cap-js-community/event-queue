@@ -26,9 +26,8 @@ jest.mock("redis", () => {
 describe("redis layer", () => {
   let loggerMock;
   beforeAll(async () => {
-    const env = getEnvInstance();
-    env.vcapServices = {
-      "redis-cache": [{ credentials: { uri: "123" } }],
+    cds.requires["eventqueue-redis-cache"].credentials = {
+      uri: "123",
     };
     jest.spyOn(cds, "log").mockImplementation((layer) => {
       return mockLogger(layer);
