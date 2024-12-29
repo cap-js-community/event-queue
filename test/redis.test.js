@@ -6,7 +6,6 @@ const cds = require("@sap/cds");
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
-const { getEnvInstance } = require("../src/shared/env");
 const redisEventQueue = require("../src/shared/redis");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { initialize } = require("../src/initialize");
@@ -26,9 +25,8 @@ jest.mock("redis", () => {
 describe("redis layer", () => {
   let loggerMock;
   beforeAll(async () => {
-    const env = getEnvInstance();
-    env.vcapServices = {
-      "redis-cache": [{ credentials: { uri: "123" } }],
+    cds.requires["eventqueue-redis-cache"].credentials = {
+      uri: "123",
     };
     jest.spyOn(cds, "log").mockImplementation((layer) => {
       return mockLogger(layer);
