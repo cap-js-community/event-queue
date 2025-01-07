@@ -17,7 +17,7 @@ class Env {
     this.#vcapApplicationInstance = Number(process.env.CF_INSTANCE_INDEX);
   }
 
-  get redisCredentialsFromEnv() {
+  get redisCredentials() {
     return cds.requires["eventqueue-redis-cache"].credentials;
   }
 
