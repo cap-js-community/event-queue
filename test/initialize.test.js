@@ -241,7 +241,7 @@ describe("initialize", () => {
 
     test("multi tenancy with redis", async () => {
       cds.requires.multitenancy = {};
-      cds.requires["eventqueue-redis-cache"].credentials = {
+      cds.requires["redis-eventQueue"].credentials = {
         hostname: "123",
       };
       const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();
@@ -260,7 +260,7 @@ describe("initialize", () => {
     });
 
     test("single tenant with redis", async () => {
-      cds.requires["eventqueue-redis-cache"].credentials = {
+      cds.requires["redis-eventQueue"].credentials = {
         hostname: "123",
       };
       const singleTenantRedisSpy = jest.spyOn(runner, "singleTenantRedis").mockResolvedValueOnce();
@@ -280,7 +280,7 @@ describe("initialize", () => {
 
     test("multi tenancy with redis - option to disable redis", async () => {
       cds.requires.multitenancy = {};
-      cds.requires["eventqueue-redis-cache"].credentials = {
+      cds.requires["redis-eventQueue"].credentials = {
         hostname: "123",
       };
       const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();

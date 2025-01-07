@@ -25,7 +25,7 @@ jest.mock("redis", () => {
 describe("redis layer", () => {
   let loggerMock;
   beforeAll(async () => {
-    cds.requires["eventqueue-redis-cache"].credentials = {
+    cds.requires["redis-eventQueue"].credentials = {
       uri: "123",
     };
     jest.spyOn(cds, "log").mockImplementation((layer) => {

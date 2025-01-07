@@ -18,7 +18,7 @@ class Env {
   }
 
   get redisCredentials() {
-    return cds.requires["eventqueue-redis-cache"].credentials;
+    return cds.requires["redis-eventQueue"].credentials;
   }
 
   get applicationName() {

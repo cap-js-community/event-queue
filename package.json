@@ -82,7 +82,7 @@
       }
     },
     "requires": {
-      "eventqueue-redis-cache": {
+      "redis-eventQueue": {
         "vcap": {
           "label": "redis-cache"
         }
