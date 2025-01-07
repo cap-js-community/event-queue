@@ -27,25 +27,25 @@ const createMainClientAndConnect = (options) => {
   return mainClientPromise;
 };
 
-const _createClientBase = (redisOptions) => {
+const _createClientBase = (redisOptions = {}) => {
   const env = getEnvInstance();
   try {
     const credentials = env.redisCredentials;
-    const options = Object.assign(
+    const socket = Object.assign(
       {
-        password: credentials.password,
-        socket: {
-          host: credentials.hostname,
-          tls: credentials.tls,
-          port: credentials.port,
-        },
+        host: credentials.hostname,
+        tls: credentials.tls,
+        port: credentials.port,
       },
-      redisOptions
+      redisOptions.socket
     );
+    const options = Object.assign({}, redisOptions, {
+      password: redisOptions.password ?? credentials.password,
+      socket,
+    });
     if (credentials.cluster_mode) {
       return redis.createCluster({
         rootNodes: [options],
-        // https://github.com/redis/node-redis/issues/1782
         defaults: options,
       });
     }
