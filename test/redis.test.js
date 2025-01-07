@@ -47,7 +47,14 @@ describe("redis layer", () => {
     expect(client.connect).toHaveBeenCalledTimes(1);
     expect(client.on).toHaveBeenCalledTimes(2);
     expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(connectSpy).toHaveBeenCalledWith({ url: "123" });
+    expect(connectSpy).toHaveBeenCalledWith({
+      password: undefined,
+      socket: {
+        host: undefined,
+        port: undefined,
+        tls: undefined,
+      },
+    });
   });
 
   test("should spread custom options to create client", async () => {
@@ -57,7 +64,15 @@ describe("redis layer", () => {
     expect(client.connect).toHaveBeenCalledTimes(1);
     expect(client.on).toHaveBeenCalledTimes(2);
     expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(connectSpy).toHaveBeenCalledWith({ url: "123", pingInterval: 100 });
+    expect(connectSpy).toHaveBeenCalledWith({
+      pingInterval: 100,
+      password: undefined,
+      socket: {
+        host: undefined,
+        port: undefined,
+        tls: undefined,
+      },
+    });
   });
 
   test("should override default values", async () => {
@@ -67,6 +82,15 @@ describe("redis layer", () => {
     expect(client.connect).toHaveBeenCalledTimes(1);
     expect(client.on).toHaveBeenCalledTimes(2);
     expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(connectSpy).toHaveBeenCalledWith({ url: "1234", pingInterval: 100 });
+    expect(connectSpy).toHaveBeenCalledWith({
+      url: "1234",
+      pingInterval: 100,
+      password: undefined,
+      socket: {
+        host: undefined,
+        port: undefined,
+        tls: undefined,
+      },
+    });
   });
 });
