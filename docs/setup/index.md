@@ -116,7 +116,7 @@ cds bind --exec -- node -e 'console.log(process.env.VCAP_SERVICES)'
 In the output, locate the Redis service-binding credentials. Among these, the `hostname` and `port` properties will be
 specified. For example:
 
-- Hostname: ` master.rg-6e17d023-ab3d-4c90-97c5-80``ef8a68a964ca.vwvwdz.euc1.cache.amazonaws.com `
+- Hostname: `master.rg-6e17d023-ab3d-4c90-97c5-ef8a68a964ca.vwvwdz.euc1.cache.amazonaws.com`
 - Port: `6380`
 
 The hostname and port pattern may vary depending on the data center.
@@ -129,7 +129,43 @@ Ensure that the app can be [accessed via SSH](https://docs.cloudfoundry.org/devg
 cf ssh -L <redis-port>:<your-redis-hostname>:<redis-port> <any_ssh_enabled_cf_app>
 ```
 
-Replace `<redis_hostname>` and `<redis-port>` with the data extracted in Step 2.
+Replace `<redis-port>` with the port extracted in Step 2 (e.g., `6380`).
+
+### Step 4: Configure Redis to Connect to localhost
+
+The Redis connection options from the service binding can be overridden using one of the following configurations:
+
+**Option 1:**
+
+```json
+{
+  "cds": {
+    "eventQueue": {
+      "redisOptions": {
+        "host": "localhost",
+        "rejectUnauthorized": false
+      }
+    }
+  }
+}
+```
+
+**Option 2:**
+
+```json
+{
+  "cds": {
+    "requires": {
+      "redis-eventQueue": {
+        "options": {
+          "host": "localhost",
+          "rejectUnauthorized": false
+        }
+      }
+    }
+  }
+}
+```
 
 ## Why Hybrid Testing Does Not Work for Cluster Instances
 

@@ -17,8 +17,8 @@ class Env {
     this.#vcapApplicationInstance = Number(process.env.CF_INSTANCE_INDEX);
   }
 
-  get redisCredentials() {
-    return cds.requires["redis-eventQueue"].credentials;
+  get redisRequires() {
+    return cds.requires["redis-eventQueue"] ?? cds.requires["redis"];
   }
 
   get applicationName() {

@@ -142,4 +142,22 @@ describe("redis layer", () => {
       },
     });
   });
+
+  test("redisOptions for service always wins", async () => {
+    const connectSpy = jest.spyOn(redis, "createClient");
+    config.redisOptions = { socket: { host: "localhost", port: 4092 }, password: 456 };
+    cds.requires["redis-eventQueue"].options = { socket: { port: 4091 }, password: 789 };
+    const client = await redisEventQueue.createClientAndConnect(config.redisOptions);
+    expect(client.connect).toHaveBeenCalledTimes(1);
+    expect(client.on).toHaveBeenCalledTimes(2);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    expect(connectSpy).toHaveBeenCalledWith({
+      password: 456,
+      socket: {
+        host: "localhost",
+        port: 4092,
+        tls: true,
+      },
+    });
+  });
 });
