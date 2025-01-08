@@ -113,7 +113,7 @@ class Config {
   }
 
   _checkRedisIsBound() {
-    return !!this.#env.redisCredentialsFromEnv;
+    return !!this.#env.redisCredentials;
   }
 
   shouldBeProcessedInThisApplication(type, subType) {

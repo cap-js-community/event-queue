@@ -10,7 +10,6 @@ cds.test(project);
 
 const redisSub = require("../src/redis/redisSub");
 const eventQueue = require("../src");
-const { getEnvInstance } = require("../src/shared/env");
 const runner = require("../src/runner/runner");
 const config = require("../src/config");
 const redis = require("../src/shared/redis");
@@ -242,9 +241,8 @@ describe("initialize", () => {
 
     test("multi tenancy with redis", async () => {
       cds.requires.multitenancy = {};
-      const env = getEnvInstance();
-      env.vcapServices = {
-        "redis-cache": [{ credentials: { hostname: "123" } }],
+      cds.requires["redis-eventQueue"].credentials = {
+        hostname: "123",
       };
       const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();
       jest.spyOn(redis, "connectionCheck").mockResolvedValueOnce(true);
@@ -262,9 +260,8 @@ describe("initialize", () => {
     });
 
     test("single tenant with redis", async () => {
-      const env = getEnvInstance();
-      env.vcapServices = {
-        "redis-cache": [{ credentials: { hostname: "123" } }],
+      cds.requires["redis-eventQueue"].credentials = {
+        hostname: "123",
       };
       const singleTenantRedisSpy = jest.spyOn(runner, "singleTenantRedis").mockResolvedValueOnce();
       jest.spyOn(redis, "connectionCheck").mockResolvedValueOnce(true);
@@ -283,9 +280,8 @@ describe("initialize", () => {
 
     test("multi tenancy with redis - option to disable redis", async () => {
       cds.requires.multitenancy = {};
-      const env = getEnvInstance();
-      env.vcapServices = {
-        "redis-cache": [{ credentials: { hostname: "123" } }],
+      cds.requires["redis-eventQueue"].credentials = {
+        hostname: "123",
       };
       const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();
       await eventQueue.initialize({

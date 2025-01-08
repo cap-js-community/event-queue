@@ -27,24 +27,29 @@ const createMainClientAndConnect = (options) => {
   return mainClientPromise;
 };
 
-const _createClientBase = (redisOptions) => {
+const _createClientBase = (redisOptions = {}) => {
   const env = getEnvInstance();
   try {
-    const credentials = env.redisCredentialsFromEnv;
-    const redisIsCluster = credentials.cluster_mode;
-    const url = credentials.uri.replace(/(?<=rediss:\/\/)[\w-]+?(?=:)/, "");
-    if (redisIsCluster) {
+    const credentials = env.redisCredentials;
+    const socket = Object.assign(
+      {
+        host: credentials.hostname,
+        tls: !!credentials.tls,
+        port: credentials.port,
+      },
+      redisOptions.socket
+    );
+    const options = Object.assign({}, redisOptions, {
+      password: redisOptions.password ?? credentials.password,
+      socket,
+    });
+    if (credentials.cluster_mode) {
       return redis.createCluster({
-        rootNodes: [{ url }],
-        // https://github.com/redis/node-redis/issues/1782
-        defaults: {
-          password: credentials.password,
-          socket: { tls: credentials.tls },
-          ...redisOptions,
-        },
+        rootNodes: [options],
+        defaults: options,
       });
     }
-    return redis.createClient({ url, ...redisOptions });
+    return redis.createClient(options);
   } catch (err) {
     throw EventQueueError.redisConnectionFailure(err);
   }

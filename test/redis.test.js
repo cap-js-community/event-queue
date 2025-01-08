@@ -6,7 +6,6 @@ const cds = require("@sap/cds");
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
-const { getEnvInstance } = require("../src/shared/env");
 const redisEventQueue = require("../src/shared/redis");
 const { Logger: mockLogger } = require("./mocks/logger");
 const { initialize } = require("../src/initialize");
@@ -26,9 +25,11 @@ jest.mock("redis", () => {
 describe("redis layer", () => {
   let loggerMock;
   beforeAll(async () => {
-    const env = getEnvInstance();
-    env.vcapServices = {
-      "redis-cache": [{ credentials: { uri: "123" } }],
+    cds.requires["redis-eventQueue"].credentials = {
+      hostname: "remoteHost",
+      port: 3991,
+      tls: true,
+      password: 123,
     };
     jest.spyOn(cds, "log").mockImplementation((layer) => {
       return mockLogger(layer);
@@ -49,7 +50,14 @@ describe("redis layer", () => {
     expect(client.connect).toHaveBeenCalledTimes(1);
     expect(client.on).toHaveBeenCalledTimes(2);
     expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(connectSpy).toHaveBeenCalledWith({ url: "123" });
+    expect(connectSpy).toHaveBeenCalledWith({
+      password: 123,
+      socket: {
+        host: "remoteHost",
+        port: 3991,
+        tls: true,
+      },
+    });
   });
 
   test("should spread custom options to create client", async () => {
@@ -59,16 +67,79 @@ describe("redis layer", () => {
     expect(client.connect).toHaveBeenCalledTimes(1);
     expect(client.on).toHaveBeenCalledTimes(2);
     expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(connectSpy).toHaveBeenCalledWith({ url: "123", pingInterval: 100 });
+    expect(connectSpy).toHaveBeenCalledWith({
+      pingInterval: 100,
+      password: 123,
+      socket: {
+        host: "remoteHost",
+        port: 3991,
+        tls: true,
+      },
+    });
   });
 
-  test("should override default values", async () => {
+  test("should convert tls object to boolean", async () => {
     const connectSpy = jest.spyOn(redis, "createClient");
-    config.redisOptions = { url: "1234", pingInterval: 100 };
+    config.redisOptions = { socket: { host: "localhost" } };
+    cds.requires["redis-eventQueue"].credentials = {
+      hostname: "remoteHost",
+      port: 3991,
+      tls: { ca: "dummyCert" },
+      password: 123,
+    };
     const client = await redisEventQueue.createClientAndConnect(config.redisOptions);
     expect(client.connect).toHaveBeenCalledTimes(1);
     expect(client.on).toHaveBeenCalledTimes(2);
     expect(loggerMock.callsLengths().error).toEqual(0);
-    expect(connectSpy).toHaveBeenCalledWith({ url: "1234", pingInterval: 100 });
+    expect(connectSpy).toHaveBeenCalledWith({
+      password: 123,
+      socket: {
+        host: "localhost",
+        port: 3991,
+        tls: true,
+      },
+    });
+    expect(config.redisOptions).toMatchObject({ socket: { host: "localhost" } });
+  });
+
+  test("should not modify the config.redisOptions object", async () => {
+    const connectSpy = jest.spyOn(redis, "createClient");
+    config.redisOptions = { socket: { host: "localhost" } };
+    cds.requires["redis-eventQueue"].credentials = {
+      hostname: "remoteHost",
+      port: 3991,
+      tls: true,
+      password: 123,
+    };
+    const client = await redisEventQueue.createClientAndConnect(config.redisOptions);
+    expect(client.connect).toHaveBeenCalledTimes(1);
+    expect(client.on).toHaveBeenCalledTimes(2);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    expect(connectSpy).toHaveBeenCalledWith({
+      password: 123,
+      socket: {
+        host: "localhost",
+        port: 3991,
+        tls: true,
+      },
+    });
+    expect(config.redisOptions).toMatchObject({ socket: { host: "localhost" } });
+  });
+
+  test("should override default values", async () => {
+    const connectSpy = jest.spyOn(redis, "createClient");
+    config.redisOptions = { socket: { host: "localhost" }, password: 456 };
+    const client = await redisEventQueue.createClientAndConnect(config.redisOptions);
+    expect(client.connect).toHaveBeenCalledTimes(1);
+    expect(client.on).toHaveBeenCalledTimes(2);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    expect(connectSpy).toHaveBeenCalledWith({
+      password: 456,
+      socket: {
+        host: "localhost",
+        port: 3991,
+        tls: true,
+      },
+    });
   });
 });
