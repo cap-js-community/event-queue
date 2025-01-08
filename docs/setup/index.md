@@ -141,9 +141,11 @@ The Redis connection options from the service binding can be overridden using on
 {
   "cds": {
     "eventQueue": {
-      "redisOptions": {
-        "host": "localhost",
-        "rejectUnauthorized": false
+      "[hybrid]": {
+        "redisOptions": {
+          "host": "localhost",
+          "rejectUnauthorized": false
+        }
       }
     }
   }
@@ -157,9 +159,11 @@ The Redis connection options from the service binding can be overridden using on
   "cds": {
     "requires": {
       "redis-eventQueue": {
-        "options": {
-          "host": "localhost",
-          "rejectUnauthorized": false
+        "[hybrid]": {
+          "options": {
+            "host": "localhost",
+            "rejectUnauthorized": false
+          }
         }
       }
     }
