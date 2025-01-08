@@ -34,7 +34,7 @@ const _createClientBase = (redisOptions = {}) => {
     const socket = Object.assign(
       {
         host: credentials.hostname,
-        tls: credentials.tls,
+        tls: !!credentials.tls,
         port: credentials.port,
       },
       redisOptions.socket

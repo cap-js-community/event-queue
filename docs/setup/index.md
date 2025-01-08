@@ -12,8 +12,9 @@ nav_order: 3
 # Setup
 
 <!-- prettier-ignore -->
+
 - TOC
-{: toc}
+  {: toc}
 
 <!-- prettier-ignore-end -->
 
@@ -51,7 +52,7 @@ Call the initialize function in your server.js. Check here the available setting
 
 ```js
 eventQueue.initialize({
-  configFilePath: "./srv/eventConfig.yml",
+    configFilePath: "./srv/eventConfig.yml",
 });
 ```
 
@@ -63,7 +64,7 @@ such as the configuration file path, event processing behavior, load balancing, 
 The table includes the parameter name, a description of its purpose, and the default value if not specified.
 
 | Name                                 | Description                                                                                                                                                                                                                                                                                                                                      | Default        | Can be changed at runtime |
-| :----------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------- | :------------------------ |
+|:-------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------|:--------------------------|
 | configFilePath                       | Path to the configuration file.                                                                                                                                                                                                                                                                                                                  | null           | no                        |
 | registerAsEventProcessor             | Whether or not to register as an event processor. If false, the app can publish events but doesn't process events.                                                                                                                                                                                                                               | true           | no                        |
 | processEventsAfterPublish            | Whether or not to process events immediately after publish. Events are distributed via Redis to all available app instances.                                                                                                                                                                                                                     | true           | no                        |
@@ -87,3 +88,57 @@ The table includes the parameter name, a description of its purpose, and the def
 To take advantage of the event-queue capabilities that come with Redis, you simply need to bind a Redis instance to the
 app where the event-queue will be used. No additional steps are required. Please note that the event-queue supports both
 single and cluster Redis instances.
+
+## Connecting to a Remote Instance via SSH Tunnel
+
+The `event-queue` module supports connecting to a remote Redis instance for hybrid testing with CAP. This feature is
+limited to non-cluster Redis instances. The following steps assume that a Redis instance has already been created in
+your BTP subaccount. To establish the connection, perform the steps below:
+
+### Step 1: Make Credentials Available for Local Testing
+
+Ensure the credentials are accessible for local testing, for example,
+using [hybrid testing](https://cap.cloud.sap/docs/advanced/hybrid-testing) as provided by CAP.
+
+```cmd
+cds bind <name_of_your_choice> --to <cf_redis_service_name>
+```
+
+### Step 2: Extract the Redis Host and Port from the Service Binding
+
+To set up the SSH tunnel in the next step, retrieve the hostname and port of the Redis instance from the service
+binding.
+
+```cmd
+cds bind --exec -- node -e 'console.log(process.env.VCAP_SERVICES)'
+```
+
+In the output, locate the Redis service-binding credentials. Among these, the `hostname` and `port` properties will be
+specified. For example:
+
+- Hostname: `master.rg-6e17d023-ab3d-4c90-97c5-80``ef8a68a964ca.vwvwdz.euc1.cache.amazonaws.com`
+- Port: `6380`
+
+The hostname and port pattern may vary depending on the data center.
+
+### Step 3: Open an SSH Tunnel to an Already Deployed CF App
+
+Ensure that the app can be [accessed via SSH](https://docs.cloudfoundry.org/devguide/deploy-apps/ssh-services.html).
+
+```cmd
+cf ssh -L <redis-port>:<your-redis-hostname>:<redis-port> <any_ssh_enabled_cf_app>
+```
+
+Replace `<redis_hostname>` and `<redis-port>` with the data extracted in Step 2.
+
+## Why Hybrid Testing Does Not Work for Cluster Instances
+
+Hybrid testing is not supported for Redis cluster instances due to the following reasons:
+
+1. The Redis hostname provided in the BTP service binding corresponds to the general cluster hostname.
+2. The `node-redis` library resolves this hostname to the individual nodes in the cluster and attempts to open a
+   separate connection for each node.
+3. The SSH tunnel is active only for the host specified in the service binding, not for the individual cluster nodes
+   that the `node-redis` library tries to access.
+
+As a result, the connections to the dedicated nodes fail because the SSH tunnel does not cover them.
