@@ -52,7 +52,7 @@ Call the initialize function in your server.js. Check here the available setting
 
 ```js
 eventQueue.initialize({
-    configFilePath: "./srv/eventConfig.yml",
+  configFilePath: "./srv/eventConfig.yml",
 });
 ```
 
@@ -64,7 +64,7 @@ such as the configuration file path, event processing behavior, load balancing, 
 The table includes the parameter name, a description of its purpose, and the default value if not specified.
 
 | Name                                 | Description                                                                                                                                                                                                                                                                                                                                      | Default        | Can be changed at runtime |
-|:-------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------|:--------------------------|
+| :----------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------- | :------------------------ |
 | configFilePath                       | Path to the configuration file.                                                                                                                                                                                                                                                                                                                  | null           | no                        |
 | registerAsEventProcessor             | Whether or not to register as an event processor. If false, the app can publish events but doesn't process events.                                                                                                                                                                                                                               | true           | no                        |
 | processEventsAfterPublish            | Whether or not to process events immediately after publish. Events are distributed via Redis to all available app instances.                                                                                                                                                                                                                     | true           | no                        |
@@ -116,7 +116,7 @@ cds bind --exec -- node -e 'console.log(process.env.VCAP_SERVICES)'
 In the output, locate the Redis service-binding credentials. Among these, the `hostname` and `port` properties will be
 specified. For example:
 
-- Hostname: `master.rg-6e17d023-ab3d-4c90-97c5-80``ef8a68a964ca.vwvwdz.euc1.cache.amazonaws.com`
+- Hostname: ` master.rg-6e17d023-ab3d-4c90-97c5-80``ef8a68a964ca.vwvwdz.euc1.cache.amazonaws.com `
 - Port: `6380`
 
 The hostname and port pattern may vary depending on the data center.
