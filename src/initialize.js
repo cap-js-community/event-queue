@@ -187,8 +187,22 @@ const mixConfigVarsWithEnv = (options) => {
 
 const registerCdsShutdown = () => {
   cds.on("shutdown", async () => {
-    await distributedLock.shutdownHandler();
-    await Promise.allSettled([redis.closeMainClient(), closeSubscribeClient()]);
+    return await new Promise((resolve, reject) => {
+      const timeoutRef = setTimeout(() => {
+        clearTimeout(timeoutRef);
+        cds.log(COMPONENT).info("shutdown timeout reached - some locks might not have been released!");
+        resolve();
+      }, 5 * 1000);
+      Promise.allSettled([distributedLock.shutdownHandler(), redis.closeMainClient(), closeSubscribeClient()])
+        .then((result) => {
+          clearTimeout(timeoutRef);
+          resolve(result);
+        })
+        .catch((err) => {
+          clearTimeout(timeoutRef);
+          reject(err);
+        });
+    });
   });
 };
 
