@@ -19,7 +19,7 @@ const createMainClientAndConnect = (options) => {
   }
 
   const errorHandlerCreateClient = (err) => {
-    cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
+    cds.log(COMPONENT_NAME).error("error from redis main client:", err);
     mainClientPromise = null;
     setTimeout(() => createMainClientAndConnect(options), LOG_AFTER_SEC * 1000).unref();
   };
@@ -64,7 +64,7 @@ const createClientAndConnect = async (options, errorHandlerCreateClient, isConne
       client.on("error", (err) => {
         const dateNow = Date.now();
         if (dateNow - lastErrorLog > LOG_AFTER_SEC * 1000) {
-          cds.log(COMPONENT_NAME).error("error from redis client for pub/sub failed", err);
+          cds.log(COMPONENT_NAME).error("error redis client:", err);
           lastErrorLog = dateNow;
         }
       });
@@ -90,7 +90,7 @@ const subscribeRedisChannel = (options, channel, subscribeHandler) => {
     cds.log(COMPONENT_NAME).error(`error from redis client for pub/sub failed for channel ${channel}`, err);
     subscriberClientPromise = null;
     setTimeout(
-      () => _subscribeChannels(options, Object.values(subscribedChannels), subscribeHandler),
+      () => _subscribeChannels(options, Object.keys(subscribedChannels), subscribeHandler),
       LOG_AFTER_SEC * 1000
     ).unref();
   };

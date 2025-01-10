@@ -143,9 +143,10 @@ The Redis connection options from the service binding can be overridden using on
     "eventQueue": {
       "[hybrid]": {
         "redisOptions": {
-          "host": "localhost",
-          "rejectUnauthorized": false
-        }
+           "socket": {
+              "host": "localhost",
+              "rejectUnauthorized": false
+           }
       }
     }
   }
@@ -161,8 +162,10 @@ The Redis connection options from the service binding can be overridden using on
       "redis-eventQueue": {
         "[hybrid]": {
           "options": {
-            "host": "localhost",
-            "rejectUnauthorized": false
+            "socket": {
+              "host": "localhost",
+              "rejectUnauthorized": false
+            }
           }
         }
       }
