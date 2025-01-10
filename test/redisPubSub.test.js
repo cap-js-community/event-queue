@@ -62,7 +62,6 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     eventQueue.registerEventQueueDbHandler(cds.db);
     loggerMock = mockLogger();
     jest.spyOn(cds.utils, "uuid").mockReturnValue("6e31047a-d2b5-4e3c-83d8-deab20165956");
-    cds._events.shutdown.pop();
   });
 
   beforeEach(async () => {
