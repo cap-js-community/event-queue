@@ -94,7 +94,7 @@ const subscribeRedisChannel = (options, channel, subscribeHandler) => {
     setTimeout(() => _subscribeChannels(options, subscribedChannels, subscribeHandler), LOG_AFTER_SEC * 1000).unref();
   };
 
-  _subscribeChannels(options, [channel], subscribeHandler, errorHandlerCreateClient);
+  _subscribeChannels(options, { [channel]: subscribeHandler }, errorHandlerCreateClient);
 };
 
 const _subscribeChannels = (options, subscribedChannels, errorHandlerCreateClient) => {
