@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 - introduced a shutdown timeout to ensure the server stops even if Redis clients fail to close
+- better connection handling for redis
 
 ## v1.8.2 - 2025-01-08
 
