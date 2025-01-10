@@ -192,21 +192,18 @@ const registerCdsShutdown = () => {
     return;
   }
   cds.on("shutdown", async () => {
-    return await new Promise((resolve, reject) => {
+    return await new Promise((resolve) => {
       const timeoutRef = setTimeout(() => {
         clearTimeout(timeoutRef);
         cds.log(COMPONENT).info("shutdown timeout reached - some locks might not have been released!");
         resolve();
       }, TIMEOUT_SHUTDOWN);
-      Promise.allSettled([distributedLock.shutdownHandler(), redis.closeMainClient(), redis.closeSubscribeClient()])
-        .then((result) => {
+      distributedLock.shutdownHandler().then(() =>
+        Promise.allSettled([redis.closeMainClient(), redis.closeSubscribeClient()]).then((result) => {
           clearTimeout(timeoutRef);
           resolve(result);
         })
-        .catch((err) => {
-          clearTimeout(timeoutRef);
-          reject(err);
-        });
+      );
     });
   });
 };
