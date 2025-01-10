@@ -188,7 +188,7 @@ const mixConfigVarsWithEnv = (options) => {
 
 const registerCdsShutdown = () => {
   const isTestProfile = cds.env.profiles.find((profile) => profile.includes("test"));
-  if (isTestProfile) {
+  if (isTestProfile || !config.redisEnabled) {
     return;
   }
   cds.on("shutdown", async () => {
