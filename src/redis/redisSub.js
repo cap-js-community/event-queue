@@ -9,12 +9,12 @@ const common = require("../shared/common");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/redisSub";
-let subscriberClientPromise;
 
 const initEventQueueRedisSubscribe = () => {
-  if (subscriberClientPromise || !config.redisEnabled) {
+  if (initEventQueueRedisSubscribe._initDone || !config.redisEnabled) {
     return;
   }
+  initEventQueueRedisSubscribe._initDone = true;
   redis.subscribeRedisChannel(config.redisOptions, EVENT_MESSAGE_CHANNEL, _messageHandlerProcessEvents);
 };
 
@@ -83,20 +83,8 @@ const _messageHandlerProcessEvents = async (messageData) => {
   }
 };
 
-const closeSubscribeClient = async () => {
-  try {
-    const client = await subscriberClientPromise;
-    if (client?.quit) {
-      await client.quit();
-    }
-  } catch (err) {
-    // ignore errors during shutdown
-  }
-};
-
 module.exports = {
   initEventQueueRedisSubscribe,
-  closeSubscribeClient,
   __: {
     _messageHandlerProcessEvents,
   },

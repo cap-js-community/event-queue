@@ -2,8 +2,8 @@
 
 const path = require("path");
 
-const setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation((_, fn) => {
-  fn();
+const setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation((first, second) => {
+  (first instanceof Function ? first : second)();
 });
 
 const distributedLock = require("../src/shared/distributedLock");
@@ -72,7 +72,9 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     jest.clearAllMocks();
   });
 
-  afterAll(() => cds.shutdown);
+  afterAll(async () => {
+    await cds.shutdown;
+  });
 
   describe("publish", () => {
     test("should not be called if not activated for the event", async () => {
