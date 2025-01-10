@@ -86,38 +86,36 @@ const createClientAndConnect = async (options, errorHandlerCreateClient, isConne
 };
 
 const subscribeRedisChannel = (options, channel, subscribeHandler) => {
-  subscribedChannels[channel] = 1;
+  subscribedChannels[channel] = subscribeHandler;
   const errorHandlerCreateClient = (err) => {
     cds.log(COMPONENT_NAME).error(`error from redis client for pub/sub failed for channel ${channel}`, err);
     subscriberClientPromise?.then?.(_resilientClientClose);
     subscriberClientPromise = null;
-    setTimeout(
-      () => _subscribeChannels(options, Object.keys(subscribedChannels), subscribeHandler),
-      LOG_AFTER_SEC * 1000
-    ).unref();
+    setTimeout(() => _subscribeChannels(options, subscribedChannels, subscribeHandler), LOG_AFTER_SEC * 1000).unref();
   };
 
   _subscribeChannels(options, [channel], subscribeHandler, errorHandlerCreateClient);
 };
 
-const _subscribeChannels = (options, channels, subscribeHandler, errorHandlerCreateClient) => {
+const _subscribeChannels = (options, subscribedChannels, errorHandlerCreateClient) => {
   subscriberClientPromise = createClientAndConnect(options, errorHandlerCreateClient)
     .then((client) => {
-      for (const channel of channels) {
+      for (const channel in subscribedChannels) {
+        const fn = subscribedChannels[channel];
         client._subscribedChannels ??= {};
         if (client._subscribedChannels[channel]) {
           continue;
         }
         cds.log(COMPONENT_NAME).info("subscribe redis client connected channel", { channel });
         client
-          .subscribe(channel, subscribeHandler)
+          .subscribe(channel, fn)
           .then(() => {
             client._subscribedChannels ??= {};
             client._subscribedChannels[channel] = 1;
           })
           .catch(() => {
             cds.log(COMPONENT_NAME).error("error subscribe to channel - retrying...");
-            setTimeout(() => _subscribeChannels(options, [channel], subscribeHandler), LOG_AFTER_SEC * 1000).unref();
+            setTimeout(() => _subscribeChannels(options, [channel], fn), LOG_AFTER_SEC * 1000).unref();
           });
       }
     })
