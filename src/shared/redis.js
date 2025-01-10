@@ -123,7 +123,9 @@ const _subscribeChannels = (options, subscribedChannels, errorHandlerCreateClien
       cds
         .log(COMPONENT_NAME)
         .error(
-          `error from redis client for pub/sub failed during startup - trying to reconnect - ${channels.join(", ")}`,
+          `error from redis client for pub/sub failed during startup - trying to reconnect - ${Object.keys(
+            subscribedChannels
+          ).join(", ")}`,
           err
         );
     });
