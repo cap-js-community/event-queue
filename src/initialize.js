@@ -10,7 +10,7 @@ const VError = require("verror");
 const runner = require("./runner/runner");
 const dbHandler = require("./dbHandler");
 const config = require("./config");
-const { initEventQueueRedisSubscribe, closeSubscribeClient } = require("./redis/redisSub");
+const redisSub = require("./redis/redisSub");
 const redis = require("./shared/redis");
 const eventQueueAsOutbox = require("./outbox/eventQueueAsOutbox");
 const { getAllTenantIds } = require("./shared/cdsHelper");
@@ -149,7 +149,7 @@ const registerEventProcessors = () => {
   const errorHandler = (err) => cds.log(COMPONENT).error("error during init runner", err);
 
   if (config.redisEnabled) {
-    initEventQueueRedisSubscribe();
+    redisSub.initEventQueueRedisSubscribe();
     config.attachConfigChangeHandler();
     if (config.isMultiTenancy) {
       runner.multiTenancyRedis().catch(errorHandler);
@@ -198,7 +198,7 @@ const registerCdsShutdown = () => {
         cds.log(COMPONENT).info("shutdown timeout reached - some locks might not have been released!");
         resolve();
       }, TIMEOUT_SHUTDOWN);
-      Promise.allSettled([distributedLock.shutdownHandler(), redis.closeMainClient(), closeSubscribeClient()])
+      Promise.allSettled([distributedLock.shutdownHandler(), redis.closeMainClient(), redis.closeSubscribeClient()])
         .then((result) => {
           clearTimeout(timeoutRef);
           resolve(result);
