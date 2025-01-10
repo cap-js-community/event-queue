@@ -22,6 +22,7 @@ const readFileAsync = promisify(fs.readFile);
 
 const VERROR_CLUSTER_NAME = "EventQueueInitialization";
 const COMPONENT = "eventQueue/initialize";
+const TIMEOUT_SHUTDOWN = 2500;
 
 const CONFIG_VARS = [
   ["configFilePath", null],
@@ -186,13 +187,17 @@ const mixConfigVarsWithEnv = (options) => {
 };
 
 const registerCdsShutdown = () => {
+  const isTestProfile = cds.env.profiles.find((profile) => profile.includes("test"));
+  if (!isTestProfile) {
+    return;
+  }
   cds.on("shutdown", async () => {
     return await new Promise((resolve, reject) => {
       const timeoutRef = setTimeout(() => {
         clearTimeout(timeoutRef);
         cds.log(COMPONENT).info("shutdown timeout reached - some locks might not have been released!");
         resolve();
-      }, 5 * 1000);
+      }, TIMEOUT_SHUTDOWN);
       Promise.allSettled([distributedLock.shutdownHandler(), redis.closeMainClient(), closeSubscribeClient()])
         .then((result) => {
           clearTimeout(timeoutRef);
