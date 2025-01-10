@@ -19,6 +19,7 @@ const createMainClientAndConnect = (options) => {
   }
 
   const errorHandlerCreateClient = (err) => {
+    mainClientPromise?.then?.(_resilientClientClose);
     cds.log(COMPONENT_NAME).error("error from redis main client:", err);
     mainClientPromise = null;
     setTimeout(() => createMainClientAndConnect(options), LOG_AFTER_SEC * 1000).unref();
@@ -88,6 +89,7 @@ const subscribeRedisChannel = (options, channel, subscribeHandler) => {
   subscribedChannels[channel] = 1;
   const errorHandlerCreateClient = (err) => {
     cds.log(COMPONENT_NAME).error(`error from redis client for pub/sub failed for channel ${channel}`, err);
+    subscriberClientPromise?.then?.(_resilientClientClose);
     subscriberClientPromise = null;
     setTimeout(
       () => _subscribeChannels(options, Object.keys(subscribedChannels), subscribeHandler),
@@ -113,7 +115,10 @@ const _subscribeChannels = (options, channels, subscribeHandler, errorHandlerCre
             client._subscribedChannels ??= {};
             client._subscribedChannels[channel] = 1;
           })
-          .catch(errorHandlerCreateClient);
+          .catch(() => {
+            cds.log(COMPONENT_NAME).error("error subscribe to channel - retrying...");
+            setTimeout(() => _subscribeChannels(options, [channel], subscribeHandler), LOG_AFTER_SEC * 1000).unref();
+          });
       }
     })
     .catch((err) => {
@@ -132,19 +137,13 @@ const publishMessage = async (options, channel, message) => {
 };
 
 const closeMainClient = async () => {
-  try {
-    await _resilientClientClose(await mainClientPromise);
-  } catch (err) {
-    // ignore errors during shutdown
-  }
+  await _resilientClientClose(await mainClientPromise);
+  cds.log(COMPONENT_NAME).info("main redis client closed!");
 };
 
 const closeSubscribeClient = async () => {
-  try {
-    await _resilientClientClose(await subscriberClientPromise);
-  } catch (err) {
-    // ignore errors during shutdown
-  }
+  await _resilientClientClose(await subscriberClientPromise);
+  cds.log(COMPONENT_NAME).info("subscribe redis client closed!");
 };
 
 const _resilientClientClose = async (client) => {
@@ -153,7 +152,7 @@ const _resilientClientClose = async (client) => {
       await client.quit();
     }
   } catch (err) {
-    // ignore errors during shutdown
+    cds.log(COMPONENT_NAME).info("error during redis close - continuing...", err);
   }
 };
 
