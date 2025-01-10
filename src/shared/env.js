@@ -18,7 +18,7 @@ class Env {
   }
 
   get redisRequires() {
-    return cds.requires["redis-eventQueue"] ?? cds.requires["redis"];
+    return cds.requires["redis-eventQueue"] || cds.requires["redis"];
   }
 
   get applicationName() {
