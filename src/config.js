@@ -293,7 +293,10 @@ class Config {
 
   addCAPOutboxEvent(serviceName, config) {
     if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)]) {
-      return;
+      const index = this.#config.events.findIndex(
+        (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
+      );
+      this.#config.events.splice(index, 1);
     }
 
     const eventConfig = {

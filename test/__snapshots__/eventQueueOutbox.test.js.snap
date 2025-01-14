@@ -14,6 +14,29 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true accept event-queue specifi
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true custom options should win over service options 1`] = `
+{
+  "_appInstancesMap": null,
+  "_appNameMap": null,
+  "appInstances": undefined,
+  "appNames": undefined,
+  "checkForNextChunk": undefined,
+  "deleteFinishedEventsAfterDays": undefined,
+  "eventOutdatedCheck": undefined,
+  "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "internalEvent": true,
+  "load": 1,
+  "parallelEventProcessing": 5,
+  "processAfterCommit": undefined,
+  "retryAttempts": 20,
+  "selectMaxChunkSize": 100,
+  "subType": "NotificationServiceOutboxedByConfig",
+  "transactionMode": "alwaysCommit",
+  "type": "CAP_OUTBOX",
+  "useEventQueueUser": undefined,
+}
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true error in srv.after 1`] = `
 [
   [

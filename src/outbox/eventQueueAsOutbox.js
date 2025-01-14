@@ -12,7 +12,13 @@ const COMPONENT_NAME = "/eventQueue/eventQueueAsOutbox";
 const EVENT_QUEUE_SPECIFIC_FIELDS = ["startAfter", "referenceEntity", "referenceEntityKey"];
 
 function outboxed(srv, customOpts) {
-  // outbox max. once
+  if (!(new.target || customOpts)) {
+    const former = srv[OUTBOXED];
+    if (former) {
+      return former;
+    }
+  }
+
   const logger = cds.log(COMPONENT_NAME);
   const outboxOpts = Object.assign(
     {},
@@ -25,19 +31,14 @@ function outboxed(srv, customOpts) {
     config.addCAPOutboxEvent(srv.name, outboxOpts);
   }
 
-  if (!(new.target || customOpts)) {
-    const former = srv[OUTBOXED];
-    if (former) {
-      return former;
-    }
-  }
-
   const originalSrv = srv[UNBOXED] || srv;
   const outboxedSrv = Object.create(originalSrv);
   outboxedSrv[UNBOXED] = originalSrv;
 
-  if (!new.target && !customOpts) {
-    Object.defineProperty(srv, OUTBOXED, { value: outboxedSrv });
+  if (!new.target) {
+    if (!srv[OUTBOXED]) {
+      Object.defineProperty(srv, OUTBOXED, { value: outboxedSrv });
+    }
   }
   outboxedSrv.handle = async function (req) {
     const context = req.context || cds.context;

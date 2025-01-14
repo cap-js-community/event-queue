@@ -23,7 +23,7 @@ const COMPONENT_NAME = "/eventQueue/cdsHelper";
 async function executeInNewTransaction(context = {}, transactionTag, fn, args, { info = {} } = {}) {
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
-  let transactionRollbackPromise = true;
+  let transactionRollbackPromise = Promise.resolve(false);
   try {
     const user = new cds.User.Privileged({ id: config.userId, tokenInfo: await common.getTokenInfo(context.tenant) });
     if (cds.db.kind === "hana") {
@@ -42,10 +42,7 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
               tx.context.on("succeeded", () => resolve(false));
               tx.context.on("failed", () => resolve(true));
               fn(tx, ...parameters)
-                .then(() => {
-                  outerResolve();
-                  // timeout of 10 seconds --> but what to do after that?
-                })
+                .then(outerResolve)
                 .catch(outerReject);
             });
           });

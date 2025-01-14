@@ -561,6 +561,36 @@ describe("event-queue outbox", () => {
       expect(loggerMock.calls().error).toMatchSnapshot();
     });
 
+    it("custom options should win over service options", async () => {
+      const service = await cds.connect.to("NotificationServiceOutboxedByConfig", {
+        impl: "./srv/service/service.js",
+        outbox: {
+          kind: "persistent-outbox",
+          transactionMode: "alwaysRollback",
+        },
+      });
+      const outboxedService = cds.outboxed(service, {
+        kind: "persistent-outbox",
+        transactionMode: "alwaysCommit",
+      });
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      await commitAndOpenNew();
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
+      await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
+      await commitAndOpenNew();
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+      expect(loggerMock).sendFioriActionCalled();
+      const config = eventQueue.config.events.find((event) => event.subType === "NotificationServiceOutboxedByConfig");
+      delete config.startTime;
+      expect(config).toMatchSnapshot();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
     describe("not connected service should lazily connect and create configuration", () => {
       beforeEach(() => {
         eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");
