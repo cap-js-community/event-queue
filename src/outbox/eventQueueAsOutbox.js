@@ -21,12 +21,13 @@ function outboxed(srv, customOpts) {
     customOpts || {}
   );
 
+  if (outboxOpts.kind === "persistent-outbox") {
+    config.addCAPOutboxEvent(srv.name, outboxOpts);
+  }
+
   if (!(new.target || customOpts)) {
     const former = srv[OUTBOXED];
     if (former) {
-      if (outboxOpts.kind === "persistent-outbox") {
-        config.addCAPOutboxEvent(srv.name, outboxOpts); // write unit test --> what happens if there is already an event configuration???
-      }
       return former;
     }
   }
@@ -35,12 +36,8 @@ function outboxed(srv, customOpts) {
   const outboxedSrv = Object.create(originalSrv);
   outboxedSrv[UNBOXED] = originalSrv;
 
-  if (!new.target) {
+  if (!new.target && !customOpts) {
     Object.defineProperty(srv, OUTBOXED, { value: outboxedSrv });
-  }
-
-  if (outboxOpts.kind === "persistent-outbox") {
-    config.addCAPOutboxEvent(srv.name, outboxOpts);
   }
   outboxedSrv.handle = async function (req) {
     const context = req.context || cds.context;

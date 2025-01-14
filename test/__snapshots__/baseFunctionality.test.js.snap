@@ -46,7 +46,7 @@ exports[`baseFunctionality ad-hoc events error handling handle getQueueEntriesAn
 [
   [
     "Processing event queue failed with unexpected error.",
-    [ExecuteInNewTransactionError: Execution in new transaction failed: db error],
+    [Error: db error],
     {
       "eventSubType": "Task",
       "eventType": "Notifications",
