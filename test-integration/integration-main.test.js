@@ -526,9 +526,9 @@ describe("integration-main", () => {
       await eventQueue.processEventQueue(context, type, subType);
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error[0][0]).toEqual(
-        "business transaction commited but succeeded|done|failed threw a error!"
+        "Error in commit|rollback transaction, check handlers and constraints!"
       );
-      await testHelper.selectEventQueueAndExpectDone(tx);
+      await testHelper.selectEventQueueAndExpectError(tx);
       expect(dbCounts).toMatchSnapshot();
     });
   });
