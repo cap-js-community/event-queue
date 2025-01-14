@@ -10,6 +10,18 @@ exports[`integration-main empty queue - nothing to do 1`] = `
 }
 `;
 
+exports[`integration-main error handling on commit errors - isolated transaction mode error on commit 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 2,
+  "UPDATE": 3,
+}
+`;
+
 exports[`integration-main error handling on commit errors - isolated transaction mode one red 1`] = `
 {
   "BEGIN": 6,

@@ -201,31 +201,31 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
   }
 };
 
-const processEventMap = async (eventTypeInstance) => {
-  eventTypeInstance.startPerformanceTracerEvents();
-  await eventTypeInstance.beforeProcessingEvents();
-  eventTypeInstance.logStartMessage();
-  if (eventTypeInstance.commitOnEventLevel) {
-    eventTypeInstance.txUsageAllowed = false;
+const processEventMap = async (instance) => {
+  instance.startPerformanceTracerEvents();
+  await instance.beforeProcessingEvents();
+  instance.logStartMessage();
+  if (instance.commitOnEventLevel) {
+    instance.txUsageAllowed = false;
   }
   await limiter(
-    eventTypeInstance.parallelEventProcessing,
-    Object.entries(eventTypeInstance.eventProcessingMap),
+    instance.parallelEventProcessing,
+    Object.entries(instance.eventProcessingMap),
     async ([key, { queueEntries, payload }]) => {
-      if (eventTypeInstance.commitOnEventLevel) {
+      if (instance.commitOnEventLevel) {
         let statusMap;
         await executeInNewTransaction(
-          eventTypeInstance.baseContext,
-          `eventQueue-processEvent-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+          instance.baseContext,
+          `eventQueue-processEvent-${instance.eventType}##${instance.eventSubType}`,
           async (tx) => {
-            statusMap = await _processEvent(eventTypeInstance, tx.context, key, queueEntries, payload);
+            statusMap = await _processEvent(instance, tx.context, key, queueEntries, payload);
             const shouldRollback =
-              eventTypeInstance.statusMapContainsError(statusMap) || eventTypeInstance.shouldRollbackTransaction(key);
+              instance.statusMapContainsError(statusMap) || instance.shouldRollbackTransaction(key);
             if (shouldRollback) {
               await tx.rollback();
-              await _commitStatusInNewTx(eventTypeInstance, statusMap);
+              await _commitStatusInNewTx(instance, statusMap);
             } else {
-              await eventTypeInstance.persistEventStatus(tx, {
+              await instance.persistEventStatus(tx, {
                 skipChecks: true,
                 statusMap,
               });
@@ -233,20 +233,20 @@ const processEventMap = async (eventTypeInstance) => {
           }
         );
       } else {
-        await _processEvent(eventTypeInstance, eventTypeInstance.context, key, queueEntries, payload);
+        await _processEvent(instance, instance.context, key, queueEntries, payload);
       }
     }
   )
     .catch((err) => {
-      eventTypeInstance.handleErrorTx(err);
+      instance.handleErrorTx(err);
     })
     .finally(() => {
-      eventTypeInstance.clearEventProcessingContext();
-      if (eventTypeInstance.commitOnEventLevel) {
-        eventTypeInstance.txUsageAllowed = true;
+      instance.clearEventProcessingContext();
+      if (instance.commitOnEventLevel) {
+        instance.txUsageAllowed = true;
       }
     });
-  eventTypeInstance.endPerformanceTracerEvents();
+  instance.endPerformanceTracerEvents();
 };
 
 const _commitStatusInNewTx = async (eventTypeInstance, statusMap) =>
