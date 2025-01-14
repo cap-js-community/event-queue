@@ -42,15 +42,12 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
               tx.context.on("succeeded", () => resolve(false));
               tx.context.on("failed", () => resolve(true));
               fn(tx, ...parameters)
-                .catch(outerReject)
-                .finally(() => {
+                .then(() => {
                   outerResolve();
                   // timeout of 10 seconds --> but what to do after that?
-                });
+                })
+                .catch(outerReject);
             });
-          }).finally(() => {
-            //;
-            debugger;
           });
         }
       );

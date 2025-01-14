@@ -547,7 +547,7 @@ class EventQueueProcessorBase {
   }
 
   handleErrorTx(error) {
-    this.logger.error("Error transaction handling. Check all succeeded|done handler!", error, {
+    this.logger.error("Error in commit|rollback transaction, check handlers and constraints!", error, {
       eventType: this.#eventType,
       eventSubType: this.#eventSubType,
     });

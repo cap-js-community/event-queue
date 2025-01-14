@@ -501,6 +501,36 @@ describe("integration-main", () => {
       await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
       expect(dbCounts).toMatchSnapshot();
     });
+
+    it("error on commit", async () => {
+      await cds.tx({}, (tx2) =>
+        testHelper.insertEventEntry(tx2, {
+          type,
+          subType,
+        })
+      );
+      dbCounts = {};
+      jest
+        .spyOn(EventQueueTest.prototype, "processEvent")
+        .mockImplementationOnce(async (processContext, key, queueEntries) => {
+          const db = await cds.connect.to("db");
+
+          const { "sap.eventqueue.Lock": Lock } = cds.entities;
+          db.before("COMMIT", async () => {
+            db.handlers.before.pop();
+            throw new Error("oh boy");
+          });
+          await cds.tx(processContext).run(SELECT.one.from(Lock));
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+        });
+      await eventQueue.processEventQueue(context, type, subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error[0][0]).toEqual(
+        "business transaction commited but succeeded|done|failed threw a error!"
+      );
+      await testHelper.selectEventQueueAndExpectDone(tx);
+      expect(dbCounts).toMatchSnapshot();
+    });
   });
 
   describe("transactionMode=isolated", () => {
