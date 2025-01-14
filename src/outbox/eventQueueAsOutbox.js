@@ -21,11 +21,11 @@ function outboxed(srv, customOpts) {
     customOpts || {}
   );
 
-  if (!new.target) {
+  if (!(new.target || customOpts)) {
     const former = srv[OUTBOXED];
     if (former) {
       if (outboxOpts.kind === "persistent-outbox") {
-        config.addCAPOutboxEvent(srv.name, outboxOpts);
+        config.addCAPOutboxEvent(srv.name, outboxOpts); // write unit test --> what happens if there is already an event configuration???
       }
       return former;
     }

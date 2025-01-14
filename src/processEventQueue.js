@@ -219,37 +219,48 @@ const processEventMap = async (eventTypeInstance) => {
           `eventQueue-processEvent-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
           async (tx) => {
             statusMap = await _processEvent(eventTypeInstance, tx.context, key, queueEntries, payload);
-            if (
-              eventTypeInstance.statusMapContainsError(statusMap) ||
-              eventTypeInstance.shouldRollbackTransaction(key)
-            ) {
+            const shouldRollback =
+              eventTypeInstance.statusMapContainsError(statusMap) || eventTypeInstance.shouldRollbackTransaction(key);
+            if (shouldRollback) {
               await tx.rollback();
+              await _commitStatusInNewTx(eventTypeInstance, statusMap);
+            } else {
+              await eventTypeInstance.persistEventStatus(tx, {
+                skipChecks: true,
+                statusMap,
+              });
             }
-          }
-        );
-        await executeInNewTransaction(
-          eventTypeInstance.baseContext,
-          `eventQueue-persistStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
-          async (tx) => {
-            eventTypeInstance.processEventContext = tx.context;
-            await eventTypeInstance.persistEventStatus(tx, {
-              skipChecks: true,
-              statusMap,
-            });
           }
         );
       } else {
         await _processEvent(eventTypeInstance, eventTypeInstance.context, key, queueEntries, payload);
       }
     }
-  ).finally(() => {
-    eventTypeInstance.clearEventProcessingContext();
-    if (eventTypeInstance.commitOnEventLevel) {
-      eventTypeInstance.txUsageAllowed = true;
-    }
-  });
+  )
+    .catch((err) => {
+      eventTypeInstance.handleErrorTx(err);
+    })
+    .finally(() => {
+      eventTypeInstance.clearEventProcessingContext();
+      if (eventTypeInstance.commitOnEventLevel) {
+        eventTypeInstance.txUsageAllowed = true;
+      }
+    });
   eventTypeInstance.endPerformanceTracerEvents();
 };
+
+const _commitStatusInNewTx = async (eventTypeInstance, statusMap) =>
+  await executeInNewTransaction(
+    eventTypeInstance.baseContext,
+    `eventQueue-persistStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
+    async (tx) => {
+      eventTypeInstance.processEventContext = tx.context;
+      await eventTypeInstance.persistEventStatus(tx, {
+        skipChecks: true,
+        statusMap,
+      });
+    }
+  );
 
 const _checkEventIsBlocked = async (baseInstance) => {
   const isEventBlockedCb = config.isEventBlockedCb;

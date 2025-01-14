@@ -23,6 +23,7 @@ const COMPONENT_NAME = "/eventQueue/cdsHelper";
 async function executeInNewTransaction(context = {}, transactionTag, fn, args, { info = {} } = {}) {
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
+  let transactionRollbackPromise = true;
   try {
     const user = new cds.User.Privileged({ id: config.userId, tokenInfo: await common.getTokenInfo(context.tenant) });
     if (cds.db.kind === "hana") {
@@ -36,7 +37,21 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
         },
         async (tx) => {
           tx.context._ = context._ ?? {};
-          return await fn(tx, ...parameters);
+          return new Promise((outerResolve, outerReject) => {
+            transactionRollbackPromise = new Promise((resolve) => {
+              tx.context.on("succeeded", () => resolve(false));
+              tx.context.on("failed", () => resolve(true));
+              fn(tx, ...parameters)
+                .catch(outerReject)
+                .finally(() => {
+                  outerResolve();
+                  // timeout of 10 seconds --> but what to do after that?
+                });
+            });
+          }).finally(() => {
+            //;
+            debugger;
+          });
         }
       );
     } else {
@@ -51,7 +66,10 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
             user,
             headers: context.headers,
           },
-          async (tx) => fn(tx, ...parameters)
+          async (tx) => {
+            await fn(tx, ...parameters);
+            transactionRollbackPromise = false;
+          }
         );
       } else {
         contextTx.context.user = user;
@@ -68,17 +86,24 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
           // change rollback to no opt - closing tx would cause follow-up usage to fail.
           // the process that opened the tx needs to manage it
         };
-        await fn(contextTx, ...parameters).finally(() => (contextTx.rollback = txRollback));
+        await fn(contextTx, ...parameters)
+          .then(() => (transactionRollbackPromise = false))
+          .finally(() => (contextTx.rollback = txRollback));
       }
     }
   } catch (err) {
+    const transactionRollback = await transactionRollbackPromise;
     if (err instanceof VError) {
       Object.assign(err.jse_info, {
         newTx: info,
       });
-      throw err;
+      if (transactionRollback) {
+        throw err;
+      } else {
+        logger.error("business transaction commited but succeeded|done|failed threw a error!", err);
+      }
     } else {
-      throw new VError(
+      const nestedError = new VError(
         {
           name: VERROR_CLUSTER_NAME,
           cause: err,
@@ -86,6 +111,11 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
         },
         "Execution in new transaction failed"
       );
+      if (transactionRollback) {
+        throw err;
+      } else {
+        logger.error("business transaction commited but succeeded|done|failed threw a error!", nestedError);
+      }
     }
   } finally {
     logger.debug("Execution in new transaction finished", info);

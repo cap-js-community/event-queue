@@ -4,6 +4,8 @@ const crypto = require("crypto");
 
 const cds = require("@sap/cds");
 const xssec = require("@sap/xssec");
+const VError = require("verror");
+
 const config = require("../config");
 const { TenantIdCheckTypes } = require("../constants");
 
@@ -44,7 +46,22 @@ const limiter = async (limit, payloads, iterator) => {
       }
     }
   }
-  return Promise.allSettled(returnPromises);
+  return promiseAllDone(returnPromises);
+};
+
+const promiseAllDone = async (iterable) => {
+  const results = await Promise.allSettled(iterable);
+  const rejects = results.filter((entry) => {
+    return entry.status === "rejected";
+  });
+  if (rejects.length === 1) {
+    return Promise.reject(rejects[0].reason);
+  } else if (rejects.length > 1) {
+    return Promise.reject(new VError.MultiError(rejects.map((reject) => reject.reason)));
+  }
+  return results.map((entry) => {
+    return entry.value;
+  });
 };
 
 const isValidDate = (value) => {
