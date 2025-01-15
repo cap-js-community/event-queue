@@ -45,10 +45,7 @@ describe("integration-main", () => {
     loggerMock = mockLogger();
     const db = await cds.connect.to("db");
 
-    if (
-      db._source !==
-      (/true/i.test(process.env.OLD_DB_SERVICE) ? "@sap/cds/libx/_runtime/hana/Service.js" : "@cap-js/hana")
-    ) {
+    if (/true/i.test(process.env.OLD_DB_SERVICE) && db.set) {
       throw new Error("wrong hana driver is used for testing");
     }
     db.before("*", (cdsContext) => {
