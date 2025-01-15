@@ -45,10 +45,7 @@ describe("integration-main", () => {
     loggerMock = mockLogger();
     const db = await cds.connect.to("db");
 
-    if (
-      db._source !==
-      (/true/i.test(process.env.NEW_DB_SERVICE) ? "@cap-js/hana" : "@sap/cds/libx/_runtime/hana/Service.js")
-    ) {
+    if (/true/i.test(process.env.OLD_DB_SERVICE) && db.set) {
       throw new Error("wrong hana driver is used for testing");
     }
     db.before("*", (cdsContext) => {
@@ -73,6 +70,7 @@ describe("integration-main", () => {
   afterEach(async () => {
     await tx.rollback();
     jest.clearAllMocks();
+    jest.spyOn(EventQueueTest.prototype, "processEvent").mockRestore();
   });
 
   afterAll(async () => {
@@ -286,10 +284,8 @@ describe("integration-main", () => {
       });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     doCheck = false;
-    // eslint-disable-next-line jest/no-standalone-expect
     expect(loggerMock.callsLengths().error).toEqual(1);
     await testHelper.selectEventQueueAndExpectError(tx);
-    // eslint-disable-next-line jest/no-standalone-expect
     expect(dbCounts).toMatchSnapshot();
   });
 
@@ -395,6 +391,143 @@ describe("integration-main", () => {
     expect(new Date(Date.now() + 5 * 60 * 1000) - new Date(event.startAfter)).toBeLessThan(5000); // diff should be lower than 1 second
     expect(scheduler).toHaveBeenCalledTimes(1);
     expect(dbCounts).toMatchSnapshot();
+  });
+
+  describe("error handling on commit errors - isolated transaction mode", () => {
+    const type = "TransactionMode";
+    const subType = "isolated";
+    afterEach(async () => {
+      const db = await cds.connect.to("db");
+      db.handlers.after = [];
+    });
+
+    it("one red", async () => {
+      await cds.tx({}, (tx2) =>
+        testHelper.insertEventEntry(tx2, {
+          type,
+          subType,
+        })
+      );
+      dbCounts = {};
+      jest
+        .spyOn(EventQueueTest.prototype, "processEvent")
+        .mockImplementationOnce(async (processContext, key, queueEntries) => {
+          const db = await cds.connect.to("db");
+
+          const { "sap.eventqueue.Lock": Lock } = cds.entities;
+          db.after("READ", Lock, async (data, context) => {
+            context.on("succeeded", async () => {
+              throw new Error("oh boy");
+            });
+          });
+          await cds.tx(processContext).run(SELECT.one.from(Lock));
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+        });
+      await eventQueue.processEventQueue(context, type, subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error[0][0]).toEqual(
+        "business transaction commited but succeeded|done|failed threw a error!"
+      );
+      await testHelper.selectEventQueueAndExpectDone(tx);
+      expect(dbCounts).toMatchSnapshot();
+    });
+
+    it("two red", async () => {
+      await cds.tx({}, (tx2) =>
+        testHelper.insertEventEntry(tx2, {
+          type,
+          subType,
+          numberOfEntries: 2,
+        })
+      );
+      dbCounts = {};
+      jest
+        .spyOn(EventQueueTest.prototype, "processEvent")
+        .mockImplementation(async (processContext, key, queueEntries) => {
+          const db = await cds.connect.to("db");
+
+          const { "sap.eventqueue.Lock": Lock } = cds.entities;
+          db.after("READ", Lock, async (data, context) => {
+            context.on("succeeded", async () => {
+              throw new Error("oh boy");
+            });
+          });
+          await cds.tx(processContext).run(SELECT.one.from(Lock));
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+        });
+      await eventQueue.processEventQueue(context, type, subType);
+      expect(loggerMock.callsLengths().error).toEqual(2);
+      expect(loggerMock.calls().error[0][0]).toEqual(
+        "business transaction commited but succeeded|done|failed threw a error!"
+      );
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+      expect(dbCounts).toMatchSnapshot();
+    });
+
+    it("one red and one green", async () => {
+      await cds.tx({}, (tx2) =>
+        testHelper.insertEventEntry(tx2, {
+          type,
+          subType,
+          numberOfEntries: 2,
+        })
+      );
+      dbCounts = {};
+      let shouldThrow = true;
+      jest
+        .spyOn(EventQueueTest.prototype, "processEvent")
+        .mockImplementation(async (processContext, key, queueEntries) => {
+          const db = await cds.connect.to("db");
+          const { "sap.eventqueue.Lock": Lock } = cds.entities;
+          db.after("READ", Lock, async (data, context) => {
+            context.on("succeeded", async () => {
+              if (shouldThrow) {
+                shouldThrow = false;
+                throw new Error("oh boy");
+              }
+            });
+          });
+          await cds.tx(processContext).run(SELECT.one.from(Lock));
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+        });
+      await eventQueue.processEventQueue(context, type, subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error[0][0]).toEqual(
+        "business transaction commited but succeeded|done|failed threw a error!"
+      );
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+      expect(dbCounts).toMatchSnapshot();
+    });
+
+    it("error on commit", async () => {
+      await cds.tx({}, (tx2) =>
+        testHelper.insertEventEntry(tx2, {
+          type,
+          subType,
+        })
+      );
+      dbCounts = {};
+      jest
+        .spyOn(EventQueueTest.prototype, "processEvent")
+        .mockImplementationOnce(async (processContext, key, queueEntries) => {
+          const db = await cds.connect.to("db");
+
+          const { "sap.eventqueue.Lock": Lock } = cds.entities;
+          db.before("COMMIT", async () => {
+            db.handlers.before.pop();
+            throw new Error("oh boy");
+          });
+          await cds.tx(processContext).run(SELECT.one.from(Lock));
+          return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+        });
+      await eventQueue.processEventQueue(context, type, subType);
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error[0][0]).toEqual(
+        "Error in commit|rollback transaction, check handlers and constraints!"
+      );
+      await testHelper.selectEventQueueAndExpectError(tx);
+      expect(dbCounts).toMatchSnapshot();
+    });
   });
 
   describe("transactionMode=isolated", () => {

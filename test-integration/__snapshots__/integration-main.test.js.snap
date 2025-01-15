@@ -10,6 +10,54 @@ exports[`integration-main empty queue - nothing to do 1`] = `
 }
 `;
 
+exports[`integration-main error handling on commit errors - isolated transaction mode error on commit 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 2,
+  "UPDATE": 3,
+}
+`;
+
+exports[`integration-main error handling on commit errors - isolated transaction mode one red 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
+exports[`integration-main error handling on commit errors - isolated transaction mode one red and one green 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 6,
+  "ROLLBACK": 1,
+  "UPDATE": 3,
+}
+`;
+
+exports[`integration-main error handling on commit errors - isolated transaction mode two red 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 6,
+  "ROLLBACK": 1,
+  "UPDATE": 3,
+}
+`;
+
 exports[`integration-main hookForExceededEvents hookForExceededEvents throws - rollback + counter increase 1`] = `
 {
   "BEGIN": 7,
@@ -209,8 +257,8 @@ exports[`integration-main lock wait timeout during keepAlive 1`] = `
 
 exports[`integration-main parallel event processing in the same instance insert 4 entries and select with chunk size one --> should process in parallel - twice 1`] = `
 {
-  "BEGIN": 19,
-  "COMMIT": 14,
+  "BEGIN": 15,
+  "COMMIT": 10,
   "READ": 15,
   "ROLLBACK": 4,
   "UPDATE": 8,
@@ -219,8 +267,8 @@ exports[`integration-main parallel event processing in the same instance insert 
 
 exports[`integration-main parallel event processing in the same instance insert two entries and select with chunk size one --> should process in parallel 1`] = `
 {
-  "BEGIN": 11,
-  "COMMIT": 8,
+  "BEGIN": 9,
+  "COMMIT": 6,
   "READ": 9,
   "ROLLBACK": 2,
   "UPDATE": 4,
@@ -341,8 +389,8 @@ exports[`integration-main should do nothing if lock for event combination cannot
 
 exports[`integration-main should set db user correctly 1`] = `
 {
-  "BEGIN": 8,
-  "COMMIT": 6,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 2,
   "DELETE": 1,
   "READ": 4,
@@ -482,8 +530,8 @@ exports[`integration-main transactionMode=isolated first processed register tx r
 
 exports[`integration-main transactionMode=isolated first processed register tx rollback - only first should be rolled back 2`] = `
 {
-  "BEGIN": 9,
-  "COMMIT": 6,
+  "BEGIN": 8,
+  "COMMIT": 5,
   "CREATE": 3,
   "DELETE": 1,
   "READ": 4,

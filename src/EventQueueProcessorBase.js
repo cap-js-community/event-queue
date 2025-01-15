@@ -546,6 +546,16 @@ class EventQueueProcessorBase {
     });
   }
 
+  handleErrorTx(error) {
+    this.logger.error("Error in commit|rollback transaction, check handlers and constraints!", error, {
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
+    });
+    this.__queueEntries.forEach((queueEntry) => {
+      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
+    });
+  }
+
   handleInvalidPayloadReturned(queueEntry) {
     this.logger.error(
       "Undefined payload is not allowed. If status should be done, nulls needs to be returned" +

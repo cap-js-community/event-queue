@@ -12,7 +12,13 @@ const COMPONENT_NAME = "/eventQueue/eventQueueAsOutbox";
 const EVENT_QUEUE_SPECIFIC_FIELDS = ["startAfter", "referenceEntity", "referenceEntityKey"];
 
 function outboxed(srv, customOpts) {
-  // outbox max. once
+  if (!(new.target || customOpts)) {
+    const former = srv[OUTBOXED];
+    if (former) {
+      return former;
+    }
+  }
+
   const logger = cds.log(COMPONENT_NAME);
   const outboxOpts = Object.assign(
     {},
@@ -21,14 +27,8 @@ function outboxed(srv, customOpts) {
     customOpts || {}
   );
 
-  if (!new.target) {
-    const former = srv[OUTBOXED];
-    if (former) {
-      if (outboxOpts.kind === "persistent-outbox") {
-        config.addCAPOutboxEvent(srv.name, outboxOpts);
-      }
-      return former;
-    }
+  if (outboxOpts.kind === "persistent-outbox") {
+    config.addCAPOutboxEvent(srv.name, outboxOpts);
   }
 
   const originalSrv = srv[UNBOXED] || srv;
@@ -36,11 +36,9 @@ function outboxed(srv, customOpts) {
   outboxedSrv[UNBOXED] = originalSrv;
 
   if (!new.target) {
-    Object.defineProperty(srv, OUTBOXED, { value: outboxedSrv });
-  }
-
-  if (outboxOpts.kind === "persistent-outbox") {
-    config.addCAPOutboxEvent(srv.name, outboxOpts);
+    if (!srv[OUTBOXED]) {
+      Object.defineProperty(srv, OUTBOXED, { value: outboxedSrv });
+    }
   }
   outboxedSrv.handle = async function (req) {
     const context = req.context || cds.context;
