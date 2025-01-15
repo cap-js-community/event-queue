@@ -559,6 +559,13 @@ describe("baseFunctionality", () => {
 
   describe("getOpenQueueEntries", () => {
     describe("filterAppSpecificEvents", () => {
+      beforeEach(async () => {
+        const service = await cds.connect.to("NotificationService");
+        for (const sym of Object.getOwnPropertySymbols(service)) {
+          delete service[sym];
+        }
+      });
+
       test("return open event types", async () => {
         const result = await cds.tx({}, async (tx) => {
           await testHelper.insertEventEntry(tx);
@@ -761,7 +768,7 @@ describe("baseFunctionality", () => {
         const env = getEnvInstance();
         env.vcapApplication = { application_name: "app-b" };
         const service = await cds.connect.to("NotificationService");
-        cds.outboxed(service);
+        cds.outboxed(service, { appNames: ["app-b"] });
         await cds.tx({}, async (tx) => {
           await testHelper.insertEventEntry(tx);
           await tx.run(
@@ -828,7 +835,7 @@ describe("baseFunctionality", () => {
         const env = getEnvInstance();
         env.applicationInstance = 1;
         const service = await cds.connect.to("NotificationService");
-        cds.outboxed(service);
+        cds.outboxed(service, { appInstances: [1] });
         await cds.tx({}, async (tx) => {
           await testHelper.insertEventEntry(tx);
           await tx.run(
