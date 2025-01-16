@@ -66,6 +66,9 @@ const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
       await trace(context, "broadcast-inserted-events", async () => {
         for (const { type, subType } of events) {
           const eventConfig = config.getEventConfig(type, subType);
+          if (!eventConfig) {
+            continue;
+          }
           for (let i = 0; i < TRIES_FOR_PUBLISH_PERIODIC_EVENT; i++) {
             const result = eventConfig.multiInstanceProcessing
               ? false

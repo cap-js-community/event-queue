@@ -72,6 +72,10 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     jest.clearAllMocks();
   });
 
+  afterEach(async () => {
+    await tx.rollback();
+  });
+
   afterAll(async () => {
     await cds.shutdown;
   });
@@ -240,6 +244,11 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][2]);
       expect(runnerSpy).toHaveBeenCalledTimes(0);
+    });
+
+    test("broadcast not existing event should not fail", async () => {
+      await redisPub.broadcastEvent(123, { type: "dummy", subType: "dummy" });
+      expect(loggerMock.calls().error).toHaveLength(0);
     });
 
     test("should not fail for not existing config", async () => {
