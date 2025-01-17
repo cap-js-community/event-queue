@@ -314,8 +314,12 @@ class Config {
       appNames: config.appNames,
       appInstances: config.appInstances,
       useEventQueueUser: config.useEventQueueUser,
+      retryFailedAfter: config.retryFailedAfter,
+      priority: config.priority,
+      multiInstanceProcessing: config.multiInstanceProcessing,
       internalEvent: true,
     };
+
     this.#basicEventTransformationAfterValidate(eventConfig);
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
