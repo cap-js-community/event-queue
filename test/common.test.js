@@ -15,8 +15,6 @@ const {
 const xssec = require("@sap/xssec");
 const cds = require("@sap/cds");
 
-const config = require("../src/config");
-
 const tenantId1 = "cc0edebc-58df-44ab-ab1f-1cee383b423e";
 const tenantId2 = "61d0f6f5-449d-49c2-980f-cc6b45310b5d";
 
