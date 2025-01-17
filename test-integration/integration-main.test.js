@@ -45,9 +45,6 @@ describe("integration-main", () => {
     loggerMock = mockLogger();
     const db = await cds.connect.to("db");
 
-    if (/true/i.test(process.env.OLD_DB_SERVICE) && db.set) {
-      throw new Error("wrong hana driver is used for testing");
-    }
     db.before("*", (cdsContext) => {
       if (dbCounts[cdsContext.event]) {
         dbCounts[cdsContext.event] = dbCounts[cdsContext.event] + 1;
