@@ -58,7 +58,6 @@ class Config {
   #isEventQueueActive;
   #configFilePath;
   #processEventsAfterPublish;
-  #skipCsnCheck;
   #registerAsEventProcessor;
   #disableRedis;
   #env;
@@ -78,7 +77,8 @@ class Config {
   #cronTimezone;
   #publishEventBlockList;
   #crashOnRedisUnavailable;
-  #tenantIdFilterCb;
+  #tenantIdFilterTokenInfoCb;
+  #tenantIdFilterEventProcessingCb;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -94,7 +94,6 @@ class Config {
     this.#isEventQueueActive = true;
     this.#configFilePath = null;
     this.#processEventsAfterPublish = null;
-    this.#skipCsnCheck = null;
     this.#disableRedis = null;
     this.#env = getEnvInstance();
     this.#blockedEvents = {};
@@ -533,12 +532,20 @@ class Config {
     this.#crashOnRedisUnavailable = value;
   }
 
-  get tenantIdFilterCb() {
-    return this.#tenantIdFilterCb;
+  get tenantIdFilterTokenInfo() {
+    return this.#tenantIdFilterTokenInfoCb;
   }
 
-  set tenantIdFilterCb(value) {
-    this.#tenantIdFilterCb = value;
+  set tenantIdFilterTokenInfo(value) {
+    this.#tenantIdFilterTokenInfoCb = value;
+  }
+
+  get tenantIdFilterEventProcessing() {
+    return this.#tenantIdFilterEventProcessingCb;
+  }
+
+  set tenantIdFilterEventProcessing(value) {
+    this.#tenantIdFilterEventProcessingCb = value;
   }
 
   set globalTxTimeout(value) {
@@ -618,14 +625,6 @@ class Config {
 
   get processEventsAfterPublish() {
     return this.#processEventsAfterPublish;
-  }
-
-  set skipCsnCheck(value) {
-    this.#skipCsnCheck = value;
-  }
-
-  get skipCsnCheck() {
-    return this.#skipCsnCheck;
   }
 
   set disableRedis(value) {

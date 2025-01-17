@@ -132,10 +132,23 @@ const getTokenInfo = async (tenantId) => {
   return await tokenInfoCache[tenantId].value;
 };
 
-const isTenantIdValidCb = (checkType, tenantId) => {
-  if (config.tenantIdFilterCb) {
-    return config.tenantIdFilterCb(checkType, tenantId);
-  } else {
+const isTenantIdValidCb = async (checkType, tenantId) => {
+  let cb;
+  switch (checkType) {
+    case TenantIdCheckTypes.getTokenInfo:
+      cb = config.tenantIdFilterTokenInfo;
+      break;
+    case TenantIdCheckTypes.eventProcessing:
+      cb = config.tenantIdFilterEventProcessing;
+      break;
+    default:
+      cb = async () => true;
+  }
+
+  try {
+    return cb ? await cb(tenantId) : true;
+  } catch (err) {
+    cds.log(COMPONENT_NAME).error("failed in custom tenant id filter callback. Returning true.", err);
     return true;
   }
 };
@@ -148,6 +161,7 @@ module.exports = {
   hashStringTo32Bit,
   getTokenInfo,
   isTenantIdValidCb,
+  promiseAllDone,
   __: {
     clearTokenInfoCache: () => (getTokenInfo._tokenInfoCache = {}),
   },

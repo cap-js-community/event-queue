@@ -217,6 +217,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
   describe("subscribe handler", () => {
     afterEach(() => {
       config.isEventQueueActive = true;
+      config.tenantIdFilterEventProcessing = null;
     });
 
     test("straight forward should call runEventCombinationForTenant", async () => {
@@ -296,6 +297,19 @@ describe("eventQueue Redis Events and DB Handlers", () => {
         const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
         checkLockExistsSpy.mockResolvedValueOnce(false);
         await insertEventEntry(tx, { type: "AppSpecific", subType: "both" });
+        await tx.commit();
+
+        expect(mockRedisPublishCalls).toHaveLength(1);
+
+        await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][2]);
+        expect(runnerSpy).toHaveBeenCalledTimes(0);
+      });
+
+      test("should not open a transactin if filtered by tenant id", async () => {
+        config.tenantIdFilterEventProcessing = () => false;
+        const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+        checkLockExistsSpy.mockResolvedValueOnce(false);
+        await insertEventEntry(tx, { type: "AppSpecific", subType: "AppInstance" });
         await tx.commit();
 
         expect(mockRedisPublishCalls).toHaveLength(1);

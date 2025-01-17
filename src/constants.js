@@ -21,7 +21,7 @@ module.exports = {
     VeryHigh: "veryHigh",
   },
   TenantIdCheckTypes: {
-    getAllTenantIds: "getAllTenantIds",
+    eventProcessing: "eventProcessing",
     getTokenInfo: "getTokenInfo",
   },
 };

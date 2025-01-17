@@ -133,7 +133,13 @@ const getAllTenantIds = async () => {
   const response = await ssp.get("/tenant");
   return response
     .map((tenant) => tenant.subscribedTenantId ?? tenant.tenant)
-    .filter((tenantId) => common.isTenantIdValidCb(TenantIdCheckTypes.getAllTenantIds, tenantId));
+    .reduce(async (result, tenantId) => {
+      result = await result;
+      if (await common.isTenantIdValidCb(TenantIdCheckTypes.eventProcessing, tenantId)) {
+        result.push(tenantId);
+      }
+      return result;
+    }, []);
 };
 
 module.exports = {
