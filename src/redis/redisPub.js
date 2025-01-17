@@ -10,6 +10,7 @@ const config = require("../config");
 const common = require("../shared/common");
 const { runEventCombinationForTenant } = require("../runner/runnerHelper");
 const trace = require("../shared/openTelemetry");
+const { TenantIdCheckTypes } = require("../constants");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/redisPub";
@@ -59,6 +60,10 @@ const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
   events = Array.isArray(events) ? events : [events];
   try {
     if (!config.redisEnabled) {
+      const tenantShouldBeProcessed = await common.isTenantIdValidCb(TenantIdCheckTypes.eventProcessing, tenantId);
+      if (!tenantShouldBeProcessed) {
+        return;
+      }
       await _processLocalWithoutRedis(tenantId, events);
       return;
     }

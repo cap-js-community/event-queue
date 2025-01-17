@@ -15,8 +15,6 @@ const {
 const xssec = require("@sap/xssec");
 const cds = require("@sap/cds");
 
-const config = require("../src/config");
-
 const tenantId1 = "cc0edebc-58df-44ab-ab1f-1cee383b423e";
 const tenantId2 = "61d0f6f5-449d-49c2-980f-cc6b45310b5d";
 
@@ -176,23 +174,12 @@ describe("getTokenInfo", () => {
 
 describe("isTenantIdValidCb", () => {
   describe("standard", () => {
-    it("should return true for a valid tenant id", () => {
-      expect(isTenantIdValidCb("cc0edebc-58df-44ab-ab1f-1cee383b423e")).toBe(true);
+    it("should return true for a valid tenant id", async () => {
+      expect(await isTenantIdValidCb("cc0edebc-58df-44ab-ab1f-1cee383b423e")).toBe(true);
     });
 
-    it("should also return true for not valid tenant id as there is no check", () => {
-      expect(isTenantIdValidCb("invalid-tenant-id")).toBe(true);
-    });
-  });
-
-  describe("use callback", () => {
-    it("always true", () => {
-      config.tenantIdFilterCb = () => true;
-      expect(isTenantIdValidCb()).toBe(true);
-    });
-    it("always false", () => {
-      config.tenantIdFilterCb = () => false;
-      expect(isTenantIdValidCb()).toBe(false);
+    it("should also return true for not valid tenant id as there is no check", async () => {
+      expect(await isTenantIdValidCb("invalid-tenant-id")).toBe(true);
     });
   });
 });

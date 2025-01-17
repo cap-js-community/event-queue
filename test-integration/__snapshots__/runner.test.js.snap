@@ -127,6 +127,42 @@ exports[`runner redis multi tenant no open events 2`] = `
 }
 `;
 
+exports[`runner redis multi tenant tenant id filter should not acquire lock - only process tenants based on tenant filter with open events - split into two instances 1`] = `
+[
+  [
+    "9f3ed8f0-8aaf-439e-a96a-04cd5b680c59",
+    [
+      {
+        "subType": "DELETE_EVENTS",
+        "type": "EVENT_QUEUE_BASE_PERIODIC",
+      },
+    ],
+  ],
+  [
+    "cd805323-879c-4bf7-b19c-8ffbbee22e1f",
+    [
+      {
+        "subType": "DELETE_EVENTS",
+        "type": "EVENT_QUEUE_BASE_PERIODIC",
+      },
+    ],
+  ],
+  [
+    "e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792",
+    [
+      {
+        "subType": "DELETE_EVENTS",
+        "type": "EVENT_QUEUE_BASE_PERIODIC",
+      },
+    ],
+  ],
+]
+`;
+
+exports[`runner redis multi tenant tenant id filter should not acquire lock - only process tenants based on tenant filter with open events - split into two instances 2`] = `[]`;
+
+exports[`runner redis multi tenant tenant id filter should not acquire lock - only process tenants based on tenant filter with open events - split into two instances 3`] = `{}`;
+
 exports[`runner redis multi tenant with open events - broadcast should be called 1`] = `
 [
   [

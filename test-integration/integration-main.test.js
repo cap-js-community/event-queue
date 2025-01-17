@@ -45,9 +45,6 @@ describe("integration-main", () => {
     loggerMock = mockLogger();
     const db = await cds.connect.to("db");
 
-    if (/true/i.test(process.env.OLD_DB_SERVICE) && db.set) {
-      throw new Error("wrong hana driver is used for testing");
-    }
     db.before("*", (cdsContext) => {
       if (dbCounts[cdsContext.event]) {
         dbCounts[cdsContext.event] = dbCounts[cdsContext.event] + 1;
@@ -65,6 +62,7 @@ describe("integration-main", () => {
       await tx2.run(DELETE.from("sap.eventqueue.Event"));
     });
     dbCounts = {};
+    eventQueue.config.tenantIdFilterEventProcessing = null;
   });
 
   afterEach(async () => {
@@ -1852,6 +1850,21 @@ describe("integration-main", () => {
       ]);
       expect(loggerMock.callsLengths().error).toEqual(0);
       await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+    });
+
+    it("if tenant id filter filters the tenant - should not process event", async () => {
+      eventQueue.config.tenantIdFilterEventProcessing = () => false;
+      const broadcastSpy = jest.spyOn(redisPub, "broadcastEvent");
+      await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
+      await promisify(setTimeout)(2000);
+      expect(broadcastSpy).toHaveBeenCalledWith(undefined, [
+        {
+          subType: "Task",
+          type: "Notifications",
+        },
+      ]);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndExpectOpen(tx);
     });
   });
 

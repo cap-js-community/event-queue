@@ -6,6 +6,7 @@ const redis = require("../shared/redis");
 const config = require("../config");
 const runnerHelper = require("../runner/runnerHelper");
 const common = require("../shared/common");
+const { TenantIdCheckTypes } = require("../constants");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";
 const COMPONENT_NAME = "/eventQueue/redisSub";
@@ -22,6 +23,10 @@ const _messageHandlerProcessEvents = async (messageData) => {
   const logger = cds.log(COMPONENT_NAME);
   try {
     const { lockId, tenantId, type, subType } = JSON.parse(messageData);
+    const tenantShouldBeProcessed = await common.isTenantIdValidCb(TenantIdCheckTypes.eventProcessing, tenantId);
+    if (!tenantShouldBeProcessed) {
+      return;
+    }
     logger.debug("received redis event", {
       tenantId,
       type,

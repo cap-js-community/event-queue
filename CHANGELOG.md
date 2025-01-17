@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.8.4 - 2025-01-XX
+## v1.8.4 - 2025-01-17
+
+### Added
+
+- Introduced the ability to configure
+  a [tenant filter](https://cap-js-community.github.io/event-queue/setup/#configure-tenant-filter-for-event-processing)
+  for event processing, enabling features like sticky tenant
+  processing and dedicated application instances.
 
 ### Fixed
 
-- Resolved an issue with transaction handling where an event handler attaching an `on-succeeded` callback would throw an exception.
+- Resolved an issue with transaction handling where an event handler attaching an `on-succeeded` callback would throw an
+  exception.
 - Prevented error logs from being generated when event configurations are missing.
 
 ## v1.8.3 - 2025-01-10
@@ -23,7 +31,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- allow to override more redis options e.g. to [connect to a remote redis-instance](https://cap-js-community.github.io/event-queue/setup/#connecting-to-a-remote-instance-via-ssh-tunnel) via SSH tunnel
+- allow to override more redis options e.g.
+  to [connect to a remote redis-instance](https://cap-js-community.github.io/event-queue/setup/#connecting-to-a-remote-instance-via-ssh-tunnel)
+  via SSH tunnel
 
 ## v1.8.1 - 2024-12-27
 
@@ -35,7 +45,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 - Addressed an orphaned usage of `isRunnerDeactivated`.
-- Resolved a memory leak in the distributed locking mechanism, which occurred when tracking existing locks for a large number of events.
+- Resolved a memory leak in the distributed locking mechanism, which occurred when tracking existing locks for a large
+  number of events.
 
 ### Changed
 

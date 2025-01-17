@@ -143,14 +143,14 @@ The Redis connection options from the service binding can be overridden using on
     "eventQueue": {
       "[hybrid]": {
         "redisOptions": {
-           "socket": {
-              "host": "localhost",
-              "rejectUnauthorized": false
-           }
+          "socket": {
+            "host": "localhost",
+            "rejectUnauthorized": false
+          }
+        }
       }
     }
   }
-}
 ```
 
 **Option 2:**
@@ -185,3 +185,47 @@ Hybrid testing is not supported for Redis cluster instances due to the following
    that the `node-redis` library tries to access.
 
 As a result, the connections to the dedicated nodes fail because the SSH tunnel does not cover them.
+
+# Configure Tenant Filter for Event Processing
+
+The ability to filter tenants for event processing allows you to specify, using a callback, which tenants should have
+their events processed. This functionality enables processing events for specific tenants within dedicated application
+instances, providing flexibility and optimized resource allocation.
+
+## Example
+
+The following example demonstrates how to configure the tenant filtering functionality:
+
+```js
+const { config } = require("@cap-js-community/event-queue");
+
+// Define a callback function to determine if a tenant's events should be processed
+config.tenantIdFilterEventProcessing = async (tenantId) => {
+  // Replace with your custom logic to decide whether to process the tenant
+  return await checkIfTenantShouldBeProcessedOnInstance(tenantId);
+};
+```
+
+### Explanation
+
+1. **Set Tenant Filter Callback**:
+   The `tenantIdFilterEventProcessing` property is assigned an asynchronous callback function. This function takes a
+   `tenantId` as a parameter.
+
+2. **Custom Logic**:
+   Within the callback, you implement the logic to determine if events for the given `tenantId` should be processed. In
+   the example, a placeholder function `checkIfTenantShouldBeProcessedOnInstance` is used, which you should replace with
+   your specific logic.
+
+3. **Performance Considerations**:
+   The callback is performance-critical as it is invoked in various situations. It is recommended to implement caching
+   to optimize performance and reduce repetitive computations.
+
+4. **Return Value**:
+   The callback must return a boolean value. `true` indicates that the events for the tenant should be processed, while
+   `false` excludes the tenant from processing.
+
+### Use Case
+
+This configuration is especially useful in multi-tenant environments where some tenants require dedicated processing
+based on specific criteria, such as resource usage, geographical location, or subscription level.

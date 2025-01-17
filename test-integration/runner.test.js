@@ -7,9 +7,7 @@ cds.test(__dirname + "/_env");
 
 const mockRedis = require("../test/mocks/redisMock");
 jest.mock("../src/shared/redis", () => mockRedis);
-const cdsHelper = require("../src/shared/cdsHelper");
 const WorkerQueue = require("../src/shared/WorkerQueue");
-const getAllTenantIdsSpy = jest.spyOn(cdsHelper, "getAllTenantIds");
 const processEventQueue = require("../src/processEventQueue");
 const openEvents = require("../src/runner/openEvents");
 const { Logger: mockLogger } = require("../test/mocks/logger");
@@ -33,6 +31,8 @@ const tenantIds = [
   "9f3ed8f0-8aaf-439e-a96a-04cd5b680c59",
   "e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792",
 ];
+
+const transformToMtxResponse = (tenantId) => ({ subscribedTenantId: tenantId });
 
 describe("runner", () => {
   let context, tx, configInstance, loggerMock;
@@ -62,6 +62,8 @@ describe("runner", () => {
     });
     runner.__.clearHash();
     mockRedis.clearState();
+    jest.spyOn(cds.connect, "to").mockRestore();
+    eventQueue.config.tenantIdFilterEventProcessing = null;
   });
 
   afterEach(async () => {
@@ -83,17 +85,19 @@ describe("runner", () => {
 
   describe("redis", () => {
     describe("multi tenant", () => {
+      beforeAll(() => {
+        cds.requires.multitenancy = true;
+        cds.services["saas-registry"] = {};
+      });
+
       it("no open events", async () => {
+        mockTenantIds(tenantIds);
         const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
         const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
         const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
         const checkAndInsertPeriodicEventsSpy = jest
           .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
           .mockResolvedValue();
-        getAllTenantIdsSpy
-          .mockResolvedValueOnce(tenantIds)
-          .mockResolvedValueOnce(tenantIds)
-          .mockResolvedValueOnce(tenantIds);
         const p1 = runner.__._multiTenancyRedis();
         const p2 = runner.__._multiTenancyRedis();
 
@@ -125,16 +129,13 @@ describe("runner", () => {
         await cds.tx({}, async (tx2) => {
           await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
         });
+        mockTenantIds(tenantIds);
         const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
         const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
         const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
         const checkAndInsertPeriodicEventsSpy = jest
           .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
           .mockResolvedValue();
-        getAllTenantIdsSpy
-          .mockResolvedValueOnce(tenantIds)
-          .mockResolvedValueOnce(tenantIds)
-          .mockResolvedValueOnce(tenantIds);
         const p1 = runner.__._multiTenancyRedis();
         const p2 = runner.__._multiTenancyRedis();
 
@@ -162,9 +163,95 @@ describe("runner", () => {
         expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
         expect(loggerMock.callsLengths().error).toEqual(0);
       });
+
+      describe("tenant id filter should not acquire lock - only process tenants based on tenant filter", () => {
+        it("always false", async () => {
+          await cds.tx({}, async (tx2) => {
+            await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+          });
+          eventQueue.config.tenantIdFilterEventProcessing = () => false;
+          mockTenantIds(tenantIds);
+          const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+          const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+          const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
+          const checkAndInsertPeriodicEventsSpy = jest
+            .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
+            .mockResolvedValue();
+          const p1 = runner.__._multiTenancyRedis();
+          const p2 = runner.__._multiTenancyRedis();
+
+          await Promise.allSettled([p1, p2]);
+          await Promise.allSettled(WorkerQueue.instance.runningPromises);
+
+          expect(acquireLockSpy).toHaveBeenCalledTimes(0);
+
+          expect(getOpenQueueEntriesSpy).toHaveBeenCalledTimes(0);
+          expect(checkAndInsertPeriodicEventsSpy).toHaveBeenCalledTimes(0);
+          expect(redisPubSpy).toHaveBeenCalledTimes(0);
+        });
+
+        it("with open events - split into two instances", async () => {
+          await cds.tx({}, async (tx2) => {
+            await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+          });
+          mockTenantIds(tenantIds);
+          const tenantIdCheckList = {
+            [tenantIds[0]]: {
+              checkCounter: 0,
+              shouldBeTrue: 0,
+            },
+            [tenantIds[1]]: {
+              checkCounter: 0,
+              shouldBeTrue: 1,
+            },
+            [tenantIds[2]]: {
+              checkCounter: 0,
+              shouldBeTrue: 0,
+            },
+          };
+          eventQueue.config.tenantIdFilterEventProcessing = (tenantId) => {
+            const result = tenantIdCheckList[tenantId];
+            if (result.checkCounter === result.shouldBeTrue) {
+              result.checkCounter++;
+              return true;
+            } else {
+              result.checkCounter++;
+              return false;
+            }
+          };
+          const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+          const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+          const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
+          const checkAndInsertPeriodicEventsSpy = jest
+            .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
+            .mockResolvedValue();
+          const p1 = runner.__._multiTenancyRedis();
+          const p2 = runner.__._multiTenancyRedis();
+
+          await Promise.allSettled([p1, p2]);
+          await Promise.allSettled(WorkerQueue.instance.runningPromises);
+
+          // tenant id filter skips acquire lock as the assumption is that tenants are assigned to dedicated backend
+          // instances. Even if not events are locked --> no double processing can happen
+          expect(acquireLockSpy).toHaveBeenCalledTimes(0);
+          // one check per tenant
+          expect(getOpenQueueEntriesSpy).toHaveBeenCalledTimes(3);
+          expect(checkAndInsertPeriodicEventsSpy).toHaveBeenCalledTimes(3);
+          // open events - 3 periodic events
+          expect(redisPubSpy).toHaveBeenCalledTimes(3);
+          expect(redisPubSpy.mock.calls).toMatchSnapshot();
+          // remove context from arguments for snapshot
+          expect(acquireLockSpy.mock.calls.map((call) => [call[1], call[2]])).toMatchSnapshot();
+          expect(mockRedis.getState()).toMatchSnapshot();
+        });
+      });
     });
 
     describe("single tenant", () => {
+      beforeAll(() => {
+        cds.requires.multitenancy = false;
+      });
+
       it("no open events", async () => {
         const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
         const redisPubSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
@@ -240,6 +327,8 @@ describe("runner", () => {
 
   describe("multi tenant db", () => {
     beforeAll(() => {
+      cds.requires.multitenancy = true;
+      cds.services["saas-registry"] = {};
       const originalCdsTx = cds.tx;
       jest.spyOn(cds, "tx").mockImplementation(function (context, fn) {
         if (!fn) {
@@ -260,10 +349,7 @@ describe("runner", () => {
       configInstance.redisEnabled = false;
       jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
       const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
-      getAllTenantIdsSpy
-        .mockResolvedValueOnce(tenantIds)
-        .mockResolvedValueOnce(tenantIds)
-        .mockResolvedValueOnce(tenantIds);
+      mockTenantIds(tenantIds);
       expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
       const p1 = runner.__._multiTenancyDb();
       const p2 = runner.__._multiTenancyDb();
@@ -283,7 +369,6 @@ describe("runner", () => {
       // still 3 calls as no open events and no lock is required to check for open events
       expect(acquireLockSpy).toHaveBeenCalledTimes(3);
       expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
-      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(3);
     });
 
     it("open periodic events", async () => {
@@ -292,10 +377,7 @@ describe("runner", () => {
         await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
       });
       const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
-      getAllTenantIdsSpy
-        .mockResolvedValueOnce(tenantIds)
-        .mockResolvedValueOnce(tenantIds)
-        .mockResolvedValueOnce(tenantIds);
+      mockTenantIds(tenantIds);
       expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
       const p1 = runner.__._multiTenancyDb();
       const p2 = runner.__._multiTenancyDb();
@@ -318,7 +400,6 @@ describe("runner", () => {
       expect(acquireLockSpy).toHaveBeenCalledTimes(12);
       // still 3 calls
       expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
-      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -433,6 +514,8 @@ describe("runner", () => {
   describe("tenant hash", () => {
     beforeAll(() => {
       configInstance.redisEnabled = false;
+      cds.requires.multitenancy = true;
+      cds.services["saas-registry"] = {};
     });
 
     it("should trigger update periodic events once per tenant", async () => {
@@ -448,7 +531,7 @@ describe("runner", () => {
           }
         });
       });
-      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds);
+      mockTenantIds(tenantIds);
       await runner.__._multiTenancyDb();
       await promise;
       expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
@@ -456,7 +539,6 @@ describe("runner", () => {
       );
 
       acquireLockSpy.mockRestore();
-      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(1);
     });
 
     it("should not trigger update again if tenant ids have not been changed", async () => {
@@ -472,7 +554,7 @@ describe("runner", () => {
           }
         });
       });
-      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds);
+      mockTenantIds(tenantIds);
       await runner.__._multiTenancyDb();
       await promise;
       expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
@@ -480,7 +562,6 @@ describe("runner", () => {
       );
 
       // second run
-      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds);
       await runner.__._multiTenancyDb();
       await promisify(setTimeout)(500);
 
@@ -488,7 +569,6 @@ describe("runner", () => {
         3
       );
       acquireLockSpy.mockRestore();
-      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(2);
     });
 
     it("should trigger update again if tenant ids have been changed", async () => {
@@ -504,7 +584,7 @@ describe("runner", () => {
           }
         });
       });
-      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds);
+      mockTenantIds(tenantIds);
       await runner.__._multiTenancyDb();
       await promise;
       expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
@@ -512,7 +592,7 @@ describe("runner", () => {
       );
 
       // second run with changed tenant ids
-      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
+      mockTenantIds(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
 
       const promise2 = new Promise((resolve) => {
         counter = 0;
@@ -534,7 +614,6 @@ describe("runner", () => {
         4
       );
       acquireLockSpy.mockRestore();
-      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(2);
     });
 
     it("should trigger update again if tenant ids have been changed and third run should not trigger an update", async () => {
@@ -550,7 +629,7 @@ describe("runner", () => {
           }
         });
       });
-      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds);
+      mockTenantIds(tenantIds);
       await runner.__._multiTenancyDb();
       await promise;
       expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
@@ -558,7 +637,7 @@ describe("runner", () => {
       );
 
       // second run with changed tenant ids
-      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
+      mockTenantIds(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
 
       const promise2 = new Promise((resolve) => {
         counter = 0;
@@ -582,7 +661,7 @@ describe("runner", () => {
       acquireLockSpy.mockReset();
 
       // thirds run with same tenant ids
-      getAllTenantIdsSpy.mockResolvedValueOnce(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
+      mockTenantIds(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
 
       await runner.__._multiTenancyDb();
       await promisify(setTimeout)(500);
@@ -591,7 +670,16 @@ describe("runner", () => {
         0
       );
       acquireLockSpy.mockRestore();
-      expect(getAllTenantIdsSpy).toHaveBeenCalledTimes(3);
     });
   });
 });
+
+const mockTenantIds = (tenantIds) => {
+  const originalTo = cds.connect.to;
+  jest.spyOn(cds.connect, "to").mockImplementation((...args) => {
+    if (args[0] === "cds.xt.SaasProvisioningService") {
+      return { get: async () => tenantIds.map(transformToMtxResponse) };
+    }
+    return originalTo(...args);
+  });
+};

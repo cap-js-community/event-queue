@@ -111,17 +111,19 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
     // NOTE: do checks for all tenants on the same app instance --> acquire lock tenant independent
     //       distribute from this instance to all others
     const dummyContext = new cds.EventContext({});
-    const couldAcquireLock = await trace(
-      dummyContext,
-      "acquire-lock-master-runner",
-      async () => {
-        return await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_RUN_REDIS_CHECK, {
-          expiryTime: eventQueueConfig.runInterval * 0.95,
-          tenantScoped: false,
-        });
-      },
-      { newRootSpan: true }
-    );
+    const couldAcquireLock = config.tenantIdFilterEventProcessing
+      ? true
+      : await trace(
+          dummyContext,
+          "acquire-lock-master-runner",
+          async () => {
+            return await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_RUN_REDIS_CHECK, {
+              expiryTime: eventQueueConfig.runInterval * 0.95,
+              tenantScoped: false,
+            });
+          },
+          { newRootSpan: true }
+        );
     if (!couldAcquireLock) {
       return;
     }
@@ -237,7 +239,7 @@ const _executePeriodicEventsAllTenants = async (tenantIds) => {
       };
       await cds.tx(tenantContext, async ({ context }) => {
         await trace(tenantContext, "update-periodic-events-for-tenant", async () => {
-          if (!config.redisEnabled) {
+          if (!config.redisEnabled && !config.tenantIdFilterEventProcessing) {
             const couldAcquireLock = await distributedLock.acquireLock(context, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
               expiryTime: eventQueueConfig.runInterval * 0.95,
             });
@@ -433,7 +435,7 @@ const _multiTenancyPeriodicEvents = async (tenantIds) => {
       dummyContext,
       "update-periodic-events",
       async () => {
-        if (config.redisEnabled) {
+        if (config.redisEnabled && !config.tenantIdFilterEventProcessing) {
           const couldAcquireLock = await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
             expiryTime: 60 * 1000, // short living lock --> assume we do not have 2 onboards within 1 minute
             tenantScoped: false,
