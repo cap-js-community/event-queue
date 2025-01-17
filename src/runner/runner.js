@@ -239,7 +239,7 @@ const _executePeriodicEventsAllTenants = async (tenantIds) => {
       };
       await cds.tx(tenantContext, async ({ context }) => {
         await trace(tenantContext, "update-periodic-events-for-tenant", async () => {
-          if (!config.redisEnabled) {
+          if (!config.redisEnabled && !config.tenantIdFilterEventProcessing) {
             const couldAcquireLock = await distributedLock.acquireLock(context, EVENT_QUEUE_UPDATE_PERIODIC_EVENTS, {
               expiryTime: eventQueueConfig.runInterval * 0.95,
             });
