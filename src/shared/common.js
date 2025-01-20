@@ -106,7 +106,7 @@ const _getNewTokenInfo = async (tenantId) => {
 };
 
 const getTokenInfo = async (tenantId) => {
-  if (!isTenantIdValidCb(TenantIdCheckTypes.getTokenInfo, tenantId)) {
+  if (!(await isTenantIdValidCb(TenantIdCheckTypes.getTokenInfo, tenantId))) {
     return null;
   }
 
