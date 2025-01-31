@@ -101,7 +101,11 @@ const _getNewTokenInfo = async (tenantId) => {
     return tokenInfo;
   } catch (err) {
     tokenInfoCache[tenantId] = null;
-    cds.log(COMPONENT_NAME).warn("failed to request tokenInfo", err);
+    cds.log(COMPONENT_NAME).warn("failed to request tokenInfo", {
+      err: err.message,
+      responseCode: err.responseCode,
+      responseText: err.responseText,
+    });
   }
 };
 
@@ -113,6 +117,11 @@ const getTokenInfo = async (tenantId) => {
   if (!cds.requires?.auth?.credentials) {
     return null; // no credentials not tokenInfo
   }
+
+  if (!config.isMultiTenancy) {
+    return null; // does only make sense for multi tenancy
+  }
+
   if (!cds.requires?.auth.kind.match(/jwt|xsuaa/i)) {
     cds.log(COMPONENT_NAME).warn("Only 'jwt' or 'xsuaa' are supported as values for auth.kind.");
     return null;
