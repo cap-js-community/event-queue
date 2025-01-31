@@ -4,7 +4,11 @@ exports[`getTokenInfo should clear cache for error case 1`] = `
 [
   [
     "failed to request tokenInfo",
-    [Error],
+    {
+      "err": "",
+      "responseCode": undefined,
+      "responseText": undefined,
+    },
   ],
 ]
 `;
@@ -13,7 +17,11 @@ exports[`getTokenInfo should handle error 1`] = `
 [
   [
     "failed to request tokenInfo",
-    [Error],
+    {
+      "err": "",
+      "responseCode": undefined,
+      "responseText": undefined,
+    },
   ],
 ]
 `;

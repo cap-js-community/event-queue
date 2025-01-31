@@ -27,6 +27,7 @@ describe("getTokenInfo", () => {
       kind: "jwt",
       credentials: {},
     };
+    cds.requires.multitenancy = true;
   });
 
   it("should return null when no credentials provided", async () => {
