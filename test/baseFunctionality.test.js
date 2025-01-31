@@ -269,6 +269,31 @@ describe("baseFunctionality", () => {
         });
       });
 
+      test("should stringify object is not a string", async () => {
+        const event = eventQueue.config.events[0];
+        const events = await cds.tx({}, async (tx) => {
+          await eventQueue.publishEvent(tx, {
+            type: event.type,
+            subType: event.subType,
+            payload: {
+              testPayload: 123,
+            },
+            startAfter: new Date(1699344489697),
+          });
+          return await tx.run(SELECT.from("sap.eventqueue.Event"));
+        });
+        expect(events).toHaveLength(1);
+        events[0].startAfter = new Date(events[0].startAfter);
+        expect(events[0]).toMatchObject({
+          type: event.type,
+          subType: event.subType,
+          payload: JSON.stringify({
+            testPayload: 123,
+          }),
+          startAfter: new Date(1699344489697),
+        });
+      });
+
       test("unknown event", async () => {
         await cds.tx({}, async (tx) => {
           await expect(
