@@ -34,7 +34,8 @@ const publishEvent = async (tx, events, { skipBroadcast = false, skipInsertEvent
     throw EventQueueError.notInitialized();
   }
   const eventsForProcessing = Array.isArray(events) ? events : [events];
-  for (const { type, subType, startAfter } of eventsForProcessing) {
+  for (const event of eventsForProcessing) {
+    const { type, subType, startAfter } = event;
     const eventConfig = config.getEventConfig(type, subType);
     if (!eventConfig) {
       throw EventQueueError.unknownEventType(type, subType);
@@ -46,8 +47,11 @@ const publishEvent = async (tx, events, { skipBroadcast = false, skipInsertEvent
     if (eventConfig.isPeriodic) {
       throw EventQueueError.manuelPeriodicEventInsert(type, subType);
     }
-  }
 
+    if (typeof event.payload !== "string") {
+      event.payload = JSON.stringify(event.payload);
+    }
+  }
   if (config.insertEventsBeforeCommit && !skipInsertEventsBeforeCommit) {
     _registerHandlerAndAddEvents(tx, events);
   } else {
