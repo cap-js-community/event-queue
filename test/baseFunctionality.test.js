@@ -68,6 +68,15 @@ describe("baseFunctionality", () => {
       await cds.tx({}, (tx) => testHelper.selectEventQueueAndExpectDone(tx));
     });
 
+    test("insert one entry and process with null as payload", async () => {
+      const event = testHelper.getEventEntry();
+      event.payload = null;
+      await cds.tx({}, (tx) => eventQueue.publishEvent(tx, event));
+      await eventQueue.processEventQueue(context, event.type, event.subType);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await cds.tx({}, (tx) => testHelper.selectEventQueueAndExpectDone(tx));
+    });
+
     test("should not process events that are suspended", async () => {
       await cds.tx({}, (tx) => testHelper.insertEventEntry(tx, { status: EventProcessingStatus.Suspended }));
       const event = eventQueue.config.events[0];
