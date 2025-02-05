@@ -194,33 +194,39 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
       events.map(async (openEvent) => {
         const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType);
         const label = `${eventConfig.type}_${eventConfig.subType}`;
-        return await WorkerQueue.instance.addToQueue(eventConfig.load, label, eventConfig.priority, async () => {
-          return await cds.tx(tenantContext, async ({ context }) => {
-            await trace(
-              context,
-              label,
-              async () => {
-                try {
-                  const lockId = `${runId}_${label}`;
-                  const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
-                    expiryTime: eventQueueConfig.runInterval * 0.95,
-                  });
-                  if (!couldAcquireLock) {
-                    return;
+        return await WorkerQueue.instance.addToQueue(
+          eventConfig.load,
+          label,
+          eventConfig.priority,
+          eventConfig.increasePriorityOverTime,
+          async () => {
+            return await cds.tx(tenantContext, async ({ context }) => {
+              await trace(
+                context,
+                label,
+                async () => {
+                  try {
+                    const lockId = `${runId}_${label}`;
+                    const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
+                      expiryTime: eventQueueConfig.runInterval * 0.95,
+                    });
+                    if (!couldAcquireLock) {
+                      return;
+                    }
+                    await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
+                      skipWorkerPool: true,
+                    });
+                  } catch (err) {
+                    cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
+                      tenantId,
+                    });
                   }
-                  await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-                    skipWorkerPool: true,
-                  });
-                } catch (err) {
-                  cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
-                    tenantId,
-                  });
-                }
-              },
-              { newRootSpan: true }
-            );
-          });
-        });
+                },
+                { newRootSpan: true }
+              );
+            });
+          }
+        );
       })
     );
   }
@@ -275,33 +281,39 @@ const _singleTenantDb = async () => {
     events.map(async (openEvent) => {
       const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType);
       const label = `${eventConfig.type}_${eventConfig.subType}`;
-      return await WorkerQueue.instance.addToQueue(eventConfig.load, label, eventConfig.priority, async () => {
-        return await cds.tx({}, async ({ context }) => {
-          await trace(
-            context,
-            label,
-            async () => {
-              try {
-                const lockId = `${label}`;
-                const couldAcquireLock = eventConfig.multiInstanceProcessing
-                  ? true
-                  : await distributedLock.acquireLock(context, lockId, {
-                      expiryTime: eventQueueConfig.runInterval * 0.95,
-                    });
-                if (!couldAcquireLock) {
-                  return;
+      return await WorkerQueue.instance.addToQueue(
+        eventConfig.load,
+        label,
+        eventConfig.priority,
+        eventConfig.increasePriorityOverTime,
+        async () => {
+          return await cds.tx({}, async ({ context }) => {
+            await trace(
+              context,
+              label,
+              async () => {
+                try {
+                  const lockId = `${label}`;
+                  const couldAcquireLock = eventConfig.multiInstanceProcessing
+                    ? true
+                    : await distributedLock.acquireLock(context, lockId, {
+                        expiryTime: eventQueueConfig.runInterval * 0.95,
+                      });
+                  if (!couldAcquireLock) {
+                    return;
+                  }
+                  await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
+                    skipWorkerPool: true,
+                  });
+                } catch (err) {
+                  cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed");
                 }
-                await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-                  skipWorkerPool: true,
-                });
-              } catch (err) {
-                cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed");
-              }
-            },
-            { newRootSpan: true }
-          );
-        });
-      });
+              },
+              { newRootSpan: true }
+            );
+          });
+        }
+      );
     })
   );
 };

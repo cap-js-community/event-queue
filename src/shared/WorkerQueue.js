@@ -52,7 +52,7 @@ class WorkerQueue {
     runner.run(this.#adjustPriority.bind(this));
   }
 
-  addToQueue(load, label, priority = Priorities.Medium, cb) {
+  addToQueue(load, label, priority = Priorities.Medium, increasePriorityOverTime, cb) {
     if (load > this.#concurrencyLimit) {
       throw EventQueueError.loadHigherThanLimit(load, label);
     }
@@ -63,7 +63,7 @@ class WorkerQueue {
 
     const startTime = process.hrtime.bigint();
     const p = new Promise((resolve, reject) => {
-      this.#queue[priority].push([load, label, cb, resolve, reject, startTime]);
+      this.#queue[priority].push([load, label, cb, resolve, reject, increasePriorityOverTime, startTime]);
     });
     this.#checkForNext();
     return p;
@@ -78,7 +78,12 @@ class WorkerQueue {
       const nextPriority = priorityValues[i + 1];
       for (let i = 0; i < this.queue[priority].length; i++) {
         const queueEntry = this.queue[priority][i];
-        const startTime = queueEntry[6] ?? queueEntry[5];
+        // NOTE: index 5 - increasingPrioOverTime
+        if (!queueEntry[5]) {
+          continue;
+        }
+        // NOTE: index 6 original time; index 7 shifted time
+        const startTime = queueEntry[7] ?? queueEntry[6];
         if (Math.round(Number(checkTime - startTime) / NANO_TO_MS) > INCREASE_PRIORITY_AFTER * MIN_TO_MS) {
           const [entry] = this.queue[priority].splice(i, 1);
           entry.push(checkTime);
@@ -88,7 +93,7 @@ class WorkerQueue {
     }
   }
 
-  _executeFunction(load, label, cb, resolve, reject, startTime, priority) {
+  _executeFunction(priority, load, label, cb, resolve, reject, skipIncreasingPrioOverTime, startTime) {
     this.#checkAndLogWaitingTime(startTime, label, priority);
     const promise = Promise.resolve().then(() => cb());
     this.#runningPromises.push(promise);
@@ -123,7 +128,7 @@ class WorkerQueue {
         const [load] = this.#queue[priority][i];
         if (this.#runningLoad + load <= this.#concurrencyLimit) {
           const [args] = this.#queue[priority].splice(i, 1);
-          this._executeFunction(...args, priority);
+          this._executeFunction(priority, ...args);
           entryFound = true;
           break;
         }

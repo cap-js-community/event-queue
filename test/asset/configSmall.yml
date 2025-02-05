@@ -7,3 +7,11 @@ events:
     processAfterCommit: true
     transactionMode: alwaysRollback
     deleteFinishedEventsAfterDays: 30
+
+  - type: SingleTenant
+    subType: NoPrioIncrease
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    selectMaxChunkSize: 1
+    increasePriorityOverTime: false
+    checkForNextChunk: true

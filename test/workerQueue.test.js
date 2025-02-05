@@ -9,7 +9,7 @@ describe("workerQueue", () => {
   it("straight forward - limit one and one function", async () => {
     const workerQueue = new WorkerQueue(1);
     const jestFn = jest.fn();
-    await workerQueue.addToQueue(1, "label", Priorities.Medium, jestFn);
+    await workerQueue.addToQueue(1, "label", Priorities.Medium, true, jestFn);
     expect(jestFn).toHaveBeenCalledTimes(1);
     expect(workerQueue.runningPromises).toHaveLength(0);
   });
@@ -19,7 +19,7 @@ describe("workerQueue", () => {
     const jestFn = jest.fn();
 
     expect(() => {
-      workerQueue.addToQueue(2, "label", Priorities.Medium, jestFn);
+      workerQueue.addToQueue(2, "label", Priorities.Medium, true, jestFn);
     }).toThrowErrorMatchingInlineSnapshot(
       `"The defined load of an event is higher than the maximum defined limit. Check your configuration!"`
     );
@@ -32,7 +32,7 @@ describe("workerQueue", () => {
     const jestFn = jest.fn();
 
     expect(() => {
-      workerQueue.addToQueue(1, "label", "SUPER_HIGH", jestFn);
+      workerQueue.addToQueue(1, "label", "SUPER_HIGH", true, jestFn);
     }).toThrowErrorMatchingInlineSnapshot(`"The supplied priority is not allowed. Only LOW, MEDIUM, HIGH is allowed!"`);
     expect(jestFn).toHaveBeenCalledTimes(0);
     expect(workerQueue.runningPromises).toHaveLength(0);
@@ -53,8 +53,8 @@ describe("workerQueue", () => {
     const fn1 = () => {
       result["fn1"] = { called: true, done: true };
     };
-    const p1 = workerQueue.addToQueue(1, "label", Priorities.Medium, fn);
-    const p2 = workerQueue.addToQueue(1, "label", Priorities.Medium, fn1);
+    const p1 = workerQueue.addToQueue(1, "label", Priorities.Medium, true, fn);
+    const p2 = workerQueue.addToQueue(1, "label", Priorities.Medium, true, fn1);
 
     // NOTE: get the work queue the chance to start working
     await promisify(setImmediate)();
@@ -88,8 +88,8 @@ describe("workerQueue", () => {
     const fn1 = () => {
       result["fn1"] = { called: true, done: true };
     };
-    const p1 = workerQueue.addToQueue(3, "label", Priorities.Medium, fn);
-    const p2 = workerQueue.addToQueue(2, "label", Priorities.Medium, fn1);
+    const p1 = workerQueue.addToQueue(3, "label", Priorities.Medium, true, fn);
+    const p2 = workerQueue.addToQueue(2, "label", Priorities.Medium, true, fn1);
 
     // NOTE: get the work queue the chance to start working
     await promisify(setImmediate)();
@@ -115,9 +115,9 @@ describe("workerQueue", () => {
     const fn = async () => new Promise((resolve) => (resolve1 = resolve));
     const fn1 = async () => new Promise((resolve) => (resolve2 = resolve));
     const fn2 = async () => new Promise((resolve) => (resolve3 = resolve));
-    const p1 = workerQueue.addToQueue(3, "label", Priorities.Medium, fn);
-    const p2 = workerQueue.addToQueue(2, "label", Priorities.Medium, fn1);
-    const p3 = workerQueue.addToQueue(1, "label", Priorities.Medium, fn2);
+    const p1 = workerQueue.addToQueue(3, "label", Priorities.Medium, true, fn);
+    const p2 = workerQueue.addToQueue(2, "label", Priorities.Medium, true, fn1);
+    const p3 = workerQueue.addToQueue(1, "label", Priorities.Medium, true, fn2);
 
     expect(workerQueue.runningPromises).toHaveLength(2);
     expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
@@ -152,9 +152,9 @@ describe("workerQueue", () => {
     const fn = async () => new Promise((resolve) => (resolve1 = resolve));
     const fn1 = async () => new Promise((resolve) => (resolve2 = resolve));
     const fn2 = async () => new Promise((resolve) => (resolve3 = resolve));
-    const p1 = workerQueue.addToQueue(4, "label", Priorities.Low, fn);
-    const p2 = workerQueue.addToQueue(3, "label", Priorities.Medium, fn1);
-    const p3 = workerQueue.addToQueue(2, "label", Priorities.High, fn2);
+    const p1 = workerQueue.addToQueue(4, "label", Priorities.Low, true, fn);
+    const p2 = workerQueue.addToQueue(3, "label", Priorities.Medium, true, fn1);
+    const p3 = workerQueue.addToQueue(2, "label", Priorities.High, true, fn2);
 
     expect(workerQueue.runningPromises).toHaveLength(1);
     expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
@@ -192,10 +192,10 @@ describe("workerQueue", () => {
     const fn1 = async () => new Promise((resolve) => (resolve2 = resolve));
     const fn2 = async () => new Promise((resolve) => (resolve3 = resolve));
     const fn3 = async () => new Promise((resolve) => (resolve4 = resolve));
-    const p1 = workerQueue.addToQueue(4, "label", Priorities.Low, fn);
-    const p2 = workerQueue.addToQueue(3, "label", Priorities.Medium, fn1);
-    const p3 = workerQueue.addToQueue(1, "label", Priorities.High, fn2);
-    const p4 = workerQueue.addToQueue(1, "label", Priorities.VeryHigh, fn3);
+    const p1 = workerQueue.addToQueue(4, "label", Priorities.Low, true, fn);
+    const p2 = workerQueue.addToQueue(3, "label", Priorities.Medium, true, fn1);
+    const p3 = workerQueue.addToQueue(1, "label", Priorities.High, true, fn2);
+    const p4 = workerQueue.addToQueue(1, "label", Priorities.VeryHigh, true, fn3);
 
     expect(workerQueue.runningPromises).toHaveLength(1);
     expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
@@ -239,13 +239,15 @@ describe("workerQueue", () => {
     const fn = async () => new Promise((resolve) => (resolve1 = resolve));
     const fn1 = async () => new Promise((resolve) => (resolve2 = resolve));
     const fn2 = async () => new Promise((resolve) => (resolve3 = resolve));
-    const p1 = workerQueue.addToQueue(4, "label", Priorities.Low, fn);
-    const p2 = workerQueue.addToQueue(3, "label", Priorities.Medium, fn1);
-    const p3 = workerQueue.addToQueue(2, "label", Priorities.High, fn2);
+    const p1 = workerQueue.addToQueue(4, "label", Priorities.Low, true, fn);
+    const p2 = workerQueue.addToQueue(3, "label", Priorities.Medium, true, fn1);
+    const p3 = workerQueue.addToQueue(2, "label", Priorities.High, true, fn2);
 
     expect(workerQueue.runningPromises).toHaveLength(1);
     expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
     expect(workerQueue.queue[Priorities.High]).toHaveLength(1);
+
+    const execSpy = jest.spyOn(workerQueue, "_executeFunction");
 
     jest.spyOn(process.hrtime, "bigint").mockReturnValueOnce(3n * 61n * 1000000000n);
     jest.advanceTimersByTime(61 * 1000);
@@ -263,6 +265,7 @@ describe("workerQueue", () => {
       expect.anything(),
       expect.anything(),
       expect.anything(),
+      true,
       0n,
       183000000000n,
     ]);
@@ -270,9 +273,67 @@ describe("workerQueue", () => {
     resolve1();
     await p1;
 
+    const shiftedPrioCallParams = execSpy.mock.calls[0];
+    expect(shiftedPrioCallParams).toHaveLength(9);
+    // NOTE: last parameter of execFunction needs to be the original start time
+    expect(shiftedPrioCallParams[7]).toEqual(0n);
+
     expect(workerQueue.runningPromises).toHaveLength(1);
     expect(workerQueue.queue[Priorities.Medium]).toHaveLength(0);
     expect(workerQueue.queue[Priorities.High]).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.VeryHigh]).toHaveLength(0);
+
+    resolve3();
+    await p3;
+    await promisify(setImmediate)();
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.Medium]).toHaveLength(0);
+    expect(workerQueue.queue[Priorities.High]).toHaveLength(0);
+    expect(workerQueue.queue[Priorities.VeryHigh]).toHaveLength(0);
+
+    resolve2();
+    await p2;
+    await promisify(setImmediate)();
+
+    expect(workerQueue.runningPromises).toHaveLength(0);
+    expect(workerQueue.queue[Priorities.Medium]).toHaveLength(0);
+    expect(workerQueue.queue[Priorities.High]).toHaveLength(0);
+    expect(workerQueue.queue[Priorities.VeryHigh]).toHaveLength(0);
+  });
+
+  it("3 items - should not shift if disabled for event", async () => {
+    jest.useFakeTimers();
+    const workerQueue = new WorkerQueue(4);
+
+    let resolve1, resolve2, resolve3;
+    const fn = async () => new Promise((resolve) => (resolve1 = resolve));
+    const fn1 = async () => new Promise((resolve) => (resolve2 = resolve));
+    const fn2 = async () => new Promise((resolve) => (resolve3 = resolve));
+    const p1 = workerQueue.addToQueue(4, "label", Priorities.Low, false, fn);
+    const p2 = workerQueue.addToQueue(3, "label", Priorities.Medium, false, fn1);
+    const p3 = workerQueue.addToQueue(2, "label", Priorities.High, false, fn2);
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.High]).toHaveLength(1);
+
+    jest.spyOn(process.hrtime, "bigint").mockReturnValueOnce(3n * 61n * 1000000000n);
+    jest.advanceTimersByTime(61 * 1000);
+    jest.useRealTimers();
+
+    await promisify(setImmediate)();
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.High]).toHaveLength(1);
+
+    resolve1();
+    await p1;
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.High]).toHaveLength(0);
     expect(workerQueue.queue[Priorities.VeryHigh]).toHaveLength(0);
 
     resolve3();
@@ -314,8 +375,8 @@ describe("workerQueue", () => {
     const fn1 = () => {
       result["fn1"] = { called: true, done: true };
     };
-    const p1 = workerQueue.addToQueue(1, "label", Priorities.Medium, fn);
-    const p2 = workerQueue.addToQueue(1, "label", Priorities.Medium, fn1);
+    const p1 = workerQueue.addToQueue(1, "label", Priorities.Medium, true, fn);
+    const p2 = workerQueue.addToQueue(1, "label", Priorities.Medium, true, fn1);
     await promisify(setImmediate)();
 
     // NOTE: get the work queue the chance to start working
