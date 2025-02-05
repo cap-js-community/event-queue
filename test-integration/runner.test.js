@@ -25,6 +25,7 @@ const runner = require("../src/runner/runner");
 const path = require("path");
 const periodicEvents = require("../src/periodicEvents");
 const redisPub = require("../src/redis/redisPub");
+const testHelper = require("../test/helper");
 
 const tenantIds = [
   "cd805323-879c-4bf7-b19c-8ffbbee22e1f",
@@ -451,6 +452,21 @@ describe("runner", () => {
       expect(processEventQueueSpy).toHaveBeenCalledTimes(1);
       expect(acquireLockSpy).toHaveBeenCalledTimes(2);
       expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
+    });
+
+    it("should pass increasePriorityOverTime to worker queue", async () => {
+      await cds.tx({}, (tx) => testHelper.insertEventEntry(tx, { type: "SingleTenant", subType: "NoPrioIncrease" }));
+      const workerQueue = jest.spyOn(WorkerQueue.instance, "addToQueue");
+      await runner.__._singleTenantDb().then((promises) => Promise.all(promises.flat()));
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      expect(workerQueue.mock.calls[0]).toEqual([
+        1,
+        "SingleTenant_NoPrioIncrease",
+        "medium",
+        false,
+        expect.any(Function),
+      ]);
+      await cds.tx({}, (tx) => testHelper.selectEventQueueAndExpectOpen(tx));
     });
   });
 
