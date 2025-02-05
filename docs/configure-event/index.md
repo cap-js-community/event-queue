@@ -11,8 +11,9 @@ nav_order: 4
 # Configure Events
 
 <!-- prettier-ignore -->
+
 - TOC
-{: toc}
+  {: toc}
 
 <!-- prettier-ignore-end -->
 
@@ -48,6 +49,7 @@ The configuration YAML file is where all the required information regarding even
 | appInstances                  | Specifies the application instance numbers on which the event should be processed. The instance number is extracted from the environment variable `CF_INSTANCE_INDEX`. If not defined, the event is processed on all instances of the connected applications. | null            |
 | retryFailedAfter              | The duration (in milliseconds) after which failed events should be retried, provided the retry limit has not been exceeded.                                                                                                                                   | `5 * 60 * 1000` |
 | multiInstanceProcessing       | (Currently applicable only for Single Tenant) Allows processing of the same event type and subtype across multiple application instances.                                                                                                                     | false           |
+| increasePriorityOverTime      | After three minutes, the priority of unprocessed events is increased by one. This behavior can be disabled with this option. The behavior is documented [here](#priority-of-events).                                                                          | true            |
 
 ## Configuration
 
@@ -134,7 +136,8 @@ the event might not execute exactly as scheduled.
 ### Timezone Configuration
 
 The Event-Queue framework provides flexibility in handling timezones for periodic events. A central setting,
-[cronTimezone](/event-queue/setup/#initialization-parameters), can be configured to define the global timezone used when calculating the cron schedule for all events.
+[cronTimezone](/event-queue/setup/#initialization-parameters), can be configured to define the global timezone used when
+calculating the cron schedule for all events.
 This allows events to execute according to specific local time zones rather than Coordinated Universal Time (UTC), which
 is useful for applications operating across different regions.
 
