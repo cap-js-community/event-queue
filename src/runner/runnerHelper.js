@@ -23,6 +23,7 @@ const runEventCombinationForTenant = async (context, type, subType, { skipWorker
         eventConfig.load,
         label,
         eventConfig.priority,
+        eventConfig.increasePriorityOverTime,
         AsyncResource.bind(async () => {
           const _exec = async () => {
             if (!eventConfig.multiInstanceProcessing && lockId) {

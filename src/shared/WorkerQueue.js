@@ -52,7 +52,7 @@ class WorkerQueue {
     runner.run(this.#adjustPriority.bind(this));
   }
 
-  addToQueue(load, label, priority = Priorities.Medium, cb, increasingPrioOverTime = true) {
+  addToQueue(load, label, priority = Priorities.Medium, increasePriorityOverTime, cb) {
     if (load > this.#concurrencyLimit) {
       throw EventQueueError.loadHigherThanLimit(load, label);
     }
@@ -63,7 +63,7 @@ class WorkerQueue {
 
     const startTime = process.hrtime.bigint();
     const p = new Promise((resolve, reject) => {
-      this.#queue[priority].push([load, label, cb, resolve, reject, increasingPrioOverTime, startTime]);
+      this.#queue[priority].push([load, label, cb, resolve, reject, increasePriorityOverTime, startTime]);
     });
     this.#checkForNext();
     return p;

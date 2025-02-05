@@ -269,7 +269,13 @@ export const workerQueue: WorkerQueue;
 declare class WorkerQueue {
   constructor(concurrency: number);
 
-  addToQueue(load: number, label: string, priority?: Priorities, cb?: () => any): Promise<any>;
+  addToQueue(
+    load: number,
+    label: string,
+    priority: Priorities,
+    increasePriorityOverTime: boolean,
+    cb: () => any
+  ): Promise<any>;
 
   _executeFunction(
     load: number,
