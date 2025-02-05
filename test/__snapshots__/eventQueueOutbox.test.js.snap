@@ -24,6 +24,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true custom options should win 
   "deleteFinishedEventsAfterDays": undefined,
   "eventOutdatedCheck": undefined,
   "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "increasePriorityOverTime": undefined,
   "internalEvent": true,
   "load": 1,
   "multiInstanceProcessing": undefined,
