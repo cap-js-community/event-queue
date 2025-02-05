@@ -247,6 +247,8 @@ describe("workerQueue", () => {
     expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
     expect(workerQueue.queue[Priorities.High]).toHaveLength(1);
 
+    const execSpy = jest.spyOn(workerQueue, "_executeFunction");
+
     jest.spyOn(process.hrtime, "bigint").mockReturnValueOnce(3n * 61n * 1000000000n);
     jest.advanceTimersByTime(61 * 1000);
     jest.useRealTimers();
@@ -263,6 +265,7 @@ describe("workerQueue", () => {
       expect.anything(),
       expect.anything(),
       expect.anything(),
+      true,
       0n,
       183000000000n,
     ]);
@@ -270,9 +273,67 @@ describe("workerQueue", () => {
     resolve1();
     await p1;
 
+    const shiftedPrioCallParams = execSpy.mock.calls[0];
+    expect(shiftedPrioCallParams).toHaveLength(9);
+    // NOTE: last parameter of execFunction needs to be the original start time
+    expect(shiftedPrioCallParams[7]).toEqual(0n);
+
     expect(workerQueue.runningPromises).toHaveLength(1);
     expect(workerQueue.queue[Priorities.Medium]).toHaveLength(0);
     expect(workerQueue.queue[Priorities.High]).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.VeryHigh]).toHaveLength(0);
+
+    resolve3();
+    await p3;
+    await promisify(setImmediate)();
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.Medium]).toHaveLength(0);
+    expect(workerQueue.queue[Priorities.High]).toHaveLength(0);
+    expect(workerQueue.queue[Priorities.VeryHigh]).toHaveLength(0);
+
+    resolve2();
+    await p2;
+    await promisify(setImmediate)();
+
+    expect(workerQueue.runningPromises).toHaveLength(0);
+    expect(workerQueue.queue[Priorities.Medium]).toHaveLength(0);
+    expect(workerQueue.queue[Priorities.High]).toHaveLength(0);
+    expect(workerQueue.queue[Priorities.VeryHigh]).toHaveLength(0);
+  });
+
+  it("3 items - should not shift if disabled for event", async () => {
+    jest.useFakeTimers();
+    const workerQueue = new WorkerQueue(4);
+
+    let resolve1, resolve2, resolve3;
+    const fn = async () => new Promise((resolve) => (resolve1 = resolve));
+    const fn1 = async () => new Promise((resolve) => (resolve2 = resolve));
+    const fn2 = async () => new Promise((resolve) => (resolve3 = resolve));
+    const p1 = workerQueue.addToQueue(4, "label", Priorities.Low, fn, false);
+    const p2 = workerQueue.addToQueue(3, "label", Priorities.Medium, fn1, false);
+    const p3 = workerQueue.addToQueue(2, "label", Priorities.High, fn2, false);
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.High]).toHaveLength(1);
+
+    jest.spyOn(process.hrtime, "bigint").mockReturnValueOnce(3n * 61n * 1000000000n);
+    jest.advanceTimersByTime(61 * 1000);
+    jest.useRealTimers();
+
+    await promisify(setImmediate)();
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.High]).toHaveLength(1);
+
+    resolve1();
+    await p1;
+
+    expect(workerQueue.runningPromises).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.Medium]).toHaveLength(1);
+    expect(workerQueue.queue[Priorities.High]).toHaveLength(0);
     expect(workerQueue.queue[Priorities.VeryHigh]).toHaveLength(0);
 
     resolve3();
