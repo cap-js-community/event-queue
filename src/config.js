@@ -357,7 +357,10 @@ class Config {
   set fileContent(config) {
     this.#config = config;
     config.events = config.events ?? [];
-    config.periodicEvents = (config.periodicEvents ?? []).concat(BASE_PERIODIC_EVENTS.map((event) => ({ ...event })));
+    const shouldIncludeBaseEvents = cds.env.profiles.includes("production") || cds.env.profiles.includes("test");
+    config.periodicEvents = (config.periodicEvents ?? []).concat(
+      (shouldIncludeBaseEvents ? BASE_PERIODIC_EVENTS : []).map((event) => ({ ...event }))
+    );
     this.#eventMap = config.events.reduce((result, event) => {
       this.#basicEventTransformation(event);
       this.#validateAdHocEvents(result, event);

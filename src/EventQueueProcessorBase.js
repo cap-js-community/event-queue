@@ -11,8 +11,8 @@ const { arrayToFlatMap } = require("./shared/common");
 const eventScheduler = require("./shared/eventScheduler");
 const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
-const { broadcastEvent } = require("./redis/redisPub");
 const trace = require("./shared/openTelemetry");
+const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
 const COMPONENT_NAME = "/eventQueue/EventQueueProcessorBase";
@@ -40,6 +40,8 @@ class EventQueueProcessorBase {
   #isPeriodic;
   #lastSuccessfulRunTimestamp;
   #retryFailedAfter;
+  #keepAliveRunner;
+  #etagMap;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -53,6 +55,7 @@ class EventQueueProcessorBase {
     this.__eventProcessingMap = {};
     this.__statusMap = {};
     this.__commitedStatusMap = {};
+    this.__notCommitedStatusMap = {};
     this.#eventType = eventType;
     this.#eventSubType = eventSubType;
     this.#eventConfig = config ?? {};
@@ -75,6 +78,7 @@ class EventQueueProcessorBase {
     this.__txMap = {};
     this.__txRollback = {};
     this.__queueEntries = [];
+    this.#keepAliveRunner = new SetIntervalDriftSafe(1 * 1000);
   }
 
   /**
@@ -398,16 +402,17 @@ class EventQueueProcessorBase {
     this.#ensureEveryStatusIsAllowed(statusMap);
 
     const { success, failed, exceeded, invalidAttempts } = Object.entries(statusMap).reduce(
-      (result, [notificationEntityId, processingStatus]) => {
-        this.__commitedStatusMap[notificationEntityId] = processingStatus;
+      (result, [queueEntryId, processingStatus]) => {
+        this.__commitedStatusMap[queueEntryId] = processingStatus;
+        delete this.__notCommitedStatusMap[queueEntryId];
         if (processingStatus === EventProcessingStatus.Open) {
-          result.invalidAttempts.push(notificationEntityId);
+          result.invalidAttempts.push(queueEntryId);
         } else if (processingStatus === EventProcessingStatus.Done) {
-          result.success.push(notificationEntityId);
+          result.success.push(queueEntryId);
         } else if (processingStatus === EventProcessingStatus.Error) {
-          result.failed.push(notificationEntityId);
+          result.failed.push(queueEntryId);
         } else if (processingStatus === EventProcessingStatus.Exceeded) {
-          result.exceeded.push(notificationEntityId);
+          result.exceeded.push(queueEntryId);
         }
         return result;
       },
@@ -698,6 +703,8 @@ class EventQueueProcessorBase {
       });
       this.__queueEntries = result;
       this.__queueEntriesMap = arrayToFlatMap(result);
+      this.__notCommitedStatusMap = arrayToFlatMap(result);
+      this.#etagMap = Object.fromEntries(result.map((event) => [event.ID, event.lastAttemptTimestamp]));
 
       if (this.#isPeriodic && this.#eventConfig.lastSuccessfulRunTimestamp) {
         this.#lastSuccessfulRunTimestamp = await this.#selectLastSuccessfulPeriodicTimestamp(tx);
@@ -765,7 +772,7 @@ class EventQueueProcessorBase {
     return await trace(this.baseContext, "handle-exceeded-events", async () => {
       for (const exceededEvent of this.#eventsWithExceededTries) {
         await executeInNewTransaction(
-          this.context,
+          this.__baseContext,
           `eventQueue-handleExceededEvents-${this.#eventType}##${this.#eventSubType}`,
           async (tx) => {
             try {
@@ -792,7 +799,7 @@ class EventQueueProcessorBase {
                   currentAttempt: exceededEvent.attempts,
                 }
               );
-              await executeInNewTransaction(this.context, "error-hookForExceededEvents", async (tx) =>
+              await executeInNewTransaction(this.__baseContext, "error-hookForExceededEvents", async (tx) =>
                 this.#persistEventQueueStatusForExceeded(tx, [exceededEvent], EventProcessingStatus.Error)
               );
               await tx.rollback();
@@ -810,7 +817,7 @@ class EventQueueProcessorBase {
         eventSubType: this.#eventSubType,
         queueEntriesIds: this.#eventsWithExceededTries.map(({ ID }) => ID),
       });
-      await executeInNewTransaction(this.context, "exceededTriesExceeded", async (tx) => {
+      await executeInNewTransaction(this.__baseContext, "exceededTriesExceeded", async (tx) => {
         await this.#persistEventQueueStatusForExceeded(tx, this.#exceededTriesExceeded, EventProcessingStatus.Exceeded);
       });
     }
@@ -851,6 +858,10 @@ class EventQueueProcessorBase {
    * @return {Promise<boolean>} true if the db record of the event has been modified since selection
    */
   async isOutdatedAndKeepalive(queueEntries) {
+    if (this.__keepAliveViolated) {
+      return true;
+    }
+
     if (!this.__outdatedCheckEnabled || new Date() - this.__startTime <= ETAG_CHECK_AFTER_MIN * 60 * 1000) {
       return false;
     }
@@ -917,6 +928,39 @@ class EventQueueProcessorBase {
 
     queueEntries.forEach((queueEntry) => (this.__keepalivePromises[queueEntry.ID] = checkAndUpdatePromise));
     return await checkAndUpdatePromise;
+  }
+
+  async continuesKeepAlive() {
+    this.#keepAliveRunner.run(async () => {
+      await executeInNewTransaction(this.__baseContext, "keepAlive", async (tx) => {
+        await trace(tx.context, "keepAlive", async () => {
+          const ids = Object.values(this.__notCommitedStatusMap).map(({ ID }) => ID);
+          if (!ids.length) {
+            return;
+          }
+          this.logger.info("keep alive triggered for events", { numberOfEvents: ids.length });
+          const events = await tx.run(
+            SELECT.from(this.#config.tableNameEventQueue)
+              .forUpdate({ wait: this.#config.forUpdateTimeout })
+              .where("ID IN", ids)
+              .columns("ID", "lastAttemptTimestamp")
+          );
+
+          const newTs = new Date().toISOString();
+          for (const event of events) {
+            const etag = this.#etagMap[event.ID];
+            if (etag !== event.lastAttemptTimestamp) {
+              this.__keepAliveViolated = true;
+            } else {
+              this.#etagMap[event.ID] = newTs;
+            }
+          }
+          await tx.run(
+            UPDATE.entity(this.#config.tableNameEventQueue).set("lastAttemptTimestamp =", newTs).where("ID IN", ids)
+          );
+        });
+      });
+    });
   }
 
   async acquireDistributedLock() {
@@ -1085,16 +1129,8 @@ class EventQueueProcessorBase {
     this.__processTx = null;
   }
 
-  broadCastEvent() {
-    setTimeout(() => {
-      broadcastEvent(this.__baseContext.tenant, { type: this.#eventType, subType: this.#eventSubType }).catch((err) => {
-        this.logger.error("could not execute scheduled event", err, {
-          tenantId: this.__baseContext.tenant,
-          type: this.#eventType,
-          subType: this.#eventSubType,
-        });
-      });
-    }, 1000).unref();
+  stopKeepAlive() {
+    this.#keepAliveRunner.stop();
   }
 
   get logger() {

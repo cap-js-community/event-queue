@@ -208,6 +208,12 @@ const processEventMap = async (instance) => {
   if (instance.commitOnEventLevel) {
     instance.txUsageAllowed = false;
   }
+  instance.keepAlive = true; // TODO: based on event config
+  //TODO: end in finally
+  instance.continuesKeepAlive().catch(() => {
+    //TODO: end in finally
+    debugger;
+  });
   await limiter(
     instance.parallelEventProcessing,
     Object.entries(instance.eventProcessingMap),
@@ -241,6 +247,7 @@ const processEventMap = async (instance) => {
       instance.handleErrorTx(err);
     })
     .finally(() => {
+      instance.stopKeepAlive();
       instance.clearEventProcessingContext();
       if (instance.commitOnEventLevel) {
         instance.txUsageAllowed = true;

@@ -243,6 +243,30 @@ exports[`integration-main insert one entry witch checkForNext but return status 
 }
 `;
 
+exports[`integration-main keep alive processing should not process modified events 1`] = `
+{
+  "BEGIN": 8,
+  "COMMIT": 6,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 5,
+  "ROLLBACK": 1,
+  "UPDATE": 4,
+}
+`;
+
+exports[`integration-main keep alive processing straight forward 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 5,
+  "ROLLBACK": 1,
+  "UPDATE": 3,
+}
+`;
+
 exports[`integration-main lock wait timeout during keepAlive 1`] = `
 {
   "BEGIN": 6,
