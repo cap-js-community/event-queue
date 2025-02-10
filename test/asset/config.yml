@@ -43,6 +43,24 @@ events:
     transactionMode: alwaysCommit
 
   - type: TransactionMode
+    subType: alwaysCommitForKeepAlive
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    parallelEventProcessing: 1
+    processAfterCommit: true
+    transactionMode: alwaysCommit
+    keepAliveInterval: 0.01666666667 #NOTE: bring it down to one second
+
+  - type: TransactionMode
+    subType: isolatedForKeepAlive
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    parallelEventProcessing: 1
+    processAfterCommit: true
+    transactionMode: isolated
+    keepAliveInterval: 0.01666666667 #NOTE: bring it down to one second
+
+  - type: TransactionMode
     subType: alwaysRollback
     impl: ./test/asset/EventQueueTest
     load: 1

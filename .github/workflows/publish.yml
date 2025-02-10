@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
           cache: "npm"
           registry-url: https://registry.npmjs.org/
       - run: npm ci --package-lock
@@ -34,11 +34,19 @@ jobs:
           GITHUB_ACTION_HANA: true
           SCHEMA_GUID: ${{steps.generateId.outputs.id}}
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
+      - name: Determine Release Type
+        id: release_type
+        run: |
+          if ${{ github.event.release.prerelease }}; then
+            echo "TAG=beta" >> $GITHUB_ENV
+          else
+            echo "TAG=latest" >> $GITHUB_ENV
+          fi
       - run: npm run test:cleanSchemas
         if: always()
         env:
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
           SCHEMA_GUID: ${{steps.generateId.outputs.id}}
-      - run: npm publish --access public
+      - run: npm publish --access public --tag $TAG
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
