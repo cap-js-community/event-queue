@@ -60,7 +60,6 @@ events:
     transactionMode: isolated
     keepAliveInterval: 0.01666666667 #NOTE: bring it down to one second
 
-
   - type: TransactionMode
     subType: alwaysRollback
     impl: ./test/asset/EventQueueTest
