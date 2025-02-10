@@ -18,6 +18,8 @@ const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
 const DEFAULT_PRIORITY = Priorities.Medium;
 const DEFAULT_INCREASE_PRIORITY = true;
+const DEFAULT_KEEP_ALIVE_INTERVAL_MIN = 3;
+const DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL = 2.5;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
@@ -319,6 +321,7 @@ class Config {
       priority: config.priority,
       multiInstanceProcessing: config.multiInstanceProcessing,
       increasePriorityOverTime: config.increasePriorityOverTime,
+      keepAliveInterval: config.keepAliveInterval,
       internalEvent: true,
     };
 
@@ -383,6 +386,8 @@ class Config {
     event.load = event.load ?? DEFAULT_LOAD;
     event.priority = event.priority ?? DEFAULT_PRIORITY;
     event.increasePriorityOverTime = event.increasePriorityOverTime ?? DEFAULT_INCREASE_PRIORITY;
+    event.keepAliveInterval = event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL_MIN;
+    event.keepAliveMaxInProgressTime = event.keepAliveInterval * DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL;
   }
 
   #basicEventTransformationAfterValidate(event) {

@@ -9,6 +9,7 @@ class SetIntervalDriftSafe {
   #nextTickScheduledFor;
   #logger;
   #shouldRun = true;
+  #lastTimeoutId;
 
   constructor(interval) {
     this.#interval = interval;
@@ -29,17 +30,19 @@ class SetIntervalDriftSafe {
       this.#expectedCycleTime += this.#interval;
     }
     this.#nextTickScheduledFor = now + this.#adjustedInterval;
-    setTimeout(() => {
+    let timeoutId = setTimeout(() => {
       if (!this.#shouldRun) {
         return;
       }
       this.run(fn);
       fn();
     }, this.#adjustedInterval).unref();
+    this.#lastTimeoutId = Number(timeoutId);
   }
 
   stop() {
     this.#shouldRun = false;
+    clearTimeout(this.#lastTimeoutId);
   }
 }
 
