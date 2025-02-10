@@ -208,11 +208,7 @@ const processEventMap = async (instance) => {
   if (instance.commitOnEventLevel) {
     instance.txUsageAllowed = false;
   }
-  instance.keepAlive = true; // TODO: based on event config
-  instance.continuesKeepAlive().catch(() => {
-    //TODO: end in finally
-    debugger;
-  });
+  instance.continuesKeepAlive();
   await limiter(
     instance.parallelEventProcessing,
     Object.entries(instance.eventProcessingMap),

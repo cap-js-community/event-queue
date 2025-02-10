@@ -25,7 +25,7 @@ const acquireLock = async (
 const renewLock = async (context, key, { tenantScoped = true, expiryTime = config.globalTxTimeout } = {}) => {
   const fullKey = _generateKey(context, tenantScoped, key);
   if (config.redisEnabled) {
-    return await _renewLockRedis(context, fullKey, expiryTime, { keepTrackOfLock });
+    return await _renewLockRedis(context, fullKey, expiryTime);
   } else {
     return await _acquireLockDB(context, fullKey, expiryTime, { overrideValue: true });
   }

@@ -855,85 +855,10 @@ class EventQueueProcessorBase {
   // eslint-disable-next-line no-unused-vars
   async beforeProcessingEvents() {}
 
-  /**
-   * This function checks if the db records of events have been modified since the selection (beginning of processing)
-   * If the db records are unmodified the field lastAttemptTimestamp of the records is updated to
-   * "send a keep alive signal". This extends the allowed processing time of the events as events which are in progress
-   * for more than 30 minutes (global tx timeout) are selected with the next tick.
-   * If events are outdated/modified these events are not being processed and no status will be persisted.
-   * @return {Promise<boolean>} true if the db record of the event has been modified since selection
-   */
-  async isOutdatedAndKeepalive(queueEntries) {
+  async isOutdatedAndKeepalive() {
     if (this.__keepAliveViolated) {
       return true;
     }
-
-    if (!this.__outdatedCheckEnabled || new Date() - this.__startTime <= ETAG_CHECK_AFTER_MIN * 60 * 1000) {
-      return false;
-    }
-    let eventOutdated;
-    const runningChecks = queueEntries.map((queueEntry) => this.__keepalivePromises[queueEntry.ID]).filter((p) => p);
-    if (runningChecks.length === queueEntries.length) {
-      const results = await Promise.allSettled(runningChecks);
-      for (const { value } of results) {
-        if (value) {
-          return true;
-        }
-      }
-      return false;
-    } else if (runningChecks.length) {
-      await Promise.allSettled(runningChecks);
-    }
-    const checkAndUpdatePromise = new Promise((resolve, reject) => {
-      executeInNewTransaction(this.__baseContext, "eventProcessing-isOutdatedAndKeepalive", async (tx) => {
-        const queueEntriesFresh = await tx.run(
-          SELECT.from(this.#config.tableNameEventQueue)
-            .forUpdate({ wait: this.#config.forUpdateTimeout })
-            .where(
-              "ID IN",
-              queueEntries.map(({ ID }) => ID)
-            )
-            .columns("ID", "lastAttemptTimestamp")
-        );
-        eventOutdated = queueEntriesFresh.some((queueEntryFresh) => {
-          const queueEntry = this.__queueEntriesMap[queueEntryFresh.ID];
-          return queueEntry?.lastAttemptTimestamp !== queueEntryFresh.lastAttemptTimestamp;
-        });
-        let newTs = new Date().toISOString();
-        if (!eventOutdated) {
-          await tx.run(
-            UPDATE.entity(this.#config.tableNameEventQueue)
-              .set("lastAttemptTimestamp =", newTs)
-              .where(
-                "ID IN",
-                queueEntries.map(({ ID }) => ID)
-              )
-          );
-        } else {
-          newTs = null;
-          this.logger.warn("event data has been modified. Processing skipped.", {
-            eventType: this.#eventType,
-            eventSubType: this.#eventSubType,
-            queueEntriesIds: queueEntries.map(({ ID }) => ID),
-          });
-          queueEntries.forEach(({ ID: queueEntryId }) => delete this.__queueEntriesMap[queueEntryId]);
-        }
-        this.__queueEntries = Object.values(this.__queueEntriesMap);
-        queueEntriesFresh.forEach((queueEntryFresh) => {
-          if (this.__queueEntriesMap[queueEntryFresh.ID]) {
-            const queueEntry = this.__queueEntriesMap[queueEntryFresh.ID];
-            if (newTs) {
-              queueEntry.lastAttemptTimestamp = newTs;
-            }
-          }
-          delete this.__keepalivePromises[queueEntryFresh.ID];
-        });
-        resolve(eventOutdated);
-      }).catch(reject);
-    });
-
-    queueEntries.forEach((queueEntry) => (this.__keepalivePromises[queueEntry.ID] = checkAndUpdatePromise));
-    return await checkAndUpdatePromise;
   }
 
   async continuesKeepAlive() {
@@ -992,6 +917,8 @@ class EventQueueProcessorBase {
             );
           }
         });
+      }).catch((err) => {
+        this.logger.error("keep alive handling failed!", err);
       });
       await this.#currentKeepAlivePromise;
     });
