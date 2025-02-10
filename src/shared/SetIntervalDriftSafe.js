@@ -30,7 +30,7 @@ class SetIntervalDriftSafe {
       this.#expectedCycleTime += this.#interval;
     }
     this.#nextTickScheduledFor = now + this.#adjustedInterval;
-    let timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       if (!this.#shouldRun) {
         return;
       }

@@ -860,7 +860,7 @@ class EventQueueProcessorBase {
     }
   }
 
-  async continuesKeepAlive() {
+  continuesKeepAlive() {
     this.#keepAliveRunner.run(async () => {
       if (this.__keepAliveViolated) {
         return;
@@ -912,8 +912,11 @@ class EventQueueProcessorBase {
 
           if (validEventIds.length) {
             await tx.run(
-              UPDATE.entity(this.#config.tableNameEventQueue).set("lastAttemptTimestamp =", newTs).where("ID IN", ids)
+              UPDATE.entity(this.#config.tableNameEventQueue)
+                .set("lastAttemptTimestamp =", newTs)
+                .where("ID IN", validEventIds)
             );
+            // TODO: update of map to on succeeded
           }
         });
       }).catch((err) => {
@@ -957,6 +960,7 @@ class EventQueueProcessorBase {
       { expiryTime: this.#eventConfig.keepAliveMaxInProgressTime }
     );
     if (!lockAcquired) {
+      // TODO: set to error state???
       this.logger.error("renewing redis lock failed!", {
         type: this.#eventType,
         subType: this.#eventSubType,
