@@ -49,7 +49,7 @@ events:
     parallelEventProcessing: 1
     processAfterCommit: true
     transactionMode: alwaysCommit
-    keepAliveInterval: 0.01666666667 #NOTE: bring it down to one second
+    keepAliveInterval: 1
 
   - type: TransactionMode
     subType: isolatedForKeepAlive
@@ -58,7 +58,7 @@ events:
     parallelEventProcessing: 1
     processAfterCommit: true
     transactionMode: isolated
-    keepAliveInterval: 0.01666666667 #NOTE: bring it down to one second
+    keepAliveInterval: 1
 
   - type: TransactionMode
     subType: alwaysRollback

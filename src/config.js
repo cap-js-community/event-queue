@@ -18,7 +18,7 @@ const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
 const DEFAULT_PRIORITY = Priorities.Medium;
 const DEFAULT_INCREASE_PRIORITY = true;
-const DEFAULT_KEEP_ALIVE_INTERVAL_MIN = 1;
+const DEFAULT_KEEP_ALIVE_INTERVAL = 60;
 const DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL = 3.5;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
@@ -386,7 +386,7 @@ class Config {
     event.load = event.load ?? DEFAULT_LOAD;
     event.priority = event.priority ?? DEFAULT_PRIORITY;
     event.increasePriorityOverTime = event.increasePriorityOverTime ?? DEFAULT_INCREASE_PRIORITY;
-    event.keepAliveInterval = (event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL_MIN) * 60 * 1000;
+    event.keepAliveInterval = (event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL) * 1000;
     event.keepAliveMaxInProgressTime = event.keepAliveInterval * DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL;
   }
 

@@ -1,8 +1,9 @@
 "use strict";
 
 const cds = require("@sap/cds");
-let otel;
+let otel, telemetry;
 try {
+  telemetry = require("@cap-js/telemetry");
   otel = require("@opentelemetry/api");
 } catch {
   // ignore
@@ -20,7 +21,9 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false 
   }
 
 
-  const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}`, {
+const tracer = otel.trace.getTracer("eventqueue");
+
+  const span = tracer.startSpan(`eventqueue-${label}`, {
     kind: otel.SpanKind.INTERNAL,
     root: newRootSpan,
   });
