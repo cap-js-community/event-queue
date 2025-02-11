@@ -195,6 +195,29 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
+  it("stock event should be processed again", async () => {
+    const event = testHelper.getEventEntry();
+    await cds.tx({}, async (tx2) => {
+      await tx2.run(
+        INSERT.into("sap.eventqueue.Event").entries({
+          ...event,
+          status: 1,
+          lastAttemptTimestamp: new Date(Date.now() - 4 * 60 * 1000),
+          attempts: 1,
+        })
+      );
+    });
+    const scheduleNextSpy = jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent");
+
+    await processEventQueue(context, event.type, event.subType);
+
+    expect(scheduleNextSpy).toHaveBeenCalledTimes(0);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectDone(tx);
+
+    await processEventQueue(context, event.type, event.subType);
+  });
+
   it("returning exceeded status should be allowed", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     const processSpy = jest
@@ -392,6 +415,40 @@ describe("integration-main", () => {
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
         expect(dbCounts).toMatchSnapshot();
+      });
+
+      it("first keep alive fails; second one should update", async () => {
+        await cds.tx({}, (tx2) =>
+          testHelper.insertEventEntry(tx2, {
+            numberOfEntries: 2,
+            type: isolatedNoParallel.type,
+            subType: isolatedNoParallel.subType,
+          })
+        );
+
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+            if (forUpdateCounter === 2) {
+              throw Error("error in keep alive - db error");
+            }
+          }
+        });
+
+        jest
+          .spyOn(EventQueueTest.prototype, "processEvent")
+          .mockImplementationOnce(async function (processContext, key, queueEntries) {
+            await promisify(setTimeout)(2500);
+            return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+          });
+        await eventQueue.processEventQueue(context, isolatedNoParallel.type, isolatedNoParallel.subType);
+        expect(loggerMock.callsLengths().error).toEqual(1);
+        expect(loggerMock.calls().error[0][0]).toEqual("keep alive handling failed!");
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
       });
 
       it("should not process modified events", async () => {

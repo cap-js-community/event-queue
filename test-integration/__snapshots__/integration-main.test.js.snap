@@ -245,85 +245,73 @@ exports[`integration-main insert one entry witch checkForNext but return status 
 
 exports[`integration-main keep alive processing alwaysCommit parallel processing - both events are already started and return a valid status 1`] = `
 {
-  "BEGIN": 9,
-  "COMMIT": 7,
-  "CREATE": 1,
+  "BEGIN": 11,
+  "COMMIT": 9,
+  "CREATE": 3,
   "DELETE": 1,
   "READ": 6,
-  "ROLLBACK": 1,
-  "UPDATE": 3,
-}
-`;
-
-exports[`integration-main keep alive processing alwaysCommit should not process modified events 1`] = `
-{
-  "BEGIN": 8,
-  "COMMIT": 6,
-  "CREATE": 1,
-  "DELETE": 1,
-  "READ": 5,
-  "ROLLBACK": 1,
-  "UPDATE": 3,
-}
-`;
-
-exports[`integration-main keep alive processing alwaysCommit straight forward 1`] = `
-{
-  "BEGIN": 9,
-  "COMMIT": 7,
-  "CREATE": 1,
-  "DELETE": 1,
-  "READ": 7,
-  "ROLLBACK": 1,
-  "UPDATE": 4,
-}
-`;
-
-exports[`integration-main keep alive processing commitOnEventLevel parallel processing - both events are already started and return a valid status 1`] = `
-{
-  "BEGIN": 9,
-  "COMMIT": 7,
-  "CREATE": 1,
-  "DELETE": 1,
-  "READ": 6,
-  "ROLLBACK": 1,
-  "UPDATE": 4,
-}
-`;
-
-exports[`integration-main keep alive processing commitOnEventLevel should not process modified events 1`] = `
-{
-  "BEGIN": 8,
-  "COMMIT": 6,
-  "CREATE": 1,
-  "DELETE": 1,
-  "READ": 5,
-  "ROLLBACK": 1,
-  "UPDATE": 3,
-}
-`;
-
-exports[`integration-main keep alive processing commitOnEventLevel straight forward 1`] = `
-{
-  "BEGIN": 9,
-  "COMMIT": 7,
-  "CREATE": 1,
-  "DELETE": 1,
-  "READ": 7,
   "ROLLBACK": 1,
   "UPDATE": 5,
 }
 `;
 
-exports[`integration-main lock wait timeout during keepAlive 1`] = `
+exports[`integration-main keep alive processing alwaysCommit should not process modified events 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 4,
-  "CREATE": 1,
+  "BEGIN": 10,
+  "COMMIT": 8,
+  "CREATE": 3,
   "DELETE": 1,
-  "READ": 3,
+  "READ": 5,
   "ROLLBACK": 1,
-  "UPDATE": 2,
+  "UPDATE": 5,
+}
+`;
+
+exports[`integration-main keep alive processing alwaysCommit straight forward 1`] = `
+{
+  "BEGIN": 11,
+  "COMMIT": 9,
+  "CREATE": 3,
+  "DELETE": 1,
+  "READ": 7,
+  "ROLLBACK": 1,
+  "UPDATE": 6,
+}
+`;
+
+exports[`integration-main keep alive processing commitOnEventLevel parallel processing - both events are already started and return a valid status 1`] = `
+{
+  "BEGIN": 11,
+  "COMMIT": 9,
+  "CREATE": 3,
+  "DELETE": 1,
+  "READ": 6,
+  "ROLLBACK": 1,
+  "UPDATE": 6,
+}
+`;
+
+exports[`integration-main keep alive processing commitOnEventLevel should not process modified events 1`] = `
+{
+  "BEGIN": 10,
+  "COMMIT": 8,
+  "CREATE": 3,
+  "DELETE": 1,
+  "READ": 5,
+  "ROLLBACK": 1,
+  "UPDATE": 5,
+}
+`;
+
+exports[`integration-main keep alive processing commitOnEventLevel straight forward 1`] = `
+{
+  "BEGIN": 11,
+  "COMMIT": 9,
+  "CREATE": 3,
+  "DELETE": 1,
+  "READ": 7,
+  "ROLLBACK": 1,
+  "UPDATE": 7,
 }
 `;
 

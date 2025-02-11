@@ -40,7 +40,7 @@ class EventQueueProcessorBase {
   #lastSuccessfulRunTimestamp;
   #retryFailedAfter;
   #keepAliveRunner;
-  #currentKeepAlivePromise;
+  #currentKeepAlivePromise = Promise.resolve();
   #etagMap;
 
   constructor(context, eventType, eventSubType, config) {
@@ -860,9 +860,7 @@ class EventQueueProcessorBase {
 
   continuesKeepAlive() {
     this.#keepAliveRunner.run(async () => {
-      if (this.__keepAliveViolated) {
-        return;
-      }
+      await this.#currentKeepAlivePromise;
       this.#currentKeepAlivePromise = executeInNewTransaction(this.__baseContext, "keepAlive", async (tx) => {
         await trace(tx.context, "keepAlive", async () => {
           const ids = Object.values(this.__notCommitedStatusMap).map(({ ID }) => ID);
@@ -871,6 +869,12 @@ class EventQueueProcessorBase {
           }
           this.logger.info("keep alive triggered for events", { numberOfEvents: ids.length });
           await this.#renewDistributedLock();
+
+          // we make sure to always keep alive the global event lock; but we do not modify the events itself anymore
+          if (this.__keepAliveViolated) {
+            return;
+          }
+
           const events = await tx.run(
             SELECT.from(this.#config.tableNameEventQueue)
               .forUpdate({ wait: this.#config.forUpdateTimeout })
@@ -898,6 +902,7 @@ class EventQueueProcessorBase {
               delete this.__queueEntriesMap[queueEntryId];
               this.__outdatedEventMap[queueEntryId] = 1;
             });
+
             this.logger.warn(
               "Event data has been modified on the database. Further processing skipped. Parallel running events might have already commited status!",
               {
@@ -914,7 +919,15 @@ class EventQueueProcessorBase {
                 .set("lastAttemptTimestamp =", newTs)
                 .where("ID IN", validEventIds)
             );
-            // TODO: update of map to on succeeded
+            // NOTE: update internal map after tx is successfully commited!
+            tx.context.on("succeeded", () => {
+              for (const event of events) {
+                const etag = this.#etagMap[event.ID];
+                if (etag === event.lastAttemptTimestamp) {
+                  this.#etagMap[event.ID] = newTs;
+                }
+              }
+            });
           }
         });
       }).catch((err) => {
@@ -931,7 +944,7 @@ class EventQueueProcessorBase {
 
     return await trace(this.baseContext, "acquire-lock", async () => {
       const lockAcquired = await distributedLock.acquireLock(
-        this.context,
+        this.__context,
         [this.#eventType, this.#eventSubType].join("##"),
         { keepTrackOfLock: true, expiryTime: this.#eventConfig.keepAliveMaxInProgressTime }
       );
@@ -948,17 +961,16 @@ class EventQueueProcessorBase {
   }
 
   async #renewDistributedLock() {
-    if (!this.__lockAcquired) {
+    if (this.concurrentEventProcessing) {
       return true;
     }
 
     const lockAcquired = await distributedLock.renewLock(
-      this.context,
+      this.__context,
       [this.#eventType, this.#eventSubType].join("##"),
       { expiryTime: this.#eventConfig.keepAliveMaxInProgressTime }
     );
     if (!lockAcquired) {
-      // TODO: set to error state???
       this.logger.error("renewing redis lock failed!", {
         type: this.#eventType,
         subType: this.#eventSubType,

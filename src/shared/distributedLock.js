@@ -154,7 +154,7 @@ const _acquireLockDB = async (context, fullKey, expiryTime, { value = "true", ov
               createdAt: new Date().toISOString(),
               value,
             })
-            .where("code =", currentEntry.code)
+            .where("code =", fullKey)
         );
         result = true;
       } else {
