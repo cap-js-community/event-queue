@@ -1,7 +1,7 @@
 "use strict";
 
 const cds = require("@sap/cds");
-let otel, telemetry;
+let otel;
 try {
   otel = require("@opentelemetry/api");
 } catch {
@@ -19,9 +19,7 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false 
     return fn();
   }
 
-
-const tracer = otel.trace.getTracer("eventqueue");
-
+  const tracer = otel.trace.getTracer("eventqueue");
   const span = tracer.startSpan(`eventqueue-${label}`, {
     kind: otel.SpanKind.INTERNAL,
     root: newRootSpan,
