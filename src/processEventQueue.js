@@ -208,6 +208,7 @@ const processEventMap = async (instance) => {
   if (instance.commitOnEventLevel) {
     instance.txUsageAllowed = false;
   }
+  instance.continuesKeepAlive();
   await limiter(
     instance.parallelEventProcessing,
     Object.entries(instance.eventProcessingMap),
@@ -241,10 +242,12 @@ const processEventMap = async (instance) => {
       instance.handleErrorTx(err);
     })
     .finally(() => {
+      instance.stopKeepAlive();
       instance.clearEventProcessingContext();
       if (instance.commitOnEventLevel) {
         instance.txUsageAllowed = true;
       }
+      return instance.keepAlivePromise;
     });
   instance.endPerformanceTracerEvents();
 };
@@ -313,7 +316,8 @@ const _processEvent = async (eventTypeInstance, processContext, key, queueEntrie
   try {
     const eventOutdated = await eventTypeInstance.isOutdatedAndKeepalive(queueEntries);
     if (eventOutdated) {
-      return;
+      // NOTE: return empty status map to comply with the interface
+      return {};
     }
     eventTypeInstance.setTxForEventProcessing(key, cds.tx(processContext));
     const statusTuple = await eventTypeInstance.processEvent(processContext, key, queueEntries, payload);

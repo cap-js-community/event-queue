@@ -22,6 +22,15 @@ const acquireLock = async (
   }
 };
 
+const renewLock = async (context, key, { tenantScoped = true, expiryTime = config.globalTxTimeout } = {}) => {
+  const fullKey = _generateKey(context, tenantScoped, key);
+  if (config.redisEnabled) {
+    return await _renewLockRedis(context, fullKey, expiryTime);
+  } else {
+    return await _acquireLockDB(context, fullKey, expiryTime, { overrideValue: true });
+  }
+};
+
 const setValueWithExpire = async (
   context,
   key,
@@ -77,6 +86,15 @@ const _acquireLockRedis = async (
     existingLocks[fullKey] = 1;
   }
   return isOk;
+};
+
+const _renewLockRedis = async (context, fullKey, expiryTime, { value = "true" } = {}) => {
+  const client = await redis.createMainClientAndConnect(config.redisOptions);
+  const result = await client.set(fullKey, value, {
+    PX: Math.round(expiryTime),
+    XX: true,
+  });
+  return result === REDIS_COMMAND_OK;
 };
 
 const _checkLockExistsRedis = async (context, fullKey) => {
@@ -136,7 +154,7 @@ const _acquireLockDB = async (context, fullKey, expiryTime, { value = "true", ov
               createdAt: new Date().toISOString(),
               value,
             })
-            .where("code =", currentEntry.code)
+            .where("code =", fullKey)
         );
         result = true;
       } else {
@@ -178,4 +196,5 @@ module.exports = {
   checkLockExistsAndReturnValue,
   setValueWithExpire,
   shutdownHandler,
+  renewLock,
 };

@@ -195,6 +195,29 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
+  it("stock event should be processed again", async () => {
+    const event = testHelper.getEventEntry();
+    await cds.tx({}, async (tx2) => {
+      await tx2.run(
+        INSERT.into("sap.eventqueue.Event").entries({
+          ...event,
+          status: 1,
+          lastAttemptTimestamp: new Date(Date.now() - 4 * 60 * 1000),
+          attempts: 1,
+        })
+      );
+    });
+    const scheduleNextSpy = jest.spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent");
+
+    await processEventQueue(context, event.type, event.subType);
+
+    expect(scheduleNextSpy).toHaveBeenCalledTimes(0);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectDone(tx);
+
+    await processEventQueue(context, event.type, event.subType);
+  });
+
   it("returning exceeded status should be allowed", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     const processSpy = jest
@@ -257,34 +280,6 @@ describe("integration-main", () => {
     await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
     expect(dbCounts).toMatchSnapshot();
     eventQueue.config.dbUser = null;
-  });
-
-  it("lock wait timeout during keepAlive", async () => {
-    await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
-    dbCounts = {};
-    const event = eventQueue.config.events[0];
-
-    const db = await cds.connect.to("db");
-    let doCheck = true;
-    db.prepend(() => {
-      db.on("READ", "*", async (context, next) => {
-        if (doCheck && context.query.SELECT.forUpdate && context.query.SELECT.columns?.length === 2) {
-          throw new Error("all bad");
-        }
-        return await next();
-      });
-    });
-    jest
-      .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
-      .mockImplementationOnce(async function (queueEntry) {
-        this.__startTime = new Date(Date.now() - 11 * 60 * 1000);
-        return queueEntry.payload;
-      });
-    await eventQueue.processEventQueue(context, event.type, event.subType);
-    doCheck = false;
-    expect(loggerMock.callsLengths().error).toEqual(1);
-    await testHelper.selectEventQueueAndExpectError(tx);
-    expect(dbCounts).toMatchSnapshot();
   });
 
   it("insert one entry witch checkForNext but return status 0", async () => {
@@ -389,6 +384,251 @@ describe("integration-main", () => {
     expect(new Date(Date.now() + 5 * 60 * 1000) - new Date(event.startAfter)).toBeLessThan(5000); // diff should be lower than 1 second
     expect(scheduler).toHaveBeenCalledTimes(1);
     expect(dbCounts).toMatchSnapshot();
+  });
+
+  describe("keep alive processing", () => {
+    let isolatedNoParallel, alwaysCommit;
+    beforeEach(() => {
+      isolatedNoParallel = eventQueue.config.events.find((event) => event.subType === "isolatedForKeepAlive");
+      alwaysCommit = eventQueue.config.events.find((event) => event.subType === "alwaysCommitForKeepAlive");
+      isolatedNoParallel.parallelEventProcessing = 1;
+      alwaysCommit.parallelEventProcessing = 1;
+      for (let i = 0; i < cds.services.db._handlers.before.length; i++) {
+        const handler = cds.services.db._handlers.before[i];
+        if (handler.before === "READ") {
+          cds.services.db._handlers.before.splice(i, 1);
+        }
+      }
+    });
+
+    describe("commitOnEventLevel", () => {
+      it("straight forward", async () => {
+        await cds.tx({}, (tx2) =>
+          testHelper.insertEventEntry(tx2, {
+            numberOfEntries: 2,
+            type: isolatedNoParallel.type,
+            subType: isolatedNoParallel.subType,
+          })
+        );
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
+        jest
+          .spyOn(EventQueueTest.prototype, "processEvent")
+          .mockImplementationOnce(async function (processContext, key, queueEntries) {
+            await promisify(setTimeout)(2500);
+            return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+          });
+        await eventQueue.processEventQueue(context, isolatedNoParallel.type, isolatedNoParallel.subType);
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+      });
+
+      it("first keep alive fails; second one should update", async () => {
+        await cds.tx({}, (tx2) =>
+          testHelper.insertEventEntry(tx2, {
+            numberOfEntries: 2,
+            type: isolatedNoParallel.type,
+            subType: isolatedNoParallel.subType,
+          })
+        );
+
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+            if (forUpdateCounter === 2) {
+              throw Error("error in keep alive - db error");
+            }
+          }
+        });
+
+        jest
+          .spyOn(EventQueueTest.prototype, "processEvent")
+          .mockImplementationOnce(async function (processContext, key, queueEntries) {
+            await promisify(setTimeout)(2500);
+            return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+          });
+        await eventQueue.processEventQueue(context, isolatedNoParallel.type, isolatedNoParallel.subType);
+        expect(loggerMock.callsLengths().error).toEqual(1);
+        expect(loggerMock.calls().error[0][0]).toEqual("keep alive handling failed!");
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+      });
+
+      it("should not process modified events", async () => {
+        await cds.tx({}, (tx2) =>
+          testHelper.insertEventEntry(tx2, {
+            numberOfEntries: 2,
+            type: isolatedNoParallel.type,
+            subType: isolatedNoParallel.subType,
+          })
+        );
+        jest
+          .spyOn(EventQueueTest.prototype, "processEvent")
+          .mockImplementationOnce(async function (processContext, key, queueEntries) {
+            await cds.tx({}, (tx) => tx.run(UPDATE("sap.eventqueue.Event").set({ lastAttemptTimestamp: new Date() })));
+            await promisify(setTimeout)(2500);
+            return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+          });
+        await eventQueue.processEventQueue(context, isolatedNoParallel.type, isolatedNoParallel.subType);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(loggerMock.callsLengths().warn).toEqual(1);
+        expect(loggerMock.calls().warn[0][0]).toEqual(
+          "Event data has been modified on the database. Further processing skipped. Parallel running events might have already commited status!"
+        );
+        const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
+        expect(events).toEqual([expect.objectContaining({ status: 1 }), expect.objectContaining({ status: 2 })]);
+      });
+
+      it("parallel processing - both events are already started and return a valid status", async () => {
+        isolatedNoParallel.parallelEventProcessing = 2;
+        await cds.tx({}, (tx2) =>
+          testHelper.insertEventEntry(tx2, {
+            numberOfEntries: 2,
+            type: isolatedNoParallel.type,
+            subType: isolatedNoParallel.subType,
+          })
+        );
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
+        jest
+          .spyOn(EventQueueTest.prototype, "processEvent")
+          .mockImplementationOnce(async function (processContext, key, queueEntries) {
+            await cds.tx({}, (tx) => tx.run(UPDATE("sap.eventqueue.Event").set({ lastAttemptTimestamp: new Date() })));
+            await promisify(setTimeout)(2500);
+            return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+          });
+        await eventQueue.processEventQueue(context, isolatedNoParallel.type, isolatedNoParallel.subType);
+        // NOTE: with parallel processing it should be 2 as both handlers run in parallel (processing is quicker)
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(loggerMock.callsLengths().warn).toEqual(1);
+        expect(loggerMock.calls().warn[0][0]).toEqual(
+          "Event data has been modified on the database. Further processing skipped. Parallel running events might have already commited status!"
+        );
+        const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
+        expect(events).toEqual([expect.objectContaining({ status: 2 }), expect.objectContaining({ status: 2 })]);
+      });
+    });
+
+    describe("alwaysCommit", () => {
+      it("straight forward", async () => {
+        await cds.tx({}, (tx2) =>
+          testHelper.insertEventEntry(tx2, {
+            numberOfEntries: 2,
+            type: alwaysCommit.type,
+            subType: alwaysCommit.subType,
+          })
+        );
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
+        jest
+          .spyOn(EventQueueTest.prototype, "processEvent")
+          .mockImplementationOnce(async function (processContext, key, queueEntries) {
+            await promisify(setTimeout)(2500);
+            return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+          });
+        await eventQueue.processEventQueue(context, alwaysCommit.type, alwaysCommit.subType);
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+      });
+
+      it("should not process modified events", async () => {
+        await cds.tx({}, (tx2) =>
+          testHelper.insertEventEntry(tx2, {
+            numberOfEntries: 2,
+            type: alwaysCommit.type,
+            subType: alwaysCommit.subType,
+          })
+        );
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
+        jest
+          .spyOn(EventQueueTest.prototype, "processEvent")
+          .mockImplementationOnce(async function (processContext, key, queueEntries) {
+            await cds.tx({}, (tx) => tx.run(UPDATE("sap.eventqueue.Event").set({ lastAttemptTimestamp: new Date() })));
+            await promisify(setTimeout)(2500);
+            return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+          });
+        await eventQueue.processEventQueue(context, alwaysCommit.type, alwaysCommit.subType);
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(loggerMock.callsLengths().warn).toEqual(1);
+        expect(loggerMock.calls().warn[0][0]).toEqual(
+          "Event data has been modified on the database. Further processing skipped. Parallel running events might have already commited status!"
+        );
+        const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
+        expect(events).toEqual([expect.objectContaining({ status: 1 }), expect.objectContaining({ status: 2 })]);
+      });
+
+      it("parallel processing - both events are already started and return a valid status", async () => {
+        alwaysCommit.parallelEventProcessing = 2;
+        await cds.tx({}, (tx2) =>
+          testHelper.insertEventEntry(tx2, {
+            numberOfEntries: 2,
+            type: alwaysCommit.type,
+            subType: alwaysCommit.subType,
+          })
+        );
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
+        jest
+          .spyOn(EventQueueTest.prototype, "processEvent")
+          .mockImplementationOnce(async function (processContext, key, queueEntries) {
+            await cds.tx({}, (tx) => tx.run(UPDATE("sap.eventqueue.Event").set({ lastAttemptTimestamp: new Date() })));
+            await promisify(setTimeout)(2500);
+            return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+          });
+        await eventQueue.processEventQueue(context, alwaysCommit.type, alwaysCommit.subType);
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(loggerMock.callsLengths().warn).toEqual(1);
+        expect(loggerMock.calls().warn[0][0]).toEqual(
+          "Event data has been modified on the database. Further processing skipped. Parallel running events might have already commited status!"
+        );
+        const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
+        expect(events).toEqual([expect.objectContaining({ status: 2 }), expect.objectContaining({ status: 2 })]);
+      });
+    });
   });
 
   describe("error handling on commit errors - isolated transaction mode", () => {
@@ -1031,7 +1271,7 @@ describe("integration-main", () => {
           await tx2.run(
             UPDATE.entity("sap.eventqueue.Event").set({
               status: 1,
-              lastAttemptTimestamp: new Date(Date.now() - 31 * 60 * 1000),
+              lastAttemptTimestamp: new Date(Date.now() - 4 * 60 * 1000),
               attempts: 1,
             })
           );
@@ -1296,7 +1536,7 @@ describe("integration-main", () => {
           await tx2.run(
             UPDATE.entity("sap.eventqueue.Event").set({
               status: 1,
-              lastAttemptTimestamp: new Date(Date.now() - 31 * 60 * 1000),
+              lastAttemptTimestamp: new Date(Date.now() - 4 * 60 * 1000),
               attempts: 1,
             })
           );

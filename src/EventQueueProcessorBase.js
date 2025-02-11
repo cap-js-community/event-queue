@@ -11,8 +11,8 @@ const { arrayToFlatMap } = require("./shared/common");
 const eventScheduler = require("./shared/eventScheduler");
 const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
-const { broadcastEvent } = require("./redis/redisPub");
 const trace = require("./shared/openTelemetry");
+const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
 const COMPONENT_NAME = "/eventQueue/EventQueueProcessorBase";
@@ -23,7 +23,6 @@ const LIMIT_PARALLEL_EVENT_PROCESSING = 10;
 const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
-const ETAG_CHECK_AFTER_MIN = 10;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const DEFAULT_RETRY_AFTER = 5 * 60 * 1000;
 
@@ -40,6 +39,9 @@ class EventQueueProcessorBase {
   #isPeriodic;
   #lastSuccessfulRunTimestamp;
   #retryFailedAfter;
+  #keepAliveRunner;
+  #currentKeepAlivePromise = Promise.resolve();
+  #etagMap;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -53,6 +55,8 @@ class EventQueueProcessorBase {
     this.__eventProcessingMap = {};
     this.__statusMap = {};
     this.__commitedStatusMap = {};
+    this.__notCommitedStatusMap = {};
+    this.__outdatedEventMap = {};
     this.#eventType = eventType;
     this.#eventSubType = eventSubType;
     this.#eventConfig = config ?? {};
@@ -66,8 +70,6 @@ class EventQueueProcessorBase {
     this.__retryAttempts = this.#isPeriodic ? 1 : this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
     this.__selectMaxChunkSize = this.#eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
     this.__selectNextChunk = !!this.#eventConfig.checkForNextChunk;
-    this.__keepalivePromises = {};
-    this.__outdatedCheckEnabled = this.#eventConfig.eventOutdatedCheck ?? true;
     this.__transactionMode = this.#eventConfig.transactionMode ?? TransactionMode.isolated;
     this.__emptyChunkSelected = false;
     this.__lockAcquired = false;
@@ -75,6 +77,7 @@ class EventQueueProcessorBase {
     this.__txMap = {};
     this.__txRollback = {};
     this.__queueEntries = [];
+    this.#keepAliveRunner = new SetIntervalDriftSafe(this.#eventConfig.keepAliveInterval);
   }
 
   /**
@@ -398,16 +401,17 @@ class EventQueueProcessorBase {
     this.#ensureEveryStatusIsAllowed(statusMap);
 
     const { success, failed, exceeded, invalidAttempts } = Object.entries(statusMap).reduce(
-      (result, [notificationEntityId, processingStatus]) => {
-        this.__commitedStatusMap[notificationEntityId] = processingStatus;
+      (result, [queueEntryId, processingStatus]) => {
+        this.__commitedStatusMap[queueEntryId] = processingStatus;
+        delete this.__notCommitedStatusMap[queueEntryId];
         if (processingStatus === EventProcessingStatus.Open) {
-          result.invalidAttempts.push(notificationEntityId);
+          result.invalidAttempts.push(queueEntryId);
         } else if (processingStatus === EventProcessingStatus.Done) {
-          result.success.push(notificationEntityId);
+          result.success.push(queueEntryId);
         } else if (processingStatus === EventProcessingStatus.Error) {
-          result.failed.push(notificationEntityId);
+          result.failed.push(queueEntryId);
         } else if (processingStatus === EventProcessingStatus.Exceeded) {
-          result.exceeded.push(notificationEntityId);
+          result.exceeded.push(queueEntryId);
         }
         return result;
       },
@@ -483,7 +487,11 @@ class EventQueueProcessorBase {
 
   #ensureEveryQueueEntryHasStatus() {
     this.__queueEntries.forEach((queueEntry) => {
-      if (queueEntry.ID in this.__statusMap || queueEntry.ID in this.__commitedStatusMap) {
+      if (
+        queueEntry.ID in this.__statusMap ||
+        queueEntry.ID in this.__commitedStatusMap ||
+        queueEntry.ID in this.__outdatedEventMap
+      ) {
         return;
       }
       this.logger.error("Missing status for selected event entry. Setting status to error", {
@@ -600,7 +608,7 @@ class EventQueueProcessorBase {
                   "OR lastAttemptTimestamp IS NULL ) OR ( status =",
                   EventProcessingStatus.InProgress,
                   "AND lastAttemptTimestamp <=",
-                  new Date(baseDate - this.#config.globalTxTimeout).toISOString(),
+                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime).toISOString(),
                   ") )",
                 ]
               : [
@@ -611,7 +619,7 @@ class EventQueueProcessorBase {
                   ") OR ( status =",
                   EventProcessingStatus.InProgress,
                   "AND lastAttemptTimestamp <=",
-                  new Date(baseDate - this.#config.globalTxTimeout).toISOString(),
+                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime).toISOString(),
                   ") )",
                 ])
           )
@@ -698,6 +706,8 @@ class EventQueueProcessorBase {
       });
       this.__queueEntries = result;
       this.__queueEntriesMap = arrayToFlatMap(result);
+      this.__notCommitedStatusMap = arrayToFlatMap(result);
+      this.#etagMap = Object.fromEntries(result.map((event) => [event.ID, event.lastAttemptTimestamp]));
 
       if (this.#isPeriodic && this.#eventConfig.lastSuccessfulRunTimestamp) {
         this.#lastSuccessfulRunTimestamp = await this.#selectLastSuccessfulPeriodicTimestamp(tx);
@@ -765,7 +775,7 @@ class EventQueueProcessorBase {
     return await trace(this.baseContext, "handle-exceeded-events", async () => {
       for (const exceededEvent of this.#eventsWithExceededTries) {
         await executeInNewTransaction(
-          this.context,
+          this.__baseContext,
           `eventQueue-handleExceededEvents-${this.#eventType}##${this.#eventSubType}`,
           async (tx) => {
             try {
@@ -792,7 +802,7 @@ class EventQueueProcessorBase {
                   currentAttempt: exceededEvent.attempts,
                 }
               );
-              await executeInNewTransaction(this.context, "error-hookForExceededEvents", async (tx) =>
+              await executeInNewTransaction(this.__baseContext, "error-hookForExceededEvents", async (tx) =>
                 this.#persistEventQueueStatusForExceeded(tx, [exceededEvent], EventProcessingStatus.Error)
               );
               await tx.rollback();
@@ -810,7 +820,7 @@ class EventQueueProcessorBase {
         eventSubType: this.#eventSubType,
         queueEntriesIds: this.#eventsWithExceededTries.map(({ ID }) => ID),
       });
-      await executeInNewTransaction(this.context, "exceededTriesExceeded", async (tx) => {
+      await executeInNewTransaction(this.__baseContext, "exceededTriesExceeded", async (tx) => {
         await this.#persistEventQueueStatusForExceeded(tx, this.#exceededTriesExceeded, EventProcessingStatus.Exceeded);
       });
     }
@@ -842,81 +852,89 @@ class EventQueueProcessorBase {
   // eslint-disable-next-line no-unused-vars
   async beforeProcessingEvents() {}
 
-  /**
-   * This function checks if the db records of events have been modified since the selection (beginning of processing)
-   * If the db records are unmodified the field lastAttemptTimestamp of the records is updated to
-   * "send a keep alive signal". This extends the allowed processing time of the events as events which are in progress
-   * for more than 30 minutes (global tx timeout) are selected with the next tick.
-   * If events are outdated/modified these events are not being processed and no status will be persisted.
-   * @return {Promise<boolean>} true if the db record of the event has been modified since selection
-   */
-  async isOutdatedAndKeepalive(queueEntries) {
-    if (!this.__outdatedCheckEnabled || new Date() - this.__startTime <= ETAG_CHECK_AFTER_MIN * 60 * 1000) {
-      return false;
+  async isOutdatedAndKeepalive() {
+    if (this.__keepAliveViolated) {
+      return true;
     }
-    let eventOutdated;
-    const runningChecks = queueEntries.map((queueEntry) => this.__keepalivePromises[queueEntry.ID]).filter((p) => p);
-    if (runningChecks.length === queueEntries.length) {
-      const results = await Promise.allSettled(runningChecks);
-      for (const { value } of results) {
-        if (value) {
-          return true;
-        }
-      }
-      return false;
-    } else if (runningChecks.length) {
-      await Promise.allSettled(runningChecks);
-    }
-    const checkAndUpdatePromise = new Promise((resolve, reject) => {
-      executeInNewTransaction(this.__baseContext, "eventProcessing-isOutdatedAndKeepalive", async (tx) => {
-        const queueEntriesFresh = await tx.run(
-          SELECT.from(this.#config.tableNameEventQueue)
-            .forUpdate({ wait: this.#config.forUpdateTimeout })
-            .where(
-              "ID IN",
-              queueEntries.map(({ ID }) => ID)
-            )
-            .columns("ID", "lastAttemptTimestamp")
-        );
-        eventOutdated = queueEntriesFresh.some((queueEntryFresh) => {
-          const queueEntry = this.__queueEntriesMap[queueEntryFresh.ID];
-          return queueEntry?.lastAttemptTimestamp !== queueEntryFresh.lastAttemptTimestamp;
-        });
-        let newTs = new Date().toISOString();
-        if (!eventOutdated) {
-          await tx.run(
-            UPDATE.entity(this.#config.tableNameEventQueue)
-              .set("lastAttemptTimestamp =", newTs)
-              .where(
-                "ID IN",
-                queueEntries.map(({ ID }) => ID)
-              )
+  }
+
+  continuesKeepAlive() {
+    this.#keepAliveRunner.run(async () => {
+      await this.#currentKeepAlivePromise;
+      this.#currentKeepAlivePromise = executeInNewTransaction(this.__baseContext, "keepAlive", async (tx) => {
+        await trace(tx.context, "keepAlive", async () => {
+          const ids = Object.values(this.__notCommitedStatusMap).map(({ ID }) => ID);
+          if (!ids.length) {
+            return;
+          }
+          this.logger.info("keep alive triggered for events", { numberOfEvents: ids.length });
+          await this.#renewDistributedLock();
+
+          // we make sure to always keep alive the global event lock; but we do not modify the events itself anymore
+          if (this.__keepAliveViolated) {
+            return;
+          }
+
+          const events = await tx.run(
+            SELECT.from(this.#config.tableNameEventQueue)
+              .forUpdate({ wait: this.#config.forUpdateTimeout })
+              .where("ID IN", ids, "AND status =", EventProcessingStatus.InProgress)
+              .columns("ID", "lastAttemptTimestamp")
           );
-        } else {
-          newTs = null;
-          this.logger.warn("event data has been modified. Processing skipped.", {
-            eventType: this.#eventType,
-            eventSubType: this.#eventSubType,
-            queueEntriesIds: queueEntries.map(({ ID }) => ID),
-          });
-          queueEntries.forEach(({ ID: queueEntryId }) => delete this.__queueEntriesMap[queueEntryId]);
-        }
-        this.__queueEntries = Object.values(this.__queueEntriesMap);
-        queueEntriesFresh.forEach((queueEntryFresh) => {
-          if (this.__queueEntriesMap[queueEntryFresh.ID]) {
-            const queueEntry = this.__queueEntriesMap[queueEntryFresh.ID];
-            if (newTs) {
-              queueEntry.lastAttemptTimestamp = newTs;
+
+          const newTs = new Date().toISOString();
+          const outdatedEvents = [];
+          const validEventIds = [];
+          for (const event of events) {
+            const etag = this.#etagMap[event.ID];
+            if (etag !== event.lastAttemptTimestamp) {
+              outdatedEvents.push(event);
+              this.__keepAliveViolated = true;
+            } else {
+              validEventIds.push(event.ID);
+              this.#etagMap[event.ID] = newTs;
             }
           }
-          delete this.__keepalivePromises[queueEntryFresh.ID];
-        });
-        resolve(eventOutdated);
-      }).catch(reject);
-    });
 
-    queueEntries.forEach((queueEntry) => (this.__keepalivePromises[queueEntry.ID] = checkAndUpdatePromise));
-    return await checkAndUpdatePromise;
+          if (outdatedEvents.length) {
+            // NOTE: we stop right here something is really off
+            outdatedEvents.forEach(({ ID: queueEntryId }) => {
+              delete this.__queueEntriesMap[queueEntryId];
+              this.__outdatedEventMap[queueEntryId] = 1;
+            });
+
+            this.logger.warn(
+              "Event data has been modified on the database. Further processing skipped. Parallel running events might have already commited status!",
+              {
+                eventType: this.#eventType,
+                eventSubType: this.#eventSubType,
+                queueEntriesIds: outdatedEvents.map(({ ID }) => ID),
+              }
+            );
+          }
+
+          if (validEventIds.length) {
+            await tx.run(
+              UPDATE.entity(this.#config.tableNameEventQueue)
+                .set("lastAttemptTimestamp =", newTs)
+                .where("ID IN", validEventIds)
+            );
+            // NOTE: update internal map after tx is successfully commited!
+            tx.context.on("succeeded", () => {
+              for (const event of events) {
+                const etag = this.#etagMap[event.ID];
+                if (etag === event.lastAttemptTimestamp) {
+                  this.#etagMap[event.ID] = newTs;
+                }
+              }
+            });
+          }
+        });
+      }).catch((err) => {
+        this.logger.error("keep alive handling failed!", err);
+      });
+      await this.#currentKeepAlivePromise;
+    });
   }
 
   async acquireDistributedLock() {
@@ -926,9 +944,9 @@ class EventQueueProcessorBase {
 
     return await trace(this.baseContext, "acquire-lock", async () => {
       const lockAcquired = await distributedLock.acquireLock(
-        this.context,
+        this.__context,
         [this.#eventType, this.#eventSubType].join("##"),
-        { keepTrackOfLock: true }
+        { keepTrackOfLock: true, expiryTime: this.#eventConfig.keepAliveMaxInProgressTime }
       );
       if (!lockAcquired) {
         this.logger.debug("no lock available, exit processing", {
@@ -940,6 +958,26 @@ class EventQueueProcessorBase {
       this.__lockAcquired = true;
       return true;
     });
+  }
+
+  async #renewDistributedLock() {
+    if (this.concurrentEventProcessing) {
+      return true;
+    }
+
+    const lockAcquired = await distributedLock.renewLock(
+      this.__context,
+      [this.#eventType, this.#eventSubType].join("##"),
+      { expiryTime: this.#eventConfig.keepAliveMaxInProgressTime }
+    );
+    if (!lockAcquired) {
+      this.logger.error("renewing redis lock failed!", {
+        type: this.#eventType,
+        subType: this.#eventSubType,
+      });
+      return false;
+    }
+    return true;
   }
 
   async handleReleaseLock() {
@@ -1085,16 +1123,12 @@ class EventQueueProcessorBase {
     this.__processTx = null;
   }
 
-  broadCastEvent() {
-    setTimeout(() => {
-      broadcastEvent(this.__baseContext.tenant, { type: this.#eventType, subType: this.#eventSubType }).catch((err) => {
-        this.logger.error("could not execute scheduled event", err, {
-          tenantId: this.__baseContext.tenant,
-          type: this.#eventType,
-          subType: this.#eventSubType,
-        });
-      });
-    }, 1000).unref();
+  stopKeepAlive() {
+    this.#keepAliveRunner.stop();
+  }
+
+  get keepAlivePromise() {
+    return this.#currentKeepAlivePromise;
   }
 
   get logger() {

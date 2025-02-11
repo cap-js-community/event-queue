@@ -5,7 +5,7 @@ const { promisify } = require("util");
 
 const cds = require("@sap/cds");
 
-const project = __dirname + "/.."; // The project's root folder
+const project = __dirname + "/..";
 cds.test(project);
 
 const redisSub = require("../src/redis/redisSub");
