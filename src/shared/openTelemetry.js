@@ -3,7 +3,6 @@
 const cds = require("@sap/cds");
 let otel, telemetry;
 try {
-  telemetry = require("@cap-js/telemetry");
   otel = require("@opentelemetry/api");
 } catch {
   // ignore
