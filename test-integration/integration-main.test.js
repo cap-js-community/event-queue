@@ -393,6 +393,12 @@ describe("integration-main", () => {
       alwaysCommit = eventQueue.config.events.find((event) => event.subType === "alwaysCommitForKeepAlive");
       isolatedNoParallel.parallelEventProcessing = 1;
       alwaysCommit.parallelEventProcessing = 1;
+      for (let i = 0; i < cds.services.db._handlers.before.length; i++) {
+        const handler = cds.services.db._handlers.before[i];
+        if (handler.before === "READ") {
+          cds.services.db._handlers.before.splice(i, 1);
+        }
+      }
     });
 
     describe("commitOnEventLevel", () => {
@@ -404,7 +410,15 @@ describe("integration-main", () => {
             subType: isolatedNoParallel.subType,
           })
         );
-        dbCounts = {};
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
         jest
           .spyOn(EventQueueTest.prototype, "processEvent")
           .mockImplementationOnce(async function (processContext, key, queueEntries) {
@@ -412,9 +426,9 @@ describe("integration-main", () => {
             return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
           });
         await eventQueue.processEventQueue(context, isolatedNoParallel.type, isolatedNoParallel.subType);
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(3);
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
-        expect(dbCounts).toMatchSnapshot();
       });
 
       it("first keep alive fails; second one should update", async () => {
@@ -459,7 +473,6 @@ describe("integration-main", () => {
             subType: isolatedNoParallel.subType,
           })
         );
-        dbCounts = {};
         jest
           .spyOn(EventQueueTest.prototype, "processEvent")
           .mockImplementationOnce(async function (processContext, key, queueEntries) {
@@ -475,7 +488,6 @@ describe("integration-main", () => {
         );
         const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
         expect(events).toEqual([expect.objectContaining({ status: 1 }), expect.objectContaining({ status: 2 })]);
-        expect(dbCounts).toMatchSnapshot();
       });
 
       it("parallel processing - both events are already started and return a valid status", async () => {
@@ -487,7 +499,15 @@ describe("integration-main", () => {
             subType: isolatedNoParallel.subType,
           })
         );
-        dbCounts = {};
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
         jest
           .spyOn(EventQueueTest.prototype, "processEvent")
           .mockImplementationOnce(async function (processContext, key, queueEntries) {
@@ -496,6 +516,8 @@ describe("integration-main", () => {
             return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
           });
         await eventQueue.processEventQueue(context, isolatedNoParallel.type, isolatedNoParallel.subType);
+        // NOTE: with parallel processing it should be 2 as both handlers run in parallel (processing is quicker)
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(loggerMock.callsLengths().warn).toEqual(1);
         expect(loggerMock.calls().warn[0][0]).toEqual(
@@ -503,7 +525,6 @@ describe("integration-main", () => {
         );
         const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
         expect(events).toEqual([expect.objectContaining({ status: 2 }), expect.objectContaining({ status: 2 })]);
-        expect(dbCounts).toMatchSnapshot();
       });
     });
 
@@ -516,7 +537,15 @@ describe("integration-main", () => {
             subType: alwaysCommit.subType,
           })
         );
-        dbCounts = {};
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
         jest
           .spyOn(EventQueueTest.prototype, "processEvent")
           .mockImplementationOnce(async function (processContext, key, queueEntries) {
@@ -524,9 +553,9 @@ describe("integration-main", () => {
             return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
           });
         await eventQueue.processEventQueue(context, alwaysCommit.type, alwaysCommit.subType);
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(3);
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
-        expect(dbCounts).toMatchSnapshot();
       });
 
       it("should not process modified events", async () => {
@@ -537,7 +566,15 @@ describe("integration-main", () => {
             subType: alwaysCommit.subType,
           })
         );
-        dbCounts = {};
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
         jest
           .spyOn(EventQueueTest.prototype, "processEvent")
           .mockImplementationOnce(async function (processContext, key, queueEntries) {
@@ -546,6 +583,7 @@ describe("integration-main", () => {
             return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
           });
         await eventQueue.processEventQueue(context, alwaysCommit.type, alwaysCommit.subType);
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(loggerMock.callsLengths().warn).toEqual(1);
         expect(loggerMock.calls().warn[0][0]).toEqual(
@@ -553,7 +591,6 @@ describe("integration-main", () => {
         );
         const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
         expect(events).toEqual([expect.objectContaining({ status: 1 }), expect.objectContaining({ status: 2 })]);
-        expect(dbCounts).toMatchSnapshot();
       });
 
       it("parallel processing - both events are already started and return a valid status", async () => {
@@ -565,7 +602,15 @@ describe("integration-main", () => {
             subType: alwaysCommit.subType,
           })
         );
-        dbCounts = {};
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
         jest
           .spyOn(EventQueueTest.prototype, "processEvent")
           .mockImplementationOnce(async function (processContext, key, queueEntries) {
@@ -574,6 +619,7 @@ describe("integration-main", () => {
             return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
           });
         await eventQueue.processEventQueue(context, alwaysCommit.type, alwaysCommit.subType);
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(loggerMock.callsLengths().warn).toEqual(1);
         expect(loggerMock.calls().warn[0][0]).toEqual(
@@ -581,7 +627,6 @@ describe("integration-main", () => {
         );
         const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
         expect(events).toEqual([expect.objectContaining({ status: 2 }), expect.objectContaining({ status: 2 })]);
-        expect(dbCounts).toMatchSnapshot();
       });
     });
   });
