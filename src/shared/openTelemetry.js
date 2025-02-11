@@ -13,9 +13,12 @@ const config = require("../config");
 const COMPONENT_NAME = "/shared/openTelemetry";
 
 const trace = async (context, label, fn, { attributes = {}, newRootSpan = false } = {}) => {
-  if (!config.enableCAPTelemetry || !otel || !cds._telemetry?.tracer) {
+  const tracerProvider = otel.trace.getTracerProvider();
+  // Check if a real provider is registered
+  if (!config.enableCAPTelemetry || !tracerProvider || tracerProvider === otel.trace.NOOP_TRACER_PROVIDER) {
     return fn();
   }
+
 
   const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}`, {
     kind: otel.SpanKind.INTERNAL,
