@@ -70,8 +70,6 @@ class EventQueueProcessorBase {
     this.__retryAttempts = this.#isPeriodic ? 1 : this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
     this.__selectMaxChunkSize = this.#eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
     this.__selectNextChunk = !!this.#eventConfig.checkForNextChunk;
-    this.__keepalivePromises = {};
-    this.__outdatedCheckEnabled = this.#eventConfig.eventOutdatedCheck ?? true;
     this.__transactionMode = this.#eventConfig.transactionMode ?? TransactionMode.isolated;
     this.__emptyChunkSelected = false;
     this.__lockAcquired = false;
@@ -79,7 +77,7 @@ class EventQueueProcessorBase {
     this.__txMap = {};
     this.__txRollback = {};
     this.__queueEntries = [];
-    this.#keepAliveRunner = new SetIntervalDriftSafe(this.#eventConfig.keepAliveInterval * 60 * 1000);
+    this.#keepAliveRunner = new SetIntervalDriftSafe(this.#eventConfig.keepAliveInterval);
   }
 
   /**

@@ -259,34 +259,6 @@ describe("integration-main", () => {
     eventQueue.config.dbUser = null;
   });
 
-  it("lock wait timeout during keepAlive", async () => {
-    await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
-    dbCounts = {};
-    const event = eventQueue.config.events[0];
-
-    const db = await cds.connect.to("db");
-    let doCheck = true;
-    db.prepend(() => {
-      db.on("READ", "*", async (context, next) => {
-        if (doCheck && context.query.SELECT.forUpdate && context.query.SELECT.columns?.length === 2) {
-          throw new Error("all bad");
-        }
-        return await next();
-      });
-    });
-    jest
-      .spyOn(EventQueueTest.prototype, "checkEventAndGeneratePayload")
-      .mockImplementationOnce(async function (queueEntry) {
-        this.__startTime = new Date(Date.now() - 11 * 60 * 1000);
-        return queueEntry.payload;
-      });
-    await eventQueue.processEventQueue(context, event.type, event.subType);
-    doCheck = false;
-    expect(loggerMock.callsLengths().error).toEqual(1);
-    await testHelper.selectEventQueueAndExpectError(tx);
-    expect(dbCounts).toMatchSnapshot();
-  });
-
   it("insert one entry witch checkForNext but return status 0", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
@@ -1197,7 +1169,7 @@ describe("integration-main", () => {
           await tx2.run(
             UPDATE.entity("sap.eventqueue.Event").set({
               status: 1,
-              lastAttemptTimestamp: new Date(Date.now() - 31 * 60 * 1000),
+              lastAttemptTimestamp: new Date(Date.now() - 4 * 60 * 1000),
               attempts: 1,
             })
           );
@@ -1462,7 +1434,7 @@ describe("integration-main", () => {
           await tx2.run(
             UPDATE.entity("sap.eventqueue.Event").set({
               status: 1,
-              lastAttemptTimestamp: new Date(Date.now() - 31 * 60 * 1000),
+              lastAttemptTimestamp: new Date(Date.now() - 4 * 60 * 1000),
               attempts: 1,
             })
           );

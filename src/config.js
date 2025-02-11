@@ -311,7 +311,6 @@ class Config {
       retryAttempts: config.maxAttempts,
       transactionMode: config.transactionMode,
       processAfterCommit: config.processAfterCommit,
-      eventOutdatedCheck: config.eventOutdatedCheck,
       checkForNextChunk: config.checkForNextChunk,
       deleteFinishedEventsAfterDays: config.deleteFinishedEventsAfterDays,
       appNames: config.appNames,
@@ -387,7 +386,7 @@ class Config {
     event.load = event.load ?? DEFAULT_LOAD;
     event.priority = event.priority ?? DEFAULT_PRIORITY;
     event.increasePriorityOverTime = event.increasePriorityOverTime ?? DEFAULT_INCREASE_PRIORITY;
-    event.keepAliveInterval = event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL_MIN;
+    event.keepAliveInterval = (event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL_MIN) * 60 * 1000;
     event.keepAliveMaxInProgressTime = event.keepAliveInterval * DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL;
   }
 

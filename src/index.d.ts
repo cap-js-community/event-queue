@@ -78,7 +78,6 @@ export type EventConfig = {
   retryAttempts: number | undefined;
   transactionMode: string | undefined;
   processAfterCommit: boolean | undefined;
-  eventOutdatedCheck: boolean | undefined;
   checkForNextChunk: boolean | undefined;
   deleteFinishedEventsAfterDays: number | undefined;
   appNames: string[] | undefined;
