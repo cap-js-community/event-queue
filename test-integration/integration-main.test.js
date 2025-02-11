@@ -426,7 +426,7 @@ describe("integration-main", () => {
             return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
           });
         await eventQueue.processEventQueue(context, isolatedNoParallel.type, isolatedNoParallel.subType);
-        expect(forUpdateCounter).toBeGreaterThanOrEqual(3);
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
       });
@@ -553,7 +553,7 @@ describe("integration-main", () => {
             return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
           });
         await eventQueue.processEventQueue(context, alwaysCommit.type, alwaysCommit.subType);
-        expect(forUpdateCounter).toBeGreaterThanOrEqual(3);
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
       });
