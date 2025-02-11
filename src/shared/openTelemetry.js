@@ -1,8 +1,9 @@
 "use strict";
 
 const cds = require("@sap/cds");
-let otel;
+let otel, telemetry;
 try {
+  telemetry = require("@cap-js/telemetry");
   otel = require("@opentelemetry/api");
 } catch {
   // ignore
@@ -13,11 +14,13 @@ const config = require("../config");
 const COMPONENT_NAME = "/shared/openTelemetry";
 
 const trace = async (context, label, fn, { attributes = {}, newRootSpan = false } = {}) => {
-  if (!config.enableCAPTelemetry || !otel || !cds._telemetry?.tracer) {
+  if (!config.enableCAPTelemetry || !otel || !telemetry) {
     return fn();
   }
 
-  const span = cds._telemetry.tracer.startSpan(`eventqueue-${label}`, {
+  const tracer = otel.trace.getTracer("eventqueue");
+
+  const span = tracer.startSpan(`eventqueue-${label}`, {
     kind: otel.SpanKind.INTERNAL,
     root: newRootSpan,
   });
