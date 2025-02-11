@@ -304,7 +304,7 @@ class Config {
     const eventConfig = {
       type: CAP_EVENT_TYPE,
       subType: serviceName,
-      load: config.load ?? DEFAULT_LOAD,
+      load: config.load,
       impl: "./outbox/EventQueueGenericOutboxHandler",
       selectMaxChunkSize: config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
@@ -325,6 +325,7 @@ class Config {
       internalEvent: true,
     };
 
+    this.#basicEventTransformation(eventConfig);
     this.#basicEventTransformationAfterValidate(eventConfig);
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
