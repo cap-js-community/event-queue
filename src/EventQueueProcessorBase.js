@@ -852,7 +852,7 @@ class EventQueueProcessorBase {
   // eslint-disable-next-line no-unused-vars
   async beforeProcessingEvents() {}
 
-  async isOutdatedAndKeepalive() {
+  async isOutdatedAndKeepAlive() {
     if (this.__keepAliveViolated) {
       return true;
     }

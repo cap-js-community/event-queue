@@ -60,7 +60,7 @@ describe("baseFunctionality", () => {
 
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(loggerMock.calls().info).toMatchSnapshot();
-      expect(await selectEventQueueAndReturn(tx, { expectedLength: 5 })).toMatchSnapshot();
+      expect(await selectEventQueueAndReturn(tx, { expectedLength: 6 })).toMatchSnapshot();
     });
 
     it("delta insert", async () => {
@@ -83,7 +83,7 @@ describe("baseFunctionality", () => {
       config.fileContent = fileContent;
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(loggerMock.calls().info).toMatchSnapshot();
-      const test = await selectEventQueueAndReturn(tx, { expectedLength: 6, additionalColumns: ["type", "subType"] });
+      const test = await selectEventQueueAndReturn(tx, { expectedLength: 7, additionalColumns: ["type", "subType"] });
       expect(test).toMatchSnapshot();
     });
 
@@ -149,7 +149,7 @@ describe("baseFunctionality", () => {
 
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(loggerMock.calls().info).toMatchSnapshot();
-      expect(await selectEventQueueAndReturn(tx, { expectedLength: 5 })).toMatchSnapshot();
+      expect(await selectEventQueueAndReturn(tx, { expectedLength: 6 })).toMatchSnapshot();
     });
   });
 

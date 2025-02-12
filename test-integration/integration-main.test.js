@@ -1873,7 +1873,7 @@ describe("integration-main", () => {
 
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 17 });
+        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 18 });
       });
 
       it("should events which are eligible for deletion -> should be deleted after 7 days", async () => {
@@ -1901,7 +1901,7 @@ describe("integration-main", () => {
 
         expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
-        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 7 });
+        await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 8 });
       });
     });
 
@@ -2041,6 +2041,79 @@ describe("integration-main", () => {
         expect(lastTs).toEqual(null);
         expect(scheduleNextSpy).toHaveBeenCalledTimes(2);
         expect(loggerMock.callsLengths().error).toEqual(1);
+      });
+    });
+
+    describe("keep alive", () => {
+      let event;
+      beforeAll(() => {
+        event = eventQueue.config.periodicEvents.find((event) => event.subType === "DBKeepAlive");
+      });
+
+      it("straight forward", async () => {
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        });
+        const scheduleNextSpy = jest
+          .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+          .mockResolvedValueOnce();
+
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
+
+        jest.spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent").mockImplementationOnce(async function () {
+          await promisify(setTimeout)(2500);
+        });
+
+        await processEventQueue(context, event.type, event.subType);
+
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectDone(tx, { type: "HealthCheckKeepAlive_PERIODIC" });
+      });
+
+      it("error case", async () => {
+        await cds.tx({}, async (tx2) => {
+          checkAndInsertPeriodicEventsMock.mockRestore();
+          await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+        });
+        const scheduleNextSpy = jest
+          .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+          .mockResolvedValueOnce();
+
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+            if (forUpdateCounter === 2) {
+              throw Error("error in keep alive - db error");
+            }
+          }
+        });
+
+        jest.spyOn(EventQueueHealthCheckDb.prototype, "processPeriodicEvent").mockImplementationOnce(async function () {
+          await promisify(setTimeout)(2500);
+        });
+
+        await processEventQueue(context, event.type, event.subType);
+
+        expect(loggerMock.callsLengths().error).toEqual(1);
+        expect(loggerMock.calls().error[0][0]).toEqual("keep alive handling failed!");
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(2);
+        expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+        await testHelper.selectEventQueueAndExpectDone(tx, { type: "HealthCheckKeepAlive_PERIODIC" });
       });
     });
   });

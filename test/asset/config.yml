@@ -115,6 +115,14 @@ periodicEvents:
     transactionMode: alwaysRollback
     interval: 30
 
+  - type: HealthCheckKeepAlive
+    subType: DBKeepAlive
+    impl: ./test/asset/EventQueueHealthCheckDb
+    load: 1
+    transactionMode: alwaysRollback
+    interval: 30
+    keepAliveInterval: 1
+
   - type: AppSpecific
     subType: AppName
     impl: ./test/asset/EventQueueHealthCheckDb

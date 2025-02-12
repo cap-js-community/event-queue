@@ -159,6 +159,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
         `eventQueue-periodic-process-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
         async (tx) => {
           await trace(eventTypeInstance.context, "process-periodic-event", async () => {
+            eventTypeInstance.continuesKeepAlive();
             eventTypeInstance.processEventContext = tx.context;
             eventTypeInstance.setTxForEventProcessing(queueEntry.ID, cds.tx(tx.context));
             try {
@@ -170,6 +171,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
               await tx.rollback();
               return;
             } finally {
+              eventTypeInstance.stopKeepAlive();
               eventTypeInstance.endPerformanceTracerPeriodicEvents();
             }
             if (
@@ -198,6 +200,8 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
       eventType: eventTypeInstance?.eventType,
       eventSubType: eventTypeInstance?.eventSubType,
     });
+  } finally {
+    await eventTypeInstance.keepAlivePromise;
   }
 };
 
@@ -314,7 +318,7 @@ const _checkEventIsBlocked = async (baseInstance) => {
 
 const _processEvent = async (eventTypeInstance, processContext, key, queueEntries, payload) => {
   try {
-    const eventOutdated = await eventTypeInstance.isOutdatedAndKeepalive(queueEntries);
+    const eventOutdated = await eventTypeInstance.isOutdatedAndKeepAlive(queueEntries);
     if (eventOutdated) {
       // NOTE: return empty status map to comply with the interface
       return {};
