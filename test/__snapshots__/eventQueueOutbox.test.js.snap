@@ -136,6 +136,10 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true return open event types 1`
     "type": "EVENT_QUEUE_BASE_PERIODIC",
   },
   {
+    "subType": "DBKeepAlive",
+    "type": "HealthCheckKeepAlive_PERIODIC",
+  },
+  {
     "subType": "DB",
     "type": "HealthCheck_PERIODIC",
   },

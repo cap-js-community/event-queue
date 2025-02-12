@@ -98,6 +98,10 @@ exports[`baseFunctionality getOpenQueueEntries event types in error should be co
     "type": "EVENT_QUEUE_BASE_PERIODIC",
   },
   {
+    "subType": "DBKeepAlive",
+    "type": "HealthCheckKeepAlive_PERIODIC",
+  },
+  {
     "subType": "DB",
     "type": "HealthCheck_PERIODIC",
   },
@@ -121,6 +125,10 @@ exports[`baseFunctionality getOpenQueueEntries event types in progress should be
   {
     "subType": "DELETE_EVENTS",
     "type": "EVENT_QUEUE_BASE_PERIODIC",
+  },
+  {
+    "subType": "DBKeepAlive",
+    "type": "HealthCheckKeepAlive_PERIODIC",
   },
   {
     "subType": "DB",
@@ -156,6 +164,10 @@ exports[`baseFunctionality getOpenQueueEntries filterAppSpecificEvents return op
     "type": "EVENT_QUEUE_BASE_PERIODIC",
   },
   {
+    "subType": "DBKeepAlive",
+    "type": "HealthCheckKeepAlive_PERIODIC",
+  },
+  {
     "subType": "DB",
     "type": "HealthCheck_PERIODIC",
   },
@@ -179,6 +191,10 @@ exports[`baseFunctionality getOpenQueueEntries return open event types 2`] = `
   {
     "subType": "DELETE_EVENTS",
     "type": "EVENT_QUEUE_BASE_PERIODIC",
+  },
+  {
+    "subType": "DBKeepAlive",
+    "type": "HealthCheckKeepAlive_PERIODIC",
   },
   {
     "subType": "DB",
