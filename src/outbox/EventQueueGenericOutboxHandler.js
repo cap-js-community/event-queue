@@ -16,7 +16,6 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   }
 
   async processEvent(processContext, key, queueEntries, payload) {
-    let status = EventProcessingStatus.Done;
     try {
       const service = await cds.connect.to(this.eventSubType);
       const { useEventQueueUser } = this.eventConfig;
@@ -30,14 +29,37 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
         authInfo: await common.getTokenInfo(processContext.tenant),
       });
       processContext._eventQueue = { processor: this, key, queueEntries, payload };
-      await cds.unboxed(service).tx(processContext)[invocationFn](msg);
+      const result = await cds.unboxed(service).tx(processContext)[invocationFn](msg);
+      return this.#determineResultStatus(result, queueEntries);
     } catch (err) {
-      status = EventProcessingStatus.Error;
       this.logger.error("error processing outboxed service call", err, {
         serviceName: this.eventSubType,
       });
+      return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Error]);
     }
-    return queueEntries.map((queueEntry) => [queueEntry.ID, status]);
+  }
+
+  #determineResultStatus(result, queueEntries) {
+    const validStatusValues = Object.values(EventProcessingStatus);
+    const validStatus = validStatusValues.includes(result);
+    if (validStatus) {
+      return queueEntries.map((queueEntry) => [queueEntry.ID, validStatus]);
+    }
+
+    if (!Array.isArray(result)) {
+      return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+    }
+
+    const valid = !result.some((entry) => {
+      const [, status] = entry;
+      return !validStatusValues.includes(status);
+    });
+
+    if (valid) {
+      return result;
+    } else {
+      return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+    }
   }
 }
 
