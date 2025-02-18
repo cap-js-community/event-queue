@@ -185,17 +185,13 @@ describe("initialize", () => {
   });
 
   describe("should add events from cds.env", () => {
-    let envConfig;
-    beforeAll(() => {
-      envConfig = cds.env.eventQueue;
-    });
-
     beforeEach(async () => {
       await eventQueue.initialize({
         configFilePath: path.join(__dirname, "asset", "config.yml"),
         processEventsAfterPublish: false,
       });
-      cds.env.eventQueue = envConfig;
+      delete cds.env.eventQueue.events;
+      delete cds.env.eventQueue.periodicEvents;
     });
 
     it("simple add ad-hoc event", () => {
@@ -217,7 +213,7 @@ describe("initialize", () => {
     it("simple add periodic event", () => {
       const fileContent = config.fileContent;
       cds.env.eventQueue.periodicEvents = {
-        "addedViaEnv/dummy": {
+        "addedViaEnv/dummy2": {
           ...config.fileContent.periodicEvents[0],
           type: undefined,
           subType: undefined,
@@ -226,7 +222,7 @@ describe("initialize", () => {
       config.mixFileContentWithEnv(fileContent);
       expect(config.periodicEvents.find((event) => event.type === "addedViaEnv_PERIODIC")).toMatchObject({
         type: "addedViaEnv_PERIODIC",
-        subType: "dummy",
+        subType: "dummy2",
       });
     });
   });
