@@ -357,6 +357,25 @@ class Config {
     this.#isEventQueueActive = value;
   }
 
+  mixFileContentWithEnv(fileContent) {
+    fileContent.events ??= [];
+    fileContent.periodicEvents ??= [];
+    const events = cds.env.eventQueue?.events ?? cds.env["event-queue"]?.events ?? {};
+    const periodicEvents = cds.env.eventQueue?.periodicEvents ?? cds.env["event-queue"]?.periodicEvents ?? {};
+    fileContent.events = fileContent.events.concat(this.#mapEnvEvents(events));
+    fileContent.periodicEvents = fileContent.periodicEvents.concat(this.#mapEnvEvents(periodicEvents));
+    this.fileContent = fileContent;
+  }
+
+  #mapEnvEvents(events) {
+    return Object.entries(events).map(([key, event]) => {
+      const [type, subType] = key.split("/");
+      event.type ??= type;
+      event.subType ??= subType;
+      return event;
+    });
+  }
+
   set fileContent(config) {
     this.#config = config;
     config.events = config.events ?? [];

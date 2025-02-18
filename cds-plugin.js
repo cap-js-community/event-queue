@@ -18,7 +18,7 @@ if ((doLegacyBuildDetection && isBuild) || (!doLegacyBuildDetection && !isServe)
   return;
 }
 
-if (Object.keys(cds.env.eventQueue ?? {}).length) {
+if (Object.keys(cds.env["event-queue"] ?? cds.env.eventQueue ?? {}).length) {
   module.exports = eventQueue.initialize().catch((err) => {
     if (EventQueueError.isRedisConnectionFailure(err) && eventQueue.config.crashOnRedisUnavailable) {
       throw err;

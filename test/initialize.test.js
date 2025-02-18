@@ -46,21 +46,6 @@ describe("initialize", () => {
     ).rejects.toThrow();
   });
 
-  test("missing interval for period event", async () => {
-    await eventQueue.initialize({
-      configFilePath: path.join(__dirname, "asset", "config.yml"),
-      processEventsAfterPublish: false,
-    });
-
-    const fileContent = config.fileContent;
-    delete fileContent.periodicEvents[0].interval;
-    expect(() => {
-      config.fileContent = fileContent;
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"For periodic events either the cron or interval parameter must be defined!"`
-    );
-  });
-
   test("registration checks", async () => {
     await eventQueue.initialize({
       configFilePath: path.join(__dirname, "asset", "config.yml"),
@@ -85,6 +70,15 @@ describe("initialize", () => {
     expect(() => {
       config.fileContent = fileContent;
     }).toThrowErrorMatchingInlineSnapshot(`"Duplicate event registration, check the uniqueness of type and subType."`);
+
+    const interval = fileContent.periodicEvents[0].interval;
+    delete fileContent.periodicEvents[0].interval;
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"For periodic events either the cron or interval parameter must be defined!"`
+    );
+    fileContent.periodicEvents[0].interval = interval;
 
     expect(() => {
       config.runInterval = 2;
@@ -188,6 +182,53 @@ describe("initialize", () => {
       `"The config multiInstanceProcessing is currently only allowed for ad-hoc events and single-tenant-apps."`
     );
     cds.requires.multitenancy = false;
+  });
+
+  describe("should add events from cds.env", () => {
+    let envConfig;
+    beforeAll(() => {
+      envConfig = cds.env.eventQueue;
+    });
+
+    beforeEach(async () => {
+      await eventQueue.initialize({
+        configFilePath: path.join(__dirname, "asset", "config.yml"),
+        processEventsAfterPublish: false,
+      });
+      cds.env.eventQueue = envConfig;
+    });
+
+    it("simple add ad-hoc event", () => {
+      const fileContent = config.fileContent;
+      cds.env.eventQueue.events = {
+        "addedViaEnv/dummy": {
+          ...config.fileContent.events[0],
+          type: undefined,
+          subType: undefined,
+        },
+      };
+      config.mixFileContentWithEnv(fileContent);
+      expect(config.events.find((event) => event.type === "addedViaEnv")).toMatchObject({
+        type: "addedViaEnv",
+        subType: "dummy",
+      });
+    });
+
+    it("simple add periodic event", () => {
+      const fileContent = config.fileContent;
+      cds.env.eventQueue.periodicEvents = {
+        "addedViaEnv/dummy": {
+          ...config.fileContent.periodicEvents[0],
+          type: undefined,
+          subType: undefined,
+        },
+      };
+      config.mixFileContentWithEnv(fileContent);
+      expect(config.periodicEvents.find((event) => event.type === "addedViaEnv_PERIODIC")).toMatchObject({
+        type: "addedViaEnv_PERIODIC",
+        subType: "dummy",
+      });
+    });
   });
 
   describe("runner mode registration", () => {

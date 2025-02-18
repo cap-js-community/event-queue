@@ -97,7 +97,8 @@ const initialize = async (options = {}) => {
       throw EventQueueError.redisConnectionFailure();
     }
   }
-  config.fileContent = await readConfigFromFile(config.configFilePath);
+  const fileContent = await readConfigFromFile(config.configFilePath);
+  config.mixFileContentWithEnv(fileContent);
 
   monkeyPatchCAPOutbox();
   registerCdsShutdown();
@@ -180,7 +181,7 @@ const monkeyPatchCAPOutbox = () => {
 const mixConfigVarsWithEnv = (options) => {
   CONFIG_VARS.forEach(([configName, defaultValue]) => {
     const configValue = options[configName];
-    config[configName] = configValue ?? cds.env.eventQueue?.[configName] ?? defaultValue;
+    config[configName] = configValue ?? cds.env.eventQueue?.[configName] ?? cds.env["event-queue"] ?? defaultValue;
   });
 };
 
