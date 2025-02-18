@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - CAP outbox: allow to return the event status. [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#how-to-return-a-custom-status)
+- Keep alive handling to reduce the time after which events are restarted after a server crash.
 
 ## v1.8.7 - 2025-02-05
 
