@@ -26,6 +26,8 @@ const TIMEOUT_SHUTDOWN = 2500;
 
 const CONFIG_VARS = [
   ["configFilePath", null],
+  ["events", null],
+  ["periodicEvents", null],
   ["registerAsEventProcessor", true],
   ["processEventsAfterPublish", true],
   ["isEventQueueActive", true],
@@ -49,6 +51,8 @@ const CONFIG_VARS = [
  *
  * @param {Object} options - The configuration options.
  * @param {string} [options.configFilePath=null] - Path to the configuration file.
+ * @param {string} [options.events={}] - Options to allow events in the configuration.
+ * @param {string} [options.periodicEvents={}] - Options to allow periodicEvents in the configuration.
  * @param {boolean} [options.registerAsEventProcessor=true] - Register the instance as an event processor.
  * @param {boolean} [options.processEventsAfterPublish=true] - Process events immediately after publishing.
  * @param {boolean} [options.isEventQueueActive=true] - Flag to activate/deactivate the event queue.
