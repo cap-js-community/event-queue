@@ -223,3 +223,12 @@ class TaskService extends cds.Service {
   }
 }
 ```
+
+### How to return a custom status?
+
+It's possible to return a custom status for an event. The allowed status values are explained [here](/event-queue/status-handling/).
+```js
+this.on("returnPlainStatus", (req) => {
+  return EventProcessingStatus.Done;
+});
+```
