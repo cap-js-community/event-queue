@@ -10,10 +10,8 @@ nav_order: 4
 
 # Configure Events
 
-<!-- prettier-ignore -->
-
 - TOC
-  {: toc}
+{: toc}
 
 <!-- prettier-ignore-end -->
 
@@ -49,6 +47,7 @@ The configuration YAML file is where all the required information regarding even
 | retryFailedAfter              | The duration (in milliseconds) after which failed events should be retried, provided the retry limit has not been exceeded.                                                                                                                                   | `5 * 60 * 1000` |
 | multiInstanceProcessing       | (Currently applicable only for Single Tenant) Allows processing of the same event type and subtype across multiple application instances.                                                                                                                     | false           |
 | increasePriorityOverTime      | After three minutes, the priority of unprocessed events is increased by one. This behavior can be disabled with this option. The behavior is documented [here](#priority-of-events).                                                                          | true            |
+| keepAliveInterval             | Specifies the interval (in seconds) at which keep-alive signals are sent during event processing to monitor system health.                                                                                                                                    | 60              |
 
 ## Configuration
 
@@ -98,6 +97,7 @@ instance is overloaded.
 | priority                      | Specifies the priority level of the event. More details can be found [here](#priority-of-events).                                                                                                                                                             | Medium        |
 | appNames                      | Specifies the application names on which the event should be processed. The application name is extracted from the environment variable `VCAP_APPLICATION`. If not defined, the event is processed on all connected applications.                             | null          |
 | appInstances                  | Specifies the application instance numbers on which the event should be processed. The instance number is extracted from the environment variable `CF_INSTANCE_INDEX`. If not defined, the event is processed on all instances of the connected applications. | null          |
+| keepAliveInterval             | Specifies the interval (in seconds) at which keep-alive signals are sent during event processing to monitor system health.                                                                                                                                    | 60            |
 
 ## Configuration
 
@@ -327,3 +327,23 @@ To ensure that event types with low priorities are not left unprocessed during p
 adjustment is made for event types in the queue for more than three minutes. The pre-defined rule is: if an event type
 remains in the queue for more than three minutes, its priority is temporarily bumped up by one level (i.e., from Low to
 Medium).
+
+# Keep Alive During Event Processing
+
+The "Keep Alive During Event Processing" feature ensures system reliability by monitoring event processing activities.
+
+## Overview
+
+During the processing of ad-hoc and periodic events, a keep-alive signal is sent to detect application crashes or
+unresponsiveness. This enables prompt redirection or restarting of events on different instances if needed.
+
+## Functionality
+
+- Keep-alive signals are periodically sent during event processing, based on event configurations.
+- If a keep-alive signal is not received, the system identifies a potential crash.
+- Events are restarted on available instances to minimize downtime and ensure continuity.
+
+## Configuration
+
+This parameter specifies the interval, in seconds, at which keep-alive signals are emitted during event processing. The
+default value is 60 seconds. Adjusting this parameter can tailor the system's responsiveness to potential failures.

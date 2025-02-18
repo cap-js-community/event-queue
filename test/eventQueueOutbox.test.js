@@ -675,6 +675,78 @@ describe("event-queue outbox", () => {
       `);
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
+
+    describe("allow to return status", () => {
+      it("simple status value to done", async () => {
+        const service = await cds.connect.to("NotificationService");
+        const outboxedService = cds.outboxed(service).tx(context);
+        await outboxedService.send("returnPlainStatus", {
+          status: EventProcessingStatus.Done,
+        });
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("simple status value to error", async () => {
+        const service = await cds.connect.to("NotificationService");
+        const outboxedService = cds.outboxed(service).tx(context);
+        await outboxedService.send("returnPlainStatus", {
+          status: EventProcessingStatus.Error,
+        });
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("return status with array syntax to done", async () => {
+        const service = await cds.connect.to("NotificationService");
+        const outboxedService = cds.outboxed(service).tx(context);
+        await outboxedService.send("returnStatusAsArray", {
+          status: EventProcessingStatus.Done,
+        });
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("return status with array syntax to error", async () => {
+        const service = await cds.connect.to("NotificationService");
+        const outboxedService = cds.outboxed(service).tx(context);
+        await outboxedService.send("returnStatusAsArray", {
+          status: EventProcessingStatus.Error,
+        });
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("not valid status should be ignored", async () => {
+        const service = await cds.connect.to("NotificationService");
+        const outboxedService = cds.outboxed(service).tx(context);
+        await outboxedService.send("returnStatusAsArray", {
+          status: "K",
+        });
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+    });
   });
 
   const commitAndOpenNew = async () => {

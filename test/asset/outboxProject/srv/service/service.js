@@ -13,6 +13,14 @@ class NotificationService extends cds.Service {
       });
     });
 
+    this.on("returnPlainStatus", (req) => {
+      return req.data.status;
+    });
+
+    this.on("returnStatusAsArray", (req) => {
+      return [[req.context._eventQueue?.queueEntries[0].ID, req.data.status]];
+    });
+
     this.on("rejectEvent", (req) => {
       req.reject(404, "error occured");
     });
