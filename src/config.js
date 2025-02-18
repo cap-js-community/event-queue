@@ -360,8 +360,8 @@ class Config {
   mixFileContentWithEnv(fileContent) {
     fileContent.events ??= [];
     fileContent.periodicEvents ??= [];
-    const events = cds.env.eventQueue?.events ?? cds.env["event-queue"]?.events ?? {};
-    const periodicEvents = cds.env.eventQueue?.periodicEvents ?? cds.env["event-queue"]?.periodicEvents ?? {};
+    const events = cds.env.eventQueue?.events ?? {};
+    const periodicEvents = cds.env.eventQueue?.periodicEvents ?? {};
     fileContent.events = fileContent.events.concat(this.#mapEnvEvents(events));
     fileContent.periodicEvents = fileContent.periodicEvents.concat(this.#mapEnvEvents(periodicEvents));
     this.fileContent = fileContent;
