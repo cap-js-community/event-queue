@@ -43,7 +43,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     const validStatusValues = Object.values(EventProcessingStatus);
     const validStatus = validStatusValues.includes(result);
     if (validStatus) {
-      return queueEntries.map((queueEntry) => [queueEntry.ID, validStatus]);
+      return queueEntries.map((queueEntry) => [queueEntry.ID, result]);
     }
 
     if (!Array.isArray(result)) {
