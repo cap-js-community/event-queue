@@ -26,8 +26,8 @@ const TIMEOUT_SHUTDOWN = 2500;
 
 const CONFIG_VARS = [
   ["configFilePath", null],
-  ["events", null],
-  ["periodicEvents", null],
+  ["events", null, "configEvents"],
+  ["periodicEvents", null, "configPeriodicEvents"],
   ["registerAsEventProcessor", true],
   ["processEventsAfterPublish", true],
   ["isEventQueueActive", true],
@@ -183,9 +183,9 @@ const monkeyPatchCAPOutbox = () => {
 };
 
 const mixConfigVarsWithEnv = (options) => {
-  CONFIG_VARS.forEach(([configName, defaultValue]) => {
+  CONFIG_VARS.forEach(([configName, defaultValue, mappingName]) => {
     const configValue = options[configName];
-    config[configName] = configValue ?? cds.env.eventQueue?.[configName] ?? defaultValue;
+    config[mappingName ?? configName] = configValue ?? cds.env.eventQueue?.[configName] ?? defaultValue;
   });
 };
 

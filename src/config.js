@@ -82,6 +82,8 @@ class Config {
   #crashOnRedisUnavailable;
   #tenantIdFilterTokenInfoCb;
   #tenantIdFilterEventProcessingCb;
+  #localEvents;
+  #localPeriodicEvents;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -360,8 +362,8 @@ class Config {
   mixFileContentWithEnv(fileContent) {
     fileContent.events ??= [];
     fileContent.periodicEvents ??= [];
-    const events = cds.env.eventQueue?.events ?? {};
-    const periodicEvents = cds.env.eventQueue?.periodicEvents ?? {};
+    const events = this.#localEvents ?? {};
+    const periodicEvents = this.#localPeriodicEvents ?? {};
     fileContent.events = fileContent.events.concat(this.#mapEnvEvents(events));
     fileContent.periodicEvents = fileContent.periodicEvents.concat(this.#mapEnvEvents(periodicEvents));
     this.fileContent = fileContent;
@@ -523,6 +525,14 @@ class Config {
 
   get events() {
     return this.#config.events;
+  }
+
+  set localEvents(value) {
+    this.#localEvents = value;
+  }
+
+  set localPeriodicEvents(value) {
+    this.#localPeriodicEvents = value;
   }
 
   get periodicEvents() {

@@ -190,13 +190,13 @@ describe("initialize", () => {
         configFilePath: path.join(__dirname, "asset", "config.yml"),
         processEventsAfterPublish: false,
       });
-      delete cds.env.eventQueue.events;
-      delete cds.env.eventQueue.periodicEvents;
+      config.localEvents = {};
+      config.localPeriodicEvents = {};
     });
 
     it("simple add ad-hoc event", () => {
       const fileContent = config.fileContent;
-      cds.env.eventQueue.events = {
+      config.localEvents = {
         "addedViaEnv/dummy": {
           ...config.fileContent.events[0],
           type: undefined,
@@ -212,7 +212,7 @@ describe("initialize", () => {
 
     it("simple add periodic event", () => {
       const fileContent = config.fileContent;
-      cds.env.eventQueue.periodicEvents = {
+      config.localPeriodicEvents = {
         "addedViaEnv/dummy2": {
           ...config.fileContent.periodicEvents[0],
           type: undefined,
