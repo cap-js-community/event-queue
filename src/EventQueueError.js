@@ -18,6 +18,8 @@ const ERROR_CODES = {
   NO_INTERVAL_OR_CRON: "NO_INTERVAL_OR_CRON",
   INTERVAL_AND_CRON: "INTERVAL_AND_CRON",
   MISSING_IMPL: "MISSING_IMPL",
+  MISSING_TYPE: "MISSING_TYPE",
+  MISSING_SUBTYPE: "MISSING_SUBTYPE",
   DUPLICATE_EVENT_REGISTRATION: "DUPLICATE_EVENT_REGISTRATION",
   NO_MANUEL_INSERT_OF_PERIODIC: "NO_MANUEL_INSERT_OF_PERIODIC",
   LOAD_HIGHER_THAN_LIMIT: "LOAD_HIGHER_THAN_LIMIT",
@@ -61,6 +63,12 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.MISSING_IMPL]: {
     message: "Missing path to event class implementation.",
+  },
+  [ERROR_CODES.MISSING_TYPE]: {
+    message: "Missing type event implementation.",
+  },
+  [ERROR_CODES.MISSING_SUBTYPE]: {
+    message: "Missing subtype event implementation.",
   },
   [ERROR_CODES.DUPLICATE_EVENT_REGISTRATION]: {
     message: "Duplicate event registration, check the uniqueness of type and subType.",
@@ -260,6 +268,28 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.MISSING_IMPL,
         info: { type, subType },
+      },
+      message
+    );
+  }
+
+  static missingType(config) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.MISSING_TYPE];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.MISSING_TYPE,
+        info: { config },
+      },
+      message
+    );
+  }
+
+  static missingSubType(config) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.MISSING_SUBTYPE];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.MISSING_SUBTYPE,
+        info: { config },
       },
       message
     );

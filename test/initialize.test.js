@@ -21,6 +21,15 @@ jest.spyOn(redisSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
 describe("initialize", () => {
   let configInstance;
   beforeEach(() => {
+    cds.env.eventQueue.periodicEvents = {
+      "EVENT_QUEUE_BASE/DELETE_EVENTS": {
+        priority: "low",
+        impl: "./housekeeping/EventQueueDeleteEvents",
+        load: 20,
+        interval: 86400,
+        internalEvent: true,
+      },
+    };
     configInstance = eventQueue.config;
     configInstance.initialized = false;
     jest.clearAllMocks();
@@ -44,21 +53,6 @@ describe("initialize", () => {
         processEventsAfterPublish: false,
       })
     ).rejects.toThrow();
-  });
-
-  test("missing interval for period event", async () => {
-    await eventQueue.initialize({
-      configFilePath: path.join(__dirname, "asset", "config.yml"),
-      processEventsAfterPublish: false,
-    });
-
-    const fileContent = config.fileContent;
-    delete fileContent.periodicEvents[0].interval;
-    expect(() => {
-      config.fileContent = fileContent;
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"For periodic events either the cron or interval parameter must be defined!"`
-    );
   });
 
   test("registration checks", async () => {
@@ -85,6 +79,15 @@ describe("initialize", () => {
     expect(() => {
       config.fileContent = fileContent;
     }).toThrowErrorMatchingInlineSnapshot(`"Duplicate event registration, check the uniqueness of type and subType."`);
+
+    const interval = fileContent.periodicEvents[0].interval;
+    delete fileContent.periodicEvents[0].interval;
+    expect(() => {
+      config.fileContent = fileContent;
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"For periodic events either the cron or interval parameter must be defined!"`
+    );
+    fileContent.periodicEvents[0].interval = interval;
 
     expect(() => {
       config.runInterval = 2;
@@ -188,6 +191,92 @@ describe("initialize", () => {
       `"The config multiInstanceProcessing is currently only allowed for ad-hoc events and single-tenant-apps."`
     );
     cds.requires.multitenancy = false;
+  });
+
+  describe("should add events from cds.env", () => {
+    beforeEach(async () => {
+      config.configEvents = {};
+      config.configPeriodicEvents = {};
+      await eventQueue.initialize({
+        configFilePath: path.join(__dirname, "asset", "config.yml"),
+        processEventsAfterPublish: false,
+      });
+    });
+
+    it("simple add ad-hoc event", () => {
+      const fileContent = config.fileContent;
+      config.configEvents = {
+        "addedViaEnv/dummy": {
+          ...config.fileContent.events[0],
+          type: undefined,
+          subType: undefined,
+        },
+      };
+      config.mixFileContentWithEnv(fileContent);
+      expect(config.events.find((event) => event.type === "addedViaEnv")).toMatchObject({
+        type: "addedViaEnv",
+        subType: "dummy",
+      });
+    });
+
+    it("name without slash should work", () => {
+      const fileContent = config.fileContent;
+      config.configEvents = {
+        addedViaEnvdummy: {
+          ...config.fileContent.events[0],
+          type: "addedViaEnv2",
+          subType: "dummy2",
+        },
+      };
+      config.mixFileContentWithEnv(fileContent);
+      expect(config.events.find((event) => event.type === "addedViaEnv2")).toMatchObject({
+        type: "addedViaEnv2",
+        subType: "dummy2",
+      });
+    });
+
+    it("setting event config to null should ignore the event", () => {
+      const fileContent = config.fileContent;
+      config.configEvents = {
+        "addedViaEnv4/dummy": null,
+      };
+      config.mixFileContentWithEnv(fileContent);
+      expect(config.events.find((event) => event.type === "addedViaEnv4")).toBeFalsy();
+    });
+
+    it("name without slash should and missing subType should be a error", () => {
+      const fileContent = {
+        events: [...config.fileContent.events],
+        periodicEvents: [...config.fileContent.periodicEvents],
+      };
+      config.configEvents = {
+        addedViaEnvdummy: {
+          ...config.fileContent.events[0],
+          type: "addedViaEnv3",
+          subType: null,
+        },
+      };
+      expect(() => {
+        config.mixFileContentWithEnv(fileContent);
+      }).toThrowErrorMatchingInlineSnapshot(`"Missing subtype event implementation."`);
+      expect(config.events.find((event) => event.type === "addedViaEnv3")).toBeFalsy();
+    });
+
+    it("simple add periodic event", () => {
+      const fileContent = config.fileContent;
+      config.configPeriodicEvents = {
+        "addedViaEnv/dummy2": {
+          ...config.fileContent.periodicEvents[0],
+          type: undefined,
+          subType: undefined,
+        },
+      };
+      config.mixFileContentWithEnv(fileContent);
+      expect(config.periodicEvents.find((event) => event.type === "addedViaEnv_PERIODIC")).toMatchObject({
+        type: "addedViaEnv_PERIODIC",
+        subType: "dummy2",
+      });
+    });
   });
 
   describe("runner mode registration", () => {
@@ -310,6 +399,7 @@ describe("initialize", () => {
     });
 
     test("should mix init vars with env correctly", async () => {
+      let envBefore = cds.env.eventQueue;
       cds.env.eventQueue = {};
       cds.env.eventQueue.registerAsEventProcessor = true;
       await eventQueue.initialize({
@@ -321,6 +411,7 @@ describe("initialize", () => {
       expect(configInstance.runInterval).toEqual(25 * 60 * 1000);
       expect(configInstance.tableNameEventQueue).toEqual("sap.eventqueue.Event");
       expect(configInstance.tableNameEventLock).toEqual("sap.eventqueue.Lock");
+      cds.env.eventQueue = envBefore;
     });
   });
 
@@ -335,6 +426,7 @@ describe("initialize", () => {
         configFilePath,
         registerAsEventProcessor: true,
         updatePeriodicEvents: true,
+        isEventQueueActive: true,
       });
       cds.emit("connect", await cds.connect.to("db"));
       await promisify(setTimeout)(100);
@@ -375,6 +467,7 @@ describe("initialize", () => {
         configFilePath,
         registerAsEventProcessor: true,
         updatePeriodicEvents: true,
+        isEventQueueActive: true,
       });
       cds.emit("connect", await cds.connect.to("db"));
       await promisify(setTimeout)(100);

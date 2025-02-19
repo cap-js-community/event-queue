@@ -36,6 +36,17 @@ describe("integration-main", () => {
 
   beforeAll(async () => {
     checkAndInsertPeriodicEventsMock = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
+    cds.env.eventQueue = {
+      periodicEvents: {
+        "EVENT_QUEUE_BASE/DELETE_EVENTS": {
+          priority: "low",
+          impl: "./housekeeping/EventQueueDeleteEvents",
+          load: 20,
+          interval: 86400,
+          internalEvent: true,
+        },
+      },
+    };
     await eventQueue.initialize({
       configFilePath,
       processEventsAfterPublish: false,

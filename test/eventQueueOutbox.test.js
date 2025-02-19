@@ -19,6 +19,15 @@ describe("event-queue outbox", () => {
   let context, tx, loggerMock;
 
   beforeAll(() => {
+    cds.env.eventQueue.periodicEvents = {
+      "EVENT_QUEUE_BASE/DELETE_EVENTS": {
+        priority: "low",
+        impl: "./housekeeping/EventQueueDeleteEvents",
+        load: 20,
+        interval: 86400,
+        internalEvent: true,
+      },
+    };
     loggerMock = mockLogger();
   });
   beforeEach(async () => {

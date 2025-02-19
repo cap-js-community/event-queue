@@ -30,18 +30,6 @@ const PRIORITIES = Object.values(Priorities);
 const UTC_DEFAULT = false;
 const USE_CRON_TZ_DEFAULT = true;
 
-const BASE_PERIODIC_EVENTS = [
-  {
-    type: "EVENT_QUEUE_BASE",
-    subType: "DELETE_EVENTS",
-    priority: Priorities.Low,
-    impl: "./housekeeping/EventQueueDeleteEvents",
-    load: 20,
-    interval: 86400, // 1 day,
-    internalEvent: true,
-  },
-];
-
 const BASE_TABLES = {
   EVENT: "sap.eventqueue.Event",
   LOCK: "sap.eventqueue.Lock",
@@ -82,6 +70,8 @@ class Config {
   #crashOnRedisUnavailable;
   #tenantIdFilterTokenInfoCb;
   #tenantIdFilterEventProcessingCb;
+  #configEvents;
+  #configPeriodicEvents;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -357,13 +347,33 @@ class Config {
     this.#isEventQueueActive = value;
   }
 
+  mixFileContentWithEnv(fileContent) {
+    fileContent.events ??= [];
+    fileContent.periodicEvents ??= [];
+    const events = this.#configEvents ?? {};
+    const periodicEvents = this.#configPeriodicEvents ?? {};
+    fileContent.events = fileContent.events.concat(this.#mapEnvEvents(events));
+    fileContent.periodicEvents = fileContent.periodicEvents.concat(this.#mapEnvEvents(periodicEvents));
+    this.fileContent = fileContent;
+  }
+
+  #mapEnvEvents(events) {
+    return Object.entries(events)
+      .map(([key, event]) => {
+        if (!event) {
+          return;
+        }
+        const [type, subType] = key.split("/");
+        event.type ??= type;
+        event.subType ??= subType;
+        return { ...event };
+      })
+      .filter((a) => a);
+  }
+
   set fileContent(config) {
-    this.#config = config;
     config.events = config.events ?? [];
-    const shouldIncludeBaseEvents = cds.env.profiles.includes("production") || cds.env.profiles.includes("test");
-    config.periodicEvents = (config.periodicEvents ?? []).concat(
-      (shouldIncludeBaseEvents ? BASE_PERIODIC_EVENTS : []).map((event) => ({ ...event }))
-    );
+    config.periodicEvents = config.periodicEvents ?? [];
     this.#eventMap = config.events.reduce((result, event) => {
       this.#basicEventTransformation(event);
       this.#validateAdHocEvents(result, event);
@@ -380,6 +390,7 @@ class Config {
       result[this.generateKey(event.type, event.subType)] = event;
       return result;
     }, this.#eventMap);
+    this.#config = config;
   }
 
   #basicEventTransformation(event) {
@@ -400,6 +411,14 @@ class Config {
   #basicEventValidation(event) {
     if (!event.impl) {
       throw EventQueueError.missingImpl(event.type, event.subType);
+    }
+
+    if (!event.type) {
+      throw EventQueueError.missingType(event);
+    }
+
+    if (!event.subType) {
+      throw EventQueueError.missingSubType(event);
     }
 
     if (event.appNames) {
@@ -504,6 +523,14 @@ class Config {
 
   get events() {
     return this.#config.events;
+  }
+
+  set configEvents(value) {
+    this.#configEvents = JSON.parse(JSON.stringify(value));
+  }
+
+  set configPeriodicEvents(value) {
+    this.#configPeriodicEvents = JSON.parse(JSON.stringify(value));
   }
 
   get periodicEvents() {

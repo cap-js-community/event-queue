@@ -15,16 +15,55 @@ nav_order: 4
 
 <!-- prettier-ignore-end -->
 
+# Where to Define Events?
+
+Events can be configured either via `cds.env` or by passing them during the `eventQueue.initialize` call. Both options
+are described below. Choose the right option depending on your initialization method (
+see [here](/event-queue/setup/#ways-of-initialization)).
+
+## Configuration
+
+The easiest way is to use `cds.env`. This configuration method supports all parameters compatible with the YAML format.
+The event `type` and `subType` are derived from the key in the object. Based on the example below, these would be
+`Notification` and `Email`.
+
+This approach allows full flexibility with `cds.env`, enabling techniques like `.cdsrc.json` and CDS profiles to adjust
+and extend event settings.
+
+```json
+{
+  "cds": {
+    "eventQueue": {
+      "events": {
+        "Notification/Email": {
+          "impl": "./srv/util/mail-service/EventQueueNotificationProcessor",
+          "load": 1,
+          "parallelEventProcessing": 5
+        }
+      },
+      "periodicEvents": {
+        "HealthCheck/DB": {
+          "impl": "./test/asset/EventQueueHealthCheckDb",
+          "load": 1,
+          "transactionMode": "alwaysRollback",
+          "interval": 30
+        }
+      }
+    }
+  }
+}
+```
+
+## YAML File
+
+Examples are shown in the sections below. See [here](#configuration-1) and [here](#configuration-2).
+
 # Ad-Hoc events
 
 Ad-hoc events are one-time events that are either processed directly or with a defined delay. The purpose of such events
 is to process asynchronous loads, such as sending email notifications or compressing uploaded attachments, where you
 don't want the user to wait until the process is finished. These events have various configurations to determine how
 they should be processed.
-
-## Configuration
-
-The configuration YAML file is where all the required information regarding event processing should be maintained.
 
 ## Parameters
 

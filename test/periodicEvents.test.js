@@ -20,6 +20,16 @@ describe("baseFunctionality", () => {
   beforeAll(async () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2023-11-13T11:00:00.000Z"));
+    cds.env.eventQueue.periodicEvents = {
+      "EVENT_QUEUE_BASE/DELETE_EVENTS": {
+        priority: "low",
+        impl: "./housekeeping/EventQueueDeleteEvents",
+        load: 20,
+        interval: 86400,
+        internalEvent: true,
+      },
+    };
+
     const configFilePath = path.join(__dirname, "asset", "config.yml");
     await eventQueue.initialize({
       configFilePath,
@@ -51,9 +61,9 @@ describe("baseFunctionality", () => {
 
   describe("interval events", () => {
     beforeEach(() => {
-      config.fileContent = {
+      config.mixFileContentWithEnv({
         periodicEvents: fileContent.periodicEvents.filter((e) => !e.cron).map((e) => ({ ...e })),
-      };
+      });
     });
     it("basic insert all new events", async () => {
       await checkAndInsertPeriodicEvents(context);
@@ -74,13 +84,13 @@ describe("baseFunctionality", () => {
         type: "HealthCheck",
         subType: "DB2",
       });
-      config.fileContent = fileContent;
+      config.mixFileContentWithEnv(fileContent);
 
       await checkAndInsertPeriodicEvents(context);
 
       fileContent.periodicEvents.splice(1, 2);
       fileContent.periodicEvents[0].type = "HealthCheck";
-      config.fileContent = fileContent;
+      config.mixFileContentWithEnv(fileContent);
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(loggerMock.calls().info).toMatchSnapshot();
       const test = await selectEventQueueAndReturn(tx, { expectedLength: 7, additionalColumns: ["type", "subType"] });
@@ -90,10 +100,10 @@ describe("baseFunctionality", () => {
     describe("interval change", () => {
       it("if too far in future update", async () => {
         const refEvent = fileContent.periodicEvents[0];
-        config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+        config.mixFileContentWithEnv({ events: [], periodicEvents: [{ ...refEvent }] });
         await checkAndInsertPeriodicEvents(context);
         refEvent.interval = 450;
-        config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+        config.mixFileContentWithEnv({ events: [], periodicEvents: [{ ...refEvent }] });
 
         // events are inserted with current date --> so we need to update
         await tx.run(
@@ -114,10 +124,10 @@ describe("baseFunctionality", () => {
 
       it("if interval is increased next event will autocorrect", async () => {
         const refEvent = fileContent.periodicEvents[0];
-        config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+        config.mixFileContentWithEnv({ events: [], periodicEvents: [{ ...refEvent }] });
         await checkAndInsertPeriodicEvents(context);
         refEvent.interval = 450;
-        config.fileContent = { events: [], periodicEvents: [{ ...refEvent }] };
+        config.mixFileContentWithEnv({ events: [], periodicEvents: [{ ...refEvent }] });
 
         // events are inserted with current date --> so we need to update
         await tx.run(
@@ -179,7 +189,7 @@ describe("baseFunctionality", () => {
 
     describe("Cron expression tests", () => {
       it.each(cronExpressions)("should test cron expression: '%s'", async (cronExpression) => {
-        config.fileContent = {
+        config.mixFileContentWithEnv({
           events: fileContent.events,
           periodicEvents: [
             {
@@ -187,7 +197,7 @@ describe("baseFunctionality", () => {
               cron: cronExpression,
             },
           ],
-        };
+        });
         await checkAndInsertPeriodicEvents(context);
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(loggerMock.calls().info).toMatchSnapshot(cronExpression);
@@ -202,10 +212,10 @@ describe("baseFunctionality", () => {
             e.utc = false;
             return e;
           });
-        config.fileContent = {
+        config.mixFileContentWithEnv({
           events: fileContent.events,
           periodicEvents: [periodicEventsCron[0]],
-        };
+        });
         config.cronTimezone = "US/Hawaii";
         await checkAndInsertPeriodicEvents(context);
         const events = await selectEventQueueAndReturn(tx, {
@@ -228,7 +238,7 @@ describe("baseFunctionality", () => {
 
       describe("changed intervals", () => {
         it("not changed interval --> no update", async () => {
-          config.fileContent = {
+          config.mixFileContentWithEnv({
             events: fileContent.events,
             periodicEvents: [
               {
@@ -236,7 +246,7 @@ describe("baseFunctionality", () => {
                 cron: "* * * * *",
               },
             ],
-          };
+          });
           await checkAndInsertPeriodicEvents(context);
           jest.clearAllMocks();
           await checkAndInsertPeriodicEvents(context);
@@ -245,7 +255,7 @@ describe("baseFunctionality", () => {
         });
 
         it("changed interval", async () => {
-          config.fileContent = {
+          config.mixFileContentWithEnv({
             events: fileContent.events,
             periodicEvents: [
               {
@@ -253,10 +263,10 @@ describe("baseFunctionality", () => {
                 cron: "* * * * *",
               },
             ],
-          };
+          });
           await checkAndInsertPeriodicEvents(context);
           jest.clearAllMocks();
-          config.fileContent = {
+          config.mixFileContentWithEnv({
             events: fileContent.events,
             periodicEvents: [
               {
@@ -264,14 +274,14 @@ describe("baseFunctionality", () => {
                 cron: "0 0 * * *",
               },
             ],
-          };
+          });
           await checkAndInsertPeriodicEvents(context);
           expect(loggerMock.calls().info).toMatchSnapshot();
           expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
         });
 
         it("interval multiple times overdue", async () => {
-          config.fileContent = {
+          config.mixFileContentWithEnv({
             events: fileContent.events,
             periodicEvents: [
               {
@@ -279,13 +289,13 @@ describe("baseFunctionality", () => {
                 cron: "* * * * *",
               },
             ],
-          };
+          });
           await checkAndInsertPeriodicEvents(context);
           jest.clearAllMocks();
 
           // NOTE: same interval but expedited by one day
           jest.setSystemTime(new Date("2023-11-14T11:00:00.000Z"));
-          config.fileContent = {
+          config.mixFileContentWithEnv({
             events: fileContent.events,
             periodicEvents: [
               {
@@ -293,7 +303,7 @@ describe("baseFunctionality", () => {
                 cron: "* * * * *",
               },
             ],
-          };
+          });
           await checkAndInsertPeriodicEvents(context);
           expect(loggerMock.calls().info).toMatchSnapshot();
           expect(await selectEventQueueAndReturn(tx, { expectedLength: 2 })).toMatchSnapshot();
