@@ -39,6 +39,17 @@ describe("runner", () => {
   let context, tx, configInstance, loggerMock;
 
   beforeAll(async () => {
+    cds.env.eventQueue = {
+      periodicEvents: {
+        "EVENT_QUEUE_BASE/DELETE_EVENTS": {
+          priority: "low",
+          impl: "./housekeeping/EventQueueDeleteEvents",
+          load: 20,
+          interval: 86400,
+          internalEvent: true,
+        },
+      },
+    };
     const configFilePath = path.join(__dirname, "..", "./test", "asset", "configSmall.yml");
     await eventQueue.initialize({
       configFilePath,
