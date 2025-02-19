@@ -89,15 +89,6 @@
             "interval": 86400,
             "internalEvent": true
           }
-        },
-        "[test]": {
-          "EVENT_QUEUE_BASE/DELETE_EVENTS": {
-            "priority": "low",
-            "impl": "./housekeeping/EventQueueDeleteEvents",
-            "load": 20,
-            "interval": 86400,
-            "internalEvent": true
-          }
         }
       }
     },

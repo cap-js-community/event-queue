@@ -366,7 +366,7 @@ class Config {
         const [type, subType] = key.split("/");
         event.type ??= type;
         event.subType ??= subType;
-        return event;
+        return { ...event };
       })
       .filter((a) => a);
   }
@@ -526,11 +526,11 @@ class Config {
   }
 
   set configEvents(value) {
-    this.#configEvents = value;
+    this.#configEvents = JSON.parse(JSON.stringify(value));
   }
 
   set configPeriodicEvents(value) {
-    this.#configPeriodicEvents = value;
+    this.#configPeriodicEvents = JSON.parse(JSON.stringify(value));
   }
 
   get periodicEvents() {

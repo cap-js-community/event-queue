@@ -21,6 +21,15 @@ jest.spyOn(redisSub, "initEventQueueRedisSubscribe").mockResolvedValue(null);
 describe("initialize", () => {
   let configInstance;
   beforeEach(() => {
+    cds.env.eventQueue.periodicEvents = {
+      "EVENT_QUEUE_BASE/DELETE_EVENTS": {
+        priority: "low",
+        impl: "./housekeeping/EventQueueDeleteEvents",
+        load: 20,
+        interval: 86400,
+        internalEvent: true,
+      },
+    };
     configInstance = eventQueue.config;
     configInstance.initialized = false;
     jest.clearAllMocks();
@@ -390,6 +399,7 @@ describe("initialize", () => {
     });
 
     test("should mix init vars with env correctly", async () => {
+      let envBefore = cds.env.eventQueue;
       cds.env.eventQueue = {};
       cds.env.eventQueue.registerAsEventProcessor = true;
       await eventQueue.initialize({
@@ -401,6 +411,7 @@ describe("initialize", () => {
       expect(configInstance.runInterval).toEqual(25 * 60 * 1000);
       expect(configInstance.tableNameEventQueue).toEqual("sap.eventqueue.Event");
       expect(configInstance.tableNameEventLock).toEqual("sap.eventqueue.Lock");
+      cds.env.eventQueue = envBefore;
     });
   });
 
@@ -415,9 +426,10 @@ describe("initialize", () => {
         configFilePath,
         registerAsEventProcessor: true,
         updatePeriodicEvents: true,
+        isEventQueueActive: true,
       });
       cds.emit("connect", await cds.connect.to("db"));
-      await promisify(setTimeout)(10000);
+      await promisify(setTimeout)(100);
       expect(periodicEventsSpy).toHaveBeenCalledTimes(1);
     });
 
@@ -455,6 +467,7 @@ describe("initialize", () => {
         configFilePath,
         registerAsEventProcessor: true,
         updatePeriodicEvents: true,
+        isEventQueueActive: true,
       });
       cds.emit("connect", await cds.connect.to("db"));
       await promisify(setTimeout)(100);
