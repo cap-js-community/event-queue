@@ -51,9 +51,9 @@ describe("baseFunctionality", () => {
 
   describe("interval events", () => {
     beforeEach(() => {
-      config.fileContent = {
+      config.mixFileContentWithEnv({
         periodicEvents: fileContent.periodicEvents.filter((e) => !e.cron).map((e) => ({ ...e })),
-      };
+      });
     });
     it("basic insert all new events", async () => {
       await checkAndInsertPeriodicEvents(context);

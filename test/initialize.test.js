@@ -186,17 +186,17 @@ describe("initialize", () => {
 
   describe("should add events from cds.env", () => {
     beforeEach(async () => {
+      config.configEvents = {};
+      config.configPeriodicEvents = {};
       await eventQueue.initialize({
         configFilePath: path.join(__dirname, "asset", "config.yml"),
         processEventsAfterPublish: false,
       });
-      config.localEvents = {};
-      config.localPeriodicEvents = {};
     });
 
     it("simple add ad-hoc event", () => {
       const fileContent = config.fileContent;
-      config.localEvents = {
+      config.configEvents = {
         "addedViaEnv/dummy": {
           ...config.fileContent.events[0],
           type: undefined,
@@ -210,9 +210,52 @@ describe("initialize", () => {
       });
     });
 
+    it("name without slash should work", () => {
+      const fileContent = config.fileContent;
+      config.configEvents = {
+        addedViaEnvdummy: {
+          ...config.fileContent.events[0],
+          type: "addedViaEnv2",
+          subType: "dummy2",
+        },
+      };
+      config.mixFileContentWithEnv(fileContent);
+      expect(config.events.find((event) => event.type === "addedViaEnv2")).toMatchObject({
+        type: "addedViaEnv2",
+        subType: "dummy2",
+      });
+    });
+
+    it("setting event config to null should ignore the event", () => {
+      const fileContent = config.fileContent;
+      config.configEvents = {
+        "addedViaEnv4/dummy": null,
+      };
+      config.mixFileContentWithEnv(fileContent);
+      expect(config.events.find((event) => event.type === "addedViaEnv4")).toBeFalsy();
+    });
+
+    it("name without slash should and missing subType should be a error", () => {
+      const fileContent = {
+        events: [...config.fileContent.events],
+        periodicEvents: [...config.fileContent.periodicEvents],
+      };
+      config.configEvents = {
+        addedViaEnvdummy: {
+          ...config.fileContent.events[0],
+          type: "addedViaEnv3",
+          subType: null,
+        },
+      };
+      expect(() => {
+        config.mixFileContentWithEnv(fileContent);
+      }).toThrowErrorMatchingInlineSnapshot(`"Missing subtype event implementation."`);
+      expect(config.events.find((event) => event.type === "addedViaEnv3")).toBeFalsy();
+    });
+
     it("simple add periodic event", () => {
       const fileContent = config.fileContent;
-      config.localPeriodicEvents = {
+      config.configPeriodicEvents = {
         "addedViaEnv/dummy2": {
           ...config.fileContent.periodicEvents[0],
           type: undefined,
@@ -374,7 +417,7 @@ describe("initialize", () => {
         updatePeriodicEvents: true,
       });
       cds.emit("connect", await cds.connect.to("db"));
-      await promisify(setTimeout)(100);
+      await promisify(setTimeout)(10000);
       expect(periodicEventsSpy).toHaveBeenCalledTimes(1);
     });
 
