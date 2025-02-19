@@ -134,7 +134,7 @@ const readConfigFromFile = async (configFilepath) => {
       "configFilepath with unsupported extension, allowed extensions are .yaml and .json"
     );
   } catch (err) {
-    if (config.useAsCAPOutbox) {
+    if (!configFilepath && (config.useAsCAPOutbox || config.hasConfigEvents)) {
       return {};
     }
     throw err;

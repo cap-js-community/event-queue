@@ -529,6 +529,10 @@ class Config {
     this.#configEvents = JSON.parse(JSON.stringify(value));
   }
 
+  get hasConfigEvents() {
+    return !!(Object.keys(this.#configEvents ?? {}).length || Object.keys(this.#configPeriodicEvents ?? {}).length);
+  }
+
   set configPeriodicEvents(value) {
     this.#configPeriodicEvents = JSON.parse(JSON.stringify(value));
   }

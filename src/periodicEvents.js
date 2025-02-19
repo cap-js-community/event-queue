@@ -150,8 +150,14 @@ const _insertPeriodEvents = async (tx, events, now) => {
   processChunkedSync(eventsToBeInserted, CHUNK_SIZE_INSERT_PERIODIC_EVENTS, (chunk) => {
     logger.info(`${counter}/${chunks} | inserting chunk of changed or new periodic events`, {
       events: chunk.map(({ type, subType, startAfter }) => {
-        const { interval } = eventConfig.getEventConfig(type, subType);
-        return { type, subType, interval, ...(startAfter && { startAfter }) };
+        const { interval, cron } = eventConfig.getEventConfig(type, subType);
+        return {
+          type,
+          subType,
+          ...(startAfter && { startAfter }),
+          ...(interval && { interval }),
+          ...(cron && { cron }),
+        };
       }),
     });
     counter++;

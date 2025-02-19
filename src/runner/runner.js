@@ -51,7 +51,10 @@ const _scheduleFunction = async (singleRunFn, periodicFn) => {
     }
     if (!singleRunDone) {
       singleRunDone = true;
-      singleRunFn().catch(() => (singleRunDone = false));
+      singleRunFn()
+        .then(periodicFn)
+        .catch(() => (singleRunDone = false));
+      return;
     }
     return periodicFn();
   };
