@@ -123,7 +123,6 @@ const getTokenInfo = async (tenantId) => {
   }
 
   if (!cds.requires?.auth.kind.match(/jwt|xsuaa/i)) {
-    cds.log(COMPONENT_NAME).warn("Only 'jwt' or 'xsuaa' are supported as values for auth.kind.");
     return null;
   }
 
