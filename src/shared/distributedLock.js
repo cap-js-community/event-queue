@@ -90,10 +90,20 @@ const _acquireLockRedis = async (
 
 const _renewLockRedis = async (context, fullKey, expiryTime, { value = "true" } = {}) => {
   const client = await redis.createMainClientAndConnect(config.redisOptions);
-  const result = await client.set(fullKey, value, {
+  let result = await client.set(fullKey, value, {
     PX: Math.round(expiryTime),
     XX: true,
   });
+
+  if (result !== REDIS_COMMAND_OK) {
+    const readResult = await client.get(fullKey);
+    if (!readResult) {
+      result = await client.set(fullKey, value, {
+        PX: Math.round(expiryTime),
+      });
+    }
+  }
+
   return result === REDIS_COMMAND_OK;
 };
 

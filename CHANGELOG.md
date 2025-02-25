@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 - Do not require yaml config file if events are defined via configuration
+- Renew redis lock is expired and no new lock exists
 
 ## v1.9.0 - 2025-02-19
 

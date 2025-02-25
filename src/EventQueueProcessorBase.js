@@ -929,6 +929,7 @@ class EventQueueProcessorBase {
               }
             });
           }
+          this.logger.info("keep alive finished!", { numberOfEvents: ids.length });
         });
       }).catch((err) => {
         this.logger.error("keep alive handling failed!", err);
@@ -971,7 +972,7 @@ class EventQueueProcessorBase {
       { expiryTime: this.#eventConfig.keepAliveMaxInProgressTime }
     );
     if (!lockAcquired) {
-      this.logger.error("renewing redis lock failed!", {
+      this.logger.error("renewing distributed lock failed!", {
         type: this.#eventType,
         subType: this.#eventSubType,
       });
