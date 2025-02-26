@@ -68,7 +68,7 @@ they should be processed.
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                                                                   | Default Value   |
-|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                   | -               |
 | type                          | Specifies the type of the event.                                                                                                                                                                                                                              | -               |
 | subType                       | Specifies the subtype of the event, further categorizing the event type.                                                                                                                                                                                      | -               |
@@ -122,7 +122,7 @@ instance is overloaded.
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                                                                   | Default Value |
-|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                   | -             |
 | type                          | Specifies the type of the periodic event.                                                                                                                                                                                                                     | -             |
 | subType                       | Specifies the subtype of the periodic event, further categorizing the event type.                                                                                                                                                                             | -             |
@@ -194,29 +194,29 @@ periodicEvents:
 
 ```js
 class EventQueuePeriodicWithRetries extends EventQueueProcessorBase {
-    constructor(context, eventType, eventSubType, config) {
-        super(context, eventType, eventSubType, config);
-    }
+  constructor(context, eventType, eventSubType, config) {
+    super(context, eventType, eventSubType, config);
+  }
 
-    async processPeriodicEvent(processContext, key, eventEntry) {
-        try {
-            await eventQueue.publishEvent(cds.tx(processContext), {
-                // event data goes here
-            });
-        } catch {
-            this.logger.error("Error during processing periodic event!", err);
-        }
+  async processPeriodicEvent(processContext, key, eventEntry) {
+    try {
+      await eventQueue.publishEvent(cds.tx(processContext), {
+        // event data goes here
+      });
+    } catch {
+      this.logger.error("Error during processing periodic event!", err);
     }
+  }
 
-    async processEvent(processContext, key, queueEntries, payload) {
-        let eventStatus = EventProcessingStatus.Done;
-        try {
-            await doHeavyProcessing(queueEntries, payload);
-        } catch {
-            eventStatus = EventProcessingStatus.Error;
-        }
-        return queueEntries.map((queueEntry) => [queueEntry.ID, eventStatus]);
+  async processEvent(processContext, key, queueEntries, payload) {
+    let eventStatus = EventProcessingStatus.Done;
+    try {
+      await doHeavyProcessing(queueEntries, payload);
+    } catch {
+      eventStatus = EventProcessingStatus.Error;
     }
+    return queueEntries.map((queueEntry) => [queueEntry.ID, eventStatus]);
+  }
 }
 ```
 
@@ -272,7 +272,7 @@ or months. Please note that the minimum interval allowed between two executions 
 maintains stability and avoids overloading.
 
 | Cron Expression     | Description                                                               |
-|---------------------|---------------------------------------------------------------------------|
+| ------------------- | ------------------------------------------------------------------------- |
 | `0 * * * *`         | Runs at the start of every hour.                                          |
 | `* * * * *`         | Runs every minute.                                                        |
 | `0 0 * * *`         | Runs at midnight every day.                                               |
@@ -316,7 +316,7 @@ The initialization configuration can be changed by setting the value of the corr
 config class instance. Here is an example:
 
 ```js
-const {config} = require("@cap-js-community/event-queue");
+const { config } = require("@cap-js-community/event-queue");
 
 config.runInterval = 5 * 60 * 1000; // 5 minutes
 ```
@@ -326,7 +326,7 @@ config.runInterval = 5 * 60 * 1000; // 5 minutes
 To change the configuration of a specific event, you can refer to the example below:
 
 ```js
-const {config} = require("@cap-js-community/event-queue");
+const { config } = require("@cap-js-community/event-queue");
 
 const eventConfig = config.getEventConfig("HealthCheck", "DB");
 eventConfig.load = 5;
@@ -353,7 +353,7 @@ accomplished.
 ## Blocking/Unblocking based on configuration
 
 ```js
-const {config} = require("@cap-js-community/event-queue");
+const { config } = require("@cap-js-community/event-queue");
 
 // Block type: HealthCheck and subType: DB for tenant 123
 const isPeriodicEvent = true;
@@ -375,10 +375,10 @@ For greater flexibility, the decision to block an event can be determined based 
 The example below shows how to register the callback.
 
 ```js
-const {config} = require("@cap-js-community/event-queue");
+const { config } = require("@cap-js-community/event-queue");
 
 config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
-    // Perform custom check and return true or false
+  // Perform custom check and return true or false
 };
 ```
 
@@ -391,15 +391,15 @@ To react to unsubscribe events across all application instances, the event-queue
 that are triggered when a tenant is unsubscribed. Follow the code example below:
 
 ```javascript
-const {config} = require("@cap-js-community/event-queue");
+const { config } = require("@cap-js-community/event-queue");
 
 config.attachUnsubscribeHandler(async (tenantId) => {
-    try {
-        cds.log("server").info("received unsubscribe event via event-queue", {tenantId});
-        await cds.db.disconnect(tenantId);
-    } catch (err) {
-        logger.error("disconnect db failed!", {tenantId}, err);
-    }
+  try {
+    cds.log("server").info("received unsubscribe event via event-queue", { tenantId });
+    await cds.db.disconnect(tenantId);
+  } catch (err) {
+    logger.error("disconnect db failed!", { tenantId }, err);
+  }
 });
 ```
 
