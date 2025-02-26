@@ -68,7 +68,7 @@ they should be processed.
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                                                                   | Default Value   |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                   | -               |
 | type                          | Specifies the type of the event.                                                                                                                                                                                                                              | -               |
 | subType                       | Specifies the subtype of the event, further categorizing the event type.                                                                                                                                                                                      | -               |
@@ -122,7 +122,7 @@ instance is overloaded.
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                                                                   | Default Value |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                   | -             |
 | type                          | Specifies the type of the periodic event.                                                                                                                                                                                                                     | -             |
 | subType                       | Specifies the subtype of the periodic event, further categorizing the event type.                                                                                                                                                                             | -             |
@@ -154,6 +154,70 @@ periodicEvents:
     load: 1
     transactionMode: alwaysRollback
     interval: 30
+```
+
+## Why are retries not supported for periodic events and how can this be achieved?
+
+Retries are not supported for periodic events because allowing retries can cause them to overlap with their next
+scheduled execution. The resolution of overlapping is not currently handled in the event-queue, which is why it's
+recommended to combine ad-hoc and periodic events if retries are needed for periodic events.
+
+### How to achieve retry logic
+
+To implement retry functionality for periodic events, you can publish an ad-hoc event from within the periodic event.
+This ad-hoc event can have configured retries and retry intervals:
+
+1. **Publish Ad-Hoc Events**: During the execution of a periodic event, trigger an ad-hoc event if a retry is needed.
+2. **Configure Retries**: Set parameters like `retryAttempts` and `retryFailedAfter` on the ad-hoc event to manage its
+   retry logic independently of the periodic schedule.
+
+This approach separates retry logic from the periodic execution, preventing scheduling conflicts and ensuring efficient
+resource usage.
+
+## Example
+
+```yaml
+events:
+  - type: MasterData
+    subType: Sync
+    impl: ./test/asset/EventQueuePeriodicWithRetries
+    load: 34 # two MD Syncs in parallel - but leave room for smaller other events
+    retryAttempts: 5
+
+periodicEvents:
+  - type: MasterData
+    subType: Sync
+    impl: ./test/asset/EventQueuePeriodicWithRetries
+    load: 1
+    cron: 0 0 * * * # Runs at midnight every day
+```
+
+```js
+class EventQueuePeriodicWithRetries extends EventQueueProcessorBase {
+    constructor(context, eventType, eventSubType, config) {
+        super(context, eventType, eventSubType, config);
+    }
+
+    async processPeriodicEvent(processContext, key, eventEntry) {
+        try {
+            await eventQueue.publishEvent(cds.tx(processContext), {
+                // event data goes here
+            });
+        } catch {
+            this.logger.error("Error during processing periodic event!", err);
+        }
+    }
+
+    async processEvent(processContext, key, queueEntries, payload) {
+        let eventStatus = EventProcessingStatus.Done;
+        try {
+            await doHeavyProcessing(queueEntries, payload);
+        } catch {
+            eventStatus = EventProcessingStatus.Error;
+        }
+        return queueEntries.map((queueEntry) => [queueEntry.ID, eventStatus]);
+    }
+}
 ```
 
 ## Cron Schedule
@@ -208,7 +272,7 @@ or months. Please note that the minimum interval allowed between two executions 
 maintains stability and avoids overloading.
 
 | Cron Expression     | Description                                                               |
-| ------------------- | ------------------------------------------------------------------------- |
+|---------------------|---------------------------------------------------------------------------|
 | `0 * * * *`         | Runs at the start of every hour.                                          |
 | `* * * * *`         | Runs every minute.                                                        |
 | `0 0 * * *`         | Runs at midnight every day.                                               |
@@ -252,7 +316,7 @@ The initialization configuration can be changed by setting the value of the corr
 config class instance. Here is an example:
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 config.runInterval = 5 * 60 * 1000; // 5 minutes
 ```
@@ -262,7 +326,7 @@ config.runInterval = 5 * 60 * 1000; // 5 minutes
 To change the configuration of a specific event, you can refer to the example below:
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 const eventConfig = config.getEventConfig("HealthCheck", "DB");
 eventConfig.load = 5;
@@ -289,7 +353,7 @@ accomplished.
 ## Blocking/Unblocking based on configuration
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 // Block type: HealthCheck and subType: DB for tenant 123
 const isPeriodicEvent = true;
@@ -311,10 +375,10 @@ For greater flexibility, the decision to block an event can be determined based 
 The example below shows how to register the callback.
 
 ```js
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 config.isEventBlockedCb = async (type, subType, isPeriodicEvent, tenant) => {
-  // Perform custom check and return true or false
+    // Perform custom check and return true or false
 };
 ```
 
@@ -327,15 +391,15 @@ To react to unsubscribe events across all application instances, the event-queue
 that are triggered when a tenant is unsubscribed. Follow the code example below:
 
 ```javascript
-const { config } = require("@cap-js-community/event-queue");
+const {config} = require("@cap-js-community/event-queue");
 
 config.attachUnsubscribeHandler(async (tenantId) => {
-  try {
-    cds.log("server").info("received unsubscribe event via event-queue", { tenantId });
-    await cds.db.disconnect(tenantId);
-  } catch (err) {
-    logger.error("disconnect db failed!", { tenantId }, err);
-  }
+    try {
+        cds.log("server").info("received unsubscribe event via event-queue", {tenantId});
+        await cds.db.disconnect(tenantId);
+    } catch (err) {
+        logger.error("disconnect db failed!", {tenantId}, err);
+    }
 });
 ```
 
