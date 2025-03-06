@@ -1,7 +1,7 @@
 "use strict";
 
 const cds = require("@sap/cds");
-const cronParser = require("cron-parser");
+const { CronExpressionParser } = require("cron-parser");
 
 const { EventProcessingStatus } = require("./constants");
 const { processChunkedSync } = require("./shared/common");
@@ -117,7 +117,7 @@ const _determineChangedCron = (existingEventsCron) => {
     const config = eventConfig.getEventConfig(event.type, event.subType);
     const eventStartAfter = new Date(event.startAfter);
     const eventCreatedAt = new Date(event.createdAt);
-    const cronExpression = cronParser.parseExpression(config.cron, {
+    const cronExpression = CronExpressionParser.parse(config.cron, {
       currentDate: eventCreatedAt,
       utc: config.utc,
       ...(config.useCronTimezone && { tz: eventConfig.cronTimezone }),
@@ -135,13 +135,11 @@ const _insertPeriodEvents = async (tx, events, now) => {
     let startTime = now;
     const config = eventConfig.getEventConfig(event.type, event.subType);
     if (config.cron) {
-      startTime = cronParser
-        .parseExpression(config.cron, {
-          currentDate: now,
-          utc: config.utc,
-          ...(config.useCronTimezone && { tz: eventConfig.cronTimezone }),
-        })
-        .next();
+      startTime = CronExpressionParser.parse(config.cron, {
+        currentDate: now,
+        utc: config.utc,
+        ...(config.useCronTimezone && { tz: eventConfig.cronTimezone }),
+      }).next();
     }
     base.startAfter = startTime.toISOString();
     return base;

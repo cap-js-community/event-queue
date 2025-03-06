@@ -1,7 +1,7 @@
 "use strict";
 
 const cds = require("@sap/cds");
-const cronParser = require("cron-parser");
+const { CronExpressionParser } = require("cron-parser");
 
 const { getEnvInstance } = require("./shared/env");
 const redis = require("./shared/redis");
@@ -464,7 +464,7 @@ class Config {
       event.utc = event.utc ?? UTC_DEFAULT;
       event.useCronTimezone = event.useCronTimezone ?? USE_CRON_TZ_DEFAULT;
       try {
-        cron = cronParser.parseExpression(event.cron);
+        cron = CronExpressionParser.parse(event.cron);
       } catch {
         throw EventQueueError.cantParseCronExpression(event.type, event.subType, event.cron);
       }

@@ -1,7 +1,7 @@
 "use strict";
 
 const cds = require("@sap/cds");
-const cronParser = require("cron-parser");
+const { CronExpressionParser } = require("cron-parser");
 
 const { executeInNewTransaction } = require("./shared/cdsHelper");
 const { EventProcessingStatus, TransactionMode } = require("./constants");
@@ -1000,7 +1000,7 @@ class EventQueueProcessorBase {
     }
 
     // NOTE: do not pass current date as we always want to calc. a future date
-    const cronExpression = cronParser.parseExpression(this.#eventConfig.cron, {
+    const cronExpression = CronExpressionParser.parse(this.#eventConfig.cron, {
       utc: this.#eventConfig.utc,
       ...(this.#eventConfig.useCronTimezone && { tz: this.#config.cronTimezone }),
     });
