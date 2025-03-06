@@ -119,8 +119,7 @@ const _determineChangedCron = (existingEventsCron) => {
     const eventCreatedAt = new Date(event.createdAt);
     const cronExpression = CronExpressionParser.parse(config.cron, {
       currentDate: eventCreatedAt,
-      utc: config.utc,
-      ...(config.useCronTimezone && { tz: eventConfig.cronTimezone }),
+      tz: config.tz,
     });
     return Math.abs(cronExpression.next().getTime() - eventStartAfter.getTime()) > 30 * 1000; // report as changed if diff created than 30 seconds
   });
@@ -137,8 +136,7 @@ const _insertPeriodEvents = async (tx, events, now) => {
     if (config.cron) {
       startTime = CronExpressionParser.parse(config.cron, {
         currentDate: now,
-        utc: config.utc,
-        ...(config.useCronTimezone && { tz: eventConfig.cronTimezone }),
+        tz: config.tz,
       }).next();
     }
     base.startAfter = startTime.toISOString();

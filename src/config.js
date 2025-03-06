@@ -461,8 +461,21 @@ class Config {
 
     if (event.cron) {
       let cron;
+
+      // NOTE: logic is as follows:
+      // - if event.utc is true --> always use UTC
+      // - if event.useCronTimezone is false OR event.cronTimezone is not defined --> use UTC as well
+      // - if event.utc is not true AND event.cronTimezone is set AND event.useCronTimezone is NOT set to false use event.cronTimezone
       event.utc = event.utc ?? UTC_DEFAULT;
-      event.useCronTimezone = event.useCronTimezone ?? USE_CRON_TZ_DEFAULT;
+
+      if (!event.cronTimezone) {
+        event.useCronTimezone = false;
+      } else {
+        event.useCronTimezone = event.useCronTimezone ?? USE_CRON_TZ_DEFAULT;
+      }
+
+      event.tz = event.utc || !event.useCronTimezone ? "UTC" : event.cronTimezone;
+
       try {
         cron = CronExpressionParser.parse(event.cron);
       } catch {
