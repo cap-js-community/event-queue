@@ -6,6 +6,7 @@ export declare const EventProcessingStatus: {
   Done: 2;
   Error: 3;
   Exceeded: 4;
+  Suspended: 5;
 };
 
 declare type EventProcessingStatusKeysType = keyof typeof EventProcessingStatus;

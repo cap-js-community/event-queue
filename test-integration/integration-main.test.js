@@ -4,7 +4,7 @@ const path = require("path");
 const { promisify } = require("util");
 
 const cds = require("@sap/cds");
-const cronParser = require("cron-parser");
+const { CronExpressionParser } = require("cron-parser");
 cds.test(__dirname + "/_env");
 const cdsHelper = require("../src/shared/cdsHelper");
 jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValue(null);
@@ -1512,7 +1512,7 @@ describe("integration-main", () => {
         expect(open).toEqual({
           status: EventProcessingStatus.Open,
           attempts: 0,
-          startAfter: cronParser.parseExpression(cronEvent.cron).next().toISOString(),
+          startAfter: CronExpressionParser.parse(cronEvent.cron).next().toISOString(),
         });
       });
 
@@ -1633,7 +1633,7 @@ describe("integration-main", () => {
         expect(open).toEqual({
           status: EventProcessingStatus.Open,
           attempts: 0,
-          startAfter: cronParser.parseExpression(cronEvent.cron).next().toISOString(),
+          startAfter: CronExpressionParser.parse(cronEvent.cron).next().toISOString(),
         });
       });
 
@@ -1670,7 +1670,7 @@ describe("integration-main", () => {
         expect(open).toEqual({
           status: EventProcessingStatus.Open,
           attempts: 0,
-          startAfter: cronParser.parseExpression(cronEvent.cron).next().toISOString(),
+          startAfter: CronExpressionParser.parse(cronEvent.cron).next().toISOString(),
         });
       });
 
