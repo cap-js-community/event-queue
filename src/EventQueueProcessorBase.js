@@ -66,7 +66,6 @@ class EventQueueProcessorBase {
     }
     this.#retryFailedAfter = this.#eventConfig.retryFailedAfter ?? DEFAULT_RETRY_AFTER;
     this.__concurrentEventProcessing = this.#eventConfig.multiInstanceProcessing;
-    this.__startTime = this.#eventConfig.startTime;
     this.__retryAttempts = this.#isPeriodic ? 1 : this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
     this.__selectMaxChunkSize = this.#eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
     this.__selectNextChunk = !!this.#eventConfig.checkForNextChunk;
@@ -602,7 +601,7 @@ class EventQueueProcessorBase {
             " ) AND ( status =",
             EventProcessingStatus.Open,
             "AND ( lastAttemptTimestamp <=",
-            this.__startTime.toISOString(),
+            this.startTime.toISOString(),
             ...(this.isPeriodicEvent
               ? [
                   "OR lastAttemptTimestamp IS NULL ) OR ( status =",
@@ -615,7 +614,7 @@ class EventQueueProcessorBase {
                   "OR lastAttemptTimestamp IS NULL ) OR ( status =",
                   EventProcessingStatus.Error,
                   "AND lastAttemptTimestamp <=",
-                  this.__startTime.toISOString(),
+                  this.startTime.toISOString(),
                   ") OR ( status =",
                   EventProcessingStatus.InProgress,
                   "AND lastAttemptTimestamp <=",
@@ -1255,6 +1254,10 @@ class EventQueueProcessorBase {
 
   get lockAcquiredTime() {
     return this.#eventConfig.lockAcquiredTime;
+  }
+
+  get startTime() {
+    return this.#eventConfig.startTime;
   }
 
   set lockAcquiredTime(value) {

@@ -217,7 +217,7 @@ describe("baseFunctionality", () => {
           events: fileContent.events,
           periodicEvents: [periodicEvent],
         });
-        config.getEventConfig(periodicEvent.type, periodicEvent.subType).tz = "US/Hawaii";
+        config._rawEventMap[[periodicEvent.type, periodicEvent.subType].join("##")].tz = "US/Hawaii";
         await checkAndInsertPeriodicEvents(context);
         const events = await selectEventQueueAndReturn(tx, {
           type: "TimeSpecificEveryMin_PERIODIC",
@@ -226,7 +226,7 @@ describe("baseFunctionality", () => {
         });
         expect(events[0].startAfter).toMatchInlineSnapshot(`"2023-11-13T18:30:00.000Z"`);
 
-        config.getEventConfig(periodicEvent.type, periodicEvent.subType).tz = "Europe/Berlin";
+        config._rawEventMap[[periodicEvent.type, periodicEvent.subType].join("##")].tz = "Europe/Berlin";
         await checkAndInsertPeriodicEvents(context);
 
         const eventsAfterTimezoneChange = await selectEventQueueAndReturn(tx, {

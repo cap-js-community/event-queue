@@ -38,11 +38,11 @@ const processEventQueue = async (context, eventType, eventSubType) => {
     if (!continueProcessing) {
       return;
     }
+    eventConfig.startTime = startTime;
+    eventConfig.lockAcquiredTime = new Date();
     if (baseInstance.isPeriodicEvent) {
       return await processPeriodicEvent(context, baseInstance);
     }
-    eventConfig.startTime = startTime;
-    eventConfig.lockAcquiredTime = new Date();
     while (shouldContinue) {
       iterationCounter++;
       await executeInNewTransaction(context, `eventQueue-pre-processing-${eventType}##${eventSubType}`, async (tx) => {
