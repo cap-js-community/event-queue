@@ -328,14 +328,10 @@ describe("integration-main", () => {
           subType: this.subEventType,
           randomGuid: true,
         });
+        this.eventConfig.startTime = new Date(Date.now() - eventQueue.config.runInterval);
         return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Open]);
       });
-    await eventQueue.processEventQueue(
-      context,
-      event.type,
-      event.subType,
-      new Date(Date.now() - eventQueue.config.runInterval)
-    );
+    await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(scheduler).toHaveBeenCalledTimes(1);
     expect(processSpy).toHaveBeenCalledTimes(1);

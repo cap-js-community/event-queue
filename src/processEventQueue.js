@@ -99,7 +99,7 @@ const processEventQueue = async (context, eventType, eventSubType) => {
       await executeInNewTransaction(context, `eventQueue-persistStatus-${eventType}##${eventSubType}`, async (tx) => {
         await eventTypeInstance.persistEventStatus(tx);
       });
-      shouldContinue = reevaluateShouldContinue(eventTypeInstance, iterationCounter, startTime);
+      shouldContinue = reevaluateShouldContinue(eventTypeInstance, iterationCounter, eventConfig.startTime);
     }
   } catch (err) {
     cds.log(COMPONENT_NAME).error("Processing event queue failed with unexpected error.", err, {
