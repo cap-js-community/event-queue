@@ -93,7 +93,7 @@ class Config {
   }
 
   getEventConfig(type, subType) {
-    return this.#eventMap[this.generateKey(type, subType)];
+    return { ...this.#eventMap[this.generateKey(type, subType)] };
   }
 
   isCapOutboxEvent(type) {

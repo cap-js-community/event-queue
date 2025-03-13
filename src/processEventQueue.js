@@ -13,10 +13,11 @@ const trace = require("./shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/processEventQueue";
 
-const processEventQueue = async (context, eventType, eventSubType, startTime = new Date()) => {
+const processEventQueue = async (context, eventType, eventSubType) => {
   let iterationCounter = 0;
   let shouldContinue = true;
   let baseInstance;
+  let startTime = new Date();
   try {
     let eventTypeInstance;
     const eventConfig = config.getEventConfig(eventType, eventSubType);
@@ -41,6 +42,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       return await processPeriodicEvent(context, baseInstance);
     }
     eventConfig.startTime = startTime;
+    eventConfig.lockAcquiredTime = new Date();
     while (shouldContinue) {
       iterationCounter++;
       await executeInNewTransaction(context, `eventQueue-pre-processing-${eventType}##${eventSubType}`, async (tx) => {

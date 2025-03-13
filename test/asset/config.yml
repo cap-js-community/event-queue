@@ -61,6 +61,17 @@ events:
     keepAliveInterval: 1
 
   - type: TransactionMode
+    subType: isolatedForKeepAliveSingleSelect
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    parallelEventProcessing: 1
+    processAfterCommit: true
+    transactionMode: isolated
+    keepAliveInterval: 1
+    selectMaxChunkSize: 1
+    checkForNextChunk: true
+
+  - type: TransactionMode
     subType: alwaysRollback
     impl: ./test/asset/EventQueueTest
     load: 1

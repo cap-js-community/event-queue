@@ -17,6 +17,11 @@ class SetIntervalDriftSafe {
     this.#logger = cds.log(COMPONENT);
   }
 
+  start(fn) {
+    this.#shouldRun = true;
+    this.run(fn);
+  }
+
   run(fn) {
     if (!this.#shouldRun) {
       return;
