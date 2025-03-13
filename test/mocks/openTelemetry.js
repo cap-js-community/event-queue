@@ -6,6 +6,7 @@ const tracerMock = {
       setStatus: jest.fn(),
       recordException: jest.fn(),
       setAttribute: jest.fn(),
+      spanContext: jest.fn(),
     };
   }),
 };
