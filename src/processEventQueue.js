@@ -221,14 +221,7 @@ const processEventMap = async (instance) => {
           instance.baseContext,
           `eventQueue-processEvent-${instance.eventType}##${instance.eventSubType}`,
           async (tx) => {
-            statusMap = await _processEvent(
-              instance,
-              tx.context,
-              key,
-              queueEntries,
-              payload,
-              instance.commitOnEventLevel
-            );
+            statusMap = await _processEvent(instance, tx.context, key, queueEntries, payload);
             const shouldRollback =
               instance.statusMapContainsError(statusMap) || instance.shouldRollbackTransaction(key);
             if (shouldRollback) {
@@ -243,7 +236,7 @@ const processEventMap = async (instance) => {
           }
         );
       } else {
-        await _processEvent(instance, instance.context, key, queueEntries, payload, instance.commitOnEventLevel);
+        await _processEvent(instance, instance.context, key, queueEntries, payload);
       }
     }
   )
@@ -321,9 +314,9 @@ const _checkEventIsBlocked = async (baseInstance) => {
   return eventBlocked;
 };
 
-const _processEvent = async (eventTypeInstance, processContext, key, queueEntries, payload, commitOnEventLevel) => {
+const _processEvent = async (eventTypeInstance, processContext, key, queueEntries, payload) => {
   let traceContext;
-  if (commitOnEventLevel && queueEntries.length === 1) {
+  if (queueEntries.length === 1) {
     traceContext = queueEntries[0].context?.traceContext;
   }
 
@@ -344,7 +337,7 @@ const _processEvent = async (eventTypeInstance, processContext, key, queueEntrie
         return eventTypeInstance.handleErrorDuringProcessing(err, queueEntries);
       }
     },
-    { traceContext }
+    { traceContext } //TODO: based on event config!!
   );
 };
 
