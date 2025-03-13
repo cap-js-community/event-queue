@@ -24,7 +24,7 @@ module.exports = {
     inject: jest.fn((context, carrier) => {
       carrier["mocked-trace"] = "trace-value";
     }),
-    extract: jest.fn((context, carrier) => {
+    extract: jest.fn(() => {
       return {};
     }),
   },
