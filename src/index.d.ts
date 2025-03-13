@@ -109,6 +109,7 @@ interface EventEntityPublish {
   referenceEntity?: string;
   referenceEntityKey?: string;
   payload?: string;
+  startAfter?: string;
 }
 
 interface EventTriggerProcessing {
@@ -146,6 +147,7 @@ export declare class EventQueueProcessorBase {
   shouldRollbackTransaction(key: string): boolean;
   beforeProcessingEvents(): Promise<void>;
   addEntryToProcessingMap(key: string, queueEntry: EventEntity, payload: Object): void;
+  getTxForEventProcessing(key: string): cds.Transaction;
 
   set logger(value: CdsLogger);
   get logger(): CdsLogger;

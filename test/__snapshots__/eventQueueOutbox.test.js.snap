@@ -175,3 +175,19 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true should store correct user 
   "headers": {},
 }
 `;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true trace context should extract current trace context and save 1`] = `
+{
+  "traceContext": {
+    "traceparent": "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01",
+  },
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true trace context should use stored trace context in next processing 1`] = `
+{
+  "traceContext": {
+    "traceparent": "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01",
+  },
+}
+`;

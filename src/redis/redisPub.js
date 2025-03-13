@@ -9,7 +9,7 @@ const distributedLock = require("../shared/distributedLock");
 const config = require("../config");
 const common = require("../shared/common");
 const { runEventCombinationForTenant } = require("../runner/runnerHelper");
-const trace = require("../shared/openTelemetry");
+const { trace } = require("../shared/openTelemetry");
 const { TenantIdCheckTypes } = require("../constants");
 
 const EVENT_MESSAGE_CHANNEL = "EVENT_QUEUE_MESSAGE_CHANNEL";

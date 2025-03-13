@@ -9,7 +9,7 @@ const { TransactionMode, EventProcessingStatus } = require("./constants");
 const { limiter } = require("./shared/common");
 
 const { executeInNewTransaction } = require("./shared/cdsHelper");
-const trace = require("./shared/openTelemetry");
+const { trace } = require("./shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/processEventQueue";
 
@@ -76,22 +76,20 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       if (Object.keys(eventTypeInstance.queueEntriesWithPayloadMap).length) {
         await executeInNewTransaction(context, `eventQueue-processing-${eventType}##${eventSubType}`, async (tx) => {
           eventTypeInstance.processEventContext = tx.context;
-          await trace(eventTypeInstance.context, "process-events", async () => {
-            try {
-              eventTypeInstance.clusterQueueEntries(eventTypeInstance.queueEntriesWithPayloadMap);
-              await processEventMap(eventTypeInstance);
-            } catch (err) {
-              eventTypeInstance.handleErrorDuringClustering(err);
-            }
-            if (
-              eventTypeInstance.transactionMode !== TransactionMode.alwaysCommit ||
-              Object.entries(eventTypeInstance.eventProcessingMap).some(([key]) =>
-                eventTypeInstance.shouldRollbackTransaction(key)
-              )
-            ) {
-              await tx.rollback();
-            }
-          });
+          try {
+            eventTypeInstance.clusterQueueEntries(eventTypeInstance.queueEntriesWithPayloadMap);
+            await processEventMap(eventTypeInstance);
+          } catch (err) {
+            eventTypeInstance.handleErrorDuringClustering(err);
+          }
+          if (
+            eventTypeInstance.transactionMode !== TransactionMode.alwaysCommit ||
+            Object.entries(eventTypeInstance.eventProcessingMap).some(([key]) =>
+              eventTypeInstance.shouldRollbackTransaction(key)
+            )
+          ) {
+            await tx.rollback();
+          }
         });
       }
       await executeInNewTransaction(context, `eventQueue-persistStatus-${eventType}##${eventSubType}`, async (tx) => {
@@ -223,7 +221,14 @@ const processEventMap = async (instance) => {
           instance.baseContext,
           `eventQueue-processEvent-${instance.eventType}##${instance.eventSubType}`,
           async (tx) => {
-            statusMap = await _processEvent(instance, tx.context, key, queueEntries, payload);
+            statusMap = await _processEvent(
+              instance,
+              tx.context,
+              key,
+              queueEntries,
+              payload,
+              instance.commitOnEventLevel
+            );
             const shouldRollback =
               instance.statusMapContainsError(statusMap) || instance.shouldRollbackTransaction(key);
             if (shouldRollback) {
@@ -238,7 +243,7 @@ const processEventMap = async (instance) => {
           }
         );
       } else {
-        await _processEvent(instance, instance.context, key, queueEntries, payload);
+        await _processEvent(instance, instance.context, key, queueEntries, payload, instance.commitOnEventLevel);
       }
     }
   )
@@ -316,19 +321,31 @@ const _checkEventIsBlocked = async (baseInstance) => {
   return eventBlocked;
 };
 
-const _processEvent = async (eventTypeInstance, processContext, key, queueEntries, payload) => {
-  try {
-    const eventOutdated = await eventTypeInstance.isOutdatedAndKeepAlive(queueEntries);
-    if (eventOutdated) {
-      // NOTE: return empty status map to comply with the interface
-      return {};
-    }
-    eventTypeInstance.setTxForEventProcessing(key, cds.tx(processContext));
-    const statusTuple = await eventTypeInstance.processEvent(processContext, key, queueEntries, payload);
-    return eventTypeInstance.setEventStatus(queueEntries, statusTuple);
-  } catch (err) {
-    return eventTypeInstance.handleErrorDuringProcessing(err, queueEntries);
+const _processEvent = async (eventTypeInstance, processContext, key, queueEntries, payload, commitOnEventLevel) => {
+  let traceContext;
+  if (commitOnEventLevel && queueEntries.length === 1) {
+    traceContext = queueEntries[0].context?.traceContext;
   }
+
+  return await trace(
+    eventTypeInstance.baseContext,
+    "process-event",
+    async () => {
+      try {
+        const eventOutdated = await eventTypeInstance.isOutdatedAndKeepAlive(queueEntries);
+        if (eventOutdated) {
+          // NOTE: return empty status map to comply with the interface
+          return {};
+        }
+        eventTypeInstance.setTxForEventProcessing(key, cds.tx(processContext));
+        const statusTuple = await eventTypeInstance.processEvent(processContext, key, queueEntries, payload);
+        return eventTypeInstance.setEventStatus(queueEntries, statusTuple);
+      } catch (err) {
+        return eventTypeInstance.handleErrorDuringProcessing(err, queueEntries);
+      }
+    },
+    { traceContext }
+  );
 };
 
 const resilientRequire = async (eventConfig) => {
