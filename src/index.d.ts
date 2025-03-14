@@ -169,12 +169,7 @@ export function publishEvent(
   }
 ): Promise<any>;
 
-export function processEventQueue(
-  context: cds.EventContext,
-  eventType: string,
-  eventSubType: string,
-  startTime: Date
-): Promise<any>;
+export function processEventQueue(context: cds.EventContext, eventType: string, eventSubType: string): Promise<any>;
 
 export function triggerEventProcessingRedis(
   tenantId: string,

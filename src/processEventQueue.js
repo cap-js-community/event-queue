@@ -13,10 +13,11 @@ const { trace } = require("./shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/processEventQueue";
 
-const processEventQueue = async (context, eventType, eventSubType, startTime = new Date()) => {
+const processEventQueue = async (context, eventType, eventSubType) => {
   let iterationCounter = 0;
   let shouldContinue = true;
   let baseInstance;
+  let startTime = new Date();
   try {
     let eventTypeInstance;
     const eventConfig = config.getEventConfig(eventType, eventSubType);
@@ -37,10 +38,11 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
     if (!continueProcessing) {
       return;
     }
+    eventConfig.startTime = startTime;
+    eventConfig.lockAcquiredTime = new Date();
     if (baseInstance.isPeriodicEvent) {
       return await processPeriodicEvent(context, baseInstance);
     }
-    eventConfig.startTime = startTime;
     while (shouldContinue) {
       iterationCounter++;
       await executeInNewTransaction(context, `eventQueue-pre-processing-${eventType}##${eventSubType}`, async (tx) => {
@@ -95,7 +97,7 @@ const processEventQueue = async (context, eventType, eventSubType, startTime = n
       await executeInNewTransaction(context, `eventQueue-persistStatus-${eventType}##${eventSubType}`, async (tx) => {
         await eventTypeInstance.persistEventStatus(tx);
       });
-      shouldContinue = reevaluateShouldContinue(eventTypeInstance, iterationCounter, startTime);
+      shouldContinue = reevaluateShouldContinue(eventTypeInstance, iterationCounter, eventConfig.startTime);
     }
   } catch (err) {
     cds.log(COMPONENT_NAME).error("Processing event queue failed with unexpected error.", err, {

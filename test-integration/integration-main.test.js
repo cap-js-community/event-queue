@@ -328,14 +328,10 @@ describe("integration-main", () => {
           subType: this.subEventType,
           randomGuid: true,
         });
+        this.eventConfig.startTime = new Date(Date.now() - eventQueue.config.runInterval);
         return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Open]);
       });
-    await eventQueue.processEventQueue(
-      context,
-      event.type,
-      event.subType,
-      new Date(Date.now() - eventQueue.config.runInterval)
-    );
+    await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(scheduler).toHaveBeenCalledTimes(1);
     expect(processSpy).toHaveBeenCalledTimes(1);
@@ -398,9 +394,12 @@ describe("integration-main", () => {
   });
 
   describe("keep alive processing", () => {
-    let isolatedNoParallel, alwaysCommit;
+    let isolatedNoParallel, alwaysCommit, isolatedNoParallelSingleSelect;
     beforeEach(() => {
       isolatedNoParallel = eventQueue.config.events.find((event) => event.subType === "isolatedForKeepAlive");
+      isolatedNoParallelSingleSelect = eventQueue.config.events.find(
+        (event) => event.subType === "isolatedForKeepAliveSingleSelect"
+      );
       alwaysCommit = eventQueue.config.events.find((event) => event.subType === "alwaysCommitForKeepAlive");
       isolatedNoParallel.parallelEventProcessing = 1;
       alwaysCommit.parallelEventProcessing = 1;
@@ -442,6 +441,41 @@ describe("integration-main", () => {
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
       });
 
+      it("renew outer lock between two events", async () => {
+        await cds.tx({}, (tx2) =>
+          testHelper.insertEventEntry(tx2, {
+            numberOfEntries: 2,
+            type: isolatedNoParallelSingleSelect.type,
+            subType: isolatedNoParallelSingleSelect.subType,
+          })
+        );
+        const { db } = cds.services;
+        const { Event } = cds.entities("sap.eventqueue");
+        let forUpdateCounter = 0;
+        db.before("READ", Event, (req) => {
+          if (req.query.SELECT.forUpdate) {
+            // 1 counter is select events; 2 keep alive request
+            forUpdateCounter++;
+          }
+        });
+        const renewLockSpy = jest.spyOn(distributedLock, "renewLock");
+        jest
+          .spyOn(EventQueueTest.prototype, "processEvent")
+          .mockImplementationOnce(async function (processContext, key, queueEntries) {
+            await promisify(setTimeout)(950);
+            return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+          });
+        await eventQueue.processEventQueue(
+          context,
+          isolatedNoParallelSingleSelect.type,
+          isolatedNoParallelSingleSelect.subType
+        );
+        expect(forUpdateCounter).toBeGreaterThanOrEqual(1);
+        expect(renewLockSpy.mock.calls.length).toBeGreaterThanOrEqual(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+      });
+
       it("first keep alive fails; second one should update", async () => {
         await cds.tx({}, (tx2) =>
           testHelper.insertEventEntry(tx2, {
@@ -464,6 +498,7 @@ describe("integration-main", () => {
           }
         });
 
+        const renewLockSpy = jest.spyOn(distributedLock, "renewLock");
         jest
           .spyOn(EventQueueTest.prototype, "processEvent")
           .mockImplementationOnce(async function (processContext, key, queueEntries) {
@@ -473,6 +508,7 @@ describe("integration-main", () => {
         await eventQueue.processEventQueue(context, isolatedNoParallel.type, isolatedNoParallel.subType);
         expect(loggerMock.callsLengths().error).toEqual(1);
         expect(loggerMock.calls().error[0][0]).toEqual("keep alive handling failed!");
+        expect(renewLockSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
       });
 
