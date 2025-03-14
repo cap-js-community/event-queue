@@ -165,6 +165,7 @@ export function publishEvent(
   options?: {
     skipBroadcast?: boolean;
     skipInsertEventsBeforeCommit?: boolean;
+    addTraceContext?: boolean;
   }
 ): Promise<any>;
 
