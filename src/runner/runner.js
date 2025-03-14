@@ -15,7 +15,7 @@ const config = require("../config");
 const redisPub = require("../redis/redisPub");
 const openEvents = require("./openEvents");
 const { runEventCombinationForTenant } = require("./runnerHelper");
-const trace = require("../shared/openTelemetry");
+const { trace } = require("../shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/runner";
 const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";

@@ -8,7 +8,7 @@ const { processEventQueue } = require("../processEventQueue");
 const eventQueueConfig = require("../config");
 const WorkerQueue = require("../shared/WorkerQueue");
 const distributedLock = require("../shared/distributedLock");
-const trace = require("../shared/openTelemetry");
+const { trace } = require("../shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/runnerHelper";
 

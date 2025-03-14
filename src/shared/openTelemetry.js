@@ -12,7 +12,7 @@ const config = require("../config");
 
 const COMPONENT_NAME = "/shared/openTelemetry";
 
-const trace = async (context, label, fn, { attributes = {}, newRootSpan = false } = {}) => {
+const trace = async (context, label, fn, { attributes = {}, newRootSpan = false, traceContext } = {}) => {
   const tracerProvider = otel?.trace.getTracerProvider();
   // Check if a real provider is registered
   if (!config.enableCAPTelemetry || !tracerProvider || tracerProvider === otel.trace.NOOP_TRACER_PROVIDER) {
@@ -20,13 +20,26 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false 
   }
 
   const tracer = otel.trace.getTracer("eventqueue");
-  const span = tracer.startSpan(`eventqueue-${label}`, {
-    kind: otel.SpanKind.INTERNAL,
-    root: newRootSpan,
-  });
+  const extractedContext = traceContext
+    ? otel.propagation.extract(otel.context.active(), traceContext)
+    : otel.context.active();
+  const span = tracer.startSpan(
+    `eventqueue-${label}`,
+    {
+      kind: otel.SpanKind.INTERNAL,
+      root: newRootSpan,
+    },
+    extractedContext
+  );
   _setAttributes(context, span, attributes);
-  const ctxWithSpan = otel.trace.setSpan(otel.context.active(), span);
+  const ctxWithSpan = otel.trace.setSpan(extractedContext, span);
   return otel.context.with(ctxWithSpan, async () => {
+    if (traceContext) {
+      cds.log("/eventQueue/telemetry").info("Linked span:", span.spanContext());
+      const carrier = {};
+      otel.propagation.inject(ctxWithSpan, carrier);
+      cds.log("/eventQueue/telemetry").info("Extracted trace context by inject", carrier);
+    }
     const onSuccess = (res) => {
       span.setStatus({ code: otel.SpanStatusCode.OK });
       return res;
@@ -72,4 +85,13 @@ const _setAttributes = (context, span, attributes) => {
   }
 };
 
-module.exports = trace;
+const getCurrentTraceContext = () => {
+  if (!otel) {
+    return null;
+  }
+  const carrier = {};
+  otel.propagation.inject(otel.context.active(), carrier);
+  return carrier;
+};
+
+module.exports = { trace, getCurrentTraceContext };

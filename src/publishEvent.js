@@ -3,6 +3,7 @@
 const config = require("./config");
 const common = require("./shared/common");
 const EventQueueError = require("./EventQueueError");
+const openTelemetry = require("./shared/openTelemetry");
 
 /**
  * Asynchronously publishes a series of events to the event queue.
@@ -29,7 +30,11 @@ const EventQueueError = require("./EventQueueError");
  * @throws {EventQueueError} Throws an error if the startAfter field is not a valid date.
  * @returns {Promise<*>} Returns a promise which resolves to the result of the database insert operation.
  */
-const publishEvent = async (tx, events, { skipBroadcast = false, skipInsertEventsBeforeCommit = false } = {}) => {
+const publishEvent = async (
+  tx,
+  events,
+  { skipBroadcast = false, skipInsertEventsBeforeCommit = false, addTraceContext = true } = {}
+) => {
   if (!config.initialized) {
     throw EventQueueError.notInitialized();
   }
@@ -50,6 +55,10 @@ const publishEvent = async (tx, events, { skipBroadcast = false, skipInsertEvent
 
     if (typeof event.payload !== "string") {
       event.payload = JSON.stringify(event.payload);
+    }
+
+    if (addTraceContext) {
+      event.context = JSON.stringify({ traceContext: openTelemetry.getCurrentTraceContext() });
     }
   }
   if (config.insertEventsBeforeCommit && !skipInsertEventsBeforeCommit) {
