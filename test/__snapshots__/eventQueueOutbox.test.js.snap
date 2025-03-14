@@ -24,6 +24,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true custom options should win 
   "deleteFinishedEventsAfterDays": undefined,
   "impl": "./outbox/EventQueueGenericOutboxHandler",
   "increasePriorityOverTime": true,
+  "inheritTraceContextFromPublisher": true,
   "internalEvent": true,
   "keepAliveInterval": 60000,
   "keepAliveMaxInProgressTime": 210000,
