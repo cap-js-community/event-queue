@@ -55,6 +55,35 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true error in srv.after 1`] = `
 ]
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true map config to event-queue config 1`] = `
+{
+  "_appInstancesMap": null,
+  "_appNameMap": null,
+  "appInstances": undefined,
+  "appNames": undefined,
+  "checkForNextChunk": undefined,
+  "deleteFinishedEventsAfterDays": undefined,
+  "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "increasePriorityOverTime": true,
+  "inheritTraceContextFromPublisher": true,
+  "internalEvent": true,
+  "keepAliveInterval": 60000,
+  "keepAliveMaxInProgressTime": 210000,
+  "load": 1,
+  "multiInstanceProcessing": undefined,
+  "parallelEventProcessing": 5,
+  "priority": "medium",
+  "processAfterCommit": undefined,
+  "retryAttempts": 20,
+  "retryFailedAfter": undefined,
+  "selectMaxChunkSize": 100,
+  "subType": "NotificationService",
+  "transactionMode": undefined,
+  "type": "CAP_OUTBOX",
+  "useEventQueueUser": undefined,
+}
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true req error should be caught for emit 1`] = `
 [
   [
@@ -174,6 +203,35 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true should store correct user 
   },
   "event": "sendFiori",
   "headers": {},
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true should work for outboxed services by require with transactionMode config 1`] = `
+{
+  "_appInstancesMap": null,
+  "_appNameMap": null,
+  "appInstances": undefined,
+  "appNames": undefined,
+  "checkForNextChunk": undefined,
+  "deleteFinishedEventsAfterDays": undefined,
+  "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "increasePriorityOverTime": true,
+  "inheritTraceContextFromPublisher": true,
+  "internalEvent": true,
+  "keepAliveInterval": 60000,
+  "keepAliveMaxInProgressTime": 210000,
+  "load": 1,
+  "multiInstanceProcessing": undefined,
+  "parallelEventProcessing": 5,
+  "priority": "medium",
+  "processAfterCommit": undefined,
+  "retryAttempts": 20,
+  "retryFailedAfter": undefined,
+  "selectMaxChunkSize": 100,
+  "subType": "NotificationServiceOutboxedByConfig",
+  "transactionMode": "alwaysRollback",
+  "type": "CAP_OUTBOX",
+  "useEventQueueUser": undefined,
 }
 `;
 

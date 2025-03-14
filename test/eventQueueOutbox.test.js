@@ -341,34 +341,7 @@ describe("event-queue outbox", () => {
       await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationService");
-      expect(config).toMatchInlineSnapshot(`
-        {
-          "_appInstancesMap": null,
-          "_appNameMap": null,
-          "appInstances": undefined,
-          "appNames": undefined,
-          "checkForNextChunk": undefined,
-          "deleteFinishedEventsAfterDays": undefined,
-          "impl": "./outbox/EventQueueGenericOutboxHandler",
-          "increasePriorityOverTime": true,
-          "inheritTraceContextFromPublisher": true,
-          "internalEvent": true,
-          "keepAliveInterval": 60000,
-          "keepAliveMaxInProgressTime": 210000,
-          "load": 1,
-          "multiInstanceProcessing": undefined,
-          "parallelEventProcessing": 5,
-          "priority": "medium",
-          "processAfterCommit": undefined,
-          "retryAttempts": 20,
-          "retryFailedAfter": undefined,
-          "selectMaxChunkSize": 100,
-          "subType": "NotificationService",
-          "transactionMode": undefined,
-          "type": "CAP_OUTBOX",
-          "useEventQueueUser": undefined,
-        }
-      `);
+      expect(config).toMatchSnapshot();
     });
 
     it("should work for outboxed services by require with transactionMode config", async () => {
@@ -393,34 +366,7 @@ describe("event-queue outbox", () => {
       expect(loggerMock).sendFioriActionCalled();
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationServiceOutboxedByConfig");
       delete config.startTime;
-      expect(config).toMatchInlineSnapshot(`
-        {
-          "_appInstancesMap": null,
-          "_appNameMap": null,
-          "appInstances": undefined,
-          "appNames": undefined,
-          "checkForNextChunk": undefined,
-          "deleteFinishedEventsAfterDays": undefined,
-          "impl": "./outbox/EventQueueGenericOutboxHandler",
-          "increasePriorityOverTime": true,
-          "inheritTraceContextFromPublisher": true,
-          "internalEvent": true,
-          "keepAliveInterval": 60000,
-          "keepAliveMaxInProgressTime": 210000,
-          "load": 1,
-          "multiInstanceProcessing": undefined,
-          "parallelEventProcessing": 5,
-          "priority": "medium",
-          "processAfterCommit": undefined,
-          "retryAttempts": 20,
-          "retryFailedAfter": undefined,
-          "selectMaxChunkSize": 100,
-          "subType": "NotificationServiceOutboxedByConfig",
-          "transactionMode": "alwaysRollback",
-          "type": "CAP_OUTBOX",
-          "useEventQueueUser": undefined,
-        }
-      `);
+      expect(config).toMatchSnapshot();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
