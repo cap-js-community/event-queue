@@ -93,7 +93,9 @@ class Config {
   }
 
   getEventConfig(type, subType) {
-    return this.#eventMap[this.generateKey(type, subType)];
+    return this.#eventMap[this.generateKey(type, subType)]
+      ? { ...this.#eventMap[this.generateKey(type, subType)] }
+      : undefined;
   }
 
   isCapOutboxEvent(type) {
@@ -767,6 +769,10 @@ class Config {
 
   get isMultiTenancy() {
     return !!cds.requires.multitenancy;
+  }
+
+  get _rawEventMap() {
+    return this.#eventMap;
   }
 
   /**
