@@ -322,7 +322,7 @@ const _processEvent = async (eventTypeInstance, processContext, key, queueEntrie
 
   return await trace(
     eventTypeInstance.baseContext,
-    `process-event-${eventTypeInstance.eventType}-${eventTypeInstance.eventType}`,
+    `process-event-${eventTypeInstance.eventType}-${eventTypeInstance.eventSubType}`,
     async () => {
       try {
         const eventOutdated = await eventTypeInstance.isOutdatedAndKeepAlive(queueEntries);
