@@ -471,7 +471,7 @@ describe("integration-main", () => {
           isolatedNoParallelSingleSelect.subType
         );
         expect(forUpdateCounter).toBeGreaterThanOrEqual(1);
-        expect(renewLockSpy.mock.calls).toBeGreaterThanOrEqual(1);
+        expect(renewLockSpy.mock.calls.length).toBeGreaterThanOrEqual(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
       });
@@ -508,7 +508,7 @@ describe("integration-main", () => {
         await eventQueue.processEventQueue(context, isolatedNoParallel.type, isolatedNoParallel.subType);
         expect(loggerMock.callsLengths().error).toEqual(1);
         expect(loggerMock.calls().error[0][0]).toEqual("keep alive handling failed!");
-        expect(renewLockSpy.mock.calls).toBeGreaterThanOrEqual(2);
+        expect(renewLockSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
       });
 
