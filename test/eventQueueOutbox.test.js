@@ -776,9 +776,7 @@ describe("event-queue outbox", () => {
         });
         expect(JSON.parse(event.context)).toMatchSnapshot();
         expect(loggerMock).not.sendFioriActionCalled();
-        eventQueue.config.events.find(
-          ({ subType }) => subType === "NotificationService"
-        ).inheritTraceContextFromPublisher = false;
+        eventQueue.config.events.find(({ subType }) => subType === "NotificationService").inheritTraceContext = false;
 
         await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
         await commitAndOpenNew();

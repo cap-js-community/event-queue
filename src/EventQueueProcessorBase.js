@@ -1252,8 +1252,8 @@ class EventQueueProcessorBase {
     return this.#eventConfig;
   }
 
-  get inheritTraceContextFromPublisher() {
-    return this.#eventConfig.inheritTraceContextFromPublisher;
+  get inheritTraceContext() {
+    return this.#eventConfig.inheritTraceContext;
   }
 }
 
