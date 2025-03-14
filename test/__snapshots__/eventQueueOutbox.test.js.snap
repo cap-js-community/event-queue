@@ -184,6 +184,14 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true trace context should extra
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true trace context should not use stored trace context if disabled by config 1`] = `
+{
+  "traceContext": {
+    "traceparent": "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01",
+  },
+}
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true trace context should use stored trace context in next processing 1`] = `
 {
   "traceContext": {

@@ -316,7 +316,7 @@ const _checkEventIsBlocked = async (baseInstance) => {
 
 const _processEvent = async (eventTypeInstance, processContext, key, queueEntries, payload) => {
   let traceContext;
-  if (queueEntries.length === 1) {
+  if (queueEntries.length === 1 && eventTypeInstance.inheritTraceContextFromPublisher) {
     traceContext = queueEntries[0].context?.traceContext;
   }
 
@@ -337,7 +337,7 @@ const _processEvent = async (eventTypeInstance, processContext, key, queueEntrie
         return eventTypeInstance.handleErrorDuringProcessing(err, queueEntries);
       }
     },
-    { traceContext } //TODO: based on event config!!
+    { traceContext }
   );
 };
 

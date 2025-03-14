@@ -1251,6 +1251,10 @@ class EventQueueProcessorBase {
   get eventConfig() {
     return this.#eventConfig;
   }
+
+  get inheritTraceContextFromPublisher() {
+    return this.#eventConfig.inheritTraceContextFromPublisher;
+  }
 }
 
 module.exports = EventQueueProcessorBase;

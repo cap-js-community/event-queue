@@ -786,11 +786,6 @@ describe("event-queue outbox", () => {
         jest.spyOn(otel.propagation, "inject").mockImplementationOnce((context, carrier) => {
           carrier.traceparent = "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01";
         });
-        const tracer = otel.trace.getTracer("eventqueue");
-        const test = jest.spyOn(tracer, "startSpan");
-        jest.spyOn(otel.propagation, "inject").mockImplementationOnce((context, carrier) => {
-          carrier.traceparent = "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01";
-        });
         const service = await cds.connect.to("NotificationService");
         const outboxedService = cds.outboxed(service).tx(context);
         await outboxedService.send("sendFiori", {
@@ -813,7 +808,36 @@ describe("event-queue outbox", () => {
         expect(jest.spyOn(otel.propagation, "extract")).toHaveBeenCalledWith("mocked-context", {
           traceparent: "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01",
         });
-        test.mock.calls;
+      });
+
+      it("should not use stored trace context if disabled by config", async () => {
+        jest.spyOn(otel.propagation, "inject").mockImplementationOnce((context, carrier) => {
+          carrier.traceparent = "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01";
+        });
+        const service = await cds.connect.to("NotificationService");
+        const outboxedService = cds.outboxed(service).tx(context);
+        await outboxedService.send("sendFiori", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["context"],
+        });
+        expect(JSON.parse(event.context)).toMatchSnapshot();
+        expect(loggerMock).not.sendFioriActionCalled();
+        eventQueue.config.events.find(
+          ({ subType }) => subType === "NotificationService"
+        ).inheritTraceContextFromPublisher = false;
+
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock).sendFioriActionCalled();
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(jest.spyOn(otel.propagation, "extract")).toHaveBeenCalledTimes(0);
       });
     });
   });

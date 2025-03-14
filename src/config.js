@@ -311,6 +311,7 @@ class Config {
       multiInstanceProcessing: config.multiInstanceProcessing,
       increasePriorityOverTime: config.increasePriorityOverTime,
       keepAliveInterval: config.keepAliveInterval,
+      inheritTraceContextFromPublisher: true,
       internalEvent: true,
     };
 
