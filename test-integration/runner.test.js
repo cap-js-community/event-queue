@@ -109,14 +109,14 @@ describe("runner", () => {
         const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
         const checkAndInsertPeriodicEventsSpy = jest
           .spyOn(periodicEvents, "checkAndInsertPeriodicEvents")
-          .mockResolvedValue();
+          .mockResolvedValue(true);
         const p1 = runner.__._multiTenancyRedis();
         const p2 = runner.__._multiTenancyRedis();
 
         await Promise.allSettled([p1, p2]);
         await Promise.allSettled(WorkerQueue.instance.runningPromises);
 
-        // check now tenant independent events --> 2 calls of _multiTenancyRedis * 1 update periodic events (but only for
+        // check now tenant independent events --> 1 call of _multiTenancyRedis + 1 update periodic events (but only for
         // one calls because of tenant hash) + 1 event run check (number of calls is independent for open events)
         expect(acquireLockSpy).toHaveBeenCalledTimes(3);
         // one check per tenant
