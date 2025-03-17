@@ -6,15 +6,14 @@ nav_order: 6
 
 <!-- prettier-ignore-start -->
 
-
 # Telemetry insights
+
 <!-- prettier-ignore -->
 {: .no_toc}
 
 - TOC
 {: toc}
 <!-- prettier-ignore-end -->
-
 
 ## OpenTelemetry Integration
 
@@ -34,11 +33,11 @@ seamlessly.
 ### How It Works
 
 1. **Publishing an Event**
-    - When an event is published, the event-queue extracts the current OpenTelemetry trace context.
-    - The trace context is attached to the event metadata.
+   - When an event is published, the event-queue extracts the current OpenTelemetry trace context.
+   - The trace context is attached to the event metadata.
 2. **Processing an Event**
-    - When an event is processed, the module retrieves the previously stored trace context.
-    - The trace context is injected into the OpenTelemetry context, maintaining trace continuity.
+   - When an event is processed, the module retrieves the previously stored trace context.
+   - The trace context is injected into the OpenTelemetry context, maintaining trace continuity.
 
 ### Benefits
 
@@ -54,4 +53,3 @@ up to export traces. Nevertheless, the OpenTelemetry API needs to be installed i
 For advanced configurations, refer to the OpenTelemetry documentation for setting up context propagation and tracing
 exporters. Additionally, this integration works seamlessly with `@cap-js/telemetry`, meaning that if `@cap-js/telemetry`
 is configured, trace exporting functions out of the box without additional setup.
-
