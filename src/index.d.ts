@@ -255,8 +255,8 @@ declare class Config {
   get redisOptions(): any;
   set insertEventsBeforeCommit(value: any);
   get insertEventsBeforeCommit(): any;
-  set enableCAPTelemetry(value: any);
-  get enableCAPTelemetry(): any;
+  set enableTelemetry(value: any);
+  get enableTelemetry(): any;
   get isMultiTenancy(): boolean;
 }
 

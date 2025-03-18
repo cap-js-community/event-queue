@@ -18,7 +18,7 @@ const COMPONENT_NAME = "/shared/openTelemetry";
 const trace = async (context, label, fn, { attributes = {}, newRootSpan = false, traceContext } = {}) => {
   const tracerProvider = otel?.trace.getTracerProvider();
   // TODO: extend check to validate if DT oneagent is available AND active
-  if (!config.enableCAPTelemetry || !tracerProvider || tracerProvider === otel.trace.NOOP_TRACER_PROVIDER) {
+  if (!config.enableTelemetry || !tracerProvider || tracerProvider === otel.trace.NOOP_TRACER_PROVIDER) {
     return fn();
   }
 

@@ -34,7 +34,7 @@ describe("event-queue outbox", () => {
     loggerMock = mockLogger();
   });
   beforeEach(async () => {
-    eventQueue.config.enableCAPTelemetry = true;
+    eventQueue.config.enableTelemetry = true;
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
     await tx.run(DELETE.from("sap.eventqueue.Lock"));

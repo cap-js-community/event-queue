@@ -63,7 +63,7 @@ class Config {
   #cleanupLocksAndEventsForDev;
   #redisOptions;
   #insertEventsBeforeCommit;
-  #enableCAPTelemetry;
+  #enableTelemetry;
   #unsubscribeHandlers = [];
   #unsubscribedTenants = {};
   #cronTimezone;
@@ -762,12 +762,12 @@ class Config {
     return this.#insertEventsBeforeCommit;
   }
 
-  set enableCAPTelemetry(value) {
-    this.#enableCAPTelemetry = value;
+  set enableTelemetry(value) {
+    this.#enableTelemetry = value;
   }
 
-  get enableCAPTelemetry() {
-    return this.#enableCAPTelemetry;
+  get enableTelemetry() {
+    return this.#enableTelemetry;
   }
 
   get isMultiTenancy() {
