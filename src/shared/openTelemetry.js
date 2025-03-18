@@ -10,17 +10,10 @@ const _resilientRequire = (module) => {
 
 const cds = require("@sap/cds");
 const otel = _resilientRequire("@opentelemetry/api");
-const dynatraceSdk = _resilientRequire("@dynatrace/oneagent-sdk");
 
 const config = require("../config");
 
 const COMPONENT_NAME = "/shared/openTelemetry";
-
-const DT_SYSTEM_INFO = {
-  destinationName: "@cap-js-community/event-queue",
-  destinationType: "TOPIC",
-  vendorName: "@cap-js-community/event-queue",
-};
 
 const trace = async (context, label, fn, { attributes = {}, newRootSpan = false, traceContext } = {}) => {
   const tracerProvider = otel?.trace.getTracerProvider();
@@ -44,11 +37,7 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false,
   _setAttributes(context, span, attributes);
   const ctxWithSpan = otel.trace.setSpan(extractedContext, span);
 
-  if (newRootSpan && !traceContext) {
-    return await _instrumentViaDynatrace(context, async () => _startOtelTrace(ctxWithSpan, traceContext, span, fn));
-  } else {
-    return await _startOtelTrace(ctxWithSpan, traceContext, span, fn);
-  }
+  return await _startOtelTrace(ctxWithSpan, traceContext, span, fn);
 };
 
 const _startOtelTrace = async (ctxWithSpan, traceContext, span, fn) => {
@@ -111,58 +100,6 @@ const getCurrentTraceContext = () => {
   const carrier = {};
   otel.propagation.inject(otel.context.active(), carrier);
   return carrier;
-};
-
-const _instrumentViaDynatrace = async (context, cb) => {
-  const logger = cds.log("/eventQueue/telemetry");
-  const dynatraceApi = _getDynatraceAPIInstance();
-  if (!dynatraceApi) {
-    logger.info("no dt one agent api found");
-    return cb();
-  }
-
-  if (dynatraceApi.getCurrentState() !== dynatraceSdk.SDKState.ACTIVE) {
-    logger.info("dynatraceApi api not active", { status: dynatraceApi.getCurrentState() });
-    return cb();
-  }
-
-  const startData = { ...DT_SYSTEM_INFO };
-  const tracer = dynatraceApi.traceIncomingMessage(startData);
-  return new Promise((resolve, reject) => {
-    tracer.start(async () => {
-      tracer.setCorrelationId(context.id);
-      try {
-        logger.info("start dt tracing");
-        const result = await cb();
-        resolve(result);
-        logger.info("dt tracing done");
-      } catch (err) {
-        tracer.error(err);
-        reject(err);
-      } finally {
-        tracer.end();
-      }
-    });
-  });
-};
-
-const _getDynatraceAPIInstance = () => {
-  const logger = cds.log("/eventQueue/telemetry");
-  if (Object.hasOwnProperty.call(_getDynatraceAPIInstance, "__api")) {
-    return _getDynatraceAPIInstance.__api;
-  }
-
-  if (dynatraceSdk) {
-    try {
-      _getDynatraceAPIInstance.__api = dynatraceSdk.createInstance();
-    } catch (err) {
-      logger.info("could not require dt one agent", err);
-      _getDynatraceAPIInstance.__api = null;
-    }
-  } else {
-    logger.info("dt one agent is missing");
-    _getDynatraceAPIInstance.__api = null;
-  }
 };
 
 module.exports = { trace, getCurrentTraceContext };
