@@ -114,12 +114,15 @@ const getCurrentTraceContext = () => {
 };
 
 const _instrumentViaDynatrace = async (context, cb) => {
+  const logger = cds.log("/eventQueue/telemetry");
   const dynatraceApi = _getDynatraceAPIInstance();
   if (!dynatraceApi) {
+    logger.info("no dt one agent api found");
     return cb();
   }
 
   if (dynatraceApi.getCurrentState() !== dynatraceSdk.SDKState.ACTIVE) {
+    logger.info("dynatraceApi api not active", { status: dynatraceApi.getCurrentState() });
     return cb();
   }
 
@@ -129,8 +132,10 @@ const _instrumentViaDynatrace = async (context, cb) => {
     tracer.start(async () => {
       tracer.setCorrelationId(context.id);
       try {
+        logger.info("start dt tracing");
         const result = await cb();
         resolve(result);
+        logger.info("dt tracing done");
       } catch (err) {
         tracer.error(err);
         reject(err);
@@ -142,6 +147,7 @@ const _instrumentViaDynatrace = async (context, cb) => {
 };
 
 const _getDynatraceAPIInstance = () => {
+  const logger = cds.log("/eventQueue/telemetry");
   if (Object.hasOwnProperty.call(_getDynatraceAPIInstance, "__api")) {
     return _getDynatraceAPIInstance.__api;
   }
@@ -149,10 +155,12 @@ const _getDynatraceAPIInstance = () => {
   if (dynatraceSdk) {
     try {
       _getDynatraceAPIInstance.__api = dynatraceSdk.createInstance();
-    } catch {
+    } catch (err) {
+      logger.info("could not require dt one agent", err);
       _getDynatraceAPIInstance.__api = null;
     }
   } else {
+    logger.info("dt one agent is missing");
     _getDynatraceAPIInstance.__api = null;
   }
 };
