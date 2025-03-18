@@ -45,12 +45,6 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false,
 
 const _startOtelTrace = async (ctxWithSpan, traceContext, span, fn) => {
   return otel.context.with(ctxWithSpan, async () => {
-    if (traceContext) {
-      cds.log("/eventQueue/telemetry").info("Linked span:", span.spanContext());
-      const carrier = {};
-      otel.propagation.inject(ctxWithSpan, carrier);
-      cds.log("/eventQueue/telemetry").info("Extracted trace context by inject", carrier);
-    }
     const onSuccess = (res) => {
       span.setStatus({ code: otel.SpanStatusCode.OK });
       return res;
