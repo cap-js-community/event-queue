@@ -55,9 +55,21 @@ full visibility into your system’s event flow.
 By default, OpenTelemetry tracing is enabled if an OpenTelemetry exporter is set up or if Dynatrace OneAgent is
 configured to export traces. However, the OpenTelemetry API must always be installed in the project.
 
+### Trace Context Propagation
+
+The propagation of the trace context can be controlled on an event level using the parameter `inheritTraceContext`.
+By default, this is set to `true`, meaning the trace context will be inherited and propagated during event publishing
+and processing. If set to `false`, the trace context propagation will be disabled for that particular event.
+
+### Disabling Telemetry
+
+Complete telemetry support can be disabled globally with the initialization parameter `enableTelemetry`. The default
+value is `true`, meaning telemetry is enabled. If set to `false`, all telemetry features, including OpenTelemetry
+tracing, will be disabled for the event-queue.
+
 For more advanced configurations, refer to the OpenTelemetry documentation on context propagation and trace exporters.
-This integration also works smoothly with `@cap-js/telemetry`, meaning that if `@cap-js/telemetry` is configured,
-trace exporting works out of the box with no additional setup.
+This integration also works smoothly with `@cap-js/telemetry`, meaning that if `@cap-js/telemetry` is configured, trace
+exporting works out of the box with no additional setup.
 
 ## Pitfalls with OpenTelemetry Tracing and Dynatrace OneAgent
 
