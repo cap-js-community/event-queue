@@ -11,7 +11,7 @@ const { arrayToFlatMap } = require("./shared/common");
 const eventScheduler = require("./shared/eventScheduler");
 const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
-const trace = require("./shared/openTelemetry");
+const { trace } = require("./shared/openTelemetry");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
@@ -327,6 +327,11 @@ class EventQueueProcessorBase {
   modifyQueueEntry(queueEntry) {
     try {
       queueEntry.payload = JSON.parse(queueEntry.payload);
+    } catch {
+      /* empty */
+    }
+    try {
+      queueEntry.context = JSON.parse(queueEntry.context);
     } catch {
       /* empty */
     }
@@ -1262,6 +1267,10 @@ class EventQueueProcessorBase {
 
   set lockAcquiredTime(value) {
     this.#eventConfig.lockAcquiredTime = value;
+  }
+
+  get inheritTraceContext() {
+    return this.#eventConfig.inheritTraceContext;
   }
 }
 

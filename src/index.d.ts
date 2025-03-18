@@ -109,6 +109,7 @@ interface EventEntityPublish {
   referenceEntity?: string;
   referenceEntityKey?: string;
   payload?: string;
+  startAfter?: string;
 }
 
 interface EventTriggerProcessing {
@@ -146,6 +147,7 @@ export declare class EventQueueProcessorBase {
   shouldRollbackTransaction(key: string): boolean;
   beforeProcessingEvents(): Promise<void>;
   addEntryToProcessingMap(key: string, queueEntry: EventEntity, payload: Object): void;
+  getTxForEventProcessing(key: string): cds.Transaction;
 
   set logger(value: CdsLogger);
   get logger(): CdsLogger;
@@ -163,6 +165,7 @@ export function publishEvent(
   options?: {
     skipBroadcast?: boolean;
     skipInsertEventsBeforeCommit?: boolean;
+    addTraceContext?: boolean;
   }
 ): Promise<any>;
 
@@ -252,8 +255,8 @@ declare class Config {
   get redisOptions(): any;
   set insertEventsBeforeCommit(value: any);
   get insertEventsBeforeCommit(): any;
-  set enableCAPTelemetry(value: any);
-  get enableCAPTelemetry(): any;
+  set enableTelemetry(value: any);
+  get enableTelemetry(): any;
   get isMultiTenancy(): boolean;
 }
 

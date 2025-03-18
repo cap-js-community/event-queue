@@ -1,5 +1,8 @@
 "use strict";
 
+const otel = require("@opentelemetry/api");
+jest.mock("@opentelemetry/api", () => require("./mocks/openTelemetry"));
+
 const cds = require("@sap/cds/lib");
 const eventQueue = require("../src");
 const path = require("path");
@@ -31,6 +34,7 @@ describe("event-queue outbox", () => {
     loggerMock = mockLogger();
   });
   beforeEach(async () => {
+    eventQueue.config.enableTelemetry = true;
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
@@ -337,33 +341,7 @@ describe("event-queue outbox", () => {
       await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationService");
-      expect(config).toMatchInlineSnapshot(`
-        {
-          "_appInstancesMap": null,
-          "_appNameMap": null,
-          "appInstances": undefined,
-          "appNames": undefined,
-          "checkForNextChunk": undefined,
-          "deleteFinishedEventsAfterDays": undefined,
-          "impl": "./outbox/EventQueueGenericOutboxHandler",
-          "increasePriorityOverTime": true,
-          "internalEvent": true,
-          "keepAliveInterval": 60000,
-          "keepAliveMaxInProgressTime": 210000,
-          "load": 1,
-          "multiInstanceProcessing": undefined,
-          "parallelEventProcessing": 5,
-          "priority": "medium",
-          "processAfterCommit": undefined,
-          "retryAttempts": 20,
-          "retryFailedAfter": undefined,
-          "selectMaxChunkSize": 100,
-          "subType": "NotificationService",
-          "transactionMode": undefined,
-          "type": "CAP_OUTBOX",
-          "useEventQueueUser": undefined,
-        }
-      `);
+      expect(config).toMatchSnapshot();
     });
 
     it("should work for outboxed services by require with transactionMode config", async () => {
@@ -388,33 +366,7 @@ describe("event-queue outbox", () => {
       expect(loggerMock).sendFioriActionCalled();
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationServiceOutboxedByConfig");
       delete config.startTime;
-      expect(config).toMatchInlineSnapshot(`
-        {
-          "_appInstancesMap": null,
-          "_appNameMap": null,
-          "appInstances": undefined,
-          "appNames": undefined,
-          "checkForNextChunk": undefined,
-          "deleteFinishedEventsAfterDays": undefined,
-          "impl": "./outbox/EventQueueGenericOutboxHandler",
-          "increasePriorityOverTime": true,
-          "internalEvent": true,
-          "keepAliveInterval": 60000,
-          "keepAliveMaxInProgressTime": 210000,
-          "load": 1,
-          "multiInstanceProcessing": undefined,
-          "parallelEventProcessing": 5,
-          "priority": "medium",
-          "processAfterCommit": undefined,
-          "retryAttempts": 20,
-          "retryFailedAfter": undefined,
-          "selectMaxChunkSize": 100,
-          "subType": "NotificationServiceOutboxedByConfig",
-          "transactionMode": "alwaysRollback",
-          "type": "CAP_OUTBOX",
-          "useEventQueueUser": undefined,
-        }
-      `);
+      expect(config).toMatchSnapshot();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
@@ -754,6 +706,84 @@ describe("event-queue outbox", () => {
         await commitAndOpenNew();
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
         expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+    });
+
+    describe("trace context", () => {
+      it("should extract current trace context and save", async () => {
+        jest.spyOn(otel.propagation, "inject").mockImplementationOnce((context, carrier) => {
+          carrier.traceparent = "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01";
+        });
+        const service = await cds.connect.to("NotificationService");
+        const outboxedService = cds.outboxed(service).tx(context);
+        await outboxedService.send("sendFiori", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["context"],
+        });
+        expect(JSON.parse(event.context)).toMatchSnapshot();
+        expect(loggerMock).not.sendFioriActionCalled();
+      });
+
+      it("should use stored trace context in next processing", async () => {
+        jest.spyOn(otel.propagation, "inject").mockImplementationOnce((context, carrier) => {
+          carrier.traceparent = "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01";
+        });
+        const service = await cds.connect.to("NotificationService");
+        const outboxedService = cds.outboxed(service).tx(context);
+        await outboxedService.send("sendFiori", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["context"],
+        });
+        expect(JSON.parse(event.context)).toMatchSnapshot();
+        expect(loggerMock).not.sendFioriActionCalled();
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock).sendFioriActionCalled();
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(jest.spyOn(otel.propagation, "extract")).toHaveBeenCalledWith("mocked-context", {
+          traceparent: "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01",
+        });
+      });
+
+      it("should not use stored trace context if disabled by config", async () => {
+        jest.spyOn(otel.propagation, "inject").mockImplementationOnce((context, carrier) => {
+          carrier.traceparent = "00-ac46cd732064b44a9c692c2062db8fbd-5fa4a29b5675b3c3-01";
+        });
+        const service = await cds.connect.to("NotificationService");
+        const outboxedService = cds.outboxed(service).tx(context);
+        await outboxedService.send("sendFiori", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["context"],
+        });
+        expect(JSON.parse(event.context)).toMatchSnapshot();
+        expect(loggerMock).not.sendFioriActionCalled();
+        eventQueue.config.events.find(({ subType }) => subType === "NotificationService").inheritTraceContext = false;
+
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock).sendFioriActionCalled();
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(jest.spyOn(otel.propagation, "extract")).toHaveBeenCalledTimes(0);
       });
     });
   });

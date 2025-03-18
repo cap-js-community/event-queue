@@ -20,6 +20,7 @@ const DEFAULT_PRIORITY = Priorities.Medium;
 const DEFAULT_INCREASE_PRIORITY = true;
 const DEFAULT_KEEP_ALIVE_INTERVAL = 60;
 const DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL = 3.5;
+const DEFAULT_INHERIT_TRACE_CONTEXT = true;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const COMMAND_BLOCK = "EVENT_QUEUE_EVENT_BLOCK";
 const COMMAND_UNBLOCK = "EVENT_QUEUE_EVENT_UNBLOCK";
@@ -62,7 +63,7 @@ class Config {
   #cleanupLocksAndEventsForDev;
   #redisOptions;
   #insertEventsBeforeCommit;
-  #enableCAPTelemetry;
+  #enableTelemetry;
   #unsubscribeHandlers = [];
   #unsubscribedTenants = {};
   #cronTimezone;
@@ -313,6 +314,7 @@ class Config {
       multiInstanceProcessing: config.multiInstanceProcessing,
       increasePriorityOverTime: config.increasePriorityOverTime,
       keepAliveInterval: config.keepAliveInterval,
+      inheritTraceContext: true,
       internalEvent: true,
     };
 
@@ -512,6 +514,7 @@ class Config {
     if (this.isMultiTenancy && event.multiInstanceProcessing) {
       throw EventQueueError.multiInstanceProcessingNotAllowed(event.type, event.subType);
     }
+    event.inheritTraceContext = event.inheritTraceContext ?? DEFAULT_INHERIT_TRACE_CONTEXT;
 
     this.#basicEventValidation(event);
   }
@@ -759,12 +762,12 @@ class Config {
     return this.#insertEventsBeforeCommit;
   }
 
-  set enableCAPTelemetry(value) {
-    this.#enableCAPTelemetry = value;
+  set enableTelemetry(value) {
+    this.#enableTelemetry = value;
   }
 
-  get enableCAPTelemetry() {
-    return this.#enableCAPTelemetry;
+  get enableTelemetry() {
+    return this.#enableTelemetry;
   }
 
   get isMultiTenancy() {

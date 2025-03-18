@@ -40,7 +40,7 @@ const CONFIG_VARS = [
   ["cleanupLocksAndEventsForDev", false],
   ["redisOptions", {}],
   ["insertEventsBeforeCommit", true],
-  ["enableCAPTelemetry", false],
+  ["enableTelemetry", true],
   ["cronTimezone", null],
   ["publishEventBlockList", true],
   ["crashOnRedisUnavailable", false],
@@ -65,7 +65,7 @@ const CONFIG_VARS = [
  * @param {boolean} [options.cleanupLocksAndEventsForDev=false] - Cleanup locks and events for development environments.
  * @param {Object} [options.redisOptions={}] - Configuration options for Redis.
  * @param {boolean} [options.insertEventsBeforeCommit=true] - Insert events into the queue before committing the transaction.
- * @param {boolean} [options.enableCAPTelemetry=false] - Enable telemetry for CAP.
+ * @param {boolean} [options.enableTelemetry=false] - Enable telemetry for CAP.
  * @param {string} [options.cronTimezone=null] - Default timezone for cron jobs.
  * @param {string} [options.publishEventBlockList=true] - If redis is available event blocklist is distributed to all application instances
  * @param {string} [options.crashOnRedisUnavailable=true] - If enabled an error is thrown if the redis connection check is not successful

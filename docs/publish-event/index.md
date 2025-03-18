@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Publishing of Events
-nav_order: 7
+nav_order: 8
 ---
 
 <!-- prettier-ignore-start -->

@@ -137,6 +137,7 @@ instance is overloaded.
 | appNames                      | Specifies the application names on which the event should be processed. The application name is extracted from the environment variable `VCAP_APPLICATION`. If not defined, the event is processed on all connected applications.                             | null          |
 | appInstances                  | Specifies the application instance numbers on which the event should be processed. The instance number is extracted from the environment variable `CF_INSTANCE_INDEX`. If not defined, the event is processed on all instances of the connected applications. | null          |
 | keepAliveInterval             | Specifies the interval (in seconds) at which keep-alive signals are sent during event processing to monitor system health.                                                                                                                                    | 60            |
+| inheritTraceContext           | Determines whether the trace context is propagated during event publishing and processing. If set to `false`, trace context propagation is disabled for the event.                                                                                            | true          |
 
 ## Configuration
 

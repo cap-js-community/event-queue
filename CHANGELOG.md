@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.9.2 - 2025-03-XX
 
+### Added
+
+- propagate W3TraceContext from event creation to event-processing
+
 ### Changed
 
 - Updated cron-parser to major version ^5.0.0
