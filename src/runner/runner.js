@@ -77,20 +77,24 @@ const _multiTenancyRedis = async () => {
   try {
     logger.info("executing event queue run for multi instance and tenant");
     const tenantIds = await cdsHelper.getAllTenantIds();
-    await _checkPeriodicEventUpdate(tenantIds);
-    return await _executeEventsAllTenantsRedis(tenantIds);
+    const shouldContinue = await _checkPeriodicEventUpdate(tenantIds);
+    shouldContinue && (await _executeEventsAllTenantsRedis(tenantIds));
   } catch (err) {
     logger.info("executing event queue run for multi instance and tenant failed", err);
   }
 };
 
+// NOTE: _checkPeriodicEventUpdate the function must return truthy if _executeEventsAllTenantsRedis should continue
+//       processing open events. The idea is: if _multiTenancyPeriodicEvents is executed after the deployment we want
+//       to wait for all instances that periodic events are up-to-date and the updating of periodic events does not
+//       interfere with the processing of events
 const _checkPeriodicEventUpdate = async (tenantIds) => {
   if (!eventQueueConfig.updatePeriodicEvents || !eventQueueConfig.periodicEvents.length) {
     cds.log(COMPONENT_NAME).info("updating of periodic events is disabled or no periodic events configured", {
       updateEnabled: eventQueueConfig.updatePeriodicEvents,
       events: eventQueueConfig.periodicEvents.length,
     });
-    return;
+    return true;
   }
   const hash = common.hashStringTo32Bit(JSON.stringify(tenantIds));
   if (!tenantIdHash) {
@@ -102,9 +106,12 @@ const _checkPeriodicEventUpdate = async (tenantIds) => {
   if (tenantIdHash && tenantIdHash !== hash) {
     tenantIdHash = hash;
     cds.log(COMPONENT_NAME).info("tenant id hash changed, triggering updating periodic events!");
-    return await _multiTenancyPeriodicEvents(tenantIds).catch((err) => {
+    await _multiTenancyPeriodicEvents(tenantIds).catch((err) => {
       cds.log(COMPONENT_NAME).error("Error during triggering updating periodic events!", err);
     });
+    return true;
+  } else {
+    return true;
   }
 };
 
@@ -461,7 +468,8 @@ const _multiTenancyPeriodicEvents = async (tenantIds) => {
         }
 
         tenantIds = tenantIds ?? (await cdsHelper.getAllTenantIds());
-        return await _executePeriodicEventsAllTenants(tenantIds);
+        await _executePeriodicEventsAllTenants(tenantIds);
+        return true;
       },
       { newRootSpan: true }
     );
