@@ -52,7 +52,7 @@ Call the initialize function in your server.js. Check here the available setting
 
 ```js
 eventQueue.initialize({
-    configFilePath: "./srv/eventConfig.yml",
+  configFilePath: "./srv/eventConfig.yml",
 });
 ```
 
@@ -64,7 +64,7 @@ such as the configuration file path, event processing behavior, load balancing, 
 The table includes the parameter name, a description of its purpose, and the default value if not specified.
 
 | Name                                 | Description                                                                                                                                                                                                                                                                                                                                      | Default        | Can be changed at runtime |
-|:-------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------|:--------------------------|
+| :----------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------- | :------------------------ |
 | configFilePath                       | Path to the configuration file.                                                                                                                                                                                                                                                                                                                  | null           | no                        |
 | events                               | Options to allow events in the configuration. E.g. via cds-env.                                                                                                                                                                                                                                                                                  | {}             | no                        |
 | periodicEvents                       | Options to allow periodicEvents in the configuration. E.g. via cds-env                                                                                                                                                                                                                                                                           | {}             | no                        |
@@ -199,12 +199,12 @@ instances, providing flexibility and optimized resource allocation.
 The following example demonstrates how to configure the tenant filtering functionality:
 
 ```js
-const {config} = require("@cap-js-community/event-queue");
+const { config } = require("@cap-js-community/event-queue");
 
 // Define a callback function to determine if a tenant's events should be processed
 config.tenantIdFilterEventProcessing = async (tenantId) => {
-    // Replace with your custom logic to decide whether to process the tenant
-    return await checkIfTenantShouldBeProcessedOnInstance(tenantId);
+  // Replace with your custom logic to decide whether to process the tenant
+  return await checkIfTenantShouldBeProcessedOnInstance(tenantId);
 };
 ```
 
