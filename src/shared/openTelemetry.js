@@ -1,25 +1,35 @@
 "use strict";
 
+const _resilientRequire = (module) => {
+  try {
+    return require(module);
+  } catch {
+    // ignore
+  }
+};
+
 const cds = require("@sap/cds");
-let otel;
-try {
-  otel = require("@opentelemetry/api");
-} catch {
-  // ignore
-}
+const otel = _resilientRequire("@opentelemetry/api");
+const dynatraceSdk = _resilientRequire("@dynatrace/oneagent-sdk");
 
 const config = require("../config");
 
 const COMPONENT_NAME = "/shared/openTelemetry";
 
+const DT_SYSTEM_INFO = {
+  destinationName: "@cap-js-community/event-queue",
+  destinationType: "TOPIC",
+  vendorName: "@cap-js-community/event-queue",
+};
+
 const trace = async (context, label, fn, { attributes = {}, newRootSpan = false, traceContext } = {}) => {
   const tracerProvider = otel?.trace.getTracerProvider();
-  // Check if a real provider is registered
+  // TODO: extend check to validate if DT oneagent is available AND active
   if (!config.enableCAPTelemetry || !tracerProvider || tracerProvider === otel.trace.NOOP_TRACER_PROVIDER) {
     return fn();
   }
 
-  const tracer = otel.trace.getTracer("eventqueue");
+  const tracer = otel.trace.getTracer("@cap-js-community/event-queue");
   const extractedContext = traceContext
     ? otel.propagation.extract(otel.context.active(), traceContext)
     : otel.context.active();
@@ -33,6 +43,15 @@ const trace = async (context, label, fn, { attributes = {}, newRootSpan = false,
   );
   _setAttributes(context, span, attributes);
   const ctxWithSpan = otel.trace.setSpan(extractedContext, span);
+
+  if (newRootSpan && !traceContext) {
+    return await _instrumentViaDynatrace(context, async () => _startOtelTrace(ctxWithSpan, traceContext, span, fn));
+  } else {
+    return await _startOtelTrace(ctxWithSpan, traceContext, span, fn);
+  }
+};
+
+const _startOtelTrace = async (ctxWithSpan, traceContext, span, fn) => {
   return otel.context.with(ctxWithSpan, async () => {
     if (traceContext) {
       cds.log("/eventQueue/telemetry").info("Linked span:", span.spanContext());
@@ -92,6 +111,50 @@ const getCurrentTraceContext = () => {
   const carrier = {};
   otel.propagation.inject(otel.context.active(), carrier);
   return carrier;
+};
+
+const _instrumentViaDynatrace = async (context, cb) => {
+  const dynatraceApi = _getDynatraceAPIInstance();
+  if (!dynatraceApi) {
+    return cb();
+  }
+
+  if (dynatraceApi.getCurrentState() !== dynatraceSdk.SDKState.ACTIVE) {
+    return cb();
+  }
+
+  const startData = { ...DT_SYSTEM_INFO };
+  const tracer = dynatraceApi.traceIncomingMessage(startData);
+  return new Promise((resolve, reject) => {
+    tracer.start(async () => {
+      tracer.setCorrelationId(context.id);
+      try {
+        const result = await cb();
+        resolve(result);
+      } catch (err) {
+        tracer.error(err);
+        reject(err);
+      } finally {
+        tracer.end();
+      }
+    });
+  });
+};
+
+const _getDynatraceAPIInstance = () => {
+  if (Object.hasOwnProperty.call(_getDynatraceAPIInstance, "__api")) {
+    return _getDynatraceAPIInstance.__api;
+  }
+
+  if (dynatraceSdk) {
+    try {
+      _getDynatraceAPIInstance.__api = dynatraceSdk.createInstance();
+    } catch {
+      _getDynatraceAPIInstance.__api = null;
+    }
+  } else {
+    _getDynatraceAPIInstance.__api = null;
+  }
 };
 
 module.exports = { trace, getCurrentTraceContext };
