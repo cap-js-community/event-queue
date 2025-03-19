@@ -15,6 +15,21 @@ const { EventProcessingStatus } = require("../src/constants");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
 
+cds.env.requires["NotificationServicePeriodic"] = {
+  impl: "./outboxProject/srv/service/servicePeriodic.js",
+  outbox: {
+    kind: "persistent-outbox",
+    load: 60,
+    checkForNextChunk: true,
+    transactionMode: "isolated",
+    events: {
+      main: {
+        cron: "*/15 * * * * *",
+      },
+    },
+  },
+};
+
 const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
 
@@ -22,15 +37,6 @@ describe("event-queue outbox", () => {
   let context, tx, loggerMock;
 
   beforeAll(() => {
-    cds.env.eventQueue.periodicEvents = {
-      "EVENT_QUEUE_BASE/DELETE_EVENTS": {
-        priority: "low",
-        impl: "./housekeeping/EventQueueDeleteEvents",
-        load: 20,
-        interval: 86400,
-        internalEvent: true,
-      },
-    };
     loggerMock = mockLogger();
   });
   beforeEach(async () => {
@@ -95,10 +101,8 @@ describe("event-queue outbox", () => {
 
   describe("monkeyPatchCAPOutbox=true", () => {
     beforeAll(async () => {
-      const configFilePath = path.join(__dirname, "asset", "config.yml");
       eventQueue.config.initialized = false;
       await eventQueue.initialize({
-        configFilePath,
         processEventsAfterPublish: false,
         registerAsEventProcessor: false,
         insertEventsBeforeCommit: true,
@@ -784,6 +788,48 @@ describe("event-queue outbox", () => {
         expect(loggerMock).sendFioriActionCalled();
         expect(loggerMock.callsLengths().error).toEqual(0);
         expect(jest.spyOn(otel.propagation, "extract")).toHaveBeenCalledTimes(0);
+      });
+    });
+
+    describe("periodic events", () => {
+      it("insert periodic event for CAP service", async () => {
+        await checkAndInsertPeriodicEvents(context);
+        const [periodicEvent] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["type", "subType"],
+        });
+        expect(periodicEvent.startAfter).toBeDefined();
+        delete periodicEvent.startAfter;
+        expect(periodicEvent).toMatchSnapshot();
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("insert periodic event for CAP service and process", async () => {
+        await checkAndInsertPeriodicEvents(context);
+        const [periodicEvent] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["type", "subType"],
+        });
+        await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ startAfter: null }));
+
+        await eventQueue.processEventQueue(context, periodicEvent.type, periodicEvent.subType);
+        const [openEvent, processedEvent] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 2,
+          additionalColumns: ["type", "subType"],
+        });
+        expect(openEvent).toMatchObject({
+          status: 0,
+          attempts: 0,
+          type: "CAP_OUTBOX_PERIODIC",
+          subType: "NotificationServicePeriodic.main",
+        });
+        expect(processedEvent).toMatchObject({
+          status: 2,
+          attempts: 1,
+          type: "CAP_OUTBOX_PERIODIC",
+          subType: "NotificationServicePeriodic.main",
+        });
+        expect(loggerMock.callsLengths().error).toEqual(0);
       });
     });
   });

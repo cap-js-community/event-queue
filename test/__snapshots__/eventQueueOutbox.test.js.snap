@@ -84,6 +84,15 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true map config to event-queue 
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events insert periodic event for CAP service 1`] = `
+{
+  "attempts": 0,
+  "status": 0,
+  "subType": "NotificationServicePeriodic.main",
+  "type": "CAP_OUTBOX_PERIODIC",
+}
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true req error should be caught for emit 1`] = `
 [
   [

@@ -356,9 +356,44 @@ class Config {
     fileContent.periodicEvents ??= [];
     const events = this.#configEvents ?? {};
     const periodicEvents = this.#configPeriodicEvents ?? {};
+    const periodicCapServiceEvents = this.#cdsPeriodicOutboxServicesFromEnv();
     fileContent.events = fileContent.events.concat(this.#mapEnvEvents(events));
-    fileContent.periodicEvents = fileContent.periodicEvents.concat(this.#mapEnvEvents(periodicEvents));
+    fileContent.periodicEvents = fileContent.periodicEvents
+      .concat(this.#mapEnvEvents(periodicEvents))
+      .concat(this.#mapCapOutboxPeriodicEvent(periodicCapServiceEvents));
     this.fileContent = fileContent;
+  }
+
+  #mapCapOutboxPeriodicEvent(periodicEventMap) {
+    return Object.values(periodicEventMap);
+  }
+
+  #cdsPeriodicOutboxServicesFromEnv() {
+    return Object.entries(cds.env.requires).reduce((result, [name, value]) => {
+      if (value.outbox?.events) {
+        for (const fnName in value.outbox.events) {
+          const base = { ...value.outbox };
+          // TODO: move from blacklist to whitelist
+          delete base.kind;
+          delete base.events;
+          const fnConfig = value.outbox.events[fnName];
+          if (fnConfig.interval || fnConfig.cron) {
+            result[fnName] = Object.assign(
+              {
+                type: CAP_EVENT_TYPE,
+                subType: `${name}.${fnName}`,
+                impl: "./outbox/EventQueueGenericOutboxHandler",
+                inheritTraceContext: true,
+                internalEvent: true,
+              },
+              base,
+              fnConfig
+            );
+          }
+        }
+      }
+      return result;
+    }, {});
   }
 
   #mapEnvEvents(events) {
