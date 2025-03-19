@@ -109,7 +109,7 @@ describe("initialize", () => {
 
     fileContent.events.splice(1);
     fileContent.periodicEvents.splice(1);
-    fileContent.periodicEvents.push({ ...fileContent.events[0], interval: 30 });
+    fileContent.periodicEvents.push({ ...fileContent.periodicEvents[0], type: cds.utils.uuid(), interval: 30 });
     expect(() => {
       config.fileContent = fileContent;
     }).not.toThrow();

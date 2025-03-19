@@ -36,6 +36,49 @@ const BASE_TABLES = {
   LOCK: "sap.eventqueue.Lock",
 };
 
+const ALLOWED_EVENT_OPTIONS_BASE = [
+  "type",
+  "subType",
+  "load",
+  "impl",
+  "transactionMode",
+  "deleteFinishedEventsAfterDays",
+  "appNames",
+  "appInstances",
+  "useEventQueueUser",
+  "priority",
+  "keepAliveInterval",
+  "inheritTraceContext",
+  "increasePriorityOverTime",
+  "internalEvent",
+  "keepAliveInterval",
+  "keepAliveMaxInProgressTime",
+  "_appNameMap",
+  "_appInstancesMap",
+];
+
+const ALLOWED_EVENT_OPTIONS_AD_HOC = [
+  ...ALLOWED_EVENT_OPTIONS_BASE,
+  "selectMaxChunkSize",
+  "parallelEventProcessing",
+  "retryAttempts",
+  "processAfterCommit",
+  "checkForNextChunk",
+  "retryFailedAfter",
+  "priority",
+  "multiInstanceProcessing",
+];
+
+const ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT = [
+  ...ALLOWED_EVENT_OPTIONS_BASE,
+  "interval",
+  "cron",
+  "utc",
+  "useCronTimezone",
+  "isPeriodic",
+  "tz",
+];
+
 class Config {
   #logger;
   #config;
@@ -294,31 +337,20 @@ class Config {
       this.#config.events.splice(index, 1);
     }
 
-    const eventConfig = {
+    const eventConfig = this.#sanitizeParamsAdHocEvent({
       type: CAP_EVENT_TYPE,
       subType: serviceName,
-      load: config.load,
       impl: "./outbox/EventQueueGenericOutboxHandler",
-      selectMaxChunkSize: config.chunkSize,
+      selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
-      retryAttempts: config.maxAttempts,
-      transactionMode: config.transactionMode,
-      processAfterCommit: config.processAfterCommit,
-      checkForNextChunk: config.checkForNextChunk,
-      deleteFinishedEventsAfterDays: config.deleteFinishedEventsAfterDays,
-      appNames: config.appNames,
-      appInstances: config.appInstances,
-      useEventQueueUser: config.useEventQueueUser,
-      retryFailedAfter: config.retryFailedAfter,
-      priority: config.priority,
-      multiInstanceProcessing: config.multiInstanceProcessing,
-      increasePriorityOverTime: config.increasePriorityOverTime,
-      keepAliveInterval: config.keepAliveInterval,
+      retryAttempts: config.retryAttempts ?? config.maxAttempts,
+      ...config,
       inheritTraceContext: true,
       internalEvent: true,
-    };
+    });
 
     this.#basicEventTransformation(eventConfig);
+    this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
     this.#basicEventTransformationAfterValidate(eventConfig);
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
@@ -417,7 +449,7 @@ class Config {
       this.#basicEventTransformation(event);
       this.#validateAdHocEvents(result, event);
       this.#basicEventTransformationAfterValidate(event);
-      result[this.generateKey(event.type, event.subType)] = event;
+      result[this.generateKey(event.type, event.subType)] = this.#sanitizeParamsAdHocEvent(event);
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
@@ -426,7 +458,7 @@ class Config {
       this.#basicEventTransformation(event);
       this.#validatePeriodicConfig(result, event);
       this.#basicEventTransformationAfterValidate(event);
-      result[this.generateKey(event.type, event.subType)] = event;
+      result[this.generateKey(event.type, event.subType)] = this.#sanitizeParamsPeriodicEventEvent(event);
       return result;
     }, this.#eventMap);
     this.#config = config;
@@ -438,6 +470,24 @@ class Config {
     event.increasePriorityOverTime = event.increasePriorityOverTime ?? DEFAULT_INCREASE_PRIORITY;
     event.keepAliveInterval = (event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL) * 1000;
     event.keepAliveMaxInProgressTime = event.keepAliveInterval * DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL;
+  }
+
+  #sanitizeParamsAdHocEvent(config) {
+    return Object.entries(config).reduce((result, [name, value]) => {
+      if (ALLOWED_EVENT_OPTIONS_AD_HOC.includes(name)) {
+        result[name] = value;
+      }
+      return result;
+    }, {});
+  }
+
+  #sanitizeParamsPeriodicEventEvent(config) {
+    return Object.entries(config).reduce((result, [name, value]) => {
+      if (ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT.includes(name)) {
+        result[name] = value;
+      }
+      return result;
+    }, {});
   }
 
   #basicEventTransformationAfterValidate(event) {
@@ -540,9 +590,9 @@ class Config {
     this.#basicEventValidation(event);
   }
 
-  #validateAdHocEvents(eventMap, event) {
+  #validateAdHocEvents(eventMap, event, checkForDuplication = true) {
     const key = this.generateKey(event.type, event.subType);
-    if (eventMap[key] && !eventMap[key].isPeriodic) {
+    if (eventMap[key] && !eventMap[key].isPeriodic && checkForDuplication) {
       throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
     }
 

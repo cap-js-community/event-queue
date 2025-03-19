@@ -14,8 +14,9 @@ const runnerHelper = require("../src/runner/runnerHelper");
 const { EventProcessingStatus } = require("../src/constants");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
+const config = require("../src/config");
 
-cds.env.requires["NotificationServicePeriodic"] = {
+cds.env.requires.NotificationServicePeriodic = {
   impl: "./outboxProject/srv/service/servicePeriodic.js",
   outbox: {
     kind: "persistent-outbox",
@@ -830,6 +831,20 @@ describe("event-queue outbox", () => {
           subType: "NotificationServicePeriodic.main",
         });
         expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      describe("inherit config", () => {
+        it("simple push down", async () => {
+          const [periodicEvent] = eventQueue.config.periodicEvents;
+          expect(periodicEvent).toMatchSnapshot();
+        });
+
+        it("overwrite in specific section", async () => {
+          cds.env.requires.NotificationServicePeriodic.outbox.events.main.transactionMode = "alwaysRollback";
+          eventQueue.config.mixFileContentWithEnv({});
+          const [periodicEvent] = eventQueue.config.periodicEvents;
+          expect(periodicEvent).toMatchSnapshot();
+        });
       });
     });
   });
