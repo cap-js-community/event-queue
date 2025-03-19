@@ -171,28 +171,8 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored 
 exports[`event-queue outbox monkeyPatchCAPOutbox=true return open event types 1`] = `
 [
   {
-    "subType": "DELETE_EVENTS",
-    "type": "EVENT_QUEUE_BASE_PERIODIC",
-  },
-  {
-    "subType": "DBKeepAlive",
-    "type": "HealthCheckKeepAlive_PERIODIC",
-  },
-  {
-    "subType": "DB",
-    "type": "HealthCheck_PERIODIC",
-  },
-  {
-    "subType": "Task",
-    "type": "Notifications",
-  },
-  {
-    "subType": "everyFiveMin",
-    "type": "TimeSpecificEveryFiveMin_PERIODIC",
-  },
-  {
-    "subType": "cron",
-    "type": "TimeSpecificEveryMin_PERIODIC",
+    "subType": "NotificationServicePeriodic.main",
+    "type": "CAP_OUTBOX_PERIODIC",
   },
   {
     "subType": "NotificationService",

@@ -24,7 +24,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       authInfo: await common.getTokenInfo(processContext.tenant),
     });
     processContext._eventQueue = { processor: this, key, queueEntries: [queueEntry] };
-    await cds.unboxed(service).tx(processContext)["send"](msg);
+    await cds.unboxed(service).tx(processContext)["emit"](msg);
   }
 
   async processEvent(processContext, key, queueEntries, payload) {
