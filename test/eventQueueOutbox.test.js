@@ -14,7 +14,6 @@ const runnerHelper = require("../src/runner/runnerHelper");
 const { EventProcessingStatus } = require("../src/constants");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
-const config = require("../src/config");
 
 cds.env.requires.NotificationServicePeriodic = {
   impl: "./outboxProject/srv/service/servicePeriodic.js",
