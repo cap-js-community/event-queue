@@ -1,0 +1,246 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`keep-alive-tx-handling-e2e error handling on commit errors - isolated transaction mode error on commit 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 2,
+  "UPDATE": 3,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e error handling on commit errors - isolated transaction mode one red 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e error handling on commit errors - isolated transaction mode one red and one green 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 6,
+  "ROLLBACK": 1,
+  "UPDATE": 3,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e error handling on commit errors - isolated transaction mode two red 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 6,
+  "ROLLBACK": 1,
+  "UPDATE": 3,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e hookForExceededEvents hookForExceededEvents throws - rollback + counter increase 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 3,
+  "DELETE": 1,
+  "READ": 3,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e hookForExceededEvents if event retries is exceeded hookForExceededEvents should be called and correct event status 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 5,
+  "CREATE": 3,
+  "DELETE": 1,
+  "READ": 3,
+  "UPDATE": 2,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e hookForExceededEvents one which is exceeded and one for which the exceeded event has been exceeded 1`] = `
+[
+  {
+    "attempts": 7,
+    "status": 4,
+  },
+  {
+    "attempts": 4,
+    "status": 4,
+  },
+]
+`;
+
+exports[`keep-alive-tx-handling-e2e parallel event processing in the same instance insert 4 entries and select with chunk size one --> should process in parallel - twice 1`] = `
+{
+  "BEGIN": 15,
+  "COMMIT": 10,
+  "READ": 15,
+  "ROLLBACK": 4,
+  "UPDATE": 8,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e parallel event processing in the same instance insert two entries and select with chunk size one --> should process in parallel 1`] = `
+{
+  "BEGIN": 9,
+  "COMMIT": 6,
+  "READ": 9,
+  "ROLLBACK": 2,
+  "UPDATE": 4,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=alwaysCommit one green with register rollback in processEvent --> tx rollback even mode alwaysCommit 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 4,
+  "CREATE": 2,
+  "DELETE": 1,
+  "READ": 2,
+  "ROLLBACK": 2,
+  "UPDATE": 2,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=alwaysCommit one green with register rollback in processEvent --> tx rollback even mode alwaysCommit 2`] = `
+[
+  {
+    "attempts": 1,
+    "status": 2,
+  },
+]
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=alwaysCommit one with error + one without error --> tx no rollback because mode alwaysCommit 2`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 5,
+  "CREATE": 2,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 1,
+  "UPDATE": 3,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=alwaysCommit one with error + one without error --> tx no rollback because mode alwaysCommit 3`] = `
+[
+  {
+    "attempts": 0,
+    "status": 0,
+  },
+  {
+    "attempts": 1,
+    "status": 2,
+  },
+  {
+    "attempts": 1,
+    "status": 3,
+  },
+]
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=alwaysRollback one green --> tx rollback even all green 1`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 4,
+  "CREATE": 2,
+  "DELETE": 1,
+  "READ": 2,
+  "ROLLBACK": 2,
+  "UPDATE": 2,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=alwaysRollback one green --> tx rollback even all green 2`] = `
+[
+  {
+    "attempts": 1,
+    "startAfter": null,
+    "status": 2,
+  },
+]
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=alwaysRollback one with error + one without error --> tx rollback because mode alwaysRollback 2`] = `
+{
+  "BEGIN": 6,
+  "COMMIT": 4,
+  "CREATE": 2,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 2,
+  "UPDATE": 3,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=alwaysRollback one with error + one without error --> tx rollback because mode alwaysRollback 3`] = `
+[
+  {
+    "attempts": 1,
+    "status": 2,
+  },
+  {
+    "attempts": 1,
+    "status": 3,
+  },
+]
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=isolated both processed register tx rollback - both should be roll back 1`] = `
+{
+  "BEGIN": 9,
+  "COMMIT": 5,
+  "CREATE": 3,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 3,
+  "UPDATE": 3,
+}
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=isolated first processed register tx rollback - only first should be rolled back 1`] = `
+[
+  {
+    "attempts": 0,
+    "startAfter": null,
+    "status": 0,
+  },
+  {
+    "attempts": 1,
+    "startAfter": null,
+    "status": 2,
+  },
+  {
+    "attempts": 1,
+    "startAfter": null,
+    "status": 2,
+  },
+]
+`;
+
+exports[`keep-alive-tx-handling-e2e transactionMode=isolated first processed register tx rollback - only first should be rolled back 2`] = `
+{
+  "BEGIN": 8,
+  "COMMIT": 5,
+  "CREATE": 3,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 2,
+  "UPDATE": 3,
+}
+`;

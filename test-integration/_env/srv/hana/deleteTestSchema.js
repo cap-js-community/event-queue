@@ -2,7 +2,6 @@
 
 const cds = require("@sap/cds");
 
-const process = require("process");
 const helper = require("./helper");
 
 const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
@@ -10,12 +9,10 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
 (async () => {
   const logger = cds.log(COMPONENT_NAME);
   try {
-    const schemaGuid = process.env.SCHEMA_GUID?.replace(/-/g, "_");
-    if (!schemaGuid) {
-      logger.error("process.env.SCHEMA_GUID not provided!");
-      process.exit(-1);
-    }
-    await helper.deleteTestSchema(schemaGuid);
+    const schemaGuids = Object.values(JSON.parse(process.env.SCHEMA_GUIDS));
+    const hanaAdminService = await helper.createAdminHANAService(cds.load("*"));
+    await Promise.all(schemaGuids.map((schemaGuid) => helper.deleteTestSchema(hanaAdminService, schemaGuid)));
+    await hanaAdminService.disconnect();
     process.exit(0);
   } catch (error) {
     logger.error(error);

@@ -72,13 +72,13 @@
         }
       },
       "task-service": {
+        "impl": "./example-cap-server/srv/facade/task-service.js",
         "outbox": {
           "kind": "persistent-outbox",
           "load": 60,
           "checkForNextChunk": true,
           "transactionMode": "isolated"
-        },
-        "impl": "./example-cap-server/srv/facade/task-service.js"
+        }
       },
       "mail-service": {
         "impl": "./example-cap-server/srv/facade/mail-service.js"
