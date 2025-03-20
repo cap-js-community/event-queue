@@ -1,11 +1,10 @@
 "use strict";
 
-const { promisify } = require("util");
 const fs = require("fs");
 const path = require("path");
 
-const hdb = require("hdb");
 const cds = require("@sap/cds");
+const HanaService = require("@cap-js/hana/lib/HANAService");
 
 const logger = cds.log("test/hana/deploy");
 const DB_CREDENTIALS = JSON.parse(process.env.HANA_DB_CREDENTIALS);
@@ -20,63 +19,33 @@ const procedureLogLevelMap = Object.freeze({
   DEBUG: "debug",
 });
 
-const createClient = async (credentials) => {
-  const _client = hdb.createClient(credentials);
-  const connect = promisify(_client.connect).bind(_client);
-  const disconnect = promisify(_client.disconnect).bind(_client);
-  const prepare = promisify(_client.prepare).bind(_client);
-  const exec = (command) =>
-    new Promise((resolve, reject) => {
-      _client.exec(command, (err, values, ...results) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve({ values, results });
-        }
-      });
-    });
-  const commit = promisify(_client.commit).bind(_client);
-  await connect();
-  return {
-    _client,
-    connect,
-    disconnect,
-    prepare,
-    exec,
-    commit,
-  };
-};
-
-const callStoredProcedure = async (client, sql) => {
-  const response = await client.exec(sql);
-  const messages = response.results[0];
+const callStoredProcedure = async (hanaService, sql) => {
+  const response = await hanaService.tx({}, (tx) => tx.run(sql));
+  const messages = response.MESSAGES;
   messages.forEach((message) => {
-    logger[procedureLogLevelMap[message.SEVERITY]](message.MESSAGE);
+    logger.log({ level: procedureLogLevelMap[message.SEVERITY], message: message.MESSAGE });
   });
   return response;
 };
 
-async function createNewSchema(client, schemaName) {
-  await callStoredProcedure(client, `CALL dbadmin.afc_create_test_schema ('${schemaName}', ?)`);
+async function createNewSchema(hanaService, schemaName) {
+  await callStoredProcedure(hanaService, `CALL DBADMIN.AFC_CREATE_TEST_SCHEMA ('${schemaName}', ?)`);
   logger.info("Schema created", { schema: schemaName, createdAt: new Date().toISOString() });
 }
 
-async function deleteTestSchema(schemaGuid) {
+async function deleteTestSchema(hanaAdminService, schemaGuid) {
   const schema = generateSchemaName(schemaGuid);
-  const client = await createClient(Object.assign({}, SYSTEM_USER, DB_CONNECTION));
-  await callStoredProcedure(client, `CALL dbadmin.afc_drop_test_schema ('${schema}', ?)`);
+  await callStoredProcedure(hanaAdminService, `CALL DBADMIN.AFC_DROP_TEST_SCHEMA ('${schema}', ?)`);
   logger.info("Schema deleted", { schema });
 }
 
-async function createTestSchema(customSchemaName) {
-  const client = await createClient(Object.assign({}, SYSTEM_USER, DB_CONNECTION));
-  await createNewSchema(client, customSchemaName);
-  await client.disconnect();
+async function createTestSchema(hanaService, customSchemaName) {
+  await createNewSchema(hanaService, customSchemaName);
 }
 
-async function prepareTestSchema(schemaGuid) {
+async function prepareTestSchema(hanaService, schemaGuid) {
   const schema = generateSchemaName(schemaGuid);
-  await createTestSchema(schema);
+  await createTestSchema(hanaService, schema);
   return generateCredentialsForCds(schemaGuid);
 }
 
@@ -96,9 +65,9 @@ const generateCredentialsForCds = (schemaGuid) => ({
 
 const generateSchemaName = (schemaGuid) => `${EVENT_QUEUE_PREFIX}_${schemaGuid}`;
 
-const deployToHana = async (csn) => {
+const deployToHana = async (hanaService, csn) => {
   const t0 = Date.now();
-  const transaction = cds.tx();
+  const transaction = hanaService.tx();
   const schema = await transaction.run('SELECT CURRENT_SCHEMA "current_schema" FROM DUMMY');
   logger.info("Deploy running on schema", { schema: schema[0].current_schema });
   try {
@@ -111,7 +80,7 @@ const deployToHana = async (csn) => {
     logger.info("Deploy completed", { seconds: (Date.now() - t0) / 1000 });
   } catch (error) {
     logger.error("Deploy failed", error);
-    process.exit(1);
+    throw error;
   }
 };
 
@@ -134,10 +103,24 @@ const _findTestFiles = (dir) => {
 
 const findTestFiles = () => _findTestFiles(path.join(__dirname, "..", "..", ".."));
 
+async function createAdminHANAService(csn) {
+  const hanaService = new HanaService(`dbAdmin`, csn, {
+    kind: "hana",
+    impl: "@cap-js/hana",
+    credentials: Object.assign({}, SYSTEM_USER, DB_CONNECTION),
+    pool: {
+      acquireTimeoutMillis: 40000,
+    },
+  });
+  await hanaService.init();
+  return hanaService;
+}
+
 module.exports = {
   prepareTestSchema,
   deployToHana,
   generateCredentialsForCds,
   deleteTestSchema,
   findTestFiles,
+  createAdminHANAService,
 };
