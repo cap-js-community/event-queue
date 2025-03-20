@@ -63,6 +63,7 @@ const ALLOWED_EVENT_OPTIONS_AD_HOC = [
   "checkForNextChunk",
   "retryFailedAfter",
   "multiInstanceProcessing",
+  "kind",
 ];
 
 const ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT = [
@@ -323,7 +324,7 @@ class Config {
       });
   }
 
-  addCAPOutboxEvent(serviceName, config) {
+  addCAPOutboxEventBase(serviceName, config) {
     if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)]) {
       const index = this.#config.events.findIndex(
         (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
@@ -335,11 +336,11 @@ class Config {
       type: CAP_EVENT_TYPE,
       subType: serviceName,
       impl: "./outbox/EventQueueGenericOutboxHandler",
+      kind: config.kind ?? "persistent-outbox",
       selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.retryAttempts ?? config.maxAttempts,
       ...config,
-      inheritTraceContext: true,
     });
     eventConfig.internalEvent = true;
 
@@ -348,6 +349,30 @@ class Config {
     this.#basicEventTransformationAfterValidate(eventConfig);
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
+  }
+
+  addCAPOutboxEventSpecificAction(serviceName, actionName) {
+    const subType = [serviceName, actionName].join(".");
+    if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, subType)]) {
+      const index = this.#config.events.findIndex(
+        (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
+      );
+      this.#config.events.splice(index, 1);
+    }
+
+    const eventConfig = this.#sanitizeParamsAdHocEvent({
+      ...this.getEventConfig(CAP_EVENT_TYPE, serviceName),
+      ...this.getCdsOutboxEventSpecificConfig(serviceName, actionName),
+      subType,
+    });
+    eventConfig.internalEvent = true;
+
+    this.#basicEventTransformation(eventConfig);
+    this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
+    this.#basicEventTransformationAfterValidate(eventConfig);
+    this.#config.events.push(eventConfig);
+    this.#eventMap[this.generateKey(CAP_EVENT_TYPE, subType)] = eventConfig;
+    return eventConfig;
   }
 
   #unblockEventLocalState(key, tenant) {
@@ -425,6 +450,14 @@ class Config {
       }
       return result;
     }, {});
+  }
+
+  getCdsOutboxEventSpecificConfig(serviceName, action) {
+    if (cds.env.requires[serviceName]?.outbox?.events?.[action]) {
+      return cds.env.requires[serviceName].outbox.events[action];
+    } else {
+      return null;
+    }
   }
 
   #mapEnvEvents(events) {

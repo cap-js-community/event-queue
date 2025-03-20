@@ -15,6 +15,7 @@ const runnerHelper = require("../src/runner/runnerHelper");
 const { EventProcessingStatus } = require("../src/constants");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
+const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericOutboxHandler");
 
 cds.env.requires.NotificationServicePeriodic = {
   impl: "./outboxProject/srv/service/servicePeriodic.js",
@@ -26,6 +27,9 @@ cds.env.requires.NotificationServicePeriodic = {
     events: {
       main: {
         cron: "*/15 * * * * *",
+      },
+      action: {
+        checkForNextChunk: false,
       },
     },
   },
@@ -789,6 +793,24 @@ describe("event-queue outbox", () => {
       });
     });
 
+    describe("ad-hoc events overwrite settings via outbox.events", () => {
+      it("process outboxed event", async () => {
+        const service = (await cds.connect.to("NotificationServicePeriodic")).tx(context);
+        const getQueueEntries = jest.spyOn(
+          EventQueueGenericOutboxHandler.prototype,
+          "getQueueEntriesAndSetToInProgress"
+        );
+        await service.send("action", {});
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", [service.name, "action"].join("."));
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(getQueueEntries).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+    });
+
     describe("periodic events", () => {
       it("insert periodic event for CAP service", async () => {
         await checkAndInsertPeriodicEvents(context);
@@ -841,6 +863,7 @@ describe("event-queue outbox", () => {
           eventQueue.config.mixFileContentWithEnv({});
           const [periodicEvent] = eventQueue.config.periodicEvents;
           expect(periodicEvent).toMatchSnapshot();
+          delete cds.env.requires.NotificationServicePeriodic.outbox.events.main.transactionMode;
         });
 
         it("cron/interval on top level is not allowed", async () => {

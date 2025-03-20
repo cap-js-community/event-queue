@@ -194,7 +194,7 @@ declare class Config {
   blockEvent(type: any, subType: any, isPeriodic: any, tenant?: string): void;
   clearPeriodicEventBlockList(): void;
   unblockEvent(type: any, subType: any, isPeriodic: any, tenant?: string): void;
-  addCAPOutboxEvent(serviceName: any, config: any): void;
+  addCAPOutboxEventBase(serviceName: any, config: any): void;
   isEventBlocked(type: any, subType: any, isPeriodicEvent: any, tenant: any): any;
   set isEventQueueActive(value: boolean);
   get isEventQueueActive(): boolean;

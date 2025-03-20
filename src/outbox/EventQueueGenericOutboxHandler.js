@@ -29,7 +29,8 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
 
   async processEvent(processContext, key, queueEntries, payload) {
     try {
-      const service = await cds.connect.to(this.eventSubType);
+      const [srvName] = this.eventSubType.split(".");
+      const service = await cds.connect.to(srvName);
       const { useEventQueueUser } = this.eventConfig;
       const userId = useEventQueueUser ? config.userId : payload.contextUser;
       const msg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);

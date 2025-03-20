@@ -20,16 +20,14 @@ function outboxed(srv, customOpts) {
   }
 
   const logger = cds.log(COMPONENT_NAME);
-  const outboxOpts = Object.assign(
+  let outboxOpts = Object.assign(
     {},
     (typeof cds.requires.outbox === "object" && cds.requires.outbox) || {},
     (typeof srv.options?.outbox === "object" && srv.options.outbox) || {},
     customOpts || {}
   );
 
-  if (outboxOpts.kind === "persistent-outbox") {
-    config.addCAPOutboxEvent(srv.name, outboxOpts);
-  }
+  config.addCAPOutboxEventBase(srv.name, outboxOpts);
 
   const originalSrv = srv[UNBOXED] || srv;
   const outboxedSrv = Object.create(originalSrv);
@@ -42,9 +40,14 @@ function outboxed(srv, customOpts) {
   }
   outboxedSrv.handle = async function (req) {
     const context = req.context || cds.context;
+    config.addCAPOutboxEventBase(srv.name, outboxOpts);
+    const specificSettings = config.getCdsOutboxEventSpecificConfig(srv.name, req.method);
+    if (specificSettings) {
+      outboxOpts = config.addCAPOutboxEventSpecificAction(srv.name, req.event);
+    }
+
     if (outboxOpts.kind === "persistent-outbox") {
-      config.addCAPOutboxEvent(srv.name, outboxOpts);
-      await _mapToEventAndPublish(context, srv.name, req);
+      await _mapToEventAndPublish(context, srv.name, req, !!specificSettings);
       return;
     }
     context.on("succeeded", async () => {
@@ -70,7 +73,7 @@ function unboxed(srv) {
   return srv[UNBOXED] || srv;
 }
 
-const _mapToEventAndPublish = async (context, name, req) => {
+const _mapToEventAndPublish = async (context, name, req, actionSpecific) => {
   const eventQueueSpecificValues = {};
   for (const header in req.headers ?? {}) {
     for (const field of EVENT_QUEUE_SPECIFIC_FIELDS) {
@@ -93,7 +96,7 @@ const _mapToEventAndPublish = async (context, name, req) => {
 
   await publishEvent(cds.tx(context), {
     type: CDS_EVENT_TYPE,
-    subType: name,
+    subType: actionSpecific ? [name, req.event].join(".") : name,
     payload: JSON.stringify(event),
     ...eventQueueSpecificValues,
   });

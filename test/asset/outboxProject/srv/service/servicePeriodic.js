@@ -13,8 +13,12 @@ class NotificationServicePeriodic extends cds.Service {
       });
     });
 
-    this.on("madMax", (req) => {
-      process.exit(-1);
+    this.on("action", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        eventQueueId: req.context._eventQueue?.queueEntries[0].subType,
+      });
     });
   }
 }
