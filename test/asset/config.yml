@@ -24,7 +24,6 @@ events:
     processAfterCommit: true
     transactionMode: alwaysRollback
     retryFailedAfter: 3000
-    checkForNextChunk: true
 
   - type: Test
     subType: NoProcessAfterCommit
@@ -69,7 +68,6 @@ events:
     transactionMode: isolated
     keepAliveInterval: 1
     selectMaxChunkSize: 1
-    checkForNextChunk: true
 
   - type: TransactionMode
     subType: alwaysRollback
@@ -116,7 +114,6 @@ events:
     load: 1
     selectMaxChunkSize: 1
     multiInstanceProcessing: true
-    checkForNextChunk: true
 
 periodicEvents:
   - type: HealthCheck
