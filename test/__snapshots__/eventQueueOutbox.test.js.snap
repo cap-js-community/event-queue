@@ -67,6 +67,37 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true map config to event-queue 
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit config cron/interval on top level is not allowed 1`] = `
+{
+  "_appInstancesMap": null,
+  "_appNameMap": null,
+  "cron": "*/15 * * * * *",
+  "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "increasePriorityOverTime": true,
+  "internalEvent": true,
+  "isPeriodic": true,
+  "keepAliveInterval": 60000,
+  "keepAliveMaxInProgressTime": 210000,
+  "load": 60,
+  "priority": "medium",
+  "subType": "NotificationServicePeriodic.main",
+  "transactionMode": "isolated",
+  "type": "CAP_OUTBOX_PERIODIC",
+  "tz": "UTC",
+  "useCronTimezone": false,
+  "utc": false,
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit config cron/interval on top level is not allowed 2`] = `
+[
+  "The properties interval|cron must be defined in the event section and will be ignored in the outbox section.",
+  {
+    "serviceName": "NotificationServicePeriodic",
+  },
+]
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit config overwrite in specific section 1`] = `
 {
   "_appInstancesMap": null,

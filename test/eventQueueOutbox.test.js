@@ -2,12 +2,13 @@
 
 const otel = require("@opentelemetry/api");
 jest.mock("@opentelemetry/api", () => require("./mocks/openTelemetry"));
+const { Logger: mockLogger } = require("./mocks/logger");
+const loggerMock = mockLogger();
 
-const cds = require("@sap/cds/lib");
+const cds = require("@sap/cds");
 const eventQueue = require("../src");
 const path = require("path");
 const testHelper = require("./helper");
-const { Logger: mockLogger } = require("./mocks/logger");
 const { processEventQueue } = require("../src/processEventQueue");
 const redisSub = require("../src/redis/redisSub");
 const runnerHelper = require("../src/runner/runnerHelper");
@@ -34,11 +35,8 @@ const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
 
 describe("event-queue outbox", () => {
-  let context, tx, loggerMock;
+  let context, tx;
 
-  beforeAll(() => {
-    loggerMock = mockLogger();
-  });
   beforeEach(async () => {
     eventQueue.config.enableTelemetry = true;
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
@@ -843,6 +841,14 @@ describe("event-queue outbox", () => {
           eventQueue.config.mixFileContentWithEnv({});
           const [periodicEvent] = eventQueue.config.periodicEvents;
           expect(periodicEvent).toMatchSnapshot();
+        });
+
+        it("cron/interval on top level is not allowed", async () => {
+          cds.env.requires.NotificationServicePeriodic.outbox.interval = 20;
+          eventQueue.config.mixFileContentWithEnv({});
+          const [periodicEvent] = eventQueue.config.periodicEvents;
+          expect(periodicEvent).toMatchSnapshot();
+          expect(loggerMock.calls().error[0]).toMatchSnapshot();
         });
       });
     });

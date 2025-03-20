@@ -401,6 +401,15 @@ class Config {
           const base = { ...value.outbox };
           const fnConfig = value.outbox.events[fnName];
           if (fnConfig.interval || fnConfig.cron) {
+            if ("interval" in base || "cron" in base) {
+              this.#logger.error(
+                "The properties interval|cron must be defined in the event section and will be ignored in the outbox section.",
+                { serviceName: name }
+              );
+              delete base.cron;
+              delete base.interval;
+            }
+
             result[fnName] = Object.assign(
               {
                 type: CAP_EVENT_TYPE,
