@@ -29,7 +29,7 @@ jobs:
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
       - run: npm run test:prepare
       - run: npm run test:unit
-      - run: npm run test:integration
+      - run: npm run voter:test:integration
         env:
           GITHUB_ACTION_HANA: true
           SCHEMA_GUIDS: ${{steps.deploySchema.outputs.schemaGuids}}
