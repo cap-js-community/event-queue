@@ -14,7 +14,7 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
 
   try {
     const schemaGuids = testFiles.reduce((result, fileName) => {
-      result[fileName] = cds.utils.uuid().replace(/-/g, "_");
+      result[fileName] = cds.utils.uuid().replace(/-/g, "_").toUpperCase();
       return result;
     }, {});
     core.setOutput("schemaGuids", JSON.stringify(schemaGuids));
