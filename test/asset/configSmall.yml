@@ -14,4 +14,3 @@ events:
     load: 1
     selectMaxChunkSize: 1
     increasePriorityOverTime: false
-    checkForNextChunk: true

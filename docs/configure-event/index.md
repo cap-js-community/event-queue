@@ -68,7 +68,7 @@ they should be processed.
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                                                                   | Default Value   |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |-----------------|
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                   | -               |
 | type                          | Specifies the type of the event.                                                                                                                                                                                                                              | -               |
 | subType                       | Specifies the subtype of the event, further categorizing the event type.                                                                                                                                                                                      | -               |
@@ -78,7 +78,7 @@ they should be processed.
 | parallelEventProcessing       | Number of events of the same type and subType that can be processed in parallel. The maximum limit is 10.                                                                                                                                                     | 1               |
 | transactionMode               | Specifies the transaction mode for the event. For allowed values, refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes).                                                                                                      | isolated        |
 | selectMaxChunkSize            | Number of events selected in a single batch. Set `checkForNextChunk` to `true` if you want to check for more available events after processing a batch.                                                                                                       | 100             |
-| checkForNextChunk             | Determines if after processing a chunk (based on `selectMaxChunkSize`), the next chunk is processed if there are more open events.                                                                                                                            | false           |
+| checkForNextChunk             | Determines if after processing a chunk (based on `selectMaxChunkSize`), the next chunk is processed if there are more open events.                                                                                                                            | true            |
 | deleteFinishedEventsAfterDays | Specifies the number of days after which finished events are deleted, regardless of their status. A value of `0` indicates that event entries are never deleted from the database.                                                                            | 7               |
 | priority                      | Specifies the priority level of the event. More details can be found [here](#priority-of-events).                                                                                                                                                             | Medium          |
 | appNames                      | Specifies the application names on which the event should be processed. The application name is extracted from the environment variable `VCAP_APPLICATION`. If not defined, the event is processed on all connected applications.                             | null            |
@@ -107,7 +107,6 @@ events:
     load: 3
     parallelEventProcessing: 2
     selectMaxChunkSize: 5
-    checkForNextChunk: true
     transactionMode: alwaysRollback
     retryAttempts: 1
 ```

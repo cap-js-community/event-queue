@@ -80,7 +80,7 @@ using the event-queue to outbox the `@cap-js/audit-logging` service:
           "kind": "persistent-outbox",
           "transactionMode": "alwaysRollback",
           "maxAttempts": 5,
-          "checkForNextChunk": true,
+          "checkForNextChunk": false,
           "parallelEventProcessing": 5
         }
       }
@@ -125,7 +125,6 @@ Outboxing can be enabled via configuration using `cds.env.requires`, for example
           "kind": "persistent-outbox",
           "transactionMode": "alwaysRollback",
           "maxAttempts": 5,
-          "checkForNextChunk": true,
           "parallelEventProcessing": 5
         }
       }
@@ -144,7 +143,6 @@ const service = await cds.connect.to("task-service");
 const outboxedService = cds.outboxed(service, {
   kind: "persitent-outbox",
   transactionMode: "alwaysRollback",
-  checkForNextChunk: true,
 });
 await outboxedService.send("process", {
   ID: 1,
