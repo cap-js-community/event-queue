@@ -43,29 +43,25 @@ const ALLOWED_EVENT_OPTIONS_BASE = [
   "impl",
   "transactionMode",
   "deleteFinishedEventsAfterDays",
-  "appNames",
-  "appInstances",
   "useEventQueueUser",
   "priority",
   "keepAliveInterval",
-  "inheritTraceContext",
   "increasePriorityOverTime",
-  "internalEvent",
-  "keepAliveInterval",
   "keepAliveMaxInProgressTime",
-  "_appNameMap",
-  "_appInstancesMap",
+  "appNames",
+  "appInstances",
+  "internalEvent",
 ];
 
 const ALLOWED_EVENT_OPTIONS_AD_HOC = [
   ...ALLOWED_EVENT_OPTIONS_BASE,
+  "inheritTraceContext",
   "selectMaxChunkSize",
   "parallelEventProcessing",
   "retryAttempts",
   "processAfterCommit",
   "checkForNextChunk",
   "retryFailedAfter",
-  "priority",
   "multiInstanceProcessing",
 ];
 
@@ -75,8 +71,6 @@ const ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT = [
   "cron",
   "utc",
   "useCronTimezone",
-  "isPeriodic",
-  "tz",
 ];
 
 class Config {
@@ -346,8 +340,8 @@ class Config {
       retryAttempts: config.retryAttempts ?? config.maxAttempts,
       ...config,
       inheritTraceContext: true,
-      internalEvent: true,
     });
+    eventConfig.internalEvent = true;
 
     this.#basicEventTransformation(eventConfig);
     this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
@@ -405,9 +399,6 @@ class Config {
       if (value.outbox?.events) {
         for (const fnName in value.outbox.events) {
           const base = { ...value.outbox };
-          // TODO: move from blacklist to whitelist
-          delete base.kind;
-          delete base.events;
           const fnConfig = value.outbox.events[fnName];
           if (fnConfig.interval || fnConfig.cron) {
             result[fnName] = Object.assign(
@@ -415,7 +406,6 @@ class Config {
                 type: CAP_EVENT_TYPE,
                 subType: `${name}.${fnName}`,
                 impl: "./outbox/EventQueueGenericOutboxHandler",
-                inheritTraceContext: true,
                 internalEvent: true,
               },
               base,
@@ -446,19 +436,21 @@ class Config {
     config.events = config.events ?? [];
     config.periodicEvents = config.periodicEvents ?? [];
     this.#eventMap = config.events.reduce((result, event) => {
-      this.#basicEventTransformation(event);
-      this.#validateAdHocEvents(result, event);
-      this.#basicEventTransformationAfterValidate(event);
-      result[this.generateKey(event.type, event.subType)] = this.#sanitizeParamsAdHocEvent(event);
+      const eventSanitized = this.#sanitizeParamsAdHocEvent(event);
+      this.#basicEventTransformation(eventSanitized);
+      this.#validateAdHocEvents(result, eventSanitized);
+      this.#basicEventTransformationAfterValidate(eventSanitized);
+      result[this.generateKey(eventSanitized.type, eventSanitized.subType)] = eventSanitized;
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
-      event.type = `${event.type}${SUFFIX_PERIODIC}`;
-      event.isPeriodic = true;
-      this.#basicEventTransformation(event);
-      this.#validatePeriodicConfig(result, event);
-      this.#basicEventTransformationAfterValidate(event);
-      result[this.generateKey(event.type, event.subType)] = this.#sanitizeParamsPeriodicEventEvent(event);
+      const eventSanitized = this.#sanitizeParamsPeriodicEventEvent(event);
+      eventSanitized.type = `${eventSanitized.type}${SUFFIX_PERIODIC}`;
+      eventSanitized.isPeriodic = true;
+      this.#basicEventTransformation(eventSanitized);
+      this.#validatePeriodicConfig(result, eventSanitized);
+      this.#basicEventTransformationAfterValidate(eventSanitized);
+      result[this.generateKey(eventSanitized.type, eventSanitized.subType)] = eventSanitized;
       return result;
     }, this.#eventMap);
     this.#config = config;
@@ -472,22 +464,21 @@ class Config {
     event.keepAliveMaxInProgressTime = event.keepAliveInterval * DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL;
   }
 
-  #sanitizeParamsAdHocEvent(config) {
+  #sanitizeParamsBase(config, allowList) {
     return Object.entries(config).reduce((result, [name, value]) => {
-      if (ALLOWED_EVENT_OPTIONS_AD_HOC.includes(name)) {
+      if (allowList.includes(name)) {
         result[name] = value;
       }
       return result;
     }, {});
   }
 
+  #sanitizeParamsAdHocEvent(config) {
+    return this.#sanitizeParamsBase(config, ALLOWED_EVENT_OPTIONS_AD_HOC);
+  }
+
   #sanitizeParamsPeriodicEventEvent(config) {
-    return Object.entries(config).reduce((result, [name, value]) => {
-      if (ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT.includes(name)) {
-        result[name] = value;
-      }
-      return result;
-    }, {});
+    return this.#sanitizeParamsBase(config, ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT);
   }
 
   #basicEventTransformationAfterValidate(event) {
@@ -581,10 +572,6 @@ class Config {
 
     if (!event.interval || event.interval <= MIN_INTERVAL_SEC) {
       throw EventQueueError.invalidInterval(event.type, event.subType, event.interval);
-    }
-
-    if (event.multiInstanceProcessing) {
-      throw EventQueueError.multiInstanceProcessingNotAllowed(event.type, event.subType);
     }
 
     this.#basicEventValidation(event);
