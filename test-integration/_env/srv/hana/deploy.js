@@ -19,7 +19,7 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
     }, {});
     core.setOutput("schemaGuids", JSON.stringify(schemaGuids));
 
-    for (const schemaGuid in schemaGuids) {
+    for (const schemaGuid in Object.values(schemaGuids)) {
       logger.info("Loading csn");
       const csn = await cds.load("*");
       const credentials = await helper.prepareTestSchema(schemaGuid);
