@@ -16,14 +16,14 @@ jobs:
 
     name: test - node.js ${{ matrix.node-version }}
     steps:
-      - name: "unique id for hana schema"
-        id: generateId
-        run: echo "id=$(uuidgen | tr '[:lower:]' '[:upper:]')" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
+      - name: "unique id for hana schema"
+        id: generateId
+        run: echo "id=$(uuidgen | tr '[:lower:]' '[:upper:]')" >> $GITHUB_OUTPUT
       - run: npm ci --package-lock
       - run: npm run test:deploySchema
         env:
@@ -31,7 +31,7 @@ jobs:
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
       - run: npm run test:prepare
       - run: npm run test:unit
-      - run: npm run test:integration
+      - run: npm run voter:test:integration
         env:
           GITHUB_ACTION_HANA: true
           SCHEMA_GUID: ${{steps.generateId.outputs.id}}
