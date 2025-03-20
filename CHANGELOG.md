@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.10.0 - 2025-03-XX
+
+### Added
+
+- [CAP outbox] allow to define periodic events for CAP outbox services [Documentation](TBD)
+- [CAP outbox] allow to specify specific event settings of every action in the CAP service [Documentation](TBD)
+
 ## v1.9.3 - 2025-03-18
 
 ### Fixed
