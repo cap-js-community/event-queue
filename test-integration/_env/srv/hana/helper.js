@@ -123,7 +123,7 @@ const _findTestFiles = (dir) => {
     const fullPath = path.join(dir, file.name);
 
     if (file.isDirectory()) {
-      results = results.concat(findTestFiles(fullPath)); // Recursively search subdirectories
+      results = results.concat(_findTestFiles(fullPath)); // Recursively search subdirectories
     } else if (file.isFile() && file.name.endsWith(".test.js")) {
       results.push(file.name);
     }
