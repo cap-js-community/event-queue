@@ -14,6 +14,39 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true accept event-queue specifi
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true ad-hoc events overwrite settings via outbox.events should create specific config during select 1`] = `
+[
+  "No Implementation found in the provided configuration file.",
+  {
+    "eventSubType": "NotificationServicePeriodic.action",
+    "eventType": "CAP_OUTBOX",
+  },
+]
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true ad-hoc events overwrite settings via outbox.events specific ad-hoc event should create own config 1`] = `
+{
+  "_appInstancesMap": null,
+  "_appNameMap": null,
+  "checkForNextChunk": false,
+  "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "increasePriorityOverTime": true,
+  "inheritTraceContext": true,
+  "internalEvent": true,
+  "keepAliveInterval": 60000000,
+  "keepAliveMaxInProgressTime": 210000000,
+  "kind": "persistent-outbox",
+  "load": 60,
+  "parallelEventProcessing": 5,
+  "priority": "medium",
+  "retryAttempts": 20,
+  "selectMaxChunkSize": 100,
+  "subType": "NotificationServicePeriodic.action",
+  "transactionMode": "isolated",
+  "type": "CAP_OUTBOX",
+}
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true custom options should win over service options 1`] = `
 {
   "_appInstancesMap": null,

@@ -16,6 +16,7 @@ const { EventProcessingStatus } = require("../src/constants");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
 const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericOutboxHandler");
+const { promisify } = require("util");
 
 cds.env.requires.NotificationServicePeriodic = {
   impl: "./outboxProject/srv/service/servicePeriodic.js",
@@ -794,7 +795,7 @@ describe("event-queue outbox", () => {
     });
 
     describe("ad-hoc events overwrite settings via outbox.events", () => {
-      it("process outboxed event", async () => {
+      it("specific ad-hoc event should create own config", async () => {
         const service = (await cds.connect.to("NotificationServicePeriodic")).tx(context);
         const getQueueEntries = jest.spyOn(
           EventQueueGenericOutboxHandler.prototype,
@@ -806,8 +807,27 @@ describe("event-queue outbox", () => {
         await processEventQueue(tx.context, "CAP_OUTBOX", [service.name, "action"].join("."));
         await commitAndOpenNew();
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(eventQueue.config.events.find(({ subType }) => subType.includes("action"))).toMatchSnapshot();
         expect(getQueueEntries).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("should create specific config during select", async () => {
+        const service = (await cds.connect.to("NotificationServicePeriodic")).tx(context);
+        await service.send("action", {});
+        await commitAndOpenNew();
+        delete eventQueue.config._rawEventMap["CAP_OUTBOX##NotificationServicePeriodic.action"];
+
+        // NOTE: after deleting the config make sure config is not available
+        await processEventQueue(tx.context, "CAP_OUTBOX", [service.name, "action"].join("."));
+        expect(eventQueue.config.events.find(({ subType }) => subType.includes("action"))).toBeUndefined();
+        expect(loggerMock.calls().error[0]).toMatchSnapshot();
+
+        const openEvents = await getOpenQueueEntries(tx);
+        await promisify(setTimeout)(1);
+
+        expect(openEvents).toHaveLength(1);
+        expect(eventQueue.config.events.find(({ subType }) => subType.includes("action"))).toBeDefined();
       });
     });
 

@@ -40,6 +40,12 @@ function outboxed(srv, customOpts) {
   }
   outboxedSrv.handle = async function (req) {
     const context = req.context || cds.context;
+    outboxOpts = Object.assign(
+      {},
+      (typeof cds.requires.outbox === "object" && cds.requires.outbox) || {},
+      (typeof srv.options?.outbox === "object" && srv.options.outbox) || {},
+      customOpts || {}
+    );
     config.addCAPOutboxEventBase(srv.name, outboxOpts);
     const specificSettings = config.getCdsOutboxEventSpecificConfig(srv.name, req.method);
     if (specificSettings) {

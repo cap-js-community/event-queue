@@ -4,6 +4,7 @@ const cds = require("@sap/cds");
 
 const eventConfig = require("../config");
 const { EventProcessingStatus } = require("../constants");
+const config = require("../config");
 
 const MS_IN_DAYS = 24 * 60 * 60 * 1000;
 
@@ -36,8 +37,9 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
   const result = [];
   for (const { type, subType } of entries) {
     if (eventConfig.isCapOutboxEvent(type)) {
+      const [srvName, actionName] = subType.split(".");
       cds.connect
-        .to(subType)
+        .to(srvName)
         .then((service) => {
           if (!filterAppSpecificEvents) {
             return; // will be done in finally
@@ -47,6 +49,9 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
             return;
           }
           cds.outboxed(service);
+          if (actionName) {
+            config.addCAPOutboxEventSpecificAction(srvName, actionName);
+          }
           if (filterAppSpecificEvents) {
             if (eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
               result.push({ type, subType });
