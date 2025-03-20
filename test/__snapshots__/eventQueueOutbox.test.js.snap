@@ -14,32 +14,58 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true accept event-queue specifi
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true ad-hoc events overwrite settings via outbox.events should create specific config during select 1`] = `
+[
+  "No Implementation found in the provided configuration file.",
+  {
+    "eventSubType": "NotificationServicePeriodic.action",
+    "eventType": "CAP_OUTBOX",
+  },
+]
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true ad-hoc events overwrite settings via outbox.events specific ad-hoc event should create own config 1`] = `
+{
+  "_appInstancesMap": null,
+  "_appNameMap": null,
+  "checkForNextChunk": false,
+  "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "increasePriorityOverTime": true,
+  "inheritTraceContext": true,
+  "internalEvent": true,
+  "keepAliveInterval": 60000000,
+  "keepAliveMaxInProgressTime": 210000000,
+  "kind": "persistent-outbox",
+  "load": 60,
+  "parallelEventProcessing": 5,
+  "priority": "medium",
+  "retryAttempts": 20,
+  "selectMaxChunkSize": 100,
+  "subType": "NotificationServicePeriodic.action",
+  "transactionMode": "isolated",
+  "type": "CAP_OUTBOX",
+}
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true custom options should win over service options 1`] = `
 {
   "_appInstancesMap": null,
   "_appNameMap": null,
-  "appInstances": undefined,
-  "appNames": undefined,
-  "checkForNextChunk": undefined,
-  "deleteFinishedEventsAfterDays": undefined,
   "impl": "./outbox/EventQueueGenericOutboxHandler",
   "increasePriorityOverTime": true,
   "inheritTraceContext": true,
   "internalEvent": true,
   "keepAliveInterval": 60000,
   "keepAliveMaxInProgressTime": 210000,
+  "kind": "persistent-outbox",
   "load": 1,
-  "multiInstanceProcessing": undefined,
   "parallelEventProcessing": 5,
   "priority": "medium",
-  "processAfterCommit": undefined,
   "retryAttempts": 20,
-  "retryFailedAfter": undefined,
   "selectMaxChunkSize": 100,
   "subType": "NotificationServiceOutboxedByConfig",
   "transactionMode": "alwaysCommit",
   "type": "CAP_OUTBOX",
-  "useEventQueueUser": undefined,
 }
 `;
 
@@ -59,28 +85,104 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true map config to event-queue 
 {
   "_appInstancesMap": null,
   "_appNameMap": null,
-  "appInstances": undefined,
-  "appNames": undefined,
-  "checkForNextChunk": undefined,
-  "deleteFinishedEventsAfterDays": undefined,
   "impl": "./outbox/EventQueueGenericOutboxHandler",
   "increasePriorityOverTime": true,
   "inheritTraceContext": true,
   "internalEvent": true,
   "keepAliveInterval": 60000,
   "keepAliveMaxInProgressTime": 210000,
+  "kind": "persistent-outbox",
   "load": 1,
-  "multiInstanceProcessing": undefined,
   "parallelEventProcessing": 5,
   "priority": "medium",
-  "processAfterCommit": undefined,
   "retryAttempts": 20,
-  "retryFailedAfter": undefined,
   "selectMaxChunkSize": 100,
   "subType": "NotificationService",
-  "transactionMode": undefined,
   "type": "CAP_OUTBOX",
-  "useEventQueueUser": undefined,
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit config cron/interval on top level is not allowed 1`] = `
+{
+  "_appInstancesMap": null,
+  "_appNameMap": null,
+  "cron": "*/15 * * * * *",
+  "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "increasePriorityOverTime": true,
+  "internalEvent": true,
+  "isPeriodic": true,
+  "keepAliveInterval": 60000,
+  "keepAliveMaxInProgressTime": 210000,
+  "load": 60,
+  "priority": "medium",
+  "subType": "NotificationServicePeriodic.main",
+  "transactionMode": "isolated",
+  "type": "CAP_OUTBOX_PERIODIC",
+  "tz": "UTC",
+  "useCronTimezone": false,
+  "utc": false,
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit config cron/interval on top level is not allowed 2`] = `
+[
+  "The properties interval|cron must be defined in the event section and will be ignored in the outbox section.",
+  {
+    "serviceName": "NotificationServicePeriodic",
+  },
+]
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit config overwrite in specific section 1`] = `
+{
+  "_appInstancesMap": null,
+  "_appNameMap": null,
+  "cron": "*/15 * * * * *",
+  "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "increasePriorityOverTime": true,
+  "internalEvent": true,
+  "isPeriodic": true,
+  "keepAliveInterval": 60000,
+  "keepAliveMaxInProgressTime": 210000,
+  "load": 60,
+  "priority": "medium",
+  "subType": "NotificationServicePeriodic.main",
+  "transactionMode": "alwaysRollback",
+  "type": "CAP_OUTBOX_PERIODIC",
+  "tz": "UTC",
+  "useCronTimezone": false,
+  "utc": false,
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit config simple push down 1`] = `
+{
+  "_appInstancesMap": null,
+  "_appNameMap": null,
+  "cron": "*/15 * * * * *",
+  "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "increasePriorityOverTime": true,
+  "internalEvent": true,
+  "isPeriodic": true,
+  "keepAliveInterval": 60000,
+  "keepAliveMaxInProgressTime": 210000,
+  "load": 60,
+  "priority": "medium",
+  "subType": "NotificationServicePeriodic.main",
+  "transactionMode": "isolated",
+  "type": "CAP_OUTBOX_PERIODIC",
+  "tz": "UTC",
+  "useCronTimezone": false,
+  "utc": false,
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events insert periodic event for CAP service 1`] = `
+{
+  "attempts": 0,
+  "status": 0,
+  "subType": "NotificationServicePeriodic.main",
+  "type": "CAP_OUTBOX_PERIODIC",
 }
 `;
 
@@ -162,28 +264,8 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored 
 exports[`event-queue outbox monkeyPatchCAPOutbox=true return open event types 1`] = `
 [
   {
-    "subType": "DELETE_EVENTS",
-    "type": "EVENT_QUEUE_BASE_PERIODIC",
-  },
-  {
-    "subType": "DBKeepAlive",
-    "type": "HealthCheckKeepAlive_PERIODIC",
-  },
-  {
-    "subType": "DB",
-    "type": "HealthCheck_PERIODIC",
-  },
-  {
-    "subType": "Task",
-    "type": "Notifications",
-  },
-  {
-    "subType": "everyFiveMin",
-    "type": "TimeSpecificEveryFiveMin_PERIODIC",
-  },
-  {
-    "subType": "cron",
-    "type": "TimeSpecificEveryMin_PERIODIC",
+    "subType": "NotificationServicePeriodic.main",
+    "type": "CAP_OUTBOX_PERIODIC",
   },
   {
     "subType": "NotificationService",
@@ -210,28 +292,21 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true should work for outboxed s
 {
   "_appInstancesMap": null,
   "_appNameMap": null,
-  "appInstances": undefined,
-  "appNames": undefined,
-  "checkForNextChunk": undefined,
-  "deleteFinishedEventsAfterDays": undefined,
   "impl": "./outbox/EventQueueGenericOutboxHandler",
   "increasePriorityOverTime": true,
   "inheritTraceContext": true,
   "internalEvent": true,
   "keepAliveInterval": 60000,
   "keepAliveMaxInProgressTime": 210000,
+  "kind": "persistent-outbox",
   "load": 1,
-  "multiInstanceProcessing": undefined,
   "parallelEventProcessing": 5,
   "priority": "medium",
-  "processAfterCommit": undefined,
   "retryAttempts": 20,
-  "retryFailedAfter": undefined,
   "selectMaxChunkSize": 100,
   "subType": "NotificationServiceOutboxedByConfig",
   "transactionMode": "alwaysRollback",
   "type": "CAP_OUTBOX",
-  "useEventQueueUser": undefined,
 }
 `;
 

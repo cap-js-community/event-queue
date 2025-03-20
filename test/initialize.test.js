@@ -109,7 +109,7 @@ describe("initialize", () => {
 
     fileContent.events.splice(1);
     fileContent.periodicEvents.splice(1);
-    fileContent.periodicEvents.push({ ...fileContent.events[0], interval: 30 });
+    fileContent.periodicEvents.push({ ...fileContent.periodicEvents[0], type: cds.utils.uuid(), interval: 30 });
     expect(() => {
       config.fileContent = fileContent;
     }).not.toThrow();
@@ -173,14 +173,6 @@ describe("initialize", () => {
     );
     fileContent.periodicEvents = [];
 
-    fileContent.periodicEvents.push({ ...fileContent.events[0], interval: 20, multiInstanceProcessing: true });
-    expect(() => {
-      config.fileContent = fileContent;
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"The config multiInstanceProcessing is currently only allowed for ad-hoc events and single-tenant-apps."`
-    );
-    fileContent.periodicEvents = [];
-
     const newEvent = fileContent.events[0];
     fileContent.events = [];
     fileContent.events.push({ ...newEvent, multiInstanceProcessing: true });
@@ -204,7 +196,6 @@ describe("initialize", () => {
     });
 
     it("simple add ad-hoc event", () => {
-      const fileContent = config.fileContent;
       config.configEvents = {
         "addedViaEnv/dummy": {
           ...config.fileContent.events[0],
@@ -212,7 +203,7 @@ describe("initialize", () => {
           subType: undefined,
         },
       };
-      config.mixFileContentWithEnv(fileContent);
+      config.mixFileContentWithEnv({});
       expect(config.events.find((event) => event.type === "addedViaEnv")).toMatchObject({
         type: "addedViaEnv",
         subType: "dummy",
@@ -220,7 +211,6 @@ describe("initialize", () => {
     });
 
     it("name without slash should work", () => {
-      const fileContent = config.fileContent;
       config.configEvents = {
         addedViaEnvdummy: {
           ...config.fileContent.events[0],
@@ -228,7 +218,7 @@ describe("initialize", () => {
           subType: "dummy2",
         },
       };
-      config.mixFileContentWithEnv(fileContent);
+      config.mixFileContentWithEnv({});
       expect(config.events.find((event) => event.type === "addedViaEnv2")).toMatchObject({
         type: "addedViaEnv2",
         subType: "dummy2",
@@ -236,11 +226,10 @@ describe("initialize", () => {
     });
 
     it("setting event config to null should ignore the event", () => {
-      const fileContent = config.fileContent;
       config.configEvents = {
         "addedViaEnv4/dummy": null,
       };
-      config.mixFileContentWithEnv(fileContent);
+      config.mixFileContentWithEnv({});
       expect(config.events.find((event) => event.type === "addedViaEnv4")).toBeFalsy();
     });
 
