@@ -1000,35 +1000,6 @@ const waitEntryIsDone = async () => {
   return false;
 };
 
-const waitEntriesIsDone = async () => {
-  let startTime = Date.now();
-  while (true) {
-    const rows = await cds.tx({}, (tx2) => tx2.run(SELECT.from("sap.eventqueue.Event")));
-    dbCounts["BEGIN"]--;
-    dbCounts["COMMIT"]--;
-    dbCounts["READ"]--;
-
-    const oneRunning = rows.some((row) => row.status !== EventProcessingStatus.Done);
-    if (!oneRunning) {
-      break;
-    }
-    if (Date.now() - startTime > 180 * 1000) {
-      throw new Error("entry not completed");
-    }
-    await promisify(setTimeout)(50);
-  }
-  return false;
-};
-
-const expectLockValue = async (tx, value) => {
-  const lock = await tx.run(
-    SELECT.one.from("sap.eventqueue.Lock").where({
-      code: value,
-    })
-  );
-  expect(lock?.code).toEqual(value);
-};
-
 const _setCronEventToNow = async (tx, event) => {
   await tx.run(
     UPDATE.entity("sap.eventqueue.Event")
