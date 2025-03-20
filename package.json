@@ -28,7 +28,6 @@
     "test:prepare": "npm run build:ci --prefix=./test-integration/_env",
     "test:deploySchema": "node test-integration/_env/srv/hana/deploy.js",
     "test:cleanSchemas": "node test-integration/_env/srv/hana/deleteTestSchema.js ",
-    "test:generate-schema-guids": "node test-integration/_env/srv/hana/generateGuids.js ",
     "lint": "npm run eslint && npm run prettier",
     "lint:ci": "npm run eslint:ci && npm run prettier:ci",
     "eslint": "eslint --fix .",

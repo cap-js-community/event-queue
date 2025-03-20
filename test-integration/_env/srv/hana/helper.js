@@ -1,6 +1,8 @@
 "use strict";
 
 const { promisify } = require("util");
+const fs = require("fs");
+const path = require("path");
 
 const hdb = require("hdb");
 const cds = require("@sap/cds");
@@ -113,9 +115,29 @@ const deployToHana = async (csn) => {
   }
 };
 
+const _findTestFiles = (dir) => {
+  let results = [];
+  const files = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const file of files) {
+    const fullPath = path.join(dir, file.name);
+
+    if (file.isDirectory()) {
+      results = results.concat(findTestFiles(fullPath)); // Recursively search subdirectories
+    } else if (file.isFile() && file.name.endsWith(".test.js")) {
+      results.push(file.name);
+    }
+  }
+
+  return results;
+};
+
+const findTestFiles = () => _findTestFiles(path.join(__dirname, "..", "..", ".."));
+
 module.exports = {
   prepareTestSchema,
   deployToHana,
   generateCredentialsForCds,
   deleteTestSchema,
+  findTestFiles,
 };
