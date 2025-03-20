@@ -16,14 +16,14 @@ jobs:
 
     name: test - node.js ${{ matrix.node-version }}
     steps:
-      - name: "Generate unique ID for HANA schema"
-        id: generateId
-        run: npm run test:generate-schema-guids
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
+      - name: "Generate unique ID for HANA schema"
+        id: generateId
+        run: npm run test:generate-schema-guids
       - run: npm ci --package-lock
       - run: npm run test:deploySchema
         env:
