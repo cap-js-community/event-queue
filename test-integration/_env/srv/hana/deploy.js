@@ -23,15 +23,21 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
     logger.info("Loading csn");
     const csn = await cds.load("*");
     const hanaAdminService = await helper.createAdminHANAService(csn);
-    for (const schemaGuid of Object.values(schemaGuids)) {
-      const credentials = await helper.prepareTestSchema(hanaAdminService, schemaGuid);
-      logger.info("Preparing test schema");
-      const hanaService = new HanaService(`db-${schemaGuid}`, csn, { kind: "hana", impl: "@cap-js/hana", credentials });
-      await hanaService.init();
-      await helper.deployToHana(hanaService, csn);
-      await hanaService.disconnect();
-      logger.info("Schema setup complete");
-    }
+    await Promise.all(
+      Object.values(schemaGuids).map(async (schemaGuid) => {
+        const credentials = await helper.prepareTestSchema(hanaAdminService, schemaGuid);
+        logger.info("Preparing test schema");
+        const hanaService = new HanaService(`db-${schemaGuid}`, csn, {
+          kind: "hana",
+          impl: "@cap-js/hana",
+          credentials,
+        });
+        await hanaService.init();
+        await helper.deployToHana(hanaService, csn);
+        await hanaService.disconnect();
+        logger.info("Schema setup complete");
+      })
+    );
     await hanaAdminService.disconnect();
     process.exit(0);
   } catch (error) {

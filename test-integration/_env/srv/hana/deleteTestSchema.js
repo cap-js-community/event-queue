@@ -11,9 +11,7 @@ const COMPONENT_NAME = "/TestEnv/Hana/Deploy";
   try {
     const schemaGuids = Object.values(JSON.parse(process.env.SCHEMA_GUIDS));
     const hanaAdminService = await helper.createAdminHANAService(cds.load("*"));
-    for (const schemaGuid of schemaGuids) {
-      await helper.deleteTestSchema(hanaAdminService, schemaGuid);
-    }
+    await Promise.all(schemaGuids.map((schemaGuid) => helper.deleteTestSchema(hanaAdminService, schemaGuid)));
     await hanaAdminService.disconnect();
     process.exit(0);
   } catch (error) {
