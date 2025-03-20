@@ -625,7 +625,7 @@ class Config {
   }
 
   get events() {
-    return this.#config.events;
+    return Object.values(this.#eventMap).filter((e) => !e.isPeriodic);
   }
 
   set configEvents(value) {
@@ -641,7 +641,7 @@ class Config {
   }
 
   get periodicEvents() {
-    return this.#config.periodicEvents;
+    return Object.values(this.#eventMap).filter((e) => e.isPeriodic);
   }
 
   isPeriodicEvent(type, subType) {
@@ -649,7 +649,7 @@ class Config {
   }
 
   get allEvents() {
-    return this.#config.events.concat(this.#config.periodicEvents);
+    return Object.values(this.#eventMap);
   }
 
   get forUpdateTimeout() {

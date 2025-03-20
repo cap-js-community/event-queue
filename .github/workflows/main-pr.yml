@@ -16,9 +16,9 @@ jobs:
 
     name: test - node.js ${{ matrix.node-version }}
     steps:
-      - name: "unique id for hana schema"
+      - name: "Generate unique ID for HANA schema"
         id: generateId
-        run: echo "id=$(uuidgen | tr '[:lower:]' '[:upper:]')" >> $GITHUB_OUTPUT
+        run: npm run test:generate-schema-guids
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:

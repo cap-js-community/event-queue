@@ -316,7 +316,7 @@ describe("integration-main", () => {
   it("if processing time is exceeded broadcast should trigger processing again", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
-    const event = eventQueue.config.events[0];
+    const event = eventQueue.config._rawEventMap[["Notifications", "Task"].join("##")];
     event.checkForNextChunk = true;
     const scheduler = jest.spyOn(eventScheduler.getInstance(), "scheduleEvent").mockReturnValueOnce(null);
     const processSpy = jest
@@ -396,11 +396,10 @@ describe("integration-main", () => {
   describe("keep alive processing", () => {
     let isolatedNoParallel, alwaysCommit, isolatedNoParallelSingleSelect;
     beforeEach(() => {
-      isolatedNoParallel = eventQueue.config.events.find((event) => event.subType === "isolatedForKeepAlive");
-      isolatedNoParallelSingleSelect = eventQueue.config.events.find(
-        (event) => event.subType === "isolatedForKeepAliveSingleSelect"
-      );
-      alwaysCommit = eventQueue.config.events.find((event) => event.subType === "alwaysCommitForKeepAlive");
+      isolatedNoParallel = eventQueue.config._rawEventMap[["TransactionMode", "isolatedForKeepAlive"].join("##")];
+      isolatedNoParallelSingleSelect =
+        eventQueue.config._rawEventMap[["TransactionMode", "isolatedForKeepAliveSingleSelect"].join("##")];
+      alwaysCommit = eventQueue.config._rawEventMap[["TransactionMode", "alwaysCommitForKeepAlive"].join("##")];
       isolatedNoParallel.parallelEventProcessing = 1;
       alwaysCommit.parallelEventProcessing = 1;
       for (let i = 0; i < cds.services.db._handlers.before.length; i++) {

@@ -3,6 +3,8 @@
 const cds = require("@sap/cds");
 const { generateCredentialsForCds } = require("./hana/helper");
 
+// NOTE: get filename of test suite: expect.getState().testPath.split("/").pop()
+
 let credentials = JSON.parse(process.env.HANA_DB_CREDENTIALS || null);
 try {
   if (process.env.GITHUB_ACTION_HANA) {

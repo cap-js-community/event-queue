@@ -46,12 +46,6 @@ const createClient = async (credentials) => {
 };
 
 const callStoredProcedure = async (client, sql) => {
-  /*
-   * Execute a stored procedure and log the messages
-   * Only good for stored procedures that return a message table and nothing else
-   * Will not process any other parameters
-   * Example procedures: https://github.wdf.sap.corp/S4HANAFIN/SQL_snippets/blob/main/11_test_schema_administration.sql
-   */
   const response = await client.exec(sql);
   const messages = response.results[0];
   messages.forEach((message) => {
