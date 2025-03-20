@@ -37,6 +37,44 @@ const BASE_TABLES = {
   LOCK: "sap.eventqueue.Lock",
 };
 
+const ALLOWED_EVENT_OPTIONS_BASE = [
+  "type",
+  "subType",
+  "load",
+  "impl",
+  "transactionMode",
+  "deleteFinishedEventsAfterDays",
+  "useEventQueueUser",
+  "priority",
+  "keepAliveInterval",
+  "increasePriorityOverTime",
+  "keepAliveMaxInProgressTime",
+  "appNames",
+  "appInstances",
+  "internalEvent",
+];
+
+const ALLOWED_EVENT_OPTIONS_AD_HOC = [
+  ...ALLOWED_EVENT_OPTIONS_BASE,
+  "inheritTraceContext",
+  "selectMaxChunkSize",
+  "parallelEventProcessing",
+  "retryAttempts",
+  "processAfterCommit",
+  "checkForNextChunk",
+  "retryFailedAfter",
+  "multiInstanceProcessing",
+  "kind",
+];
+
+const ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT = [
+  ...ALLOWED_EVENT_OPTIONS_BASE,
+  "interval",
+  "cron",
+  "utc",
+  "useCronTimezone",
+];
+
 class Config {
   #logger;
   #config;
@@ -287,7 +325,7 @@ class Config {
       });
   }
 
-  addCAPOutboxEvent(serviceName, config) {
+  addCAPOutboxEventBase(serviceName, config) {
     if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)]) {
       const index = this.#config.events.findIndex(
         (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
@@ -295,34 +333,47 @@ class Config {
       this.#config.events.splice(index, 1);
     }
 
-    const eventConfig = {
+    const eventConfig = this.#sanitizeParamsAdHocEvent({
       type: CAP_EVENT_TYPE,
       subType: serviceName,
-      load: config.load,
       impl: "./outbox/EventQueueGenericOutboxHandler",
-      selectMaxChunkSize: config.chunkSize,
+      kind: config.kind ?? "persistent-outbox",
+      selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
-      retryAttempts: config.maxAttempts,
-      transactionMode: config.transactionMode,
-      processAfterCommit: config.processAfterCommit,
-      checkForNextChunk: config.checkForNextChunk,
-      deleteFinishedEventsAfterDays: config.deleteFinishedEventsAfterDays,
-      appNames: config.appNames,
-      appInstances: config.appInstances,
-      useEventQueueUser: config.useEventQueueUser,
-      retryFailedAfter: config.retryFailedAfter,
-      priority: config.priority,
-      multiInstanceProcessing: config.multiInstanceProcessing,
-      increasePriorityOverTime: config.increasePriorityOverTime,
-      keepAliveInterval: config.keepAliveInterval,
-      inheritTraceContext: true,
-      internalEvent: true,
-    };
+      retryAttempts: config.retryAttempts ?? config.maxAttempts,
+      ...config,
+    });
+    eventConfig.internalEvent = true;
 
     this.#basicEventTransformation(eventConfig);
+    this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
     this.#basicEventTransformationAfterValidate(eventConfig);
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
+  }
+
+  addCAPOutboxEventSpecificAction(serviceName, actionName) {
+    const subType = [serviceName, actionName].join(".");
+    if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, subType)]) {
+      const index = this.#config.events.findIndex(
+        (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
+      );
+      this.#config.events.splice(index, 1);
+    }
+
+    const eventConfig = this.#sanitizeParamsAdHocEvent({
+      ...this.getEventConfig(CAP_EVENT_TYPE, serviceName),
+      ...this.getCdsOutboxEventSpecificConfig(serviceName, actionName),
+      subType,
+    });
+    eventConfig.internalEvent = true;
+
+    this.#basicEventTransformation(eventConfig);
+    this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
+    this.#basicEventTransformationAfterValidate(eventConfig);
+    this.#config.events.push(eventConfig);
+    this.#eventMap[this.generateKey(CAP_EVENT_TYPE, subType)] = eventConfig;
+    return eventConfig;
   }
 
   #unblockEventLocalState(key, tenant) {
@@ -357,9 +408,57 @@ class Config {
     fileContent.periodicEvents ??= [];
     const events = this.#configEvents ?? {};
     const periodicEvents = this.#configPeriodicEvents ?? {};
+    const periodicCapServiceEvents = this.#cdsPeriodicOutboxServicesFromEnv();
     fileContent.events = fileContent.events.concat(this.#mapEnvEvents(events));
-    fileContent.periodicEvents = fileContent.periodicEvents.concat(this.#mapEnvEvents(periodicEvents));
+    fileContent.periodicEvents = fileContent.periodicEvents
+      .concat(this.#mapEnvEvents(periodicEvents))
+      .concat(this.#mapCapOutboxPeriodicEvent(periodicCapServiceEvents));
     this.fileContent = fileContent;
+  }
+
+  #mapCapOutboxPeriodicEvent(periodicEventMap) {
+    return Object.values(periodicEventMap);
+  }
+
+  #cdsPeriodicOutboxServicesFromEnv() {
+    return Object.entries(cds.env.requires).reduce((result, [name, value]) => {
+      if (value.outbox?.events) {
+        for (const fnName in value.outbox.events) {
+          const base = { ...value.outbox };
+          const fnConfig = value.outbox.events[fnName];
+          if (fnConfig.interval || fnConfig.cron) {
+            if ("interval" in base || "cron" in base) {
+              this.#logger.error(
+                "The properties interval|cron must be defined in the event section and will be ignored in the outbox section.",
+                { serviceName: name }
+              );
+              delete base.cron;
+              delete base.interval;
+            }
+
+            result[fnName] = Object.assign(
+              {
+                type: CAP_EVENT_TYPE,
+                subType: `${name}.${fnName}`,
+                impl: "./outbox/EventQueueGenericOutboxHandler",
+                internalEvent: true,
+              },
+              base,
+              fnConfig
+            );
+          }
+        }
+      }
+      return result;
+    }, {});
+  }
+
+  getCdsOutboxEventSpecificConfig(serviceName, action) {
+    if (cds.env.requires[serviceName]?.outbox?.events?.[action]) {
+      return cds.env.requires[serviceName].outbox.events[action];
+    } else {
+      return null;
+    }
   }
 
   #mapEnvEvents(events) {
@@ -380,19 +479,21 @@ class Config {
     config.events = config.events ?? [];
     config.periodicEvents = config.periodicEvents ?? [];
     this.#eventMap = config.events.reduce((result, event) => {
-      this.#basicEventTransformation(event);
-      this.#validateAdHocEvents(result, event);
-      this.#basicEventTransformationAfterValidate(event);
-      result[this.generateKey(event.type, event.subType)] = event;
+      const eventSanitized = this.#sanitizeParamsAdHocEvent(event);
+      this.#basicEventTransformation(eventSanitized);
+      this.#validateAdHocEvents(result, eventSanitized);
+      this.#basicEventTransformationAfterValidate(eventSanitized);
+      result[this.generateKey(eventSanitized.type, eventSanitized.subType)] = eventSanitized;
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
-      event.type = `${event.type}${SUFFIX_PERIODIC}`;
-      event.isPeriodic = true;
-      this.#basicEventTransformation(event);
-      this.#validatePeriodicConfig(result, event);
-      this.#basicEventTransformationAfterValidate(event);
-      result[this.generateKey(event.type, event.subType)] = event;
+      const eventSanitized = this.#sanitizeParamsPeriodicEventEvent(event);
+      eventSanitized.type = `${eventSanitized.type}${SUFFIX_PERIODIC}`;
+      eventSanitized.isPeriodic = true;
+      this.#basicEventTransformation(eventSanitized);
+      this.#validatePeriodicConfig(result, eventSanitized);
+      this.#basicEventTransformationAfterValidate(eventSanitized);
+      result[this.generateKey(eventSanitized.type, eventSanitized.subType)] = eventSanitized;
       return result;
     }, this.#eventMap);
     this.#config = config;
@@ -405,6 +506,23 @@ class Config {
     event.keepAliveInterval = (event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL) * 1000;
     event.keepAliveMaxInProgressTime = event.keepAliveInterval * DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL;
     event.checkForNextChunk = event.checkForNextChunk * DEFAULT_CHECK_FOR_NEXT_CHUNK;
+  }
+
+  #sanitizeParamsBase(config, allowList) {
+    return Object.entries(config).reduce((result, [name, value]) => {
+      if (allowList.includes(name)) {
+        result[name] = value;
+      }
+      return result;
+    }, {});
+  }
+
+  #sanitizeParamsAdHocEvent(config) {
+    return this.#sanitizeParamsBase(config, ALLOWED_EVENT_OPTIONS_AD_HOC);
+  }
+
+  #sanitizeParamsPeriodicEventEvent(config) {
+    return this.#sanitizeParamsBase(config, ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT);
   }
 
   #basicEventTransformationAfterValidate(event) {
@@ -500,16 +618,12 @@ class Config {
       throw EventQueueError.invalidInterval(event.type, event.subType, event.interval);
     }
 
-    if (event.multiInstanceProcessing) {
-      throw EventQueueError.multiInstanceProcessingNotAllowed(event.type, event.subType);
-    }
-
     this.#basicEventValidation(event);
   }
 
-  #validateAdHocEvents(eventMap, event) {
+  #validateAdHocEvents(eventMap, event, checkForDuplication = true) {
     const key = this.generateKey(event.type, event.subType);
-    if (eventMap[key] && !eventMap[key].isPeriodic) {
+    if (eventMap[key] && !eventMap[key].isPeriodic && checkForDuplication) {
       throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
     }
 
@@ -542,7 +656,7 @@ class Config {
   }
 
   get events() {
-    return this.#config.events;
+    return Object.values(this.#eventMap).filter((e) => !e.isPeriodic);
   }
 
   set configEvents(value) {
@@ -558,7 +672,7 @@ class Config {
   }
 
   get periodicEvents() {
-    return this.#config.periodicEvents;
+    return Object.values(this.#eventMap).filter((e) => e.isPeriodic);
   }
 
   isPeriodicEvent(type, subType) {
@@ -566,7 +680,7 @@ class Config {
   }
 
   get allEvents() {
-    return this.#config.events.concat(this.#config.periodicEvents);
+    return Object.values(this.#eventMap);
   }
 
   get forUpdateTimeout() {

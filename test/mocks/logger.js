@@ -1,5 +1,7 @@
 "use strict";
 
+const cds = require("@sap/cds");
+
 const LOG_LEVELS = ["debug", "info", "warn", "error", "log"];
 
 const logger = LOG_LEVELS.reduce((result, logLevel) => {
@@ -9,6 +11,9 @@ const logger = LOG_LEVELS.reduce((result, logLevel) => {
 
 const Logger = () => {
   jest.spyOn(cds, "log").mockReturnValue(logger);
+  Object.defineProperty(cds, "debug", {
+    get: () => jest.fn(),
+  });
   return logger;
 };
 

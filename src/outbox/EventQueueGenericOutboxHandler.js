@@ -15,9 +15,22 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     this.logger = cds.log(`${COMPONENT_NAME}/${eventSubType}`);
   }
 
+  async processPeriodicEvent(processContext, key, queueEntry) {
+    const [serviceName, action] = this.eventSubType.split(".");
+    const service = await cds.connect.to(serviceName);
+    const msg = new cds.Event({ event: action });
+    processContext.user = new cds.User.Privileged({
+      id: config.userId,
+      authInfo: await common.getTokenInfo(processContext.tenant),
+    });
+    processContext._eventQueue = { processor: this, key, queueEntries: [queueEntry] };
+    await cds.unboxed(service).tx(processContext)["emit"](msg);
+  }
+
   async processEvent(processContext, key, queueEntries, payload) {
     try {
-      const service = await cds.connect.to(this.eventSubType);
+      const [srvName] = this.eventSubType.split(".");
+      const service = await cds.connect.to(srvName);
       const { useEventQueueUser } = this.eventConfig;
       const userId = useEventQueueUser ? config.userId : payload.contextUser;
       const msg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
