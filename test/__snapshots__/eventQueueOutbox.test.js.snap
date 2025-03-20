@@ -71,7 +71,6 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit co
 {
   "_appInstancesMap": null,
   "_appNameMap": null,
-  "checkForNextChunk": true,
   "cron": "*/15 * * * * *",
   "impl": "./outbox/EventQueueGenericOutboxHandler",
   "increasePriorityOverTime": true,
@@ -95,7 +94,6 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit co
 {
   "_appInstancesMap": null,
   "_appNameMap": null,
-  "checkForNextChunk": true,
   "cron": "*/15 * * * * *",
   "impl": "./outbox/EventQueueGenericOutboxHandler",
   "increasePriorityOverTime": true,
