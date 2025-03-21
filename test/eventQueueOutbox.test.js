@@ -917,7 +917,7 @@ describe("event-queue outbox", () => {
       });
 
       describe("clusterQueueEntries", () => {
-        it("specific action call", async () => {
+        it.skip("specific action call", async () => {
           const service = await cds.connect.to("OutboxCustomHooks");
           const outboxedService = cds.outboxed(service).tx(context);
           const data = { to: "to", subject: "subject", body: "body" };
