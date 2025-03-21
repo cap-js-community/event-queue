@@ -3,6 +3,7 @@
   "name": "example-cap-server",
   "version": "1.0.0",
   "scripts": {
+    "postinstall": "npm run copy-library",
     "start": "cds-serve",
     "watch": "cds watch",
     "subscribeTenants": "node bin/subscribteTenants.js",
@@ -11,26 +12,50 @@
   },
   "dependencies": {
     "@cap-js-community/event-queue": "file:..",
-    "@cap-js/audit-logging": "^0.5.2",
-    "@sap/cds": "^7.5.0",
-    "@sap/cds-mtxs": "1.14.0",
-    "express": "^4.18.2",
-    "redis": "^4.6.12",
+    "@cap-js/audit-logging": "^0.8.2",
+    "@sap/cds": "^8.8.2",
+    "@sap/cds-mtxs": "^2.6.1",
+    "express": "^4.21.2",
     "verror": "^1.10.1"
   },
   "devDependencies": {
-    "@cap-js/sqlite": "1.4.0",
+    "@cap-js/sqlite": "1.9.0",
     "eslint": "8.56.0",
     "eslint-config-prettier": "9.0.0",
-    "prettier": "3.0.3",
-    "sqlite3": "5.1.6"
+    "prettier": "3.5.3",
+    "sqlite3": "5.1.7",
+    "redis": "^4.7.0",
+    "cron-parser": "^5.0.5",
+    "@sap/xssec": "^3.6.2"
   },
   "cds": {
     "eventQueue": {
       "plugin": true,
-      "configFilePath": "./srv/eventConfig.yml",
       "runInterval": 300000,
-      "useAsCAPOutbox": true
+      "useAsCAPOutbox": true,
+      "thresholdLoggingEventProcessing": 5000,
+      "cleanupLocksAndEventsForDev": true,
+      "events": {
+        "Mail/Single": {
+          "impl": "./srv/EventQueueMail",
+          "load": 10,
+          "parallelEventProcessing": 5
+        }
+      },
+      "periodicEvents": {
+        "HealthCheck/DB": {
+          "impl": "./srv/EventQueueHealthCheckDb",
+          "load": 10,
+          "transactionMode": "alwaysRollback",
+          "interval": 15
+        },
+        "HealthCheck/DB-as-cron": {
+          "impl": "./srv/EventQueueHealthCheckDb",
+          "load": 10,
+          "transactionMode": "alwaysRollback",
+          "cron": "*/15 * * * * *"
+        }
+      }
     },
     "requires": {
       "outbox": true,
@@ -43,7 +68,7 @@
         "[development]": {
           "kind": "sqlite",
           "credentials": {
-            "database": "data/afc.sqlite"
+            "database": "data/event-queue-demo.sqlite"
           },
           "schema_evolution": ""
         }
@@ -54,7 +79,13 @@
           "kind": "persistent-outbox",
           "load": 60,
           "checkForNextChunk": true,
-          "transactionMode": "isolated"
+          "transactionMode": "isolated",
+          "events": {
+            "syncJobs": {
+              "load": 10,
+              "cron": "*/15 * * * * *"
+            }
+          }
         }
       },
       "mail-service": {
