@@ -243,7 +243,7 @@ class EventQueueProcessorBase {
    * This can be useful for e.g. multiple tasks have been scheduled and always the same user should be informed.
    * In this case the events should be clustered together and only one mail should be sent.
    */
-  clusterQueueEntries(queueEntriesWithPayloadMap) {
+  async clusterQueueEntries(queueEntriesWithPayloadMap) {
     Object.entries(queueEntriesWithPayloadMap).forEach(([key, { queueEntry, payload }]) => {
       this.addEntryToProcessingMap(key, queueEntry, payload);
     });

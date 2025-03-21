@@ -102,6 +102,18 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true map config to event-queue 
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true option to use eventQueue.userId in outboxed services 1`] = `
+{
+  "data": {
+    "body": "body",
+    "subject": "subject",
+    "to": "to",
+  },
+  "subType": "NotificationServiceOutboxedByConfigUserId",
+  "user": "dummyTestUser",
+}
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit config cron/interval on top level is not allowed 1`] = `
 {
   "_appInstancesMap": null,
@@ -248,6 +260,18 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored 
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored for emit 2`] = `
+{
+  "data": {
+    "body": "body",
+    "subject": "subject",
+    "to": "to",
+  },
+  "subType": "NotificationService",
+  "user": "testUser",
+}
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored for sent 1`] = `
 {
   "contextUser": "testUser",
@@ -258,6 +282,18 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored 
   },
   "event": "sendFiori",
   "headers": {},
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored for sent 2`] = `
+{
+  "data": {
+    "body": "body",
+    "subject": "subject",
+    "to": "to",
+  },
+  "subType": "NotificationService",
+  "user": "testUser",
 }
 `;
 
@@ -285,6 +321,18 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true should store correct user 
   },
   "event": "sendFiori",
   "headers": {},
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true should store correct user of original context 2`] = `
+{
+  "data": {
+    "body": "body",
+    "subject": "subject",
+    "to": "to",
+  },
+  "subType": "NotificationService",
+  "user": "badman",
 }
 `;
 

@@ -79,7 +79,7 @@ const processEventQueue = async (context, eventType, eventSubType) => {
         await executeInNewTransaction(context, `eventQueue-processing-${eventType}##${eventSubType}`, async (tx) => {
           eventTypeInstance.processEventContext = tx.context;
           try {
-            eventTypeInstance.clusterQueueEntries(eventTypeInstance.queueEntriesWithPayloadMap);
+            await eventTypeInstance.clusterQueueEntries(eventTypeInstance.queueEntriesWithPayloadMap);
             await processEventMap(eventTypeInstance);
           } catch (err) {
             eventTypeInstance.handleErrorDuringClustering(err);
