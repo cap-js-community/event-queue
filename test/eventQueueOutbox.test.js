@@ -36,6 +36,16 @@ cds.env.requires.NotificationServicePeriodic = {
   },
 };
 
+cds.env.requires.OutboxCustomHooks = {
+  impl: "./outboxProject/srv/service/serviceCustomHooks.js",
+  outbox: {
+    kind: "persistent-outbox",
+    load: 60,
+    checkForNextChunk: true,
+    transactionMode: "isolated",
+  },
+};
+
 const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
 
@@ -256,18 +266,7 @@ describe("event-queue outbox", () => {
       expect(loggerMock).not.sendFioriActionCalled();
       expect(payload).toMatchSnapshot();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1])
-        .toMatchInlineSnapshot(`
-        {
-          "data": {
-            "body": "body",
-            "subject": "subject",
-            "to": "to",
-          },
-          "eventQueueId": "NotificationService",
-          "user": "testUser",
-        }
-      `);
+      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1]).toMatchSnapshot();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
@@ -288,18 +287,7 @@ describe("event-queue outbox", () => {
       expect(loggerMock).not.sendFioriActionCalled();
       expect(payload).toMatchSnapshot();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1])
-        .toMatchInlineSnapshot(`
-        {
-          "data": {
-            "body": "body",
-            "subject": "subject",
-            "to": "to",
-          },
-          "eventQueueId": "NotificationService",
-          "user": "testUser",
-        }
-      `);
+      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1]).toMatchSnapshot();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
@@ -321,18 +309,7 @@ describe("event-queue outbox", () => {
       expect(loggerMock).not.sendFioriActionCalled();
       expect(payload).toMatchSnapshot();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1])
-        .toMatchInlineSnapshot(`
-        {
-          "data": {
-            "body": "body",
-            "subject": "subject",
-            "to": "to",
-          },
-          "eventQueueId": "NotificationService",
-          "user": "badman",
-        }
-      `);
+      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1]).toMatchSnapshot();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
@@ -629,18 +606,7 @@ describe("event-queue outbox", () => {
       });
 
       await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
-      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1])
-        .toMatchInlineSnapshot(`
-        {
-          "data": {
-            "body": "body",
-            "subject": "subject",
-            "to": "to",
-          },
-          "eventQueueId": "NotificationServiceOutboxedByConfigUserId",
-          "user": "dummyTestUser",
-        }
-      `);
+      expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1]).toMatchSnapshot();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
@@ -895,6 +861,78 @@ describe("event-queue outbox", () => {
         });
       });
     });
+
+    describe("custom hooks", () => {
+      describe("checkEventAndGeneratePayload", () => {
+        it("specific action call", async () => {
+          const service = await cds.connect.to("OutboxCustomHooks");
+          const outboxedService = cds.outboxed(service).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          const modifiedData = { ...data, to: "newValue" };
+          await outboxedService.send("action", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalled("checkEventAndGeneratePayload.action", { data: modifiedData });
+          expect(loggerMock).actionCalled("action", { data: modifiedData });
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("non specific action call", async () => {
+          const service = await cds.connect.to("OutboxCustomHooks");
+          const outboxedService = cds.outboxed(service).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await outboxedService.send("main", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalled("checkEventAndGeneratePayload", { data });
+          expect(loggerMock).actionCalled("main", { data });
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("mixed both should be called", async () => {
+          const service = await cds.connect.to("OutboxCustomHooks");
+          const outboxedService = cds.outboxed(service).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          const dataSpecific = { to: "toSpecific", subject: "subject", body: "body" };
+          const modifiedData = { ...data, to: "newValue" };
+          await outboxedService.send("main", data);
+          await outboxedService.send("action", dataSpecific);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 2 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalled("checkEventAndGeneratePayload", { data });
+          expect(loggerMock).actionCalled("checkEventAndGeneratePayload.action", { data: modifiedData });
+          expect(loggerMock).actionCalled("main", { data });
+          expect(loggerMock).actionCalled("action", { data: modifiedData });
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+      });
+
+      describe("clusterQueueEntries", () => {
+        it("specific action call", async () => {
+          const service = await cds.connect.to("OutboxCustomHooks");
+          const outboxedService = cds.outboxed(service).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await outboxedService.send("action", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalled("clusterQueueEntries", { data });
+          expect(loggerMock).actionCalled("action", { data });
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+      });
+    });
   });
 
   const commitAndOpenNew = async () => {
@@ -905,13 +943,28 @@ describe("event-queue outbox", () => {
 });
 
 expect.extend({
-  sendFioriActionCalled: (lockerMock) => {
+  sendFioriActionCalled: () => {
     return {
       message: () => "sendFiori Action not called",
-      pass: lockerMock
+      pass: loggerMock
         .calls()
         .info.map((call) => call[0])
         .includes("sendFiori action triggered"),
+    };
+  },
+  actionCalled: (loggerMock, actionName, properties) => {
+    const call = loggerMock.calls().info.find((c) => c[0] === actionName);
+    if (!call) {
+      return {
+        message: () => `action not called! name: ${actionName}`,
+        pass: false,
+      };
+    }
+
+    return {
+      message: () => `action called with different parameters! name: ${actionName}`,
+      // eslint-disable-next-line jest/no-standalone-expect
+      pass: !expect(call[1]).toMatchObject(properties),
     };
   },
 });

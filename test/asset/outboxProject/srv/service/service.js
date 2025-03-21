@@ -9,7 +9,7 @@ class NotificationService extends cds.Service {
       cds.log("sendFiori").info("sendFiori action triggered", {
         data: req.data,
         user: req.user.id,
-        eventQueueId: req.context._eventQueue?.queueEntries[0].subType,
+        subType: req.context._eventQueue?.queueEntries[0].subType,
       });
     });
 

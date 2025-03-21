@@ -15,34 +15,151 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     this.logger = cds.log(`${COMPONENT_NAME}/${eventSubType}`);
   }
 
-  async processPeriodicEvent(processContext, key, queueEntry) {
-    const [serviceName, action] = this.eventSubType.split(".");
-    const service = await cds.connect.to(serviceName);
-    const msg = new cds.Event({ event: action });
-    processContext.user = new cds.User.Privileged({
-      id: config.userId,
-      authInfo: await common.getTokenInfo(processContext.tenant),
+  async getQueueEntriesAndSetToInProgress() {
+    const [serviceName] = this.eventSubType.split(".");
+    this.__srv = await cds.connect.to(serviceName);
+    this.__srvUnboxed = cds.unboxed(this.__srv);
+    const { handlers, clusterRelevant, specificClusterRelevant } = this.__srvUnboxed.handlers.on.reduce(
+      (result, handler) => {
+        if (handler.on.startsWith("clusterQueueEntries")) {
+          result.clusterRelevant = true;
+          if (handler.on.split(".").length === 2) {
+            result.specificClusterRelevant = true;
+          }
+        }
+
+        result.handlers[handler.on] = handler.on;
+        return result;
+      },
+      { handlers: {}, clusterRelevant: false, specificClusterRelevant: false }
+    );
+    this.__onHandlers = handlers;
+    this.__clusterRelevant = clusterRelevant;
+    this.__specificClusterRelevant = specificClusterRelevant;
+    await this.#setContextUser(this.context, config.userId);
+    return super.getQueueEntriesAndSetToInProgress();
+  }
+
+  // NOTE: issue here: if events are not sorted before it might not be unique here:
+  //       - we have service events
+  //       - we have action specific events
+  // 1. I need to collect all action names
+  // 2. I need to check for which actions a handler exits
+  // 3. For actions with specific existing handler --> call specific action
+  // 4. For all others call generic handler
+  // NOTE: OVERALL idea is that the handler returns the cluster map and MUST not call any baseImpl functions!
+  //      --> structure is a map of { key: { queueEntries: [], payload: {} }
+  // TODO: document that clusterQueueEntries is now async!!!
+  async clusterQueueEntries(queueEntriesWithPayloadMap) {
+    if (!this.__clusterRelevant && !this.__specificClusterRelevant) {
+      return super.clusterQueueEntries(queueEntriesWithPayloadMap);
+    }
+
+    if (!this.__specificClusterRelevant) {
+      const msg = new cds.Request({ event: "clusterQueueEntries", data: { queueEntriesWithPayloadMap } });
+      const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
+      this.#addToProcessingMap(handlerCluster);
+    }
+
+    // const {} = Object.entries(queueEntriesWithPayloadMap).reduce((result, [queueEntryId, { queueEntry, payload }]) => {
+    //   const { event } = payload;
+    //
+    //   return result;
+    // }, {});
+  }
+
+  #addToProcessingMap(handlerCluster) {
+    for (const clusterKey in handlerCluster) {
+      const { payload, queueEntries } = handlerCluster[clusterKey];
+      for (const queueEntry of queueEntries) {
+        this.addEntryToProcessingMap(clusterKey, queueEntry, payload);
+      }
+    }
+  }
+
+  // NOTE: Currently not exposed to CAP service; I don't see any valid use case at this time
+  modifyQueueEntry(queueEntry) {
+    super.modifyQueueEntry(queueEntry);
+  }
+
+  // TODO: invocationFn --> always emit/send? any benefits?
+  async checkEventAndGeneratePayload(queueEntry) {
+    const payload = await super.checkEventAndGeneratePayload(queueEntry);
+    const { event } = payload;
+    const handlerName = this.#checkHandlerExists("checkEventAndGeneratePayload", event);
+    if (!handlerName) {
+      return payload;
+    }
+
+    const { msg, userId, invocationFn } = this.#buildDispatchData(this.context, payload, {
+      queueEntries: [queueEntry],
     });
+    msg.event = handlerName;
+    await this.#setContextUser(this.context, userId);
+    const data = await this.__srvUnboxed.tx(this.context)[invocationFn](msg);
+    if (data) {
+      payload.data = data;
+      return payload;
+    } else {
+      return null;
+    }
+  }
+
+  // simple here as per entry
+  async hookForExceededEvents(exceededEvent) {
+    return await super.hookForExceededEvents(exceededEvent);
+  }
+
+  async beforeProcessingEvents() {
+    return await super.beforeProcessingEvents();
+  }
+
+  // maybe async getter on req.data // only for periodic events
+  // getLastSuccessfulRunTimestamp
+
+  #checkHandlerExists(eventQueueFn, event) {
+    const specificHandler = this.__onHandlers[[eventQueueFn, event].join(".")];
+    if (specificHandler) {
+      return specificHandler;
+    }
+
+    const genericHandler = this.__onHandlers[eventQueueFn];
+    return genericHandler ?? null;
+  }
+
+  // TODO: validate if send/emit is better
+  async processPeriodicEvent(processContext, key, queueEntry) {
+    const [, action] = this.eventSubType.split(".");
+    const msg = new cds.Event({ event: action });
+    await this.#setContextUser(processContext, config.userId);
     processContext._eventQueue = { processor: this, key, queueEntries: [queueEntry] };
-    await cds.unboxed(service).tx(processContext)["emit"](msg);
+    await this.__srvUnboxed.tx(processContext).emit(msg);
+  }
+
+  #buildDispatchData(context, payload, { key, queueEntries } = {}) {
+    // const { payload } = queueEntry;
+    const { useEventQueueUser } = this.eventConfig;
+    const userId = useEventQueueUser ? config.userId : payload.contextUser;
+    const msg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
+    const invocationFn = payload._fromSend ? "send" : "emit";
+    delete msg._fromSend; // TODO: this changes the source object --> check after multiple invocations
+    delete msg.contextUser;
+    context._eventQueue = { processor: this, key, queueEntries, payload };
+    return { msg, userId, invocationFn };
+  }
+
+  async #setContextUser(context, userId) {
+    context.user = new cds.User.Privileged({
+      id: userId,
+      authInfo: await common.getTokenInfo(this.baseContext.tenant),
+    });
   }
 
   async processEvent(processContext, key, queueEntries, payload) {
     try {
-      const [srvName] = this.eventSubType.split(".");
-      const service = await cds.connect.to(srvName);
-      const { useEventQueueUser } = this.eventConfig;
-      const userId = useEventQueueUser ? config.userId : payload.contextUser;
-      const msg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
-      const invocationFn = payload._fromSend ? "send" : "emit";
-      delete msg._fromSend;
-      delete msg.contextUser;
-      processContext.user = new cds.User.Privileged({
-        id: userId,
-        authInfo: await common.getTokenInfo(processContext.tenant),
-      });
-      processContext._eventQueue = { processor: this, key, queueEntries, payload };
-      const result = await cds.unboxed(service).tx(processContext)[invocationFn](msg);
+      const { userId, invocationFn, msg } = this.#buildDispatchData(processContext, payload, { key, queueEntries });
+      await this.#setContextUser(processContext, userId);
+      const result = await this.__srvUnboxed.tx(processContext)[invocationFn](msg);
       return this.#determineResultStatus(result, queueEntries);
     } catch (err) {
       this.logger.error("error processing outboxed service call", err, {
