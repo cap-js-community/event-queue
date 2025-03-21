@@ -26,7 +26,7 @@ class OutboxCustomHooks extends cds.Service {
         data: req.data,
         user: req.user.id,
       });
-      return Object.entries(req.data.queueEntriesWithPayloadMap).reduce((result, [key, { queueEntry, payload }]) => {
+      return Object.entries(req.data.queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
         result[payload.event] ??= {
           queueEntries: [],
           payload,
