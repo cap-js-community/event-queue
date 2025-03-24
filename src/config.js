@@ -64,6 +64,7 @@ const ALLOWED_EVENT_OPTIONS_AD_HOC = [
   "retryFailedAfter",
   "multiInstanceProcessing",
   "kind",
+  "timeBucket",
 ];
 
 const ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT = [
@@ -629,6 +630,14 @@ class Config {
       throw EventQueueError.multiInstanceProcessingNotAllowed(event.type, event.subType);
     }
     event.inheritTraceContext = event.inheritTraceContext ?? DEFAULT_INHERIT_TRACE_CONTEXT;
+
+    if (event.timeBucket) {
+      try {
+        CronExpressionParser.parse(event.timeBucket);
+      } catch {
+        throw EventQueueError.cantParseCronExpression(event.type, event.subType, event.timeBucket);
+      }
+    }
 
     this.#basicEventValidation(event);
   }
