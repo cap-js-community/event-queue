@@ -18,6 +18,8 @@ const { getOpenQueueEntries } = require("../src/runner/openEvents");
 const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericOutboxHandler");
 const { promisify } = require("util");
 
+const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
+
 cds.env.requires.NotificationServicePeriodic = {
   impl: "./outboxProject/srv/service/servicePeriodic.js",
   outbox: {
@@ -865,11 +867,10 @@ describe("event-queue outbox", () => {
     describe("custom hooks", () => {
       describe("checkEventAndGeneratePayload", () => {
         it("specific action call", async () => {
-          const service = await cds.connect.to("OutboxCustomHooks");
-          const outboxedService = cds.outboxed(service).tx(context);
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
           const data = { to: "to", subject: "subject", body: "body" };
           const modifiedData = { ...data, to: "newValue" };
-          await outboxedService.send("action", data);
+          await service.send("action", data);
           await commitAndOpenNew();
           await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
@@ -881,10 +882,9 @@ describe("event-queue outbox", () => {
         });
 
         it("non specific action call", async () => {
-          const service = await cds.connect.to("OutboxCustomHooks");
-          const outboxedService = cds.outboxed(service).tx(context);
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
           const data = { to: "to", subject: "subject", body: "body" };
-          await outboxedService.send("main", data);
+          await service.send("main", data);
           await commitAndOpenNew();
           await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
@@ -896,13 +896,12 @@ describe("event-queue outbox", () => {
         });
 
         it("mixed both should be called", async () => {
-          const service = await cds.connect.to("OutboxCustomHooks");
-          const outboxedService = cds.outboxed(service).tx(context);
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
           const data = { to: "to", subject: "subject", body: "body" };
           const dataSpecific = { to: "toSpecific", subject: "subject", body: "body" };
           const modifiedData = { ...data, to: "newValue" };
-          await outboxedService.send("main", data);
-          await outboxedService.send("action", dataSpecific);
+          await service.send("main", data);
+          await service.send("action", dataSpecific);
           await commitAndOpenNew();
           await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 2 });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
@@ -917,19 +916,75 @@ describe("event-queue outbox", () => {
       });
 
       describe("clusterQueueEntries", () => {
-        it.skip("specific action call", async () => {
-          const service = await cds.connect.to("OutboxCustomHooks");
-          const outboxedService = cds.outboxed(service).tx(context);
+        it("non specific action call", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
           const data = { to: "to", subject: "subject", body: "body" };
-          await outboxedService.send("action", data);
+          await service.send("main", data);
           await commitAndOpenNew();
-          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          const [eventEntry] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+            additionalColumns: "*",
+            parseColumns: true,
+          });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalled("clusterQueueEntries", { data });
-          expect(loggerMock).actionCalled("action", { data });
+          eventEntry.lastAttemptTimestamp = expect.any(String);
+          expect(loggerMock).actionCalled("clusterQueueEntries", {
+            data: event2ClusterMap(eventEntry),
+          });
+          expect(loggerMock).actionCalled("main", { data: eventEntry.payload.data });
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
           expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("specific action call", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("action", data);
+          await commitAndOpenNew();
+          const [eventEntry] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+            additionalColumns: "*",
+            parseColumns: true,
+          });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          eventEntry.lastAttemptTimestamp = expect.any(String);
+          eventEntry.payload.data.to = "newValue";
+          expect(loggerMock).actionCalled("clusterQueueEntries.action", {
+            data: event2ClusterMap(eventEntry),
+          });
+          expect(loggerMock).actionCalled("action", { data: eventEntry.payload.data });
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("specific and generic but no generic handler registered", async () => {
+          const srv = await cds.connect.to(CUSTOM_HOOKS_SRV);
+          const unboxedService = cds.unboxed(srv);
+          const service = srv.tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+
+          let handlerRegistration = {};
+          for (const index in unboxedService.handlers.on) {
+            const handler = unboxedService.handlers.on[index];
+            if (handler.on === "clusterQueueEntries") {
+              handlerRegistration = { index, handler };
+              delete unboxedService.handlers.on[index];
+            }
+          }
+
+          await service.send("action", data);
+          await service.send("main", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, {
+            expectedLength: 2,
+          });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+          unboxedService.handlers.on[handlerRegistration.index] = handlerRegistration.handler;
         });
       });
     });
@@ -940,6 +995,15 @@ describe("event-queue outbox", () => {
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
   };
+});
+
+const event2ClusterMap = (eventEntry) => ({
+  queueEntriesWithPayloadMap: {
+    [eventEntry.ID]: {
+      queueEntry: eventEntry,
+      payload: eventEntry.payload,
+    },
+  },
 });
 
 expect.extend({

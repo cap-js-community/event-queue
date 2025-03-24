@@ -79,14 +79,24 @@ const selectEventQueueAndExpectError = async (tx, { expectedLength = 1, attempts
 const selectEventQueueAndExpectExceeded = async (tx, { expectedLength = 1, attempts, type, subType } = {}) =>
   _selectEventQueueAndExpect(tx, EventProcessingStatus.Exceeded, { expectedLength, attempts, type, subType });
 
-const selectEventQueueAndReturn = async (tx, { expectedLength = 1, type, subType, additionalColumns = [] } = {}) => {
-  const baseCqn = SELECT.from("sap.eventqueue.Event")
-    .columns("status", "attempts", "startAfter", ...additionalColumns)
-    .orderBy("lastAttemptTimestamp");
+const selectEventQueueAndReturn = async (
+  tx,
+  { expectedLength = 1, type, subType, additionalColumns = [], parseColumns = false } = {}
+) => {
+  const baseCqn = SELECT.from("sap.eventqueue.Event").orderBy("lastAttemptTimestamp");
+  if (additionalColumns !== "*") {
+    baseCqn.columns("status", "attempts", "startAfter", ...additionalColumns);
+  }
   type && baseCqn.where({ type });
   subType && baseCqn.where({ subType });
   const events = await tx.run(baseCqn);
   expect(events).toHaveLength(expectedLength);
+  if (parseColumns) {
+    for (const event of events) {
+      event.payload = JSON.parse(event.payload);
+      event.context = JSON.parse(event.context);
+    }
+  }
   return events;
 };
 

@@ -22,9 +22,10 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     const { handlers, clusterRelevant, specificClusterRelevant } = this.__srvUnboxed.handlers.on.reduce(
       (result, handler) => {
         if (handler.on.startsWith("clusterQueueEntries")) {
-          result.clusterRelevant = true;
           if (handler.on.split(".").length === 2) {
             result.specificClusterRelevant = true;
+          } else {
+            result.clusterRelevant = true;
           }
         }
 
@@ -34,8 +35,8 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       { handlers: {}, clusterRelevant: false, specificClusterRelevant: false }
     );
     this.__onHandlers = handlers;
-    this.__clusterRelevant = clusterRelevant;
-    this.__specificClusterRelevant = specificClusterRelevant;
+    this.__genericClusterHandler = clusterRelevant;
+    this.__specificClusterHandler = specificClusterRelevant;
     await this.#setContextUser(this.context, config.userId);
     return super.getQueueEntriesAndSetToInProgress();
   }
@@ -51,21 +52,47 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   //      --> structure is a map of { key: { queueEntries: [], payload: {} }
   // TODO: document that clusterQueueEntries is now async!!!
   async clusterQueueEntries(queueEntriesWithPayloadMap) {
-    if (!this.__clusterRelevant && !this.__specificClusterRelevant) {
+    if (!this.__genericClusterRelevantAndAvailable && !this.__specificClusterRelevantAndAvailable) {
       return super.clusterQueueEntries(queueEntriesWithPayloadMap);
     }
+    const { genericClusterEvents, specificClusterEvents } = this.#clusterByAction(queueEntriesWithPayloadMap);
+    if (Object.keys(genericClusterEvents).length) {
+      if (!this.__genericClusterRelevantAndAvailable) {
+        await super.clusterQueueEntries(genericClusterEvents);
+      } else {
+        const msg = new cds.Request({
+          event: "clusterQueueEntries",
+          data: { queueEntriesWithPayloadMap: genericClusterEvents },
+        });
+        const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
+        this.#addToProcessingMap(handlerCluster);
+      }
+    }
 
-    if (!this.__specificClusterRelevant) {
-      const msg = new cds.Request({ event: "clusterQueueEntries", data: { queueEntriesWithPayloadMap } });
+    for (const actionName in specificClusterEvents) {
+      const msg = new cds.Request({
+        event: `clusterQueueEntries.${actionName}`,
+        data: { queueEntriesWithPayloadMap: specificClusterEvents[actionName] },
+      });
       const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
       this.#addToProcessingMap(handlerCluster);
     }
+  }
 
-    // const {} = Object.entries(queueEntriesWithPayloadMap).reduce((result, [queueEntryId, { queueEntry, payload }]) => {
-    //   const { event } = payload;
-    //
-    //   return result;
-    // }, {});
+  #clusterByAction(queueEntriesWithPayloadMap) {
+    return Object.entries(queueEntriesWithPayloadMap).reduce(
+      (result, [eventId, clusterData]) => {
+        const hasSpecificClusterHandler = this.#hasEventSpecificClusterHandler(clusterData.queueEntry);
+        if (hasSpecificClusterHandler && this.__specificClusterRelevantAndAvailable) {
+          result.specificClusterEvents[clusterData.payload.event] ??= {};
+          result.specificClusterEvents[clusterData.payload.event][eventId] = clusterData;
+        } else {
+          result.genericClusterEvents[eventId] = clusterData;
+        }
+        return result;
+      },
+      { genericClusterEvents: {}, specificClusterEvents: {} }
+    );
   }
 
   #addToProcessingMap(handlerCluster) {
@@ -80,6 +107,17 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   // NOTE: Currently not exposed to CAP service; I don't see any valid use case at this time
   modifyQueueEntry(queueEntry) {
     super.modifyQueueEntry(queueEntry);
+    const hasSpecificClusterHandler = this.#hasEventSpecificClusterHandler(queueEntry);
+    if (this.__specificClusterHandler && hasSpecificClusterHandler) {
+      this.__specificClusterRelevantAndAvailable = true;
+    }
+    if (this.__genericClusterHandler && !hasSpecificClusterHandler) {
+      this.__genericClusterRelevantAndAvailable = true;
+    }
+  }
+
+  #hasEventSpecificClusterHandler(queueEntry) {
+    return !!this.__onHandlers[["clusterQueueEntries", queueEntry.payload.event].join(".")];
   }
 
   // TODO: invocationFn --> always emit/send? any benefits?

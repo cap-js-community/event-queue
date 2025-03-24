@@ -36,12 +36,20 @@ class OutboxCustomHooks extends cds.Service {
       }, {});
     });
 
-    // this.on("clusterQueueEntries.action", (req) => {
-    //   cds.log(this.name).info(req.event, {
-    //     data: req.data,
-    //     user: req.user.id,
-    //   });
-    // });
+    this.on("clusterQueueEntries.action", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+      });
+      return Object.entries(req.data.queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
+        result[payload.event] ??= {
+          queueEntries: [],
+          payload,
+        };
+        result[payload.event].queueEntries.push(queueEntry);
+        return result;
+      }, {});
+    });
 
     this.on("checkEventAndGeneratePayload", (req) => {
       cds.log(this.name).info(req.event, {
