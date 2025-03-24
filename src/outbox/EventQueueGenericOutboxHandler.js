@@ -51,6 +51,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   // NOTE: OVERALL idea is that the handler returns the cluster map and MUST not call any baseImpl functions!
   //      --> structure is a map of { key: { queueEntries: [], payload: {} }
   // TODO: document that clusterQueueEntries is now async!!!
+  // TODO: validate that return structure is as expected
   async clusterQueueEntries(queueEntriesWithPayloadMap) {
     if (!this.__genericClusterRelevantAndAvailable && !this.__specificClusterRelevantAndAvailable) {
       return super.clusterQueueEntries(queueEntriesWithPayloadMap);
@@ -63,6 +64,13 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
         const msg = new cds.Request({
           event: "clusterQueueEntries",
           data: { queueEntriesWithPayloadMap: genericClusterEvents },
+          eventQueue: {
+            processor: this,
+            clusterByPayloadProperty: (propertyName) =>
+              EventQueueGenericOutboxHandler.clusterByPayloadProperty(genericClusterEvents, propertyName),
+            clusterByEventProperty: (propertyName) =>
+              EventQueueGenericOutboxHandler.clusterByEventProperty(genericClusterEvents, propertyName),
+          },
         });
         const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
         this.#addToProcessingMap(handlerCluster);
@@ -73,10 +81,39 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       const msg = new cds.Request({
         event: `clusterQueueEntries.${actionName}`,
         data: { queueEntriesWithPayloadMap: specificClusterEvents[actionName] },
+        eventQueue: {
+          processor: this,
+          clusterByPayloadProperty: (propertyName) =>
+            EventQueueGenericOutboxHandler.clusterByPayloadProperty(specificClusterEvents[actionName], propertyName),
+          clusterByEventProperty: (propertyName) =>
+            EventQueueGenericOutboxHandler.clusterByEventProperty(specificClusterEvents[actionName], propertyName),
+        },
       });
       const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
       this.#addToProcessingMap(handlerCluster);
     }
+  }
+
+  static clusterByPayloadProperty(queueEntriesWithPayloadMap, propertyName) {
+    return Object.entries(queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
+      result[payload[propertyName]] ??= {
+        queueEntries: [],
+        payload,
+      };
+      result[payload[propertyName]].queueEntries.push(queueEntry);
+      return result;
+    }, {});
+  }
+
+  static clusterByEventProperty(queueEntriesWithPayloadMap, propertyName) {
+    return Object.entries(queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
+      result[queueEntry[propertyName]] ??= {
+        queueEntries: [],
+        payload,
+      };
+      result[queueEntry[propertyName]].queueEntries.push(queueEntry);
+      return result;
+    }, {});
   }
 
   #clusterByAction(queueEntriesWithPayloadMap) {
@@ -120,7 +157,6 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     return !!this.__onHandlers[["clusterQueueEntries", queueEntry.payload.event].join(".")];
   }
 
-  // TODO: invocationFn --> always emit/send? any benefits?
   async checkEventAndGeneratePayload(queueEntry) {
     const payload = await super.checkEventAndGeneratePayload(queueEntry);
     const { event } = payload;
@@ -129,12 +165,12 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       return payload;
     }
 
-    const { msg, userId, invocationFn } = this.#buildDispatchData(this.context, payload, {
+    const { msg, userId } = this.#buildDispatchData(this.context, payload, {
       queueEntries: [queueEntry],
     });
     msg.event = handlerName;
     await this.#setContextUser(this.context, userId);
-    const data = await this.__srvUnboxed.tx(this.context)[invocationFn](msg);
+    const data = await this.__srvUnboxed.tx(this.context).send(msg);
     if (data) {
       payload.data = data;
       return payload;
@@ -165,12 +201,10 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     return genericHandler ?? null;
   }
 
-  // TODO: validate if send/emit is better
   async processPeriodicEvent(processContext, key, queueEntry) {
     const [, action] = this.eventSubType.split(".");
-    const msg = new cds.Event({ event: action });
+    const msg = new cds.Event({ event: action, eventQueue: { processor: this, key, queueEntries: [queueEntry] } });
     await this.#setContextUser(processContext, config.userId);
-    processContext._eventQueue = { processor: this, key, queueEntries: [queueEntry] };
     await this.__srvUnboxed.tx(processContext).emit(msg);
   }
 
@@ -182,7 +216,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     const invocationFn = payload._fromSend ? "send" : "emit";
     delete msg._fromSend; // TODO: this changes the source object --> check after multiple invocations
     delete msg.contextUser;
-    context._eventQueue = { processor: this, key, queueEntries, payload };
+    msg.eventQueue = { processor: this, key, queueEntries, payload };
     return { msg, userId, invocationFn };
   }
 

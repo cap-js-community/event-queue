@@ -986,6 +986,45 @@ describe("event-queue outbox", () => {
           expect(loggerMock.callsLengths().error).toEqual(0);
           unboxedService.handlers.on[handlerRegistration.index] = handlerRegistration.handler;
         });
+
+        it("should cluster two events of the same action", async () => {
+          const srv = await cds.connect.to(CUSTOM_HOOKS_SRV);
+          const service = srv.tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+
+          await service.send("action", data);
+          await service.send("action", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, {
+            expectedLength: 2,
+          });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("action", 1);
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("mixed generic and specific", async () => {
+          const srv = await cds.connect.to(CUSTOM_HOOKS_SRV);
+          const service = srv.tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+
+          await service.send("action", data);
+          await service.send("main", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, {
+            expectedLength: 2,
+          });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("clusterQueueEntries", 1);
+          expect(loggerMock).actionCalledTimes("clusterQueueEntries.action", 1);
+          expect(loggerMock).actionCalledTimes("action", 1);
+          expect(loggerMock).actionCalledTimes("main", 1);
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
       });
     });
   });
@@ -1014,6 +1053,15 @@ expect.extend({
         .calls()
         .info.map((call) => call[0])
         .includes("sendFiori action triggered"),
+    };
+  },
+  actionCalledTimes: (loggerMock, actionName, count) => {
+    const calls = loggerMock.calls().info.filter((c) => c[0] === actionName);
+    return {
+      message: () =>
+        `expected number action of calls does not match! name: ${actionName}, expected: ${count}, actual: ${calls.length}`,
+      // eslint-disable-next-line jest/no-standalone-expect
+      pass: !expect(calls).toHaveLength(count),
     };
   },
   actionCalled: (loggerMock, actionName, properties) => {

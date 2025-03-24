@@ -9,7 +9,7 @@ class OutboxCustomHooks extends cds.Service {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
-        subType: req.context._eventQueue?.queueEntries[0].subType,
+        subType: req.eventQueue.processor.eventSubType,
       });
     });
 
@@ -17,7 +17,7 @@ class OutboxCustomHooks extends cds.Service {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
-        subType: req.context._eventQueue?.queueEntries[0].subType,
+        subType: req.eventQueue.processor.eventSubType,
       });
     });
 
@@ -26,14 +26,7 @@ class OutboxCustomHooks extends cds.Service {
         data: req.data,
         user: req.user.id,
       });
-      return Object.entries(req.data.queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
-        result[payload.event] ??= {
-          queueEntries: [],
-          payload,
-        };
-        result[payload.event].queueEntries.push(queueEntry);
-        return result;
-      }, {});
+      return req.eventQueue.clusterByEventProperty("ID");
     });
 
     this.on("clusterQueueEntries.action", (req) => {
@@ -41,21 +34,14 @@ class OutboxCustomHooks extends cds.Service {
         data: req.data,
         user: req.user.id,
       });
-      return Object.entries(req.data.queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
-        result[payload.event] ??= {
-          queueEntries: [],
-          payload,
-        };
-        result[payload.event].queueEntries.push(queueEntry);
-        return result;
-      }, {});
+      return req.eventQueue.clusterByPayloadProperty("event");
     });
 
     this.on("checkEventAndGeneratePayload", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
-        subType: req.context._eventQueue?.queueEntries[0].subType,
+        subType: req.eventQueue.processor.eventSubType,
       });
       return req.data;
     });
@@ -64,7 +50,7 @@ class OutboxCustomHooks extends cds.Service {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
-        subType: req.context._eventQueue?.queueEntries[0].subType,
+        subType: req.eventQueue.processor.eventSubType,
       });
       req.data.to = "newValue";
       return req.data;

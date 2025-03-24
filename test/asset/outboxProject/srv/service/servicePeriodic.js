@@ -9,7 +9,7 @@ class NotificationServicePeriodic extends cds.Service {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
-        eventQueueId: req.context._eventQueue?.queueEntries[0].subType,
+        eventQueueId: req.eventQueue.processor.eventSubType,
       });
     });
 
@@ -17,7 +17,7 @@ class NotificationServicePeriodic extends cds.Service {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
-        eventQueueId: req.context._eventQueue?.queueEntries[0].subType,
+        eventQueueId: req.eventQueue.processor.eventSubType,
       });
     });
   }

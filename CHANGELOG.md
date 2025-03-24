@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [CAP outbox] allow to define periodic events for CAP outbox services [Documentation](TBD)
 - [CAP outbox] allow to specify specific event settings of every action in the CAP service [Documentation](TBD)
 
+### Changed
+
+- [CAP outbox] `req.context._eventQueue` has moved to `req.eventQueue`
+
 ## v1.9.3 - 2025-03-18
 
 ### Fixed
