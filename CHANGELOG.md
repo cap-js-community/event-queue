@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [CAP outbox] allow to define periodic events for CAP outbox services [Documentation](TBD)
 - [CAP outbox] allow to specify specific event settings of every action in the CAP service [Documentation](TBD)
+- [Event Property] timeBucket: This property allows events of the same type to be grouped and processed in batches. The value of this property is a cron pattern.
+  Example: `*/30 * * * * *` — This means all events published within 30 seconds are processed together.
 
 ### Changed
 

@@ -42,9 +42,18 @@ cds.env.requires.OutboxCustomHooks = {
   impl: "./outboxProject/srv/service/serviceCustomHooks.js",
   outbox: {
     kind: "persistent-outbox",
-    load: 60,
-    checkForNextChunk: true,
-    transactionMode: "isolated",
+  },
+};
+
+cds.env.requires.StandardService = {
+  impl: "./outboxProject/srv/service/standard-service.js",
+  outbox: {
+    kind: "persistent-outbox",
+    events: {
+      timeBucketAction: {
+        timeBucket: "*/60 * * * * *",
+      },
+    },
   },
 };
 
@@ -545,6 +554,25 @@ describe("event-queue outbox", () => {
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationServiceOutboxedByConfig");
       delete config.startTime;
       expect(config).toMatchSnapshot();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("should use timeBucket config", async () => {
+      const service = (await cds.connect.to("StandardService")).tx(context);
+      await service.send("timeBucketAction", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      await commitAndOpenNew();
+      const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 1,
+        additionalColumns: ["subType"],
+      });
+      const date = new Date(event.startAfter);
+      expect(date.getSeconds()).toEqual(0);
+      expect(date.getMilliseconds()).toEqual(0);
+      expect(event.subType).toEqual("StandardService.timeBucketAction");
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
