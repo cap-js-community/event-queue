@@ -51,7 +51,7 @@ cds.env.requires.StandardService = {
     kind: "persistent-outbox",
     events: {
       timeBucketAction: {
-        timeBucket: "*/30 * * * * *",
+        timeBucket: "*/60 * * * * *",
       },
     },
   },
@@ -557,20 +557,22 @@ describe("event-queue outbox", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
-    it("process outboxed event", async () => {
-      const service = await cds.connect.to("StandardService");
-      await outboxedService.send("sendFiori", {
+    it("should use timeBucket config", async () => {
+      const service = (await cds.connect.to("StandardService")).tx(context);
+      await service.send("timeBucketAction", {
         to: "to",
         subject: "subject",
         body: "body",
       });
       await commitAndOpenNew();
-      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
-      expect(loggerMock).not.sendFioriActionCalled();
-      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-      await commitAndOpenNew();
-      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
-      expect(loggerMock).sendFioriActionCalled();
+      const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 1,
+        additionalColumns: ["subType"],
+      });
+      const date = new Date(event.startAfter);
+      expect(date.getSeconds()).toEqual(0);
+      expect(date.getMilliseconds()).toEqual(0);
+      expect(event.subType).toEqual("StandardService.timeBucketAction");
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
