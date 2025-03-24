@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   Example: "*/30 * * * * *" — This means all events published within 30 seconds are processed together.
  
 
+### Changed
+
+- [CAP outbox] `req.context._eventQueue` has moved to `req.eventQueue`
+
 ## v1.9.3 - 2025-03-18
 
 ### Fixed
