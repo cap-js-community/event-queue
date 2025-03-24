@@ -42,9 +42,18 @@ cds.env.requires.OutboxCustomHooks = {
   impl: "./outboxProject/srv/service/serviceCustomHooks.js",
   outbox: {
     kind: "persistent-outbox",
-    load: 60,
-    checkForNextChunk: true,
-    transactionMode: "isolated",
+  },
+};
+
+cds.env.requires.StandardService = {
+  impl: "./outboxProject/srv/service/standard-service.js",
+  outbox: {
+    kind: "persistent-outbox",
+    events: {
+      timeBucketAction: {
+        timeBucket: "*/30 * * * * *",
+      },
+    },
   },
 };
 
@@ -545,6 +554,23 @@ describe("event-queue outbox", () => {
       const config = eventQueue.config.events.find((event) => event.subType === "NotificationServiceOutboxedByConfig");
       delete config.startTime;
       expect(config).toMatchSnapshot();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("process outboxed event", async () => {
+      const service = await cds.connect.to("StandardService");
+      await outboxedService.send("sendFiori", {
+        to: "to",
+        subject: "subject",
+        body: "body",
+      });
+      await commitAndOpenNew();
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+      expect(loggerMock).sendFioriActionCalled();
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
