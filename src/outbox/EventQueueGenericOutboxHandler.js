@@ -63,11 +63,10 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       } else {
         const msg = new cds.Request({
           event: "clusterQueueEntries",
-          data: { queueEntriesWithPayloadMap: genericClusterEvents },
           eventQueue: {
             processor: this,
-            clusterByPayloadProperty: (propertyName) =>
-              EventQueueGenericOutboxHandler.clusterByPayloadProperty(genericClusterEvents, propertyName),
+            clusterByPayloadProperty: (propertyName, cb) =>
+              EventQueueGenericOutboxHandler.clusterByPayloadProperty(genericClusterEvents, propertyName, cb),
             clusterByEventProperty: (propertyName) =>
               EventQueueGenericOutboxHandler.clusterByEventProperty(genericClusterEvents, propertyName),
           },
@@ -80,13 +79,16 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     for (const actionName in specificClusterEvents) {
       const msg = new cds.Request({
         event: `clusterQueueEntries.${actionName}`,
-        data: { queueEntriesWithPayloadMap: specificClusterEvents[actionName] },
         eventQueue: {
           processor: this,
-          clusterByPayloadProperty: (propertyName) =>
-            EventQueueGenericOutboxHandler.clusterByPayloadProperty(specificClusterEvents[actionName], propertyName),
-          clusterByEventProperty: (propertyName) =>
-            EventQueueGenericOutboxHandler.clusterByEventProperty(specificClusterEvents[actionName], propertyName),
+          clusterByPayloadProperty: (propertyName, cb) =>
+            EventQueueGenericOutboxHandler.clusterByPayloadProperty(
+              specificClusterEvents[actionName],
+              propertyName,
+              cb
+            ),
+          clusterByEventProperty: (propertyName, cb) =>
+            EventQueueGenericOutboxHandler.clusterByEventProperty(specificClusterEvents[actionName], propertyName, cb),
         },
       });
       const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
@@ -94,24 +96,33 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     }
   }
 
-  static clusterByPayloadProperty(queueEntriesWithPayloadMap, propertyName) {
+  static clusterByPayloadProperty(queueEntriesWithPayloadMap, propertyName, cb) {
     return Object.entries(queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
-      result[payload[propertyName]] ??= {
+      result[payload.data[propertyName]] ??= {
         queueEntries: [],
         payload,
       };
-      result[payload[propertyName]].queueEntries.push(queueEntry);
+      const ref = result[payload.data[propertyName]];
+      ref.queueEntries.push(queueEntry);
+      if (cb) {
+        const clusterResult = cb(ref.payload.data, queueEntry.payload.data);
+        ref.payload.data ??= clusterResult;
+      }
       return result;
     }, {});
   }
 
-  static clusterByEventProperty(queueEntriesWithPayloadMap, propertyName) {
+  static clusterByEventProperty(queueEntriesWithPayloadMap, propertyName, cb) {
     return Object.entries(queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
       result[queueEntry[propertyName]] ??= {
         queueEntries: [],
         payload,
       };
       result[queueEntry[propertyName]].queueEntries.push(queueEntry);
+      if (cb) {
+        const clusterResult = cb(payload.data, queueEntry.payload.data);
+        result[payload[propertyName]].payload.data ??= clusterResult;
+      }
       return result;
     }, {});
   }

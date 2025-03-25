@@ -34,7 +34,9 @@ class OutboxCustomHooks extends cds.Service {
         data: req.data,
         user: req.user.id,
       });
-      return req.eventQueue.clusterByPayloadProperty("event");
+      return req.eventQueue.clusterByPayloadProperty("to", (accumulatorPayload, data) => {
+        accumulatorPayload.to += data.to;
+      });
     });
 
     this.on("checkEventAndGeneratePayload", (req) => {
