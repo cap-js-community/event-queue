@@ -57,21 +57,29 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       return super.clusterQueueEntries(queueEntriesWithPayloadMap);
     }
     const { genericClusterEvents, specificClusterEvents } = this.#clusterByAction(queueEntriesWithPayloadMap);
+
     if (Object.keys(genericClusterEvents).length) {
       if (!this.__genericClusterRelevantAndAvailable) {
-        await super.clusterQueueEntries(genericClusterEvents);
+        for (const actionName in genericClusterEvents) {
+          await super.clusterQueueEntries(genericClusterEvents[actionName]);
+        }
       } else {
-        const msg = new cds.Request({
-          event: "clusterQueueEntries",
-          eventQueue: {
-            processor: this,
-            clusterByPayloadProperty: (propertyName, cb) =>
-              this.clusterByPayloadProperty(genericClusterEvents, propertyName, cb),
-            clusterByEventProperty: (propertyName) => this.clusterByEventProperty(genericClusterEvents, propertyName),
-          },
-        });
-        const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
-        this.#addToProcessingMap(handlerCluster);
+        for (const actionName in genericClusterEvents) {
+          const msg = new cds.Request({
+            event: `clusterQueueEntries`,
+            eventQueue: {
+              processor: this,
+              clusterByPayloadProperty: (propertyName, cb) =>
+                this.clusterByPayloadProperty(actionName, genericClusterEvents[actionName], propertyName, cb),
+              clusterByEventProperty: (propertyName, cb) =>
+                this.clusterByEventProperty(actionName, genericClusterEvents[actionName], propertyName, cb),
+              clusterByDataProperty: (propertyName, cb) =>
+                this.clusterByDataProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
+            },
+          });
+          const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
+          this.#addToProcessingMap(handlerCluster);
+        }
       }
     }
 
@@ -81,9 +89,11 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
         eventQueue: {
           processor: this,
           clusterByPayloadProperty: (propertyName, cb) =>
-            this.clusterByPayloadProperty(specificClusterEvents[actionName], propertyName, cb),
+            this.clusterByPayloadProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
           clusterByEventProperty: (propertyName, cb) =>
-            this.clusterByEventProperty(specificClusterEvents[actionName], propertyName, cb),
+            this.clusterByEventProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
+          clusterByDataProperty: (propertyName, cb) =>
+            this.clusterByDataProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
         },
       });
       const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
@@ -92,55 +102,66 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   }
 
   clusterBase(queueEntriesWithPayloadMap, propertyName, refCb, cb) {
-    return Object.entries(queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }], index) => {
+    const clusters = Object.entries(queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
       const ref = refCb(result, payload, queueEntry);
       ref.queueEntries.push(queueEntry);
-      if (cb) {
-        const clusterResult = cb(ref.payload.data, queueEntry.payload.data, index);
-        ref.payload.data ??= clusterResult;
-      }
       return result;
     }, {});
+
+    if (cb) {
+      for (const clustersKey in clusters) {
+        const clusterData = clusters[clustersKey];
+        const clusterResult = cb(
+          clustersKey.split("##").shift(),
+          clusterData.queueEntries.map((entry) => entry.payload.data)
+        );
+        if (!clusterResult) {
+          throw new Error("hmm??");
+        }
+        clusterData.payload.data = clusterResult;
+      }
+    }
+    return clusters;
   }
 
-  clusterByPayloadProperty(queueEntriesWithPayloadMap, propertyName, cb) {
+  #resolveRefBase(result, propertyName, actionName, payload, startRef) {
+    const parts = propertyName.split(".");
+    const data = JSON.parse(JSON.stringify(payload.data));
+    let ref = startRef;
+    for (const part of parts) {
+      ref = ref[part];
+    }
+    const key = [actionName, ref].join("##");
+    result[key] ??= {
+      queueEntries: [],
+      payload: { ...payload, data },
+    };
+    return result[key];
+  }
+
+  clusterByPayloadProperty(actionName, queueEntriesWithPayloadMap, propertyName, cb) {
     return this.clusterBase(
       queueEntriesWithPayloadMap,
       propertyName,
-      (result, payload) => {
-        const parts = propertyName.split(".");
-        const data = JSON.parse(JSON.stringify(payload.data));
-        let ref = payload;
-        for (const part of parts) {
-          ref = ref[part];
-        }
-        result[ref[propertyName]] ??= {
-          queueEntries: [],
-          payload: { ...payload, data },
-        };
-        return result[ref[propertyName]];
-      },
+      (result, payload) => this.#resolveRefBase(result, propertyName, actionName, payload, payload),
       cb
     );
   }
 
-  clusterByEventProperty(queueEntriesWithPayloadMap, propertyName, cb) {
+  clusterByEventProperty(actionName, queueEntriesWithPayloadMap, propertyName, cb) {
     return this.clusterBase(
       queueEntriesWithPayloadMap,
       propertyName,
-      (result, payload, queueEntry) => {
-        const parts = propertyName.split(".");
-        const payloadCopy = JSON.parse(JSON.stringify(payload));
-        let ref = queueEntry;
-        for (const part of parts) {
-          ref = ref[part];
-        }
-        result[queueEntry[propertyName]] ??= {
-          queueEntries: [],
-          payload: payloadCopy,
-        };
-        return result[queueEntry[propertyName]];
-      },
+      (result, payload, queueEntry) => this.#resolveRefBase(result, propertyName, actionName, payload, queueEntry),
+      cb
+    );
+  }
+
+  clusterByDataProperty(actionName, queueEntriesWithPayloadMap, propertyName, cb) {
+    return this.clusterBase(
+      queueEntriesWithPayloadMap,
+      propertyName,
+      (result, payload) => this.#resolveRefBase(result, propertyName, actionName, payload, payload.data),
       cb
     );
   }
@@ -153,7 +174,8 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
           result.specificClusterEvents[clusterData.payload.event] ??= {};
           result.specificClusterEvents[clusterData.payload.event][eventId] = clusterData;
         } else {
-          result.genericClusterEvents[eventId] = clusterData;
+          result.genericClusterEvents[clusterData.payload.event] ??= {};
+          result.genericClusterEvents[clusterData.payload.event][eventId] = clusterData;
         }
         return result;
       },
@@ -198,7 +220,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       queueEntries: [queueEntry],
     });
     msg.event = handlerName;
-    await this.#setContextUser(this.context, userId);
+    await this.#setContextUser(this.context, userId, msg);
     const data = await this.__srvUnboxed.tx(this.context).send(msg);
     if (data) {
       payload.data = data;
@@ -233,7 +255,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   async processPeriodicEvent(processContext, key, queueEntry) {
     const [, action] = this.eventSubType.split(".");
     const msg = new cds.Event({ event: action, eventQueue: { processor: this, key, queueEntries: [queueEntry] } });
-    await this.#setContextUser(processContext, config.userId);
+    await this.#setContextUser(processContext, config.userId, msg);
     await this.__srvUnboxed.tx(processContext).emit(msg);
   }
 
@@ -248,17 +270,20 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     return { msg, userId, invocationFn };
   }
 
-  async #setContextUser(context, userId) {
+  async #setContextUser(context, userId, data) {
     context.user = new cds.User.Privileged({
       id: userId,
       authInfo: await common.getTokenInfo(this.baseContext.tenant),
     });
+    if (data) {
+      data.user = context.user;
+    }
   }
 
   async processEvent(processContext, key, queueEntries, payload) {
     try {
       const { userId, invocationFn, msg } = this.#buildDispatchData(processContext, payload, { key, queueEntries });
-      await this.#setContextUser(processContext, userId);
+      await this.#setContextUser(processContext, userId, msg);
       const result = await this.__srvUnboxed.tx(processContext)[invocationFn](msg);
       return this.#determineResultStatus(result, queueEntries);
     } catch (err) {
