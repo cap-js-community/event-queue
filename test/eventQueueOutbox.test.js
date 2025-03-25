@@ -18,6 +18,9 @@ const { getOpenQueueEntries } = require("../src/runner/openEvents");
 const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericOutboxHandler");
 const { promisify } = require("util");
 
+// TODO: test for cluster key that does not match --> error!
+// TODO: test that cluster keys are correct
+
 const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
 
 cds.env.requires.NotificationServicePeriodic = {

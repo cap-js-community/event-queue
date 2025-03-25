@@ -112,7 +112,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       for (const clustersKey in clusters) {
         const clusterData = clusters[clustersKey];
         const clusterResult = cb(
-          clustersKey.split("##").shift(),
+          clustersKey.split("##").pop(),
           clusterData.queueEntries.map((entry) => entry.payload.data)
         );
         if (!clusterResult) {
