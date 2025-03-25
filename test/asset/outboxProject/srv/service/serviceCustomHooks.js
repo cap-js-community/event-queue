@@ -2,11 +2,14 @@
 
 const cds = require("@sap/cds");
 
-const CLUSTER_ACTIONS = [
+const ACTION = [
   "action",
+  "main",
+  "anotherAction",
   "actionClusterByPayloadWithCb",
   "actionClusterByPayloadWithoutCb",
   "actionClusterByEventWithCb",
+  "actionClusterByDataWithCb",
   "actionClusterByEventWithoutCb",
   "actionClusterByData",
 ];
@@ -14,15 +17,8 @@ const CLUSTER_ACTIONS = [
 class OutboxCustomHooks extends cds.Service {
   async init() {
     await super.init();
-    this.on("main", (req) => {
-      cds.log(this.name).info(req.event, {
-        data: req.data,
-        user: req.user.id,
-        subType: req.eventQueue.processor.eventSubType,
-      });
-    });
 
-    for (const actionName of CLUSTER_ACTIONS) {
+    for (const actionName of ACTION) {
       this.on(actionName, (req) => {
         cds.log(this.name).info(req.event, {
           data: req.data,
@@ -48,12 +44,22 @@ class OutboxCustomHooks extends cds.Service {
       return req.eventQueue.clusterByPayloadProperty("data.to");
     });
 
+    this.on("clusterQueueEntries.actionClusterByDataWithCb", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+      });
+      return req.eventQueue.clusterByDataProperty("to", (clusterKey, entries) => {
+        return { ...entries[0], guids: entries.map((a) => a.guids).flat() };
+      });
+    });
+
     this.on("clusterQueueEntries", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
       });
-      return req.eventQueue.clusterByEventProperty("ID");
+      return req.eventQueue.clusterByPayloadProperty("data.to");
     });
 
     this.on("clusterQueueEntries.actionClusterByPayloadWithCb", (req) => {
@@ -61,11 +67,8 @@ class OutboxCustomHooks extends cds.Service {
         data: req.data,
         user: req.user.id,
       });
-      return req.eventQueue.clusterByPayloadProperty("data.to", (accumulatorPayload, data, index) => {
-        if (!index) {
-          accumulatorPayload.guids = [];
-        }
-        accumulatorPayload.guids = accumulatorPayload.guids.concat(data.guids);
+      return req.eventQueue.clusterByPayloadProperty("data.to", (clusterKey, entries) => {
+        return { ...entries[0], guids: entries.map((a) => a.guids).flat() };
       });
     });
 
@@ -82,11 +85,8 @@ class OutboxCustomHooks extends cds.Service {
         data: req.data,
         user: req.user.id,
       });
-      return req.eventQueue.clusterByEventProperty("referenceEntityKey", (accumulatorPayload, data, index) => {
-        if (!index) {
-          accumulatorPayload.guids = [];
-        }
-        accumulatorPayload.guids = accumulatorPayload.guids.concat(data.guids);
+      return req.eventQueue.clusterByEventProperty("referenceEntityKey", (clusterKey, entries) => {
+        return { ...entries[0], guids: entries.map((a) => a.guids).flat() };
       });
     });
 

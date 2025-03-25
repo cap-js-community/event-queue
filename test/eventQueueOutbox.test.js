@@ -1056,6 +1056,24 @@ describe("event-queue outbox", () => {
             expect(loggerMock.callsLengths().error).toEqual(0);
           });
 
+          it("actionClusterByDataWithCb", async () => {
+            const srv = await cds.connect.to(CUSTOM_HOOKS_SRV);
+            const service = srv.tx(context);
+            const data = { to: "me", subject: "subject", body: "body" };
+
+            await service.send("actionClusterByDataWithCb", data);
+            await service.send("actionClusterByDataWithCb", data);
+            await commitAndOpenNew();
+            await testHelper.selectEventQueueAndExpectOpen(tx, {
+              expectedLength: 2,
+            });
+            await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+            await commitAndOpenNew();
+            expect(loggerMock).actionCalledTimes("actionClusterByDataWithCb", 1);
+            await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+            expect(loggerMock.callsLengths().error).toEqual(0);
+          });
+
           it("should cluster two based on a data property", async () => {
             const srv = await cds.connect.to(CUSTOM_HOOKS_SRV);
             const service = srv.tx(context);
@@ -1138,6 +1156,26 @@ describe("event-queue outbox", () => {
           expect(loggerMock).actionCalledTimes("clusterQueueEntries.action", 1);
           expect(loggerMock).actionCalledTimes("action", 1);
           expect(loggerMock).actionCalledTimes("main", 1);
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("mixed both generic - should not be possible to cluster across action", async () => {
+          const srv = await cds.connect.to(CUSTOM_HOOKS_SRV);
+          const service = srv.tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+
+          await service.send("main", data);
+          await service.send("anotherAction", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, {
+            expectedLength: 2,
+          });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("clusterQueueEntries", 2);
+          expect(loggerMock).actionCalledTimes("main", 1);
+          expect(loggerMock).actionCalledTimes("anotherAction", 1);
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
