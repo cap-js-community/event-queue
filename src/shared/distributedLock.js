@@ -4,7 +4,6 @@ const redis = require("./redis");
 const config = require("../config");
 const cdsHelper = require("./cdsHelper");
 
-const KEY_PREFIX = "EVENT_QUEUE";
 const existingLocks = {};
 const REDIS_COMMAND_OK = "OK";
 const COMPONENT_NAME = "/eventQueue/distributedLock";
@@ -176,10 +175,10 @@ const _acquireLockDB = async (context, fullKey, expiryTime, { value = "true", ov
 };
 
 const _generateKey = (context, tenantScoped, key) => {
-  const keyParts = [];
+  const keyParts = [config.redisOptions.redisNamespace];
   tenantScoped && keyParts.push(context.tenant);
   keyParts.push(key);
-  return `${KEY_PREFIX}_${keyParts.join("##")}`;
+  return `${keyParts.join("##")}`;
 };
 
 const shutdownHandler = async () => {

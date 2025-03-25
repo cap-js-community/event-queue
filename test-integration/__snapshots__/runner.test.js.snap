@@ -3,19 +3,19 @@
 exports[`runner multi tenant db no open events 1`] = `
 [
   [
-    "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
+    "UPDATE_PERIODIC_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
+    "UPDATE_PERIODIC_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
+    "UPDATE_PERIODIC_EVENTS",
     {
       "expiryTime": 1425000,
     },
@@ -26,55 +26,55 @@ exports[`runner multi tenant db no open events 1`] = `
 exports[`runner multi tenant db open periodic events 1`] = `
 [
   [
-    "EVENT_QUEUE_RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
+    "UPDATE_PERIODIC_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
+    "UPDATE_PERIODIC_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
+    "UPDATE_PERIODIC_EVENTS",
     {
       "expiryTime": 1425000,
     },
@@ -85,21 +85,21 @@ exports[`runner multi tenant db open periodic events 1`] = `
 exports[`runner redis multi tenant no open events 1`] = `
 [
   [
-    "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
+    "UPDATE_PERIODIC_EVENTS",
     {
       "expiryTime": 60000,
       "tenantScoped": false,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    "RUN_REDIS_CHECK",
     {
       "expiryTime": 1425000,
       "tenantScoped": false,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    "RUN_REDIS_CHECK",
     {
       "expiryTime": 1425000,
       "tenantScoped": false,
@@ -110,14 +110,14 @@ exports[`runner redis multi tenant no open events 1`] = `
 
 exports[`runner redis multi tenant no open events 2`] = `
 {
-  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": {
+  "EVENT_QUEUE##RUN_REDIS_CHECK": {
     "options": {
       "NX": true,
       "PX": 1425000,
     },
     "value": "true",
   },
-  "EVENT_QUEUE_EVENT_QUEUE_UPDATE_PERIODIC_EVENTS": {
+  "EVENT_QUEUE##UPDATE_PERIODIC_EVENTS": {
     "options": {
       "NX": true,
       "PX": 60000,
@@ -198,21 +198,21 @@ exports[`runner redis multi tenant with open events - broadcast should be called
 exports[`runner redis multi tenant with open events - broadcast should be called 2`] = `
 [
   [
-    "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS",
+    "UPDATE_PERIODIC_EVENTS",
     {
       "expiryTime": 60000,
       "tenantScoped": false,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    "RUN_REDIS_CHECK",
     {
       "expiryTime": 1425000,
       "tenantScoped": false,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    "RUN_REDIS_CHECK",
     {
       "expiryTime": 1425000,
       "tenantScoped": false,
@@ -223,14 +223,14 @@ exports[`runner redis multi tenant with open events - broadcast should be called
 
 exports[`runner redis multi tenant with open events - broadcast should be called 3`] = `
 {
-  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": {
+  "EVENT_QUEUE##RUN_REDIS_CHECK": {
     "options": {
       "NX": true,
       "PX": 1425000,
     },
     "value": "true",
   },
-  "EVENT_QUEUE_EVENT_QUEUE_UPDATE_PERIODIC_EVENTS": {
+  "EVENT_QUEUE##UPDATE_PERIODIC_EVENTS": {
     "options": {
       "NX": true,
       "PX": 60000,
@@ -243,14 +243,14 @@ exports[`runner redis multi tenant with open events - broadcast should be called
 exports[`runner redis single tenant no open events 1`] = `
 [
   [
-    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    "RUN_REDIS_CHECK",
     {
       "expiryTime": 1425000,
       "tenantScoped": false,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    "RUN_REDIS_CHECK",
     {
       "expiryTime": 1425000,
       "tenantScoped": false,
@@ -261,7 +261,7 @@ exports[`runner redis single tenant no open events 1`] = `
 
 exports[`runner redis single tenant no open events 2`] = `
 {
-  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": {
+  "EVENT_QUEUE##RUN_REDIS_CHECK": {
     "options": {
       "NX": true,
       "PX": 1425000,
@@ -274,14 +274,14 @@ exports[`runner redis single tenant no open events 2`] = `
 exports[`runner redis single tenant with open events - broadcast should be called 1`] = `
 [
   [
-    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    "RUN_REDIS_CHECK",
     {
       "expiryTime": 1425000,
       "tenantScoped": false,
     },
   ],
   [
-    "EVENT_QUEUE_RUN_REDIS_CHECK",
+    "RUN_REDIS_CHECK",
     {
       "expiryTime": 1425000,
       "tenantScoped": false,
@@ -292,7 +292,7 @@ exports[`runner redis single tenant with open events - broadcast should be calle
 
 exports[`runner redis single tenant with open events - broadcast should be called 2`] = `
 {
-  "EVENT_QUEUE_EVENT_QUEUE_RUN_REDIS_CHECK": {
+  "EVENT_QUEUE##RUN_REDIS_CHECK": {
     "options": {
       "NX": true,
       "PX": 1425000,
