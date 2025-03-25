@@ -66,9 +66,8 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
           eventQueue: {
             processor: this,
             clusterByPayloadProperty: (propertyName, cb) =>
-              EventQueueGenericOutboxHandler.clusterByPayloadProperty(genericClusterEvents, propertyName, cb),
-            clusterByEventProperty: (propertyName) =>
-              EventQueueGenericOutboxHandler.clusterByEventProperty(genericClusterEvents, propertyName),
+              this.clusterByPayloadProperty(genericClusterEvents, propertyName, cb),
+            clusterByEventProperty: (propertyName) => this.clusterByEventProperty(genericClusterEvents, propertyName),
           },
         });
         const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
@@ -82,13 +81,9 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
         eventQueue: {
           processor: this,
           clusterByPayloadProperty: (propertyName, cb) =>
-            EventQueueGenericOutboxHandler.clusterByPayloadProperty(
-              specificClusterEvents[actionName],
-              propertyName,
-              cb
-            ),
+            this.clusterByPayloadProperty(specificClusterEvents[actionName], propertyName, cb),
           clusterByEventProperty: (propertyName, cb) =>
-            EventQueueGenericOutboxHandler.clusterByEventProperty(specificClusterEvents[actionName], propertyName, cb),
+            this.clusterByEventProperty(specificClusterEvents[actionName], propertyName, cb),
         },
       });
       const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
@@ -96,35 +91,58 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     }
   }
 
-  static clusterByPayloadProperty(queueEntriesWithPayloadMap, propertyName, cb) {
-    return Object.entries(queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
-      result[payload.data[propertyName]] ??= {
-        queueEntries: [],
-        payload,
-      };
-      const ref = result[payload.data[propertyName]];
+  clusterBase(queueEntriesWithPayloadMap, propertyName, refCb, cb) {
+    return Object.entries(queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }], index) => {
+      const ref = refCb(result, payload, queueEntry);
       ref.queueEntries.push(queueEntry);
       if (cb) {
-        const clusterResult = cb(ref.payload.data, queueEntry.payload.data);
+        const clusterResult = cb(ref.payload.data, queueEntry.payload.data, index);
         ref.payload.data ??= clusterResult;
       }
       return result;
     }, {});
   }
 
-  static clusterByEventProperty(queueEntriesWithPayloadMap, propertyName, cb) {
-    return Object.entries(queueEntriesWithPayloadMap).reduce((result, [, { queueEntry, payload }]) => {
-      result[queueEntry[propertyName]] ??= {
-        queueEntries: [],
-        payload,
-      };
-      result[queueEntry[propertyName]].queueEntries.push(queueEntry);
-      if (cb) {
-        const clusterResult = cb(payload.data, queueEntry.payload.data);
-        result[payload[propertyName]].payload.data ??= clusterResult;
-      }
-      return result;
-    }, {});
+  clusterByPayloadProperty(queueEntriesWithPayloadMap, propertyName, cb) {
+    return this.clusterBase(
+      queueEntriesWithPayloadMap,
+      propertyName,
+      (result, payload) => {
+        const parts = propertyName.split(".");
+        const data = JSON.parse(JSON.stringify(payload.data));
+        let ref = payload;
+        for (const part of parts) {
+          ref = ref[part];
+        }
+        result[ref[propertyName]] ??= {
+          queueEntries: [],
+          payload: { ...payload, data },
+        };
+        return result[ref[propertyName]];
+      },
+      cb
+    );
+  }
+
+  clusterByEventProperty(queueEntriesWithPayloadMap, propertyName, cb) {
+    return this.clusterBase(
+      queueEntriesWithPayloadMap,
+      propertyName,
+      (result, payload, queueEntry) => {
+        const parts = propertyName.split(".");
+        const payloadCopy = JSON.parse(JSON.stringify(payload));
+        let ref = queueEntry;
+        for (const part of parts) {
+          ref = ref[part];
+        }
+        result[queueEntry[propertyName]] ??= {
+          queueEntries: [],
+          payload: payloadCopy,
+        };
+        return result[queueEntry[propertyName]];
+      },
+      cb
+    );
   }
 
   #clusterByAction(queueEntriesWithPayloadMap) {
