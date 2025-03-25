@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [CAP outbox] `req.context._eventQueue` has moved to `req.eventQueue`
 
+## v1.9.4 - 2025-03-25
+
+### Added
+
+- [CONFIG] Added redisNamespace option to prefix Redis interactions, useful when multiple microservices share the same Redis instance.
+
 ## v1.9.3 - 2025-03-18
 
 ### Fixed

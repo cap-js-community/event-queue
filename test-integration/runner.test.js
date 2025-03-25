@@ -550,7 +550,7 @@ describe("runner", () => {
       let acquireLockSpy;
       const promise = new Promise((resolve) => {
         acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
-          if (key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS") {
+          if (key === "UPDATE_PERIODIC_EVENTS") {
             counter++;
           }
           if (counter === tenantIds.length) {
@@ -561,9 +561,7 @@ describe("runner", () => {
       mockTenantIds(tenantIds);
       await runner.__._multiTenancyDb();
       await promise;
-      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
-        3
-      );
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "UPDATE_PERIODIC_EVENTS")).toHaveLength(3);
 
       acquireLockSpy.mockRestore();
     });
@@ -573,7 +571,7 @@ describe("runner", () => {
       let acquireLockSpy;
       const promise = new Promise((resolve) => {
         acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
-          if (key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS") {
+          if (key === "UPDATE_PERIODIC_EVENTS") {
             counter++;
           }
           if (counter === tenantIds.length) {
@@ -584,17 +582,13 @@ describe("runner", () => {
       mockTenantIds(tenantIds);
       await runner.__._multiTenancyDb();
       await promise;
-      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
-        3
-      );
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "UPDATE_PERIODIC_EVENTS")).toHaveLength(3);
 
       // second run
       await runner.__._multiTenancyDb();
       await promisify(setTimeout)(500);
 
-      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
-        3
-      );
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "UPDATE_PERIODIC_EVENTS")).toHaveLength(3);
       acquireLockSpy.mockRestore();
     });
 
@@ -603,7 +597,7 @@ describe("runner", () => {
       let acquireLockSpy;
       const promise = new Promise((resolve) => {
         acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
-          if (key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS") {
+          if (key === "UPDATE_PERIODIC_EVENTS") {
             counter++;
           }
           if (counter === tenantIds.length) {
@@ -614,9 +608,7 @@ describe("runner", () => {
       mockTenantIds(tenantIds);
       await runner.__._multiTenancyDb();
       await promise;
-      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
-        3
-      );
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "UPDATE_PERIODIC_EVENTS")).toHaveLength(3);
 
       // second run with changed tenant ids
       mockTenantIds(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
@@ -625,7 +617,7 @@ describe("runner", () => {
         counter = 0;
         acquireLockSpy.mockRestore();
         acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
-          if (key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS") {
+          if (key === "UPDATE_PERIODIC_EVENTS") {
             counter++;
           }
           if (counter === tenantIds.length) {
@@ -637,9 +629,7 @@ describe("runner", () => {
       await runner.__._multiTenancyDb();
       await promise2;
 
-      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
-        4
-      );
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "UPDATE_PERIODIC_EVENTS")).toHaveLength(4);
       acquireLockSpy.mockRestore();
     });
 
@@ -648,7 +638,7 @@ describe("runner", () => {
       let acquireLockSpy;
       const promise = new Promise((resolve) => {
         acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
-          if (key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS") {
+          if (key === "UPDATE_PERIODIC_EVENTS") {
             counter++;
           }
           if (counter === tenantIds.length) {
@@ -659,9 +649,7 @@ describe("runner", () => {
       mockTenantIds(tenantIds);
       await runner.__._multiTenancyDb();
       await promise;
-      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
-        3
-      );
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "UPDATE_PERIODIC_EVENTS")).toHaveLength(3);
 
       // second run with changed tenant ids
       mockTenantIds(tenantIds.concat("e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792"));
@@ -670,7 +658,7 @@ describe("runner", () => {
         counter = 0;
         acquireLockSpy.mockRestore();
         acquireLockSpy = jest.spyOn(distributedLock, "acquireLock").mockImplementation(async (context, key) => {
-          if (key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS") {
+          if (key === "UPDATE_PERIODIC_EVENTS") {
             counter++;
           }
           if (counter === tenantIds.length) {
@@ -682,9 +670,7 @@ describe("runner", () => {
       await runner.__._multiTenancyDb();
       await promise2;
 
-      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
-        4
-      );
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "UPDATE_PERIODIC_EVENTS")).toHaveLength(4);
       acquireLockSpy.mockReset();
 
       // thirds run with same tenant ids
@@ -693,9 +679,7 @@ describe("runner", () => {
       await runner.__._multiTenancyDb();
       await promisify(setTimeout)(500);
 
-      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS")).toHaveLength(
-        0
-      );
+      expect(acquireLockSpy.mock.calls.filter(([, key]) => key === "UPDATE_PERIODIC_EVENTS")).toHaveLength(0);
       acquireLockSpy.mockRestore();
     });
   });

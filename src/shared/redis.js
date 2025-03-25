@@ -46,6 +46,7 @@ const _createClientBase = (redisOptions = {}) => {
       password: redisOptions.password ?? options.password ?? credentials.password,
       socket,
     });
+    delete socketOptions.redisNamespace;
     if (credentials.cluster_mode) {
       return redis.createCluster({
         rootNodes: [socketOptions],
@@ -106,9 +107,10 @@ const _subscribeChannels = (options, subscribedChannels, errorHandlerCreateClien
         if (client._subscribedChannels[channel]) {
           continue;
         }
-        cds.log(COMPONENT_NAME).info("subscribe redis client connected channel", { channel });
+        const prefixedChannelName = [options.redisNamespace, channel].join("_");
+        cds.log(COMPONENT_NAME).info("subscribe redis client connected channel", { channel: prefixedChannelName });
         client
-          .subscribe(channel, fn)
+          .subscribe(prefixedChannelName, fn)
           .then(() => {
             client._subscribedChannels ??= {};
             client._subscribedChannels[channel] = 1;
@@ -133,7 +135,7 @@ const _subscribeChannels = (options, subscribedChannels, errorHandlerCreateClien
 
 const publishMessage = async (options, channel, message) => {
   const client = await createMainClientAndConnect(options);
-  return await client.publish(channel, message);
+  return await client.publish([options.redisNamespace, channel].join("_"), message);
 };
 
 const closeMainClient = async () => {

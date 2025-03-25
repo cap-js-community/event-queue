@@ -2,7 +2,7 @@
 
 exports[`distributedLock redis only accepts integer as lock time 1`] = `
 {
-  "EVENT_QUEUE_123##key": {
+  "EVENT_QUEUE##123##key": {
     "options": {
       "NX": true,
       "PX": 6,
