@@ -58,6 +58,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     }
     const { genericClusterEvents, specificClusterEvents } = this.#clusterByAction(queueEntriesWithPayloadMap);
 
+    const clusterMap = {};
     if (Object.keys(genericClusterEvents).length) {
       if (!this.__genericClusterRelevantAndAvailable) {
         for (const actionName in genericClusterEvents) {
@@ -77,8 +78,19 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
                 this.clusterByDataProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
             },
           });
-          const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
-          this.#addToProcessingMap(handlerCluster);
+          const clusterResult = await this.__srvUnboxed.tx(this.context).send(msg);
+          if (this.#validateCluster(clusterResult)) {
+            Object.assign(clusterMap, clusterResult);
+          } else {
+            this.logger.error(
+              "cluster result of handler is not valid. Check the documentation for the expected structure. Continuing without clustering!",
+              {
+                handler: msg.event,
+                clusterResult: JSON.stringify(clusterResult),
+              }
+            );
+            return super.clusterQueueEntries(queueEntriesWithPayloadMap);
+          }
         }
       }
     }
@@ -96,9 +108,44 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
             this.clusterByDataProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
         },
       });
-      const handlerCluster = await this.__srvUnboxed.tx(this.context).send(msg);
-      this.#addToProcessingMap(handlerCluster);
+      const clusterResult = await this.__srvUnboxed.tx(this.context).send(msg);
+      if (this.#validateCluster(clusterResult)) {
+        Object.assign(clusterMap, clusterResult);
+      } else {
+        this.logger.error(
+          "cluster result of handler is not valid. Check the documentation for the expected structure. Continuing without clustering!",
+          {
+            handler: msg.event,
+            clusterResult: JSON.stringify(clusterResult),
+          }
+        );
+        return super.clusterQueueEntries(queueEntriesWithPayloadMap);
+      }
     }
+    this.#addToProcessingMap(clusterMap);
+  }
+
+  #validateCluster(obj) {
+    if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+      return false;
+    }
+
+    for (const key of Object.keys(obj)) {
+      const clusterEntry = obj[key];
+      if (typeof clusterEntry !== "object" || clusterEntry === null) {
+        return false;
+      }
+
+      if (!Array.isArray(clusterEntry.queueEntries)) {
+        return false;
+      }
+
+      if (!Array.isArray(clusterEntry.payload)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   clusterBase(queueEntriesWithPayloadMap, propertyName, refCb, cb) {

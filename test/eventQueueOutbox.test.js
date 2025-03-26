@@ -1182,6 +1182,39 @@ describe("event-queue outbox", () => {
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
+
+        it("cluster returns invalid structure - should continue without clustering", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("actionWithInvalidClusterReturn", data);
+          await service.send("actionWithInvalidClusterReturn", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, {
+            expectedLength: 2,
+          });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("clusterQueueEntries.actionWithInvalidClusterReturn", 1);
+          expect(loggerMock).actionCalledTimes("actionWithInvalidClusterReturn", 2);
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+          expect(loggerMock.callsLengths().error).toEqual(1);
+        });
+
+        it("cluster functions throws error", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("throwErrorInCluster", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, {
+            expectedLength: 1,
+          });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("clusterQueueEntries.throwErrorInCluster", 1);
+          expect(loggerMock).actionCalledTimes("throwErrorInCluster", 0);
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(1);
+        });
       });
     });
   });

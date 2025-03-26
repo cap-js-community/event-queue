@@ -12,6 +12,8 @@ const ACTION = [
   "actionClusterByDataWithCb",
   "actionClusterByEventWithoutCb",
   "actionClusterByData",
+  "actionWithInvalidClusterReturn",
+  "throwErrorInCluster",
 ];
 
 class OutboxCustomHooks extends cds.Service {
@@ -96,6 +98,22 @@ class OutboxCustomHooks extends cds.Service {
         user: req.user.id,
       });
       return req.eventQueue.clusterByEventProperty("referenceEntityKey");
+    });
+
+    this.on("clusterQueueEntries.actionWithInvalidClusterReturn", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+      });
+      return [];
+    });
+
+    this.on("clusterQueueEntries.throwErrorInCluster", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+      });
+      throw new Error("cluster error");
     });
 
     this.on("checkEventAndGeneratePayload", (req) => {
