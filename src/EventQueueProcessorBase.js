@@ -806,10 +806,10 @@ class EventQueueProcessorBase {
                   currentAttempt: exceededEvent.attempts,
                 }
               );
+              await tx.rollback();
               await executeInNewTransaction(this.__baseContext, "error-hookForExceededEvents", async (tx) =>
                 this.#persistEventQueueStatusForExceeded(tx, [exceededEvent], EventProcessingStatus.Error)
               );
-              await tx.rollback();
             }
           }
         );

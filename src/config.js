@@ -335,6 +335,7 @@ class Config {
       this.#config.events.splice(index, 1);
     }
 
+    // NOTE: CAP outbox defaults are injected by cds.requires.outbox
     const eventConfig = this.#sanitizeParamsAdHocEvent({
       type: CAP_EVENT_TYPE,
       subType: serviceName,

@@ -12,6 +12,8 @@ const ACTION = [
   "actionClusterByDataWithCb",
   "actionClusterByEventWithoutCb",
   "actionClusterByData",
+  "actionWithInvalidClusterReturn",
+  "throwErrorInCluster",
 ];
 
 class OutboxCustomHooks extends cds.Service {
@@ -68,6 +70,9 @@ class OutboxCustomHooks extends cds.Service {
         user: req.user.id,
       });
       return req.eventQueue.clusterByPayloadProperty("data.to", (clusterKey, entries) => {
+        cds.log(this.name).info("clusterKey", {
+          clusterKey,
+        });
         return { ...entries[0], guids: entries.map((a) => a.guids).flat() };
       });
     });
@@ -98,6 +103,22 @@ class OutboxCustomHooks extends cds.Service {
       return req.eventQueue.clusterByEventProperty("referenceEntityKey");
     });
 
+    this.on("clusterQueueEntries.actionWithInvalidClusterReturn", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+      });
+      return [];
+    });
+
+    this.on("clusterQueueEntries.throwErrorInCluster", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+      });
+      throw new Error("cluster error");
+    });
+
     this.on("checkEventAndGeneratePayload", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
@@ -115,6 +136,76 @@ class OutboxCustomHooks extends cds.Service {
       });
       req.data.to = "newValue";
       return req.data;
+    });
+
+    this.on("exceededAction", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      const [queueEntry] = req.eventQueue.queueEntries;
+      if (!queueEntry.attempts) {
+        throw new Error("retry!");
+      }
+    });
+
+    this.on("exceededActionSpecific", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      const [queueEntry] = req.eventQueue.queueEntries;
+      if (!queueEntry.attempts) {
+        throw new Error("retry!");
+      }
+    });
+
+    this.on("hookForExceededEvents", async (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      await cds.outboxed(this).tx(req).send("action");
+    });
+
+    this.on("hookForExceededEvents.exceededActionSpecific", async (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      await cds.outboxed(this).tx(req).send("action");
+    });
+
+    this.on("hookForExceededEvents.exceededActionSpecificMixed", async (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      await cds.outboxed(this).tx(req).send("action");
+    });
+
+    this.on("hookForExceededEvents.exceededActionSpecificError", async (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      await INSERT.into("sap.eventqueue.Lock").entries({ code: "DummyTest" });
+      throw new Error("all bad");
+    });
+
+    this.on("hookForExceededEvents.exceededActionWithCommit", async (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      await INSERT.into("sap.eventqueue.Lock").entries({ code: "DummyTest" });
     });
   }
 }

@@ -63,8 +63,8 @@ const publishEvent = async (
       event.context = JSON.stringify({ traceContext: openTelemetry.getCurrentTraceContext() });
     }
 
-    if (eventConfig.timeBucket) {
-      event.startAfter ??= CronExpressionParser.parse(eventConfig.timeBucket).next().toISOString();
+    if (eventConfig.timeBucket && event.startAfter !== undefined) {
+      event.startAfter = CronExpressionParser.parse(eventConfig.timeBucket).next().toISOString();
     }
   }
   if (config.insertEventsBeforeCommit && !skipInsertEventsBeforeCommit) {
