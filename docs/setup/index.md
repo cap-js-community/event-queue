@@ -23,7 +23,14 @@ nav_order: 3
 - Run `npm add @cap-js-community/event-queue` in `@sap/cds` project
 - Initialize the event queue as CAP-Plugin or manually in your server.js
 
-## Using CDS Outbox with config.yaml
+## Using CDS Outbox
+
+{% include warning.html message="
+Before event-queue version 1.10.0, it was necessary to implement EventQueue classes to take full advantage of features
+such as periodic events, clustering, hooks for exceeded events, and more. Since version 1.10.0, all these features are
+also available for CAP services using [event-queue as an outbox](/event-queue/use-as-cap-outbox/). Therefore, it is strongly recommended to use CAP
+services instead of EventQueue classes.
+" %}
 
 The simplest way to utilize the event-queue is by allowing it to manage the CDS outbox and outbox services via the
 outbox method in conjunction with the event-queue. To accomplish this, the event-queue needs to be set up as a CDS

@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Implement Event
+title: Legacy - Implement Event
 nav_order: 9
 ---
 
@@ -16,6 +16,13 @@ nav_order: 9
 <!-- prettier-ignore -->
 - TOC
 {: toc}
+
+{% include warning.html message="
+Before event-queue version 1.10.0, it was necessary to implement EventQueue classes to take full advantage of features
+such as periodic events, clustering, hooks for exceeded events, and more. Since version 1.10.0, all these features are
+also available for CAP services using [event-queue as an outbox](/event-queue/use-as-cap-outbox/). Therefore, it is strongly recommended to use CAP
+services instead of EventQueue classes.
+" %}
 
 # Overview
 
@@ -124,8 +131,6 @@ For detailed descriptions of each function, please refer to the JSDoc documentat
 EventQueueProcessorBase).
 
 ## Ad-hoc events
-
-TBD
 
 ### checkEventAndGeneratePayload
 
