@@ -42,6 +42,7 @@ const CONFIG_VARS = [
   ["insertEventsBeforeCommit", true],
   ["enableTelemetry", true],
   ["cronTimezone", null],
+  ["redisNamespace", null],
   ["publishEventBlockList", true],
   ["crashOnRedisUnavailable", false],
 ];

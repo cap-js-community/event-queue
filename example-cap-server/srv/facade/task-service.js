@@ -25,5 +25,11 @@ module.exports = class TaskService extends cds.Service {
         ID: req.data.ID,
       });
     });
+
+    this.on("syncJobs", async function () {
+      const logger = cds.log(this.name);
+      const task = await SELECT.one.from("sap.eventqueue.sample.Task").columns("count(ID) as count");
+      logger.info("syncing jobs in periodic action...", { numberOfTasks: task.count });
+    });
   }
 };

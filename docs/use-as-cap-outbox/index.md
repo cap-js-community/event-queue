@@ -216,7 +216,7 @@ class TaskService extends cds.Service {
   async init() {
     await super.init();
     this.on("send", (req) => {
-      const { processor, queueEntries, payload, key } = req.context._eventQueue;
+      const { processor, queueEntries, payload, key } = req.eventQueue;
     });
   }
 }

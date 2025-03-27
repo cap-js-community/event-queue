@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [CAP outbox] allow to define periodic events for CAP outbox services [Documentation](TBD)
 - [CAP outbox] allow to specify specific event settings of every action in the CAP service [Documentation](TBD)
+- [Event Property] timeBucket: This property allows events of the same type to be grouped and processed in batches. The value of this property is a cron pattern.
+  Example: `*/30 * * * * *` — This means all events published within 30 seconds are processed together.
+
+### Changed
+
+- [CAP outbox] `req.context._eventQueue` has moved to `req.eventQueue`
+
+## v1.9.4 - 2025-03-25
+
+### Added
+
+- [CONFIG] Added redisNamespace option to prefix Redis interactions, useful when multiple microservices share the same Redis instance.
 
 ## v1.9.3 - 2025-03-18
 

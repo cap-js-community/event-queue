@@ -18,10 +18,10 @@ const { runEventCombinationForTenant } = require("./runnerHelper");
 const { trace } = require("../shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/runner";
-const EVENT_QUEUE_RUN_ID = "EVENT_QUEUE_RUN_ID";
-const EVENT_QUEUE_RUN_TS = "EVENT_QUEUE_RUN_TS";
-const EVENT_QUEUE_RUN_REDIS_CHECK = "EVENT_QUEUE_RUN_REDIS_CHECK";
-const EVENT_QUEUE_UPDATE_PERIODIC_EVENTS = "EVENT_QUEUE_UPDATE_PERIODIC_EVENTS";
+const EVENT_QUEUE_RUN_ID = "RUN_ID";
+const EVENT_QUEUE_RUN_TS = "RUN_TS";
+const EVENT_QUEUE_RUN_REDIS_CHECK = "RUN_REDIS_CHECK";
+const EVENT_QUEUE_UPDATE_PERIODIC_EVENTS = "UPDATE_PERIODIC_EVENTS";
 let OFFSET_FIRST_RUN = 10 * 1000;
 
 let tenantIdHash;

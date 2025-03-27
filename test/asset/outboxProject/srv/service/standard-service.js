@@ -2,25 +2,23 @@
 
 const cds = require("@sap/cds");
 
-class NotificationServicePeriodic extends cds.Service {
+class StandardService extends cds.Service {
   async init() {
     await super.init();
     this.on("main", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
-        eventQueueId: req.eventQueue.processor.eventSubType,
       });
     });
 
-    this.on("action", (req) => {
+    this.on("timeBucketAction", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
-        eventQueueId: req.eventQueue.processor.eventSubType,
       });
     });
   }
 }
 
-module.exports = NotificationServicePeriodic;
+module.exports = StandardService;

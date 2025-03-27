@@ -1,5 +1,7 @@
 "use strict";
 
+const { CronExpressionParser } = require("cron-parser");
+
 const config = require("./config");
 const common = require("./shared/common");
 const EventQueueError = require("./EventQueueError");
@@ -59,6 +61,10 @@ const publishEvent = async (
 
     if (addTraceContext) {
       event.context = JSON.stringify({ traceContext: openTelemetry.getCurrentTraceContext() });
+    }
+
+    if (eventConfig.timeBucket) {
+      event.startAfter ??= CronExpressionParser.parse(eventConfig.timeBucket).next().toISOString();
     }
   }
   if (config.insertEventsBeforeCommit && !skipInsertEventsBeforeCommit) {
