@@ -1,5 +1,6 @@
 "use strict";
 
+const { promisify } = require("util");
 const otel = require("@opentelemetry/api");
 jest.mock("@opentelemetry/api", () => require("./mocks/openTelemetry"));
 const { Logger: mockLogger } = require("./mocks/logger");
@@ -16,10 +17,6 @@ const { EventProcessingStatus } = require("../src/constants");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
 const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericOutboxHandler");
-const { promisify } = require("util");
-
-// TODO: test for cluster key that does not match --> error!
-// TODO: test that cluster keys are correct
 
 const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
 
@@ -993,6 +990,30 @@ describe("event-queue outbox", () => {
             expect(loggerMock).actionCalledTimes("actionClusterByPayloadWithCb", 1);
             expect(loggerMock).actionCalled("actionClusterByPayloadWithCb", {
               data: { ...data, guids: expect.arrayContaining(data.guids.concat(data2.guids)) },
+            });
+            await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+            expect(loggerMock.callsLengths().error).toEqual(0);
+          });
+
+          it("should use correct cluster key", async () => {
+            const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+            const data = { to: "me", guids: [cds.utils.uuid()], subject: "subject", body: "body" };
+            const data2 = { to: "me", guids: [cds.utils.uuid()], subject: "subject", body: "body" };
+            await service.send("actionClusterByPayloadWithCb", data);
+            await service.send("actionClusterByPayloadWithCb", data2);
+            await commitAndOpenNew();
+            await testHelper.selectEventQueueAndExpectOpen(tx, {
+              expectedLength: 2,
+            });
+            await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+            await commitAndOpenNew();
+            expect(loggerMock).actionCalledTimes("clusterQueueEntries.actionClusterByPayloadWithCb", 1);
+            expect(loggerMock).actionCalledTimes("actionClusterByPayloadWithCb", 1);
+            expect(loggerMock).actionCalled("actionClusterByPayloadWithCb", {
+              data: { ...data, guids: expect.arrayContaining(data.guids.concat(data2.guids)) },
+            });
+            expect(loggerMock).actionCalled("clusterKey", {
+              clusterKey: data.to,
             });
             await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
             expect(loggerMock.callsLengths().error).toEqual(0);

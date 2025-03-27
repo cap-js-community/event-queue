@@ -70,6 +70,9 @@ class OutboxCustomHooks extends cds.Service {
         user: req.user.id,
       });
       return req.eventQueue.clusterByPayloadProperty("data.to", (clusterKey, entries) => {
+        cds.log(this.name).info("clusterKey", {
+          clusterKey,
+        });
         return { ...entries[0], guids: entries.map((a) => a.guids).flat() };
       });
     });
