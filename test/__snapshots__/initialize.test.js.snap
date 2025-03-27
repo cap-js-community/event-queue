@@ -5,6 +5,7 @@ exports[`initialize read yaml config file 1`] = `
   {
     "_appInstancesMap": null,
     "_appNameMap": null,
+    "checkForNextChunk": true,
     "impl": "./srv/notification/EventQueueNotificationProcessor",
     "increasePriorityOverTime": true,
     "inheritTraceContext": true,
@@ -19,6 +20,7 @@ exports[`initialize read yaml config file 1`] = `
   {
     "_appInstancesMap": null,
     "_appNameMap": null,
+    "checkForNextChunk": true,
     "impl": "./srv/businessLogs/EventQueueBusinessLogProcessor",
     "increasePriorityOverTime": true,
     "inheritTraceContext": true,

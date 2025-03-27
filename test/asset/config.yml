@@ -7,6 +7,7 @@ events:
     processAfterCommit: true
     transactionMode: alwaysRollback
     deleteFinishedEventsAfterDays: 30
+    checkForNextChunk: false
 
   - type: Fiori
     subType: Task
@@ -32,6 +33,7 @@ events:
     parallelEventProcessing: 5
     processAfterCommit: false
     transactionMode: alwaysRollback
+    checkForNextChunk: false
 
   - type: TransactionMode
     subType: alwaysCommit
@@ -40,6 +42,7 @@ events:
     parallelEventProcessing: 1
     processAfterCommit: true
     transactionMode: alwaysCommit
+    checkForNextChunk: false
 
   - type: TransactionMode
     subType: alwaysCommitForKeepAlive
@@ -76,6 +79,7 @@ events:
     parallelEventProcessing: 1
     processAfterCommit: true
     transactionMode: alwaysRollback
+    checkForNextChunk: false
 
   - type: TransactionMode
     subType: isolated
@@ -84,6 +88,7 @@ events:
     parallelEventProcessing: 1
     processAfterCommit: true
     transactionMode: isolated
+    checkForNextChunk: false
 
   - type: AppSpecific
     subType: AppName
