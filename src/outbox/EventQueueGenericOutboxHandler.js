@@ -38,20 +38,11 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     this.__genericClusterHandler = clusterRelevant;
     this.__specificClusterHandler = specificClusterRelevant;
     await this.#setContextUser(this.context, config.userId);
-    return super.getQueueEntriesAndSetToInProgress();
+    return await super.getQueueEntriesAndSetToInProgress();
   }
 
-  // NOTE: issue here: if events are not sorted before it might not be unique here:
-  //       - we have service events
-  //       - we have action specific events
-  // 1. I need to collect all action names
-  // 2. I need to check for which actions a handler exits
-  // 3. For actions with specific existing handler --> call specific action
-  // 4. For all others call generic handler
-  // NOTE: OVERALL idea is that the handler returns the cluster map and MUST not call any baseImpl functions!
-  //      --> structure is a map of { key: { queueEntries: [], payload: {} }
+  // document structure is a map of { key: { queueEntries: [], payload: {} }
   // TODO: document that clusterQueueEntries is now async!!!
-  // TODO: validate that return structure is as expected
   async clusterQueueEntries(queueEntriesWithPayloadMap) {
     if (!this.__genericClusterRelevantAndAvailable && !this.__specificClusterRelevantAndAvailable) {
       return super.clusterQueueEntries(queueEntriesWithPayloadMap);
@@ -68,14 +59,15 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
         for (const actionName in genericClusterEvents) {
           const msg = new cds.Request({
             event: `clusterQueueEntries`,
+            user: this.context.user,
             eventQueue: {
               processor: this,
               clusterByPayloadProperty: (propertyName, cb) =>
-                this.clusterByPayloadProperty(actionName, genericClusterEvents[actionName], propertyName, cb),
+                this.#clusterByPayloadProperty(actionName, genericClusterEvents[actionName], propertyName, cb),
               clusterByEventProperty: (propertyName, cb) =>
-                this.clusterByEventProperty(actionName, genericClusterEvents[actionName], propertyName, cb),
+                this.#clusterByEventProperty(actionName, genericClusterEvents[actionName], propertyName, cb),
               clusterByDataProperty: (propertyName, cb) =>
-                this.clusterByDataProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
+                this.#clusterByDataProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
             },
           });
           const clusterResult = await this.__srvUnboxed.tx(this.context).send(msg);
@@ -98,14 +90,15 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     for (const actionName in specificClusterEvents) {
       const msg = new cds.Request({
         event: `clusterQueueEntries.${actionName}`,
+        user: this.context.user,
         eventQueue: {
           processor: this,
           clusterByPayloadProperty: (propertyName, cb) =>
-            this.clusterByPayloadProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
+            this.#clusterByPayloadProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
           clusterByEventProperty: (propertyName, cb) =>
-            this.clusterByEventProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
+            this.#clusterByEventProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
           clusterByDataProperty: (propertyName, cb) =>
-            this.clusterByDataProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
+            this.#clusterByDataProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
         },
       });
       const clusterResult = await this.__srvUnboxed.tx(this.context).send(msg);
@@ -132,7 +125,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
 
     for (const key of Object.keys(obj)) {
       const clusterEntry = obj[key];
-      if (typeof clusterEntry !== "object" || clusterEntry === null) {
+      if (typeof clusterEntry !== "object" || clusterEntry === null || Array.isArray(obj)) {
         return false;
       }
 
@@ -140,7 +133,11 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
         return false;
       }
 
-      if (!Array.isArray(clusterEntry.payload)) {
+      if (
+        typeof clusterEntry.payload !== "object" ||
+        clusterEntry.payload === null ||
+        Array.isArray(clusterEntry.payload)
+      ) {
         return false;
       }
     }
@@ -186,7 +183,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     return result[key];
   }
 
-  clusterByPayloadProperty(actionName, queueEntriesWithPayloadMap, propertyName, cb) {
+  #clusterByPayloadProperty(actionName, queueEntriesWithPayloadMap, propertyName, cb) {
     return this.clusterBase(
       queueEntriesWithPayloadMap,
       propertyName,
@@ -195,7 +192,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     );
   }
 
-  clusterByEventProperty(actionName, queueEntriesWithPayloadMap, propertyName, cb) {
+  #clusterByEventProperty(actionName, queueEntriesWithPayloadMap, propertyName, cb) {
     return this.clusterBase(
       queueEntriesWithPayloadMap,
       propertyName,
@@ -204,7 +201,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     );
   }
 
-  clusterByDataProperty(actionName, queueEntriesWithPayloadMap, propertyName, cb) {
+  #clusterByDataProperty(actionName, queueEntriesWithPayloadMap, propertyName, cb) {
     return this.clusterBase(
       queueEntriesWithPayloadMap,
       propertyName,
@@ -277,17 +274,25 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     }
   }
 
-  // simple here as per entry
   async hookForExceededEvents(exceededEvent) {
-    return await super.hookForExceededEvents(exceededEvent);
+    const { event } = exceededEvent.payload;
+    const handlerName = this.#checkHandlerExists("hookForExceededEvents", event);
+    if (!handlerName) {
+      return await super.hookForExceededEvents(exceededEvent);
+    }
+
+    const { msg, userId } = this.#buildDispatchData(this.context, exceededEvent.payload, {
+      queueEntries: [exceededEvent],
+    });
+    await this.#setContextUser(this.context, userId, msg);
+    msg.event = handlerName;
+    await this.__srvUnboxed.tx(this.context).send(msg);
   }
 
+  // NOTE: Currently not exposed to CAP service; we wait for a valid use case
   async beforeProcessingEvents() {
     return await super.beforeProcessingEvents();
   }
-
-  // maybe async getter on req.data // only for periodic events
-  // getLastSuccessfulRunTimestamp
 
   #checkHandlerExists(eventQueueFn, event) {
     const specificHandler = this.__onHandlers[[eventQueueFn, event].join(".")];

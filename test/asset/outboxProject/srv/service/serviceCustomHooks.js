@@ -134,6 +134,76 @@ class OutboxCustomHooks extends cds.Service {
       req.data.to = "newValue";
       return req.data;
     });
+
+    this.on("exceededAction", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      const [queueEntry] = req.eventQueue.queueEntries;
+      if (!queueEntry.attempts) {
+        throw new Error("retry!");
+      }
+    });
+
+    this.on("exceededActionSpecific", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      const [queueEntry] = req.eventQueue.queueEntries;
+      if (!queueEntry.attempts) {
+        throw new Error("retry!");
+      }
+    });
+
+    this.on("hookForExceededEvents", async (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      await cds.outboxed(this).tx(req).send("action");
+    });
+
+    this.on("hookForExceededEvents.exceededActionSpecific", async (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      await cds.outboxed(this).tx(req).send("action");
+    });
+
+    this.on("hookForExceededEvents.exceededActionSpecificMixed", async (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      await cds.outboxed(this).tx(req).send("action");
+    });
+
+    this.on("hookForExceededEvents.exceededActionSpecificError", async (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      await INSERT.into("sap.eventqueue.Lock").entries({ code: "DummyTest" });
+      throw new Error("all bad");
+    });
+
+    this.on("hookForExceededEvents.exceededActionWithCommit", async (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+      await INSERT.into("sap.eventqueue.Lock").entries({ code: "DummyTest" });
+    });
   }
 }
 
