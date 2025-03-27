@@ -228,10 +228,9 @@ The event-queue provides three basic clustering helper functions:
 - **`clusterByDataProperty`**: Clusters events based on a specific `req.data` property from the original action call.
 - **`clusterByPayloadProperty`**: Clusters events based on properties from the raw action call payload, such as `req.event`,
   `contextUser`, `headers`, and more. This can be used, for example, to group all calls of the same action into a single
-   batch. To achieve this, pass `"event"` as the first parameter to this function.
+  batch. To achieve this, pass `"event"` as the first parameter to this function.
 - **`clusterByEventProperty`**: Clusters events based on raw event data, which corresponds to the event database entry.
   This allows grouping by fields such as `referenceEntityKey`, `attempts`, `status`, and more.
-
 
 Event-queue follows a priority order when applying clustering:
 

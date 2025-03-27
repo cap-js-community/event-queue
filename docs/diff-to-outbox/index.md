@@ -6,25 +6,29 @@ nav_order: 2
 
 <!-- prettier-ignore-start -->
 
-
 # Distinction from other solutions
+
 {: .no_toc}
 <!-- prettier-ignore-end -->
 
 <!-- prettier-ignore -->
 - TOC
-{: toc}
+  {: toc}
 
 In the following chapter, the event queue will be compared and differentiated with other SAP products.
 
 ## CAP persistent outbox
 
-The event-queue package and the CAP persistent outbox share several features, yet the event-queue package offers
-additional functionalities. A key distinction lies in the load-balancing and periodic event features provided by
-the event-queue.
+The event-queue package and the CAP persistent outbox share several features, but the event-queue package provides
+additional functionalities. A key distinction is that the CAP outbox is designed exclusively for outboxing HTTP requests
+and should not be used for asynchronous processing of business data. Another important difference is that the
+event-queue includes load balancing and periodic event scheduling, offering greater flexibility and efficiency in event
+processing.
 
-Load balancing is achieved via Redis. Offering a robust way to handle traffic and distribute tasks evenly across multiple
-resources. Further, there's a concurrency limit set on the application instance to prevent overloading and ensure seamless
+Load balancing is achieved via Redis. Offering a robust way to handle traffic and distribute tasks evenly across
+multiple
+resources. Further, there's a concurrency limit set on the application instance to prevent overloading and ensure
+seamless
 operations. You can learn more about these features in the [load balancing section](/event-queue/load-balancing).
 
 The event-queue package also supports periodic events, similar to cron-jobs. This feature allows for the scheduling of
