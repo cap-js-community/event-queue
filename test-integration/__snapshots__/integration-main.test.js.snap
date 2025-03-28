@@ -161,11 +161,11 @@ exports[`integration-main insert one entry witch checkForNext but return status 
 
 exports[`integration-main register retry for failed event after configured interval 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 6,
+  "COMMIT": 4,
   "CREATE": 1,
   "DELETE": 1,
-  "READ": 4,
+  "READ": 3,
   "ROLLBACK": 1,
   "UPDATE": 2,
 }
