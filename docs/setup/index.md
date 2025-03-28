@@ -43,24 +43,15 @@ and [how to implement a CDS service](/event-queue/use-as-cap-outbox/#example-of-
 Extend the cds section of your package.json. Reference to the cds-plugin section in the capire documentation about the
 [cds-plugin concept](https://cap.cloud.sap/docs/node.js/cds-plugins).
 
+The recommended setup for getting started is to use this minimal configuration. All configuration parameters are optional
+and come with well-chosen defaults, meaning that features like periodic events and load balancing are enabled out of the
+box. As your implementation grows, you can fine-tune the settings based on specific requirements, but the default setup
+already provides a robust foundation.
+
 ```json
 {
-  "cds": {
-    "eventQueue": {
-      "configFilePath": "./srv/eventQueueConfig.yml"
-    }
-  }
+  "cds": { "eventQueue": { "useAsCAPOutbox": true } }
 }
-```
-
-## in server.js
-
-Call the initialize function in your server.js. Check here the available settings for the initialization.
-
-```js
-eventQueue.initialize({
-  configFilePath: "./srv/eventConfig.yml",
-});
 ```
 
 # Initialization parameters
@@ -71,7 +62,7 @@ such as the configuration file path, event processing behavior, load balancing, 
 The table includes the parameter name, a description of its purpose, and the default value if not specified.
 
 | Name                                 | Description                                                                                                                                                                                                                                                                                                                                      | Default        | Can be changed at runtime |
-| :----------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------- | :------------------------ |
+| :----------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |:---------------| :------------------------ |
 | configFilePath                       | Path to the configuration file.                                                                                                                                                                                                                                                                                                                  | null           | no                        |
 | events                               | Options to allow events in the configuration. E.g. via cds-env.                                                                                                                                                                                                                                                                                  | {}             | no                        |
 | periodicEvents                       | Options to allow periodicEvents in the configuration. E.g. via cds-env                                                                                                                                                                                                                                                                           | {}             | no                        |
@@ -83,7 +74,7 @@ The table includes the parameter name, a description of its purpose, and the def
 | thresholdLoggingEventProcessing [ms] | Threshold after how many milliseconds the processing of a event or periodic event is logged for observability.                                                                                                                                                                                                                                   | 50             | yes                       |
 | useAsCAPOutbox                       | Uses the event-queue as the [outbox](https://cap.cloud.sap/docs/node.js/outbox) of CAP. Outbox calls are stored and processed in the event-queue instead of the outbox of CAP.                                                                                                                                                                   | false          | no                        |
 | userId                               | User id for all created cds contexts. This influences the value for updated managed database fields like createdBy and modifiedBy.                                                                                                                                                                                                               | false          | yes                       |
-| cleanupLocksAndEventsForDev          | Deletes all semantic locks and sets all events that are in progress to error during server start. This is used to clean up leftovers from server crashes or restarts during processing.                                                                                                                                                          | false          | no                        |
+| cleanupLocksAndEventsForDev          | Deletes all semantic locks and sets all events that are in progress to error during server start. This is used to clean up leftovers from server crashes or restarts during processing.                                                                                                                                                          | true           | no                        |
 | insertEventsBeforeCommit             | If enabled, this feature allows events (including those for outboxed services) to be inserted in bulk using the before commit handler. This is performed to improve performance by mass inserting events instead of single insert operations. This can be disabled by the parameter `skipInsertEventsBeforeCommit` in the function publishEvent. | true           | yes                       |
 | enableTelemetry                      | If enabled, OpenTelemetry traces for all event-queue activities are written. An OpenTelemetry exporter must be configured.                                                                                                                                                                                                                       | true           | yes                       |
 | cronTimezone                         | Determines whether to apply the central `cronTimezone` setting for scheduling events. If set to `true` and the property `utc` is not enabled for the given event, it will use the defined `cronTimezone`. If set to `false`, the event will use UTC or the server's local time, based on the `utc` setting.                                      | null           | yes                       |
