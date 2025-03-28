@@ -13,7 +13,7 @@ nav_order: 2
 
 <!-- prettier-ignore -->
 - TOC
-  {: toc}
+{: toc}
 
 In the following chapter, the event queue will be compared and differentiated with other SAP products.
 
