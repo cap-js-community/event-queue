@@ -1,5 +1,6 @@
 "use strict";
 
+const { promisify } = require("util");
 const otel = require("@opentelemetry/api");
 jest.mock("@opentelemetry/api", () => require("./mocks/openTelemetry"));
 const { Logger: mockLogger } = require("./mocks/logger");
@@ -16,10 +17,6 @@ const { EventProcessingStatus } = require("../src/constants");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
 const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericOutboxHandler");
-const { promisify } = require("util");
-
-// TODO: test for cluster key that does not match --> error!
-// TODO: test that cluster keys are correct
 
 const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
 
@@ -45,6 +42,16 @@ cds.env.requires.OutboxCustomHooks = {
   impl: "./outboxProject/srv/service/serviceCustomHooks.js",
   outbox: {
     kind: "persistent-outbox",
+    events: {
+      exceededAction: {
+        retryAttempts: 1,
+        retryFailedAfter: 0,
+      },
+      exceededActionSpecific: {
+        retryAttempts: 1,
+        retryFailedAfter: 0,
+      },
+    },
   },
 };
 
@@ -988,6 +995,30 @@ describe("event-queue outbox", () => {
             expect(loggerMock.callsLengths().error).toEqual(0);
           });
 
+          it("should use correct cluster key", async () => {
+            const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+            const data = { to: "me", guids: [cds.utils.uuid()], subject: "subject", body: "body" };
+            const data2 = { to: "me", guids: [cds.utils.uuid()], subject: "subject", body: "body" };
+            await service.send("actionClusterByPayloadWithCb", data);
+            await service.send("actionClusterByPayloadWithCb", data2);
+            await commitAndOpenNew();
+            await testHelper.selectEventQueueAndExpectOpen(tx, {
+              expectedLength: 2,
+            });
+            await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+            await commitAndOpenNew();
+            expect(loggerMock).actionCalledTimes("clusterQueueEntries.actionClusterByPayloadWithCb", 1);
+            expect(loggerMock).actionCalledTimes("actionClusterByPayloadWithCb", 1);
+            expect(loggerMock).actionCalled("actionClusterByPayloadWithCb", {
+              data: { ...data, guids: expect.arrayContaining(data.guids.concat(data2.guids)) },
+            });
+            expect(loggerMock).actionCalled("clusterKey", {
+              clusterKey: data.to,
+            });
+            await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+            expect(loggerMock.callsLengths().error).toEqual(0);
+          });
+
           it("actionClusterByPayloadWithoutCb", async () => {
             const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
             const data = { to: "me", guids: [cds.utils.uuid()], subject: "subject", body: "body" };
@@ -1180,6 +1211,191 @@ describe("event-queue outbox", () => {
           expect(loggerMock).actionCalledTimes("main", 1);
           expect(loggerMock).actionCalledTimes("anotherAction", 1);
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("cluster returns invalid structure - should continue without clustering", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("actionWithInvalidClusterReturn", data);
+          await service.send("actionWithInvalidClusterReturn", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, {
+            expectedLength: 2,
+          });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("clusterQueueEntries.actionWithInvalidClusterReturn", 1);
+          expect(loggerMock).actionCalledTimes("actionWithInvalidClusterReturn", 2);
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+          expect(loggerMock.callsLengths().error).toEqual(1);
+        });
+
+        it("cluster functions throws error", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("throwErrorInCluster", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, {
+            expectedLength: 1,
+          });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("clusterQueueEntries.throwErrorInCluster", 1);
+          expect(loggerMock).actionCalledTimes("throwErrorInCluster", 0);
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(1);
+        });
+      });
+
+      describe("hook for exceeded events", () => {
+        it("generic call", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("exceededAction", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.exceededAction`);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("exceededAction", 1);
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(1);
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.exceededAction`);
+          expect(loggerMock).actionCalledTimes("hookForExceededEvents", 1);
+          const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
+          expect(events).toMatchObject([
+            {
+              status: 0,
+              attempts: 0,
+              startAfter: null,
+            },
+            {
+              status: 4,
+              attempts: 2,
+              startAfter: expect.any(String),
+            },
+          ]);
+          expect(loggerMock.callsLengths().error).toEqual(1);
+        });
+
+        it("specific action call", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("exceededActionSpecific", data);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.exceededActionSpecific`);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("exceededActionSpecific", 1);
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(1);
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.exceededActionSpecific`);
+          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecific", 1);
+          expect(loggerMock.callsLengths().error).toEqual(1);
+        });
+
+        it("mixed", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("main", data);
+          await service.send("exceededActionSpecificMixed", data);
+          await commitAndOpenNew();
+          await tx.run(
+            UPDATE("sap.eventqueue.Event").set({
+              attempts: 20,
+              status: EventProcessingStatus.Error,
+              lastAttemptTimestamp: new Date(Date.now() - 1000),
+            })
+          );
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("hookForExceededEvents", 1);
+          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificMixed", 1);
+          await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 4 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("error in exceeded hook should rollback exceeded tx", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("exceededActionSpecificError", data);
+          await commitAndOpenNew();
+          await tx.run(
+            UPDATE("sap.eventqueue.Event").set({
+              attempts: 20,
+              status: EventProcessingStatus.Error,
+              lastAttemptTimestamp: new Date(Date.now() - 1000),
+            })
+          );
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificError", 1);
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code = 'DummyTest'"))).toBeUndefined();
+          expect(loggerMock.callsLengths().error).toEqual(1);
+        });
+
+        it("exceeded has max 3 retries", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("exceededActionSpecificError", data);
+          await commitAndOpenNew();
+          await tx.run(
+            UPDATE("sap.eventqueue.Event").set({
+              attempts: 20,
+              status: EventProcessingStatus.Error,
+              lastAttemptTimestamp: new Date(Date.now() - 1000),
+            })
+          );
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificError", 1);
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code = 'DummyTest'"))).toBeUndefined();
+          expect(loggerMock.callsLengths().error).toEqual(1);
+
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificError", 2);
+          expect(loggerMock.callsLengths().error).toEqual(2);
+
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificError", 3);
+          expect(loggerMock.callsLengths().error).toEqual(3);
+
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await testHelper.selectEventQueueAndExpectExceeded(tx, { expectedLength: 1 });
+          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificError", 3);
+          expect(loggerMock.callsLengths().error).toEqual(4);
+        });
+
+        it("exceeded hook should be commited", async () => {
+          const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+          const data = { to: "to", subject: "subject", body: "body" };
+          await service.send("exceededActionWithCommit", data);
+          await commitAndOpenNew();
+          await tx.run(
+            UPDATE("sap.eventqueue.Event").set({
+              attempts: 20,
+              status: EventProcessingStatus.Error,
+              lastAttemptTimestamp: new Date(Date.now() - 1000),
+            })
+          );
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionWithCommit", 1);
+          await testHelper.selectEventQueueAndExpectExceeded(tx, { expectedLength: 1 });
+          expect(await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code = 'DummyTest'"))).toBeDefined();
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
       });
