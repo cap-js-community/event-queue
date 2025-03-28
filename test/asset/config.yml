@@ -7,6 +7,7 @@ events:
     processAfterCommit: true
     transactionMode: alwaysRollback
     deleteFinishedEventsAfterDays: 30
+    checkForNextChunk: false
 
   - type: Fiori
     subType: Task
@@ -24,7 +25,6 @@ events:
     processAfterCommit: true
     transactionMode: alwaysRollback
     retryFailedAfter: 3000
-    checkForNextChunk: true
 
   - type: Test
     subType: NoProcessAfterCommit
@@ -33,6 +33,7 @@ events:
     parallelEventProcessing: 5
     processAfterCommit: false
     transactionMode: alwaysRollback
+    checkForNextChunk: false
 
   - type: TransactionMode
     subType: alwaysCommit
@@ -41,6 +42,7 @@ events:
     parallelEventProcessing: 1
     processAfterCommit: true
     transactionMode: alwaysCommit
+    checkForNextChunk: false
 
   - type: TransactionMode
     subType: alwaysCommitForKeepAlive
@@ -69,7 +71,6 @@ events:
     transactionMode: isolated
     keepAliveInterval: 1
     selectMaxChunkSize: 1
-    checkForNextChunk: true
 
   - type: TransactionMode
     subType: alwaysRollback
@@ -78,6 +79,7 @@ events:
     parallelEventProcessing: 1
     processAfterCommit: true
     transactionMode: alwaysRollback
+    checkForNextChunk: false
 
   - type: TransactionMode
     subType: isolated
@@ -86,6 +88,7 @@ events:
     parallelEventProcessing: 1
     processAfterCommit: true
     transactionMode: isolated
+    checkForNextChunk: false
 
   - type: AppSpecific
     subType: AppName
@@ -116,7 +119,6 @@ events:
     load: 1
     selectMaxChunkSize: 1
     multiInstanceProcessing: true
-    checkForNextChunk: true
 
 periodicEvents:
   - type: HealthCheck

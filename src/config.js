@@ -24,6 +24,7 @@ const DEFAULT_INCREASE_PRIORITY = true;
 const DEFAULT_KEEP_ALIVE_INTERVAL = 60;
 const DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL = 3.5;
 const DEFAULT_INHERIT_TRACE_CONTEXT = true;
+const DEFAULT_CHECK_FOR_NEXT_CHUNK = true;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const CAP_EVENT_TYPE = "CAP_OUTBOX";
 const CAP_PARALLEL_DEFAULT = 5;
@@ -508,6 +509,7 @@ class Config {
     event.increasePriorityOverTime = event.increasePriorityOverTime ?? DEFAULT_INCREASE_PRIORITY;
     event.keepAliveInterval = (event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL) * 1000;
     event.keepAliveMaxInProgressTime = event.keepAliveInterval * DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL;
+    event.checkForNextChunk = event.checkForNextChunk ?? DEFAULT_CHECK_FOR_NEXT_CHUNK;
   }
 
   #sanitizeParamsBase(config, allowList) {

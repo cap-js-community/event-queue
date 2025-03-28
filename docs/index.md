@@ -9,7 +9,8 @@ nav_order: 1
 The Event-Queue is a framework built on top of CAP Node.js. It is designed specifically for efficient and
 streamlined asynchronous event processing. With a focus on load balancing, this package ensures optimal
 event distribution across all available application instances. By providing managed transactions similar to CAP
-handlers, the Event-Queue framework simplifies event processing and enhancing the overall performance of your application.
+handlers, the Event-Queue framework simplifies event processing and enhancing the overall performance of your
+application.
 
 Moreover, the Event-Queue framework incorporates transaction safety in its asynchronous processing. This feature ensures
 that each event is recorded with the business transaction from the synchronous process in the database. Applying this
@@ -24,14 +25,25 @@ processing.
 
 ## Features
 
-- [load balancing](/event-queue/load-balancing) and concurrency control of event processing across app instances
-- [periodic events](/event-queue/configure-event/#periodic-events) similar to running cron jobs for business processes
-- [managed transactions](/event-queue/transaction-handling) for event processing
-- [plug and play](setup) via cds-plugin
-- [use as CAP outbox](/event-queue/use-as-cap-outbox) use the event-queue as CDS outbox for streamlined asynchronous processing
-- async processing of processing intensive tasks for better UI responsiveness
-- push/pull mechanism for reducing delay between publish an event and processing
-- cluster published events during processing (e.g. for combining multiple E-Mail events to one E-Mail)
+- [Load balancing](/event-queue/load-balancing) and concurrency control for event processing across app instances,
+  protecting the application from load spikes.
+- [Use as CAP outbox](/event-queue/use-as-cap-outbox) with full support for all event-queue features.
+- [Periodic events](/event-queue/configure-event/#periodic-events) using cron patterns with load management for optimal
+  job execution.
+- [Managed transactions](/event-queue/transaction-handling) for reliable event processing.
+- [Plug and play](setup) integration via `cds-plugin`.
+- [Telemetry support and trace propagation](/event-queue/telemetry), including event-queue-specific telemetry data and
+  tracing information.
+- Full support for local testing with SQLite, enabling feature development and testing in a local environment to boost
+  productivity.
+- Asynchronous processing of resource-intensive tasks to improve UI responsiveness.
+- Optimized to use as less database connections as possible to facilitate project with many tenants and rather small
+  HANA instances.
+- Supports redis eventing for faster event processing and effective communication between application instances. If
+  redis is not available the event-queue falls back to pure database mechanisms.
+- Clustering of published events during processing (e.g., combining multiple email events into a single email).
+- Support for microservice architectures by configuring which app instances should process events.
+- Tenant-sticky processing on application instances possible.
 
 ## Functionality and Problem Solutions
 
@@ -55,4 +67,16 @@ processing.
     supporting a microservice architecture if required.
 - Periodic Events
   - It's possible to set up periodic events that execute in specified second intervals. Even here, the event-queue
-    manages the load, distributing it across all available app instances.
+    manages the load, distributing it across all available app instances.+
+- OpenTelemetry and Trace Propagation
+  - The event-queue integrates with OpenTelemetry, providing detailed telemetry data for monitoring and
+    troubleshooting.
+    OpenTelemetry captures traces, spans, and metrics that help diagnose performance bottlenecks, detect failures, and
+    understand the lifecycle of events.
+  - **Trace Propagation** ensures that tracing context is maintained across distributed services, allowing end-to-end
+    visibility
+    into event processing. This is especially beneficial in microservice architectures, where events traverse multiple
+    services and instances. With trace propagation, developers can track event execution paths, measure processing
+    times,
+    and correlate related events across different services, leading to improved observability and debugging
+    efficiency.

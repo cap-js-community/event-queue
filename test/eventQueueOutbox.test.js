@@ -42,6 +42,7 @@ cds.env.requires.OutboxCustomHooks = {
   impl: "./outboxProject/srv/service/serviceCustomHooks.js",
   outbox: {
     kind: "persistent-outbox",
+    checkForNextChunk: false,
     events: {
       exceededAction: {
         retryAttempts: 1,

@@ -17,46 +17,17 @@ nav_order: 4
 
 # Where to Define Events?
 
-Events can be configured either via `cds.env` or by passing them during the `eventQueue.initialize` call. Both options
-are described below. Choose the right option depending on your initialization method (
-see [here](/event-queue/setup/#ways-of-initialization)).
+Events don't need to be defined if the CAP Outbox approach is used as they are auto detected. However, if you want to
+customize the event configuration like retry attempts, transaction mode, parallel processing, etc., you can configure
+this via `cds.env`. The legacy approach of explictly define Events and implementing Event-Queue classes is still supported
+and decribed here, but not recommended to use.
 
-## Configuration
-
-The easiest way is to use `cds.env`. This configuration method supports all parameters compatible with the YAML format.
-The event `type` and `subType` are derived from the key in the object. Based on the example below, these would be
-`Notification` and `Email`.
-
-This approach allows full flexibility with `cds.env`, enabling techniques like `.cdsrc.json` and CDS profiles to adjust
-and extend event settings.
-
-```json
-{
-  "cds": {
-    "eventQueue": {
-      "events": {
-        "Notification/Email": {
-          "impl": "./srv/util/mail-service/EventQueueNotificationProcessor",
-          "load": 1,
-          "parallelEventProcessing": 5
-        }
-      },
-      "periodicEvents": {
-        "HealthCheck/DB": {
-          "impl": "./test/asset/EventQueueHealthCheckDb",
-          "load": 1,
-          "transactionMode": "alwaysRollback",
-          "interval": 30
-        }
-      }
-    }
-  }
-}
-```
-
-## YAML File
-
-Examples are shown in the sections below. See [here](#configuration-1) and [here](#configuration-2).
+{% include warning.html message="
+Before event-queue version 1.10.0, it was necessary to implement EventQueue classes to take full advantage of features
+such as periodic events, clustering, hooks for exceeded events, and more. Since version 1.10.0, all these features are
+also available for CAP services using [event-queue as an outbox](/event-queue/use-as-cap-outbox/). Therefore, it is strongly recommended to use CAP
+services instead of EventQueue classes.
+" %}
 
 # Ad-Hoc events
 
@@ -78,7 +49,7 @@ they should be processed.
 | parallelEventProcessing       | Number of events of the same type and subType that can be processed in parallel. The maximum limit is 10.                                                                                                                                                                                                                            | 1               |
 | transactionMode               | Specifies the transaction mode for the event. For allowed values, refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes).                                                                                                                                                                             | isolated        |
 | selectMaxChunkSize            | Number of events selected in a single batch. Set `checkForNextChunk` to `true` if you want to check for more available events after processing a batch.                                                                                                                                                                              | 100             |
-| checkForNextChunk             | Determines if after processing a chunk (based on `selectMaxChunkSize`), the next chunk is processed if there are more open events.                                                                                                                                                                                                   | false           |
+| checkForNextChunk             | Determines if after processing a chunk (based on `selectMaxChunkSize`), the next chunk is processed if there are more open events.                                                                                                                                                                                                   | true            |
 | priority                      | Specifies the priority level of the event. More details can be found [here](#priority-of-events).                                                                                                                                                                                                                                    | Medium          |
 | timeBucket                    | This property allows events of the same type to be grouped in time batches (e.g. every 30 seconds) and processed in batches. The value of this property must be a cron pattern. It makes sense to combine this functionality with the implementation of the [clustering feature](/event-queue/implement-event/#clusterqueueentries). | null            |
 | deleteFinishedEventsAfterDays | Specifies the number of days after which finished events are deleted, regardless of their status. A value of `0` indicates that event entries are never deleted from the database.                                                                                                                                                   | 7               |
@@ -88,30 +59,6 @@ they should be processed.
 | multiInstanceProcessing       | (Currently applicable only for Single Tenant) Allows processing of the same event type and subtype across multiple application instances.                                                                                                                                                                                            | false           |
 | increasePriorityOverTime      | After three minutes, the priority of unprocessed events is increased by one. This behavior can be disabled with this option. The behavior is documented [here](#priority-of-events).                                                                                                                                                 | true            |
 | keepAliveInterval             | Specifies the interval (in seconds) at which keep-alive signals are sent during event processing to monitor system health.                                                                                                                                                                                                           | 60              |
-
-## Configuration
-
-Below are two examples of ad-hoc event configurations. The first example demonstrates a simple configuration, while the
-second example showcases the full complexity of the configuration.
-
-```yaml
-events:
-  - type: Notification
-    subType: Email
-    impl: ./srv/util/mail-service/EventQueueNotificationProcessor
-    load: 1
-    parallelEventProcessing: 5
-
-  - type: Attachment
-    subType: Compress
-    impl: ./srv/common/process/EventQueueClosingTaskSync
-    load: 3
-    parallelEventProcessing: 2
-    selectMaxChunkSize: 5
-    checkForNextChunk: true
-    transactionMode: alwaysRollback
-    retryAttempts: 1
-```
 
 # Periodic Events
 
@@ -140,24 +87,6 @@ instance is overloaded.
 | keepAliveInterval             | Specifies the interval (in seconds) at which keep-alive signals are sent during event processing to monitor system health.                                                                                                                                    | 60            |
 | inheritTraceContext           | Determines whether the trace context is propagated during event publishing and processing. If set to `false`, trace context propagation is disabled for the event.                                                                                            | true          |
 
-## Configuration
-
-The following demonstrates a configuration for a periodic event with a default load of 1 and an interval of 30 seconds.
-This means the periodic event is scheduled to execute every 30 seconds, if the provided capacity is sufficient on any
-application instance. If capacity is unavailable, the execution is delayed, but subsequent attempts will aim to adhere
-to
-the originally planned schedule plus the defined interval.
-
-```yaml
-periodicEvents:
-  - type: HealthCheck
-    subType: DB
-    impl: ./test/asset/EventQueueHealthCheckDb
-    load: 1
-    transactionMode: alwaysRollback
-    interval: 30
-```
-
 ## Why are retries not supported for periodic events and how can this be achieved?
 
 Retries are not supported for periodic events because allowing retries can cause them to overlap with their next
@@ -175,52 +104,6 @@ This ad-hoc event can have configured retries and retry intervals:
 
 This approach separates retry logic from the periodic execution, preventing scheduling conflicts and ensuring efficient
 resource usage.
-
-## Example
-
-```yaml
-events:
-  - type: MasterData
-    subType: Sync
-    impl: ./test/asset/EventQueuePeriodicWithRetries
-    load: 34 # two MD Syncs in parallel - but leave room for smaller other events
-    retryAttempts: 5
-
-periodicEvents:
-  - type: MasterData
-    subType: Sync
-    impl: ./test/asset/EventQueuePeriodicWithRetries
-    load: 1
-    cron: 0 0 * * * # Runs at midnight every day
-```
-
-```js
-class EventQueuePeriodicWithRetries extends EventQueueProcessorBase {
-  constructor(context, eventType, eventSubType, config) {
-    super(context, eventType, eventSubType, config);
-  }
-
-  async processPeriodicEvent(processContext, key, eventEntry) {
-    try {
-      await eventQueue.publishEvent(cds.tx(processContext), {
-        // event data goes here
-      });
-    } catch {
-      this.logger.error("Error during processing periodic event!", err);
-    }
-  }
-
-  async processEvent(processContext, key, queueEntries, payload) {
-    let eventStatus = EventProcessingStatus.Done;
-    try {
-      await doHeavyProcessing(queueEntries, payload);
-    } catch {
-      eventStatus = EventProcessingStatus.Error;
-    }
-    return queueEntries.map((queueEntry) => [queueEntry.ID, eventStatus]);
-  }
-}
-```
 
 ## Cron Schedule
 
@@ -452,3 +335,125 @@ unresponsiveness. This enables prompt redirection or restarting of events on dif
 
 This parameter specifies the interval, in seconds, at which keep-alive signals are emitted during event processing. The
 default value is 60 seconds. Adjusting this parameter can tailor the system's responsiveness to potential failures.
+
+# Legacy Event Configuration
+
+The easiest way is to use `cds.env`. This configuration method supports all parameters compatible with the YAML format.
+The event `type` and `subType` are derived from the key in the object. Based on the example below, these would be
+`Notification` and `Email`.
+
+This approach allows full flexibility with `cds.env`, enabling techniques like `.cdsrc.json` and CDS profiles to adjust
+and extend event settings.
+
+```json
+{
+  "cds": {
+    "eventQueue": {
+      "events": {
+        "Notification/Email": {
+          "impl": "./srv/util/mail-service/EventQueueNotificationProcessor",
+          "load": 1,
+          "parallelEventProcessing": 5
+        }
+      },
+      "periodicEvents": {
+        "HealthCheck/DB": {
+          "impl": "./test/asset/EventQueueHealthCheckDb",
+          "load": 1,
+          "transactionMode": "alwaysRollback",
+          "interval": 30
+        }
+      }
+    }
+  }
+}
+```
+
+## YAML File
+
+Below are two examples of ad-hoc event configurations. The first example demonstrates a simple configuration, while the
+second example showcases the full complexity of the configuration.
+
+### Example Ad-Hoc Event Configuration
+
+```yaml
+events:
+  - type: Notification
+    subType: Email
+    impl: ./srv/util/mail-service/EventQueueNotificationProcessor
+    load: 1
+    parallelEventProcessing: 5
+
+  - type: Attachment
+    subType: Compress
+    impl: ./srv/common/process/EventQueueClosingTaskSync
+    load: 3
+    parallelEventProcessing: 2
+    selectMaxChunkSize: 5
+    transactionMode: alwaysRollback
+    retryAttempts: 1
+```
+
+### Example Periodic Event Configuration
+
+The following demonstrates a configuration for a periodic event with a default load of 1 and an interval of 30 seconds.
+This means the periodic event is scheduled to execute every 30 seconds, if the provided capacity is sufficient on any
+application instance. If capacity is unavailable, the execution is delayed, but subsequent attempts will aim to adhere
+to
+the originally planned schedule plus the defined interval.
+
+```yaml
+periodicEvents:
+  - type: HealthCheck
+    subType: DB
+    impl: ./test/asset/EventQueueHealthCheckDb
+    load: 1
+    transactionMode: alwaysRollback
+    interval: 30
+```
+
+## Example on how to implement retries for periodic events
+
+```yaml
+events:
+  - type: MasterData
+    subType: Sync
+    impl: ./test/asset/EventQueuePeriodicWithRetries
+    load: 34 # two MD Syncs in parallel - but leave room for smaller other events
+    retryAttempts: 5
+
+periodicEvents:
+  - type: MasterData
+    subType: Sync
+    impl: ./test/asset/EventQueuePeriodicWithRetries
+    load: 1
+    cron: 0 0 * * * # Runs at midnight every day
+```
+
+```js
+class EventQueuePeriodicWithRetries extends EventQueueProcessorBase {
+  constructor(context, eventType, eventSubType, config) {
+    super(context, eventType, eventSubType, config);
+  }
+
+  async processPeriodicEvent(processContext, key, eventEntry) {
+    try {
+      await eventQueue.publishEvent(cds.tx(processContext), {
+        // event data goes here
+      });
+    } catch {
+      this.logger.error("Error during processing periodic event!", err);
+    }
+  }
+
+  async processEvent(processContext, key, queueEntries, payload) {
+    let eventStatus = EventProcessingStatus.Done;
+    try {
+      await doHeavyProcessing(queueEntries, payload);
+    } catch {
+      eventStatus = EventProcessingStatus.Error;
+    }
+    return queueEntries.map((queueEntry) => [queueEntry.ID, eventStatus]);
+  }
+}
+```

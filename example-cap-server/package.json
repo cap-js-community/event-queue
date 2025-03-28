@@ -78,7 +78,6 @@
         "outbox": {
           "kind": "persistent-outbox",
           "load": 60,
-          "checkForNextChunk": true,
           "transactionMode": "isolated",
           "events": {
             "syncJobs": {

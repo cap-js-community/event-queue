@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Use as CAP Outbox
+title: CAP Outbox
 nav_order: 5
 ---
 
@@ -8,7 +8,7 @@ nav_order: 5
 
 {: .no_toc}
 
-# Use as CAP Outbox
+# CAP Outbox
 
 <!-- prettier-ignore -->
 
@@ -31,9 +31,7 @@ configuration needed to enable the event-queue as a CAP outbox.
 ```json
 {
   "cds": {
-    "eventQueue": {
-      "useAsCAPOutbox": true
-    }
+    "eventQueue": { "useAsCAPOutbox": true }
   }
 }
 ```
@@ -80,7 +78,7 @@ using the event-queue to outbox the `@cap-js/audit-logging` service:
           "kind": "persistent-outbox",
           "transactionMode": "alwaysRollback",
           "maxAttempts": 5,
-          "checkForNextChunk": true,
+          "checkForNextChunk": false,
           "parallelEventProcessing": 5
         }
       }
@@ -94,6 +92,48 @@ The `persistent-outbox` kind allows the event-queue to persist events instead of
 behavior of the [CAP outbox](https://cap.cloud.sap/docs/node.js/outbox). The parameters `transactionMode`,
 `checkForNextChunk`, and `parallelEventProcessing` are
 exclusive to the event-queue.
+
+### Periodic Actions/Events in Outboxed Services
+
+The event-queue supports to periodically schedule actions of a CAP service based on a cron expression or defined
+interval.
+Every event/action in CAP Service can have a different periodicity. The periodicity is defined in the `outbox` section
+of the service configuration. In the example below the `syncTasks` action is scheduled every 15 minutes and the
+`masterDataSync`
+action is scheduled every day at 3:00 AM.
+
+```json
+{
+  "my-service": {
+    "outbox": {
+      "kind": "persistent-outbox",
+      "events": {
+        "syncTasks": { "cron": "*/15 * * * *" },
+        "masterDataSync": { "cron": "0 3 * * *" }
+      }
+    }
+  }
+}
+```
+
+### Configure certain actions differently in the same CAP Service
+
+It is possible to configure different actions in the same CAP service differently. In the example below, all actions in
+the service are configured with a `maxAttempts` of 1, except for the `importantTask` action, which is configured with a
+`maxAttempts` of 20. Based on this logic all configuration parameters can be set differently but having a reasonable
+default configuration for the service.
+
+```json
+{
+  "my-service": {
+    "outbox": {
+      "kind": "persistent-outbox",
+      "maxAttempts": 1,
+      "events": { "importantTask": { "maxAttempts": 20 } }
+    }
+  }
+}
+```
 
 ## Example of a Custom Outboxed Service
 
@@ -125,7 +165,6 @@ Outboxing can be enabled via configuration using `cds.env.requires`, for example
           "kind": "persistent-outbox",
           "transactionMode": "alwaysRollback",
           "maxAttempts": 5,
-          "checkForNextChunk": true,
           "parallelEventProcessing": 5
         }
       }
@@ -144,7 +183,6 @@ const service = await cds.connect.to("task-service");
 const outboxedService = cds.outboxed(service, {
   kind: "persitent-outbox",
   transactionMode: "alwaysRollback",
-  checkForNextChunk: true,
 });
 await outboxedService.send("process", {
   ID: 1,
@@ -152,7 +190,75 @@ await outboxedService.send("process", {
 });
 ```
 
-### How to Delay Outboxed Service Calls
+## How to cluster multiple outbox events
+
+This functionality allows multiple service calls to be processed in a single batch, reducing redundant executions.
+Instead of invoking a service action separately for each event, clustering groups similar events together and processes
+them in one call.
+
+This approach is particularly useful when multiple events trigger the same action. For example, if an action is
+responsible for sending emails, clustering can combine all relevant events into a single email. See the example below
+for implementation in a CAP service:
+
+```js
+this.on("clusterQueueEntries", (req) => {
+  return req.eventQueue.clusterByDataProperty("to", (clusterKey, clusterEntries) => {
+    // clusterKey is the value of the property "req.data.to"
+    // clusterEntries is an array of all entries with the same "req.data.to" value
+    return { recipients: clusterKey, mails: clusterEntries };
+  });
+});
+```
+
+If different actions require different clustering logic, you can define action-specific clustering. The following
+example clusters only the sendMail action:
+
+```js
+this.on("clusterQueueEntries.sendMail", (req) => {
+  return req.eventQueue.clusterByDataProperty("to", (clusterKey, clusterEntries) => {
+    // clusterKey is the value of the property "req.data.to"
+    // clusterEntries is an array of all entries with the same "req.data.to" value
+    return { recipients: clusterKey, mails: clusterEntries };
+  });
+});
+```
+
+The event-queue provides three basic clustering helper functions:
+
+- **`clusterByDataProperty`**: Clusters events based on a specific `req.data` property from the original action call.
+- **`clusterByPayloadProperty`**: Clusters events based on properties from the raw action call payload, such as `req.event`,
+  `contextUser`, `headers`, and more. This can be used, for example, to group all calls of the same action into a single
+  batch. To achieve this, pass `"event"` as the first parameter to this function.
+- **`clusterByEventProperty`**: Clusters events based on raw event data, which corresponds to the event database entry.
+  This allows grouping by fields such as `referenceEntityKey`, `attempts`, `status`, and more.
+
+Event-queue follows a priority order when applying clustering:
+
+1. It first checks for an action-specific implementation (e.g., `clusterQueueEntries.sendMail`).
+2. If none is found, it falls back to the general implementation (`clusterQueueEntries`).
+3. If neither is implemented, no clustering is performed.
+
+## Register hook for exceeded events retries
+
+Event-queue provides a hook that allows you to register a function to be called when an event exceeds the maximum number
+of retry attempts. This hook enables you to implement custom logic within a managed transaction.
+
+If the hook is triggered, the failed service call gets up to three additional retry attempts. Regardless of the outcome,
+the event will ultimately be marked as `Exceeded`. The exceeded hook can be registered for the entire service or for
+specific actions, following the same approach as `clusterQueueEntries`. See the example below a generic exceeded hook
+and an action-specific exceeded hook:
+
+```js
+this.on("hookForExceededEvents", (req) => {
+  // provides a manage transaction
+});
+
+this.on("hookForExceededEvents.sendMail", (req) => {
+  // provides a manage transaction
+});
+```
+
+## How to Delay Outboxed Service Calls
 
 The event queue has a feature that enables the publication of delayed events. This feature is also applicable to CAP
 outboxed services.
@@ -172,12 +278,12 @@ await outboxedService.send(
 );
 ```
 
-### Additional parameters Outboxed Service Calls
+## Additional parameters Outboxed Service Calls
 
 Similar to delaying published events, it is also possible to provide other parameters when publishing events. All event
 publication properties can be found [here](/event-queue/publish-event/#function-parameters).
 
-### Error Handling in a Custom Outboxed Service
+## Error Handling in a Custom Outboxed Service
 
 If the custom service is invoked via `service.send()`, errors can be raised with `req.reject()` and `req.error()`.
 The `reject` and `error` functions cannot be used if the service call is made via `service.emit()`. Refer to the example
@@ -201,11 +307,11 @@ class TaskService extends cds.Service {
 Errors raised in a custom outboxed service are thrown and will be logged from the event queue. The event entry will be
 marked as an error and will be retried based on the event configuration.
 
-### Event-Queue properties
+## Event-Queue properties
 
 The event queue properties that are available for the native event queue processor (refer
 to [this documentation](/event-queue/implement-event/#minimal-implementation-for-ad-hoc-events)) are
-also accessible for outboxed services utilizing the event queue. These properties can be accessed via the cds context.
+also accessible for outboxed services utilizing the event queue. These properties can be accessed via the cds request.
 The following properties are available:
 
 - processor: instance of event-queue processor
@@ -224,9 +330,10 @@ class TaskService extends cds.Service {
 }
 ```
 
-### How to return a custom status?
+## How to return a custom status?
 
-It's possible to return a custom status for an event. The allowed status values are explained [here](/event-queue/status-handling/).
+It's possible to return a custom status for an event. The allowed status values are
+explained [here](/event-queue/status-handling/).
 
 ```js
 this.on("returnPlainStatus", (req) => {
