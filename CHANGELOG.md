@@ -9,9 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- [CAP outbox] allow to define periodic events for CAP outbox services [Documentation](TBD)
-- [CAP outbox] allow to specify specific event settings of every action in the CAP service [Documentation](TBD)
-- [Event Property] timeBucket: This property allows events of the same type to be grouped and processed in batches. The value of this property is a cron pattern.
+- [CAP outbox] the features below bring feature parity to CAP outbox services in comparison to EventQueue Classes. Starting from v1.10.0 it's recommend to use CAP outbox services instead of EventQueue Classes.
+- [CAP outbox] periodic events for actions/events in CAP outbox services [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#periodic-actionsevents-in-outboxed-services)
+- [CAP outbox] allow to specify specific event settings of every action in the CAP service [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#configure-certain-actions-differently-in-the-same-cap-service)
+- [CAP outbox] enable event clustering with convince helper functions [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#how-to-cluster-multiple-outbox-events)
+- [CAP outbox] enable exceeded retry hook [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#register-hook-for-exceeded-events-retries)
+- [Event Configuration] timeBucket: This property allows events of the same type to be grouped and processed in batches. The value of this property is a cron pattern.
   Example: `*/30 * * * * *` — This means all events published within 30 seconds are processed together.
 
 ### Changed
