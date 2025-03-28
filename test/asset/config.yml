@@ -52,6 +52,7 @@ events:
     processAfterCommit: true
     transactionMode: alwaysCommit
     keepAliveInterval: 1
+    checkForNextChunk: false
 
   - type: TransactionMode
     subType: isolatedForKeepAlive
@@ -61,6 +62,7 @@ events:
     processAfterCommit: true
     transactionMode: isolated
     keepAliveInterval: 1
+    checkForNextChunk: false
 
   - type: TransactionMode
     subType: isolatedForKeepAliveSingleSelect
@@ -71,6 +73,7 @@ events:
     transactionMode: isolated
     keepAliveInterval: 1
     selectMaxChunkSize: 1
+    checkForNextChunk: false
 
   - type: TransactionMode
     subType: alwaysRollback
