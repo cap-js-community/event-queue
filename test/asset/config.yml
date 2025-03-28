@@ -16,6 +16,7 @@ events:
     parallelEventProcessing: 5
     processAfterCommit: true
     transactionMode: alwaysRollback
+    checkForNextChunk: false
 
   - type: Test
     subType: retryFailedAfter
@@ -25,6 +26,7 @@ events:
     processAfterCommit: true
     transactionMode: alwaysRollback
     retryFailedAfter: 3000
+    checkForNextChunk: false
 
   - type: Test
     subType: NoProcessAfterCommit
@@ -73,7 +75,7 @@ events:
     transactionMode: isolated
     keepAliveInterval: 1
     selectMaxChunkSize: 1
-    checkForNextChunk: false
+    checkForNextChunk: true
 
   - type: TransactionMode
     subType: alwaysRollback
@@ -97,6 +99,7 @@ events:
     subType: AppName
     impl: ./test/asset/EventQueueTest
     load: 1
+    checkForNextChunk: false
     appNames:
       - app-a
 
@@ -104,6 +107,7 @@ events:
     subType: AppInstance
     impl: ./test/asset/EventQueueTest
     load: 1
+    checkForNextChunk: false
     appInstances:
       - 1
 
@@ -111,6 +115,7 @@ events:
     subType: both
     impl: ./test/asset/EventQueueTest
     load: 1
+    checkForNextChunk: false
     appNames:
       - app-a
     appInstances:
