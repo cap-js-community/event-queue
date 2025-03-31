@@ -904,7 +904,7 @@ describe("event-queue outbox", () => {
     });
 
     describe("custom hooks", () => {
-      describe("checkEventAndGeneratePayload", () => {
+      describe("eventQueueCheckAndAdjustPayload", () => {
         it("specific action call", async () => {
           const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
           const data = { to: "to", subject: "subject", body: "body" };
@@ -914,7 +914,7 @@ describe("event-queue outbox", () => {
           await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalled("checkEventAndGeneratePayload.action", { data: modifiedData });
+          expect(loggerMock).actionCalled("eventQueueCheckAndAdjustPayload.action", { data: modifiedData });
           expect(loggerMock).actionCalled("action", { data: modifiedData });
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
           expect(loggerMock.callsLengths().error).toEqual(0);
@@ -928,7 +928,7 @@ describe("event-queue outbox", () => {
           await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalled("checkEventAndGeneratePayload", { data });
+          expect(loggerMock).actionCalled("eventQueueCheckAndAdjustPayload", { data });
           expect(loggerMock).actionCalled("main", { data });
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
           expect(loggerMock.callsLengths().error).toEqual(0);
@@ -945,8 +945,8 @@ describe("event-queue outbox", () => {
           await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 2 });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalled("checkEventAndGeneratePayload", { data });
-          expect(loggerMock).actionCalled("checkEventAndGeneratePayload.action", { data: modifiedData });
+          expect(loggerMock).actionCalled("eventQueueCheckAndAdjustPayload", { data });
+          expect(loggerMock).actionCalled("eventQueueCheckAndAdjustPayload.action", { data: modifiedData });
           expect(loggerMock).actionCalled("main", { data });
           expect(loggerMock).actionCalled("action", { data: modifiedData });
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
@@ -954,7 +954,7 @@ describe("event-queue outbox", () => {
         });
       });
 
-      describe("clusterQueueEntries", () => {
+      describe("eventQueueCluster", () => {
         it("non specific action call", async () => {
           const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
           const data = { to: "to", subject: "subject", body: "body" };
@@ -968,7 +968,7 @@ describe("event-queue outbox", () => {
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
           eventEntry.lastAttemptTimestamp = expect.any(String);
-          expect(loggerMock).actionCalled("clusterQueueEntries");
+          expect(loggerMock).actionCalled("eventQueueCluster");
           expect(loggerMock).actionCalled("main", { data: eventEntry.payload.data });
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
           expect(loggerMock.callsLengths().error).toEqual(0);
@@ -987,7 +987,7 @@ describe("event-queue outbox", () => {
             });
             await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
             await commitAndOpenNew();
-            expect(loggerMock).actionCalledTimes("clusterQueueEntries.actionClusterByPayloadWithCb", 1);
+            expect(loggerMock).actionCalledTimes("eventQueueCluster.actionClusterByPayloadWithCb", 1);
             expect(loggerMock).actionCalledTimes("actionClusterByPayloadWithCb", 1);
             expect(loggerMock).actionCalled("actionClusterByPayloadWithCb", {
               data: { ...data, guids: expect.arrayContaining(data.guids.concat(data2.guids)) },
@@ -1008,7 +1008,7 @@ describe("event-queue outbox", () => {
             });
             await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
             await commitAndOpenNew();
-            expect(loggerMock).actionCalledTimes("clusterQueueEntries.actionClusterByPayloadWithCb", 1);
+            expect(loggerMock).actionCalledTimes("eventQueueCluster.actionClusterByPayloadWithCb", 1);
             expect(loggerMock).actionCalledTimes("actionClusterByPayloadWithCb", 1);
             expect(loggerMock).actionCalled("actionClusterByPayloadWithCb", {
               data: { ...data, guids: expect.arrayContaining(data.guids.concat(data2.guids)) },
@@ -1032,7 +1032,7 @@ describe("event-queue outbox", () => {
             });
             await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
             await commitAndOpenNew();
-            expect(loggerMock).actionCalledTimes("clusterQueueEntries.actionClusterByPayloadWithoutCb", 1);
+            expect(loggerMock).actionCalledTimes("eventQueueCluster.actionClusterByPayloadWithoutCb", 1);
             expect(loggerMock).actionCalledTimes("actionClusterByPayloadWithoutCb", 1);
             expect(loggerMock).actionCalled("actionClusterByPayloadWithoutCb", {
               data,
@@ -1057,7 +1057,7 @@ describe("event-queue outbox", () => {
             });
             await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
             await commitAndOpenNew();
-            expect(loggerMock).actionCalledTimes("clusterQueueEntries.actionClusterByEventWithCb", 1);
+            expect(loggerMock).actionCalledTimes("eventQueueCluster.actionClusterByEventWithCb", 1);
             expect(loggerMock).actionCalledTimes("actionClusterByEventWithCb", 1);
             expect(loggerMock).actionCalled("actionClusterByEventWithCb", {
               data: { ...data, guids: expect.arrayContaining(data.guids.concat(data2.guids)) },
@@ -1082,7 +1082,7 @@ describe("event-queue outbox", () => {
             });
             await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
             await commitAndOpenNew();
-            expect(loggerMock).actionCalledTimes("clusterQueueEntries.actionClusterByEventWithoutCb", 1);
+            expect(loggerMock).actionCalledTimes("eventQueueCluster.actionClusterByEventWithoutCb", 1);
             expect(loggerMock).actionCalledTimes("actionClusterByEventWithoutCb", 1);
             expect(loggerMock).actionCalled("actionClusterByEventWithoutCb", {
               data,
@@ -1155,7 +1155,7 @@ describe("event-queue outbox", () => {
           let handlerRegistration = {};
           for (const index in unboxedService.handlers.on) {
             const handler = unboxedService.handlers.on[index];
-            if (handler.on === "clusterQueueEntries") {
+            if (handler.on === "eventQueueCluster") {
               handlerRegistration = { index, handler };
               delete unboxedService.handlers.on[index];
             }
@@ -1187,8 +1187,8 @@ describe("event-queue outbox", () => {
           });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalledTimes("clusterQueueEntries", 1);
-          expect(loggerMock).actionCalledTimes("clusterQueueEntries.action", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueCluster", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueCluster.action", 1);
           expect(loggerMock).actionCalledTimes("action", 1);
           expect(loggerMock).actionCalledTimes("main", 1);
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
@@ -1208,7 +1208,7 @@ describe("event-queue outbox", () => {
           });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalledTimes("clusterQueueEntries", 2);
+          expect(loggerMock).actionCalledTimes("eventQueueCluster", 2);
           expect(loggerMock).actionCalledTimes("main", 1);
           expect(loggerMock).actionCalledTimes("anotherAction", 1);
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
@@ -1226,7 +1226,7 @@ describe("event-queue outbox", () => {
           });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalledTimes("clusterQueueEntries.actionWithInvalidClusterReturn", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueCluster.actionWithInvalidClusterReturn", 1);
           expect(loggerMock).actionCalledTimes("actionWithInvalidClusterReturn", 2);
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
           expect(loggerMock.callsLengths().error).toEqual(1);
@@ -1242,7 +1242,7 @@ describe("event-queue outbox", () => {
           });
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalledTimes("clusterQueueEntries.throwErrorInCluster", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueCluster.throwErrorInCluster", 1);
           expect(loggerMock).actionCalledTimes("throwErrorInCluster", 0);
           await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
           expect(loggerMock.callsLengths().error).toEqual(1);
@@ -1263,7 +1263,7 @@ describe("event-queue outbox", () => {
           expect(loggerMock.callsLengths().error).toEqual(1);
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.exceededAction`);
-          expect(loggerMock).actionCalledTimes("hookForExceededEvents", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueRetriesExceeded", 1);
           const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 2 });
           expect(events).toMatchObject([
             {
@@ -1293,7 +1293,7 @@ describe("event-queue outbox", () => {
           expect(loggerMock.callsLengths().error).toEqual(1);
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.exceededActionSpecific`);
-          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecific", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueRetriesExceeded.exceededActionSpecific", 1);
           expect(loggerMock.callsLengths().error).toEqual(1);
         });
 
@@ -1313,8 +1313,8 @@ describe("event-queue outbox", () => {
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalledTimes("hookForExceededEvents", 1);
-          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificMixed", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueRetriesExceeded", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueRetriesExceeded.exceededActionSpecificMixed", 1);
           await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 4 });
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
@@ -1334,7 +1334,7 @@ describe("event-queue outbox", () => {
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificError", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueRetriesExceeded.exceededActionSpecificError", 1);
           await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
           expect(await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code = 'DummyTest'"))).toBeUndefined();
           expect(loggerMock.callsLengths().error).toEqual(1);
@@ -1355,7 +1355,7 @@ describe("event-queue outbox", () => {
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificError", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueRetriesExceeded.exceededActionSpecificError", 1);
           await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
           expect(await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code = 'DummyTest'"))).toBeUndefined();
           expect(loggerMock.callsLengths().error).toEqual(1);
@@ -1363,19 +1363,19 @@ describe("event-queue outbox", () => {
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
-          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificError", 2);
+          expect(loggerMock).actionCalledTimes("eventQueueRetriesExceeded.exceededActionSpecificError", 2);
           expect(loggerMock.callsLengths().error).toEqual(2);
 
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
-          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificError", 3);
+          expect(loggerMock).actionCalledTimes("eventQueueRetriesExceeded.exceededActionSpecificError", 3);
           expect(loggerMock.callsLengths().error).toEqual(3);
 
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await testHelper.selectEventQueueAndExpectExceeded(tx, { expectedLength: 1 });
-          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionSpecificError", 3);
+          expect(loggerMock).actionCalledTimes("eventQueueRetriesExceeded.exceededActionSpecificError", 3);
           expect(loggerMock.callsLengths().error).toEqual(4);
         });
 
@@ -1394,7 +1394,7 @@ describe("event-queue outbox", () => {
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
           await commitAndOpenNew();
-          expect(loggerMock).actionCalledTimes("hookForExceededEvents.exceededActionWithCommit", 1);
+          expect(loggerMock).actionCalledTimes("eventQueueRetriesExceeded.exceededActionWithCommit", 1);
           await testHelper.selectEventQueueAndExpectExceeded(tx, { expectedLength: 1 });
           expect(await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code = 'DummyTest'"))).toBeDefined();
           expect(loggerMock.callsLengths().error).toEqual(0);

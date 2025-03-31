@@ -201,7 +201,7 @@ responsible for sending emails, clustering can combine all relevant events into 
 for implementation in a CAP service:
 
 ```js
-this.on("clusterQueueEntries", (req) => {
+this.on("eventQueueCluster", (req) => {
   return req.eventQueue.clusterByDataProperty("to", (clusterKey, clusterEntries) => {
     // clusterKey is the value of the property "req.data.to"
     // clusterEntries is an array of all entries with the same "req.data.to" value
@@ -214,7 +214,7 @@ If different actions require different clustering logic, you can define action-s
 example clusters only the sendMail action:
 
 ```js
-this.on("clusterQueueEntries.sendMail", (req) => {
+this.on("eventQueueCluster.sendMail", (req) => {
   return req.eventQueue.clusterByDataProperty("to", (clusterKey, clusterEntries) => {
     // clusterKey is the value of the property "req.data.to"
     // clusterEntries is an array of all entries with the same "req.data.to" value
@@ -234,8 +234,8 @@ The event-queue provides three basic clustering helper functions:
 
 Event-queue follows a priority order when applying clustering:
 
-1. It first checks for an action-specific implementation (e.g., `clusterQueueEntries.sendMail`).
-2. If none is found, it falls back to the general implementation (`clusterQueueEntries`).
+1. It first checks for an action-specific implementation (e.g., `eventQueueCluster.sendMail`).
+2. If none is found, it falls back to the general implementation (`eventQueueCluster`).
 3. If neither is implemented, no clustering is performed.
 
 ## Register hook for exceeded events retries
@@ -245,15 +245,15 @@ of retry attempts. This hook enables you to implement custom logic within a mana
 
 If the hook is triggered, the failed service call gets up to three additional retry attempts. Regardless of the outcome,
 the event will ultimately be marked as `Exceeded`. The exceeded hook can be registered for the entire service or for
-specific actions, following the same approach as `clusterQueueEntries`. See the example below a generic exceeded hook
+specific actions, following the same approach as `eventQueueCluster`. See the example below a generic exceeded hook
 and an action-specific exceeded hook:
 
 ```js
-this.on("hookForExceededEvents", (req) => {
+this.on("eventQueueRetriesExceeded", (req) => {
   // provides a manage transaction
 });
 
-this.on("hookForExceededEvents.sendMail", (req) => {
+this.on("eventQueueRetriesExceeded.sendMail", (req) => {
   // provides a manage transaction
 });
 ```
