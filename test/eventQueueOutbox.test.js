@@ -17,6 +17,7 @@ const { EventProcessingStatus } = require("../src/constants");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
 const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericOutboxHandler");
+const { getEnvInstance } = require("../src/shared/env");
 
 const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
 
@@ -51,6 +52,28 @@ cds.env.requires.OutboxCustomHooks = {
       exceededActionSpecific: {
         retryAttempts: 1,
         retryFailedAfter: 0,
+      },
+    },
+  },
+};
+
+cds.env.requires.AppNames = {
+  impl: "./outboxProject/srv/service/serviceAppNames.js",
+  outbox: {
+    kind: "persistent-outbox",
+    checkForNextChunk: false,
+    events: {
+      appNamesString: {
+        appNames: [],
+      },
+      appNamesRegex: {
+        appNames: ["/srv-backend.*/i"],
+      },
+      appNamesMixStringMatch: {
+        appNames: ["/srv-backend.*/i", "a-srv-backend"],
+      },
+      appNamesMixRegexMatch: {
+        appNames: ["/a-srv-backend.*/i", "srv-backend"],
       },
     },
   },
@@ -1399,6 +1422,77 @@ describe("event-queue outbox", () => {
           expect(await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code = 'DummyTest'"))).toBeDefined();
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
+      });
+    });
+
+    describe("app names", () => {
+      let env = getEnvInstance();
+      beforeEach(() => {
+        env.vcapApplication = {};
+      });
+
+      it("regex - no match", async () => {
+        const service = (await cds.connect.to("AppNames")).tx(context);
+        const data = { to: "to" };
+        await service.send("appNamesRegex", data);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", "AppNames.appNamesRegex");
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("regex - match", async () => {
+        const service = (await cds.connect.to("AppNames")).tx(context);
+        env.vcapApplication = { application_name: `srv-backend-${cds.utils.uuid()}` };
+        const data = { to: "to" };
+        await service.send("appNamesRegex", data);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", "AppNames.appNamesRegex");
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("mix - regex no match - string match", async () => {
+        const service = (await cds.connect.to("AppNames")).tx(context);
+        env.vcapApplication = { application_name: `a-srv-backend` };
+        const data = { to: "to" };
+        await service.send("appNamesMixStringMatch", data);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", "AppNames.appNamesMixStringMatch");
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("mix - regex match - string no match", async () => {
+        const service = (await cds.connect.to("AppNames")).tx(context);
+        env.vcapApplication = { application_name: `a-srv-backend-${cds.utils.uuid()}` };
+        const data = { to: "to" };
+        await service.send("appNamesMixRegexMatch", data);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", "AppNames.appNamesMixRegexMatch");
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("mix - regex no match - string no match", async () => {
+        const service = (await cds.connect.to("AppNames")).tx(context);
+        env.vcapApplication = { application_name: `srv--backend` };
+        const data = { to: "to" };
+        await service.send("appNamesMixStringMatch", data);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", "AppNames.appNamesMixStringMatch");
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
       });
     });
   });
