@@ -476,17 +476,22 @@ describe("periodic events", () => {
       const events = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 2,
         type: cronEvent.type,
+        additionalColumns: ["lastAttemptTimestamp"],
       });
       const [done, open] = events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
       expect(done).toEqual({
         status: EventProcessingStatus.Done,
         attempts: 1,
         startAfter: newDate.toISOString(),
+        lastAttemptTimestamp: expect.any(String),
       });
       expect(open).toEqual({
         status: EventProcessingStatus.Open,
         attempts: 0,
-        startAfter: CronExpressionParser.parse(cronEvent.cron).next().toISOString(),
+        lastAttemptTimestamp: null,
+        startAfter: CronExpressionParser.parse(cronEvent.cron, { currentDate: new Date(done.lastAttemptTimestamp) })
+          .next()
+          .toISOString(),
       });
     });
 

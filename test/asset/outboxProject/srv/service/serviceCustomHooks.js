@@ -30,7 +30,7 @@ class OutboxCustomHooks extends cds.Service {
       });
     }
 
-    this.on("clusterQueueEntries.action", (req) => {
+    this.on("eventQueueCluster.action", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -38,7 +38,7 @@ class OutboxCustomHooks extends cds.Service {
       return req.eventQueue.clusterByPayloadProperty("event");
     });
 
-    this.on("clusterQueueEntries.actionClusterByData", (req) => {
+    this.on("eventQueueCluster.actionClusterByData", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -46,7 +46,7 @@ class OutboxCustomHooks extends cds.Service {
       return req.eventQueue.clusterByPayloadProperty("data.to");
     });
 
-    this.on("clusterQueueEntries.actionClusterByDataWithCb", (req) => {
+    this.on("eventQueueCluster.actionClusterByDataWithCb", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -56,7 +56,7 @@ class OutboxCustomHooks extends cds.Service {
       });
     });
 
-    this.on("clusterQueueEntries", (req) => {
+    this.on("eventQueueCluster", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -64,7 +64,7 @@ class OutboxCustomHooks extends cds.Service {
       return req.eventQueue.clusterByPayloadProperty("data.to");
     });
 
-    this.on("clusterQueueEntries.actionClusterByPayloadWithCb", (req) => {
+    this.on("eventQueueCluster.actionClusterByPayloadWithCb", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -77,7 +77,7 @@ class OutboxCustomHooks extends cds.Service {
       });
     });
 
-    this.on("clusterQueueEntries.actionClusterByPayloadWithoutCb", (req) => {
+    this.on("eventQueueCluster.actionClusterByPayloadWithoutCb", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -85,7 +85,7 @@ class OutboxCustomHooks extends cds.Service {
       return req.eventQueue.clusterByPayloadProperty("data.to");
     });
 
-    this.on("clusterQueueEntries.actionClusterByEventWithCb", (req) => {
+    this.on("eventQueueCluster.actionClusterByEventWithCb", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -95,7 +95,7 @@ class OutboxCustomHooks extends cds.Service {
       });
     });
 
-    this.on("clusterQueueEntries.actionClusterByEventWithoutCb", (req) => {
+    this.on("eventQueueCluster.actionClusterByEventWithoutCb", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -103,7 +103,7 @@ class OutboxCustomHooks extends cds.Service {
       return req.eventQueue.clusterByEventProperty("referenceEntityKey");
     });
 
-    this.on("clusterQueueEntries.actionWithInvalidClusterReturn", (req) => {
+    this.on("eventQueueCluster.actionWithInvalidClusterReturn", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -111,7 +111,7 @@ class OutboxCustomHooks extends cds.Service {
       return [];
     });
 
-    this.on("clusterQueueEntries.throwErrorInCluster", (req) => {
+    this.on("eventQueueCluster.throwErrorInCluster", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -119,7 +119,7 @@ class OutboxCustomHooks extends cds.Service {
       throw new Error("cluster error");
     });
 
-    this.on("checkEventAndGeneratePayload", (req) => {
+    this.on("eventQueueCheckAndAdjustPayload", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -128,7 +128,7 @@ class OutboxCustomHooks extends cds.Service {
       return req.data;
     });
 
-    this.on("checkEventAndGeneratePayload.action", (req) => {
+    this.on("eventQueueCheckAndAdjustPayload.action", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -162,7 +162,7 @@ class OutboxCustomHooks extends cds.Service {
       }
     });
 
-    this.on("hookForExceededEvents", async (req) => {
+    this.on("eventQueueRetriesExceeded", async (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -171,7 +171,7 @@ class OutboxCustomHooks extends cds.Service {
       await cds.outboxed(this).tx(req).send("action");
     });
 
-    this.on("hookForExceededEvents.exceededActionSpecific", async (req) => {
+    this.on("eventQueueRetriesExceeded.exceededActionSpecific", async (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -180,7 +180,7 @@ class OutboxCustomHooks extends cds.Service {
       await cds.outboxed(this).tx(req).send("action");
     });
 
-    this.on("hookForExceededEvents.exceededActionSpecificMixed", async (req) => {
+    this.on("eventQueueRetriesExceeded.exceededActionSpecificMixed", async (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -189,7 +189,7 @@ class OutboxCustomHooks extends cds.Service {
       await cds.outboxed(this).tx(req).send("action");
     });
 
-    this.on("hookForExceededEvents.exceededActionSpecificError", async (req) => {
+    this.on("eventQueueRetriesExceeded.exceededActionSpecificError", async (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -199,7 +199,7 @@ class OutboxCustomHooks extends cds.Service {
       throw new Error("all bad");
     });
 
-    this.on("hookForExceededEvents.exceededActionWithCommit", async (req) => {
+    this.on("eventQueueRetriesExceeded.exceededActionWithCommit", async (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,

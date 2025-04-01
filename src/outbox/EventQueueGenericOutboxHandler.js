@@ -9,6 +9,12 @@ const config = require("../config");
 
 const COMPONENT_NAME = "/eventQueue/outbox/generic";
 
+const EVENT_QUEUE_ACTIONS = {
+  EXCEEDED: "eventQueueRetriesExceeded",
+  CLUSTER: "eventQueueCluster",
+  CHECK_AND_ADJUST: "eventQueueCheckAndAdjustPayload",
+};
+
 class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   constructor(context, eventType, eventSubType, config) {
     super(context, eventType, eventSubType, config);
@@ -21,7 +27,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     this.__srvUnboxed = cds.unboxed(this.__srv);
     const { handlers, clusterRelevant, specificClusterRelevant } = this.__srvUnboxed.handlers.on.reduce(
       (result, handler) => {
-        if (handler.on.startsWith("clusterQueueEntries")) {
+        if (handler.on.startsWith(EVENT_QUEUE_ACTIONS.CLUSTER)) {
           if (handler.on.split(".").length === 2) {
             result.specificClusterRelevant = true;
           } else {
@@ -41,8 +47,6 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     return await super.getQueueEntriesAndSetToInProgress();
   }
 
-  // document structure is a map of { key: { queueEntries: [], payload: {} }
-  // TODO: document that clusterQueueEntries is now async!!!
   async clusterQueueEntries(queueEntriesWithPayloadMap) {
     if (!this.__genericClusterRelevantAndAvailable && !this.__specificClusterRelevantAndAvailable) {
       return super.clusterQueueEntries(queueEntriesWithPayloadMap);
@@ -58,7 +62,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       } else {
         for (const actionName in genericClusterEvents) {
           const msg = new cds.Request({
-            event: `clusterQueueEntries`,
+            event: EVENT_QUEUE_ACTIONS.CLUSTER,
             user: this.context.user,
             eventQueue: {
               processor: this,
@@ -67,7 +71,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
               clusterByEventProperty: (propertyName, cb) =>
                 this.#clusterByEventProperty(actionName, genericClusterEvents[actionName], propertyName, cb),
               clusterByDataProperty: (propertyName, cb) =>
-                this.#clusterByDataProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
+                this.#clusterByDataProperty(actionName, genericClusterEvents[actionName], propertyName, cb),
             },
           });
           const clusterResult = await this.__srvUnboxed.tx(this.context).send(msg);
@@ -89,7 +93,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
 
     for (const actionName in specificClusterEvents) {
       const msg = new cds.Request({
-        event: `clusterQueueEntries.${actionName}`,
+        event: `${EVENT_QUEUE_ACTIONS.CLUSTER}.${actionName}`,
         user: this.context.user,
         eventQueue: {
           processor: this,
@@ -249,13 +253,13 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   }
 
   #hasEventSpecificClusterHandler(queueEntry) {
-    return !!this.__onHandlers[["clusterQueueEntries", queueEntry.payload.event].join(".")];
+    return !!this.__onHandlers[[EVENT_QUEUE_ACTIONS.CLUSTER, queueEntry.payload.event].join(".")];
   }
 
   async checkEventAndGeneratePayload(queueEntry) {
     const payload = await super.checkEventAndGeneratePayload(queueEntry);
     const { event } = payload;
-    const handlerName = this.#checkHandlerExists("checkEventAndGeneratePayload", event);
+    const handlerName = this.#checkHandlerExists(EVENT_QUEUE_ACTIONS.CHECK_AND_ADJUST, event);
     if (!handlerName) {
       return payload;
     }
@@ -276,7 +280,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
 
   async hookForExceededEvents(exceededEvent) {
     const { event } = exceededEvent.payload;
-    const handlerName = this.#checkHandlerExists("hookForExceededEvents", event);
+    const handlerName = this.#checkHandlerExists(EVENT_QUEUE_ACTIONS.EXCEEDED, event);
     if (!handlerName) {
       return await super.hookForExceededEvents(exceededEvent);
     }
