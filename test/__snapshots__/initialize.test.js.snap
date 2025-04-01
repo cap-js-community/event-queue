@@ -4,6 +4,7 @@ exports[`initialize read yaml config file 1`] = `
 [
   {
     "_appInstancesMap": null,
+    "_appNameContainsRegex": null,
     "_appNameMap": null,
     "checkForNextChunk": true,
     "impl": "./srv/notification/EventQueueNotificationProcessor",
@@ -19,6 +20,7 @@ exports[`initialize read yaml config file 1`] = `
   },
   {
     "_appInstancesMap": null,
+    "_appNameContainsRegex": null,
     "_appNameMap": null,
     "checkForNextChunk": true,
     "impl": "./srv/businessLogs/EventQueueBusinessLogProcessor",

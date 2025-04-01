@@ -153,18 +153,50 @@ class Config {
     return !!this.#env.redisRequires?.credentials;
   }
 
+  #parseRegexOrString(str) {
+    const regexLiteralPattern = /^\/((?:\\.|[^\\/])*)\/([gimsuy]*)$/;
+    const match = str.match(regexLiteralPattern);
+
+    if (match) {
+      try {
+        return { type: "regex", value: new RegExp(match[1], match[2]) };
+      } catch {
+        return { type: "string", value: str };
+      }
+    }
+    return { type: "string", value: str };
+  }
+
   shouldBeProcessedInThisApplication(type, subType) {
     const config = this.#eventMap[this.generateKey(type, subType)];
     const appNameConfig = config._appNameMap;
     const appInstanceConfig = config._appInstancesMap;
+    let result = true;
     if (!appNameConfig && !appInstanceConfig) {
-      return true;
+      return result;
     }
 
     if (appNameConfig) {
-      const shouldBeProcessedBasedOnAppName = appNameConfig[this.#env.applicationName];
-      if (!shouldBeProcessedBasedOnAppName) {
-        return false;
+      if (config._appNameContainsRegex) {
+        for (const configKey in appNameConfig) {
+          const config = appNameConfig[configKey];
+          if (config.type === "regex") {
+            result = config.value.test(this.#env.applicationName);
+          } else {
+            const shouldBeProcessedBasedOnAppName = appNameConfig[this.#env.applicationName];
+            if (!shouldBeProcessedBasedOnAppName) {
+              result = config.value === this.#env.applicationName;
+            }
+          }
+          if (result) {
+            break;
+          }
+        }
+      } else {
+        const shouldBeProcessedBasedOnAppName = appNameConfig[this.#env.applicationName];
+        if (!shouldBeProcessedBasedOnAppName) {
+          return false;
+        }
       }
     }
 
@@ -175,7 +207,7 @@ class Config {
       }
     }
 
-    return true;
+    return result;
   }
 
   checkRedisEnabled() {
@@ -530,7 +562,12 @@ class Config {
   }
 
   #basicEventTransformationAfterValidate(event) {
-    event._appNameMap = event.appNames ? Object.fromEntries(new Map(event.appNames.map((a) => [a, true]))) : null;
+    event._appNameMap = event.appNames
+      ? Object.fromEntries(new Map(event.appNames.map((a) => [a, this.#parseRegexOrString(a)])))
+      : null;
+    event._appNameContainsRegex = event.appNames
+      ? event.appNames.some((appName) => this.#parseRegexOrString(appName).type === "regex")
+      : null;
     event._appInstancesMap = event.appInstances
       ? Object.fromEntries(new Map(event.appInstances.map((a) => [a, true])))
       : null;
