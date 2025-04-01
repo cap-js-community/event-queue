@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [CAP outbox] enable exceeded retry hook [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#register-hook-for-exceeded-events-retries)
 - [Event Configuration] timeBucket: This property allows events of the same type to be grouped and processed in batches. The value of this property is a cron pattern.
   Example: `*/30 * * * * *` — This means all events published within 30 seconds are processed together.
+- [Event Configuration] AppNames (apps on which an event should be processed) now supports regex expressions. [Example: /srv-backend/i](https://cap-js-community.github.io/event-queue/https://cap-js-community.github.io/event-queue/configure-event/#parameters)
 
 ### Changed
 

@@ -47,8 +47,6 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     return await super.getQueueEntriesAndSetToInProgress();
   }
 
-  // document structure is a map of { key: { queueEntries: [], payload: {} }
-  // TODO: document that clusterQueueEntries is now async!!!
   async clusterQueueEntries(queueEntriesWithPayloadMap) {
     if (!this.__genericClusterRelevantAndAvailable && !this.__specificClusterRelevantAndAvailable) {
       return super.clusterQueueEntries(queueEntriesWithPayloadMap);

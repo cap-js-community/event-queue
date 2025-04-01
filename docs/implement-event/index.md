@@ -181,8 +181,7 @@ processed in a unified manner. For instance, if multiple email events have been 
 Here is an example of how to use the `clusterQueueEntries` function:
 
 ```js
-clusterQueueEntries(queueEntriesWithPayloadMap);
-{
+async clusterQueueEntries(queueEntriesWithPayloadMap) {
   Object.entries(queueEntriesWithPayloadMap).forEach(([key, { queueEntry, payload }]) => {
     const clusterKey = payload.emailAddress;
     this.addEntryToProcessingMap(clusterKey, queueEntry, payload);
