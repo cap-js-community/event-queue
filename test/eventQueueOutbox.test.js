@@ -18,6 +18,7 @@ const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const { getOpenQueueEntries } = require("../src/runner/openEvents");
 const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericOutboxHandler");
 const { getEnvInstance } = require("../src/shared/env");
+const { CronExpressionParser } = require("cron-parser");
 
 const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
 
@@ -601,11 +602,16 @@ describe("event-queue outbox", () => {
       await commitAndOpenNew();
       const [event] = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 1,
-        additionalColumns: ["subType"],
+        additionalColumns: ["subType", "createdAt"],
       });
-      const date = new Date(event.startAfter);
-      expect(date.getSeconds()).toEqual(0);
-      expect(date.getMilliseconds()).toEqual(0);
+      const pattern = cds.env.requires.StandardService.outbox.events.timeBucketAction.timeBucket;
+      const expectedDate = CronExpressionParser.parse(pattern, {
+        currentDate: new Date(event.createdAt),
+      })
+        .next()
+        .toISOString();
+      expect(event.startAfter).toBeDefined();
+      expect(expectedDate).toEqual(event.startAfter);
       expect(event.subType).toEqual("StandardService.timeBucketAction");
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
