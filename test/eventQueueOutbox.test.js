@@ -19,6 +19,7 @@ const { getOpenQueueEntries } = require("../src/runner/openEvents");
 const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericOutboxHandler");
 const { getEnvInstance } = require("../src/shared/env");
 const { CronExpressionParser } = require("cron-parser");
+const common = require("../src/shared/common");
 
 const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
 
@@ -613,6 +614,20 @@ describe("event-queue outbox", () => {
       expect(event.startAfter).toBeDefined();
       expect(expectedDate).toEqual(event.startAfter);
       expect(event.subType).toEqual("StandardService.timeBucketAction");
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("check that tokenInfo is correctly exposed on the user", async () => {
+      jest.spyOn(common, "getTokenInfo").mockResolvedValue({ tokenInfo: 123 });
+      const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+      const data = { to: "to", subject: "subject", body: "body" };
+      await service.send("tokenInfo", data);
+      await commitAndOpenNew();
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
+      expect(loggerMock).actionCalled("tokenInfo", { tokenInfo: { tokenInfo: 123 } });
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
