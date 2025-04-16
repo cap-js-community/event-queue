@@ -37,7 +37,7 @@ describe("getTokenInfo", () => {
     expect(cds.log().warn.mock.calls).toHaveLength(0);
   });
 
-  it("should set and return new AuthInfo", async () => {
+  it("should set and return new TokenInfo", async () => {
     jest
       .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
       .mockResolvedValueOnce({ access_token: "token" });

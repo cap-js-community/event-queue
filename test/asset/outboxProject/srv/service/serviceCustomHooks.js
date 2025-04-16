@@ -30,6 +30,15 @@ class OutboxCustomHooks extends cds.Service {
       });
     }
 
+    this.on("tokenInfo", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        tokenInfo: req.user.tokenInfo,
+        user: req.user.id,
+        subType: req.eventQueue.processor.eventSubType,
+      });
+    });
+
     this.on("eventQueueCluster.action", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
