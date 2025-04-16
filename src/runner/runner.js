@@ -146,7 +146,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
           async () => {
             tx.context.user = new cds.User.Privileged({
               id: config.userId,
-              authInfo: await common.getTokenInfo(tenantId),
+              tokenInfo: await common.getTokenInfo(tenantId),
             });
             const entries = await openEvents.getOpenQueueEntries(tx, false);
             logger.info("broadcasting events for run", {
