@@ -167,7 +167,15 @@ class Config {
     return { type: "string", value: str };
   }
 
-  shouldBeProcessedInThisApplication(type, subType) {
+  #normalizeSubType(rawSubType) {
+    const [serviceName, actionName] = rawSubType.split(".");
+    const actionSpecificCall = this.getCdsOutboxEventSpecificConfig(serviceName, actionName);
+    return actionSpecificCall ? rawSubType : serviceName;
+  }
+
+  shouldBeProcessedInThisApplication(type, rawSubType) {
+    const subType = this.#normalizeSubType(rawSubType);
+
     const config = this.#eventMap[this.generateKey(type, subType)];
     const appNameConfig = config._appNameMap;
     const appInstanceConfig = config._appInstancesMap;

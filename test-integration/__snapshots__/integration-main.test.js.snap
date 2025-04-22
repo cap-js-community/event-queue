@@ -135,6 +135,18 @@ exports[`integration-main insert one delayed entry and process - should not be p
 }
 `;
 
+exports[`integration-main insert one entry - checkForNext but return status 0 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 5,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 5,
+  "ROLLBACK": 1,
+  "UPDATE": 2,
+}
+`;
+
 exports[`integration-main insert one entry and process 1`] = `
 {
   "BEGIN": 7,

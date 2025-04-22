@@ -40,11 +40,24 @@ const _messageHandlerProcessEvents = async (messageData) => {
       return;
     }
 
+    let serviceNameOrSubType, actionName;
+    if (config.isCapOutboxEvent(type)) {
+      [serviceNameOrSubType, actionName] = subType.split(".");
+    } else {
+      serviceNameOrSubType = subType;
+    }
+
     if (!config.getEventConfig(type, subType)) {
       if (config.isCapOutboxEvent(type)) {
         try {
-          const service = await cds.connect.to(subType);
+          const service = await cds.connect.to(serviceNameOrSubType);
           cds.outboxed(service);
+          if (actionName) {
+            const specificSettings = config.getCdsOutboxEventSpecificConfig(serviceNameOrSubType, actionName);
+            if (specificSettings) {
+              config.addCAPOutboxEventSpecificAction(serviceNameOrSubType, actionName);
+            }
+          }
         } catch (err) {
           logger.warn("could not connect to outboxed service", err, {
             type,
@@ -61,7 +74,9 @@ const _messageHandlerProcessEvents = async (messageData) => {
       }
     }
 
-    if (!(config.getEventConfig(type, subType) && config.shouldBeProcessedInThisApplication(type, subType))) {
+    if (
+      !(config.getEventConfig(type, serviceNameOrSubType) && config.shouldBeProcessedInThisApplication(type, subType))
+    ) {
       logger.debug("event is not configured to be processed on this app-name", {
         tenantId,
         type,
