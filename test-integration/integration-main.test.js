@@ -286,7 +286,7 @@ describe("integration-main", () => {
     eventQueue.config.dbUser = null;
   });
 
-  it("insert one entry witch checkForNext but return status 0", async () => {
+  it("insert one entry - checkForNext but return status 0", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
     const event = eventQueue.config.events[0];
@@ -300,6 +300,8 @@ describe("integration-main", () => {
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(processSpy).toHaveBeenCalledTimes(1);
     await testHelper.selectEventQueueAndExpectOpen(tx);
+    const [openEvent] = await testHelper.selectEventQueueAndReturn(tx);
+    expect(openEvent.startAfter).toEqual(null);
     expect(dbCounts).toMatchSnapshot();
 
     jest.spyOn(EventQueueTest.prototype, "processEvent").mockRestore();

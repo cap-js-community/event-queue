@@ -20,6 +20,7 @@ const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericO
 const { getEnvInstance } = require("../src/shared/env");
 const { CronExpressionParser } = require("cron-parser");
 const common = require("../src/shared/common");
+const config = require("../src/config");
 
 const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
 
@@ -48,6 +49,10 @@ cds.env.requires.OutboxCustomHooks = {
     checkForNextChunk: false,
     events: {
       exceededAction: {
+        retryAttempts: 1,
+        retryFailedAfter: 0,
+      },
+      connectSpecific: {
         retryAttempts: 1,
         retryFailedAfter: 0,
       },
@@ -1514,6 +1519,56 @@ describe("event-queue outbox", () => {
         await commitAndOpenNew();
         await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
         expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+    });
+
+    describe("redisPubSub", () => {
+      beforeAll(() => {
+        config.isEventQueueActive = true;
+      });
+
+      afterAll(() => {
+        config.isEventQueueActive = true;
+      });
+
+      it("should connect to CAP service - no specific configuration", async () => {
+        const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+        const connectSpy = jest.spyOn(cds.connect, "to");
+        const configSpy = jest.spyOn(config, "getCdsOutboxEventSpecificConfig");
+        const configAddSpy = jest.spyOn(config, "addCAPOutboxEventSpecificAction");
+
+        await redisSub.__._messageHandlerProcessEvents(
+          JSON.stringify({
+            type: "CAP_OUTBOX",
+            subType: "OutboxCustomHooks.action",
+          })
+        );
+        expect(runnerSpy).toHaveBeenCalledTimes(1);
+        expect(connectSpy).toHaveBeenCalledTimes(1);
+        expect(connectSpy).toHaveBeenCalledWith("OutboxCustomHooks");
+        expect(configSpy).toHaveBeenCalledTimes(2);
+        expect(configAddSpy).toHaveBeenCalledTimes(0);
+        expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
+      });
+
+      it("should connect to CAP service - specific configuration", async () => {
+        const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+        const connectSpy = jest.spyOn(cds.connect, "to");
+        const configSpy = jest.spyOn(config, "getCdsOutboxEventSpecificConfig");
+        const configAddSpy = jest.spyOn(config, "addCAPOutboxEventSpecificAction");
+
+        await redisSub.__._messageHandlerProcessEvents(
+          JSON.stringify({
+            type: "CAP_OUTBOX",
+            subType: "OutboxCustomHooks.connectSpecific",
+          })
+        );
+        expect(runnerSpy).toHaveBeenCalledTimes(1);
+        expect(connectSpy).toHaveBeenCalledTimes(1);
+        expect(connectSpy).toHaveBeenCalledWith("OutboxCustomHooks");
+        expect(configSpy).toHaveBeenCalledTimes(3);
+        expect(configAddSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
       });
     });
   });

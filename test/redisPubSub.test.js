@@ -319,7 +319,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
         expect(runnerSpy).toHaveBeenCalledTimes(0);
       });
 
-      test("should not open a transactin if filtered by tenant id", async () => {
+      test("should not open a transaction if filtered by tenant id", async () => {
         config.tenantIdFilterEventProcessing = () => false;
         const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
         checkLockExistsSpy.mockResolvedValueOnce(false);
