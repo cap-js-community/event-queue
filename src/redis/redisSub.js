@@ -40,13 +40,7 @@ const _messageHandlerProcessEvents = async (messageData) => {
       return;
     }
 
-    let serviceNameOrSubType, actionName;
-    if (config.isCapOutboxEvent(type)) {
-      [serviceNameOrSubType, actionName] = subType.split(".");
-    } else {
-      serviceNameOrSubType = subType;
-    }
-
+    const [serviceNameOrSubType, actionName] = subType.split(".");
     if (!config.getEventConfig(type, subType)) {
       if (config.isCapOutboxEvent(type)) {
         try {
