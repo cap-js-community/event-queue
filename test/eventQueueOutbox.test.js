@@ -1539,7 +1539,6 @@ describe("event-queue outbox", () => {
 
         await redisSub.__._messageHandlerProcessEvents(
           JSON.stringify({
-            // ...data,
             type: "CAP_OUTBOX",
             subType: "OutboxCustomHooks.action",
           })
@@ -1560,7 +1559,6 @@ describe("event-queue outbox", () => {
 
         await redisSub.__._messageHandlerProcessEvents(
           JSON.stringify({
-            // ...data,
             type: "CAP_OUTBOX",
             subType: "OutboxCustomHooks.connectSpecific",
           })
