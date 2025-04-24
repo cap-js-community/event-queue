@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.10.2 - 2025-04-23
+## v1.10.2 - 2025-04-24
+
+### Added
+
+- [Event Configuration] randomOffset: This property allows adding a random offset in seconds to periodic events to
+  stagger their start times and reduce load spikes on the application server.
 
 ### Fixed
 
@@ -21,14 +26,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- [CAP outbox] the features below bring feature parity to CAP outbox services in comparison to EventQueue Classes. Starting from v1.10.0 it's recommend to use CAP outbox services instead of EventQueue Classes.
-- [CAP outbox] periodic events for actions/events in CAP outbox services [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#periodic-actionsevents-in-outboxed-services)
-- [CAP outbox] allow to specify specific event settings of every action in the CAP service [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#configure-certain-actions-differently-in-the-same-cap-service)
-- [CAP outbox] enable event clustering with convince helper functions [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#how-to-cluster-multiple-outbox-events)
-- [CAP outbox] enable exceeded retry hook [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#register-hook-for-exceeded-events-retries)
-- [Event Configuration] timeBucket: This property allows events of the same type to be grouped and processed in batches. The value of this property is a cron pattern.
+- [CAP outbox] the features below bring feature parity to CAP outbox services in comparison to EventQueue Classes.
+  Starting from v1.10.0 it's recommend to use CAP outbox services instead of EventQueue Classes.
+- [CAP outbox] periodic events for actions/events in CAP outbox
+  services [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#periodic-actionsevents-in-outboxed-services)
+- [CAP outbox] allow to specify specific event settings of every action in the CAP
+  service [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#configure-certain-actions-differently-in-the-same-cap-service)
+- [CAP outbox] enable event clustering with convince helper
+  functions [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#how-to-cluster-multiple-outbox-events)
+- [CAP outbox] enable exceeded retry
+  hook [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#register-hook-for-exceeded-events-retries)
+- [Event Configuration] timeBucket: This property allows events of the same type to be grouped and processed in batches.
+  The value of this property is a cron pattern.
   Example: `*/30 * * * * *` — This means all events published within 30 seconds are processed together.
-- [Event Configuration] AppNames (apps on which an event should be processed) now supports regex expressions. [Example: /srv-backend/i](https://cap-js-community.github.io/event-queue/https://cap-js-community.github.io/event-queue/configure-event/#parameters)
+- [Event Configuration] AppNames (apps on which an event should be processed) now supports regex
+  expressions. [Example: /srv-backend/i](https://cap-js-community.github.io/event-queue/https://cap-js-community.github.io/event-queue/configure-event/#parameters)
 
 ### Changed
 
@@ -38,7 +50,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- [CONFIG] Added redisNamespace option to prefix Redis interactions, useful when multiple microservices share the same Redis instance.
+- [CONFIG] Added redisNamespace option to prefix Redis interactions, useful when multiple microservices share the same
+  Redis instance.
 
 ## v1.9.3 - 2025-03-18
 
@@ -72,9 +85,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- CAP outbox: allow to return the event status. [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#how-to-return-a-custom-status)
+- CAP outbox: allow to return the event
+  status. [Documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#how-to-return-a-custom-status)
 - Keep alive handling to reduce the time after which events are restarted after a server crash.
-- Allow to define events and periodic events by configuration. [Documentation](https://cap-js-community.github.io/event-queue/configure-event/#configuration)
+- Allow to define events and periodic events by
+  configuration. [Documentation](https://cap-js-community.github.io/event-queue/configure-event/#configuration)
 
 ## v1.8.7 - 2025-02-05
 
