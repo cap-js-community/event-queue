@@ -1079,11 +1079,12 @@ class EventQueueProcessorBase {
   }
 
   #calculateRandomOffset() {
-    if (!this.#eventConfig.randomOffset) {
+    const offset = this.#eventConfig.randomOffset ?? this.#config.randomOffsetPeriodicEvents;
+    if (!offset) {
       return 0;
     }
 
-    return Math.floor(Math.random() * this.#eventConfig.randomOffset) * 1000;
+    return Math.floor(Math.random() * offset) * 1000;
   }
 
   async handleDuplicatedPeriodicEventEntry(queueEntries) {
