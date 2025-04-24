@@ -438,6 +438,7 @@ const _calculateOffsetForFirstRun = async () => {
 const _multiTenancyDb = async () => {
   const logger = cds.log(COMPONENT_NAME);
   try {
+    // process.exit();
     logger.info("executing event queue run for single instance and multi tenant");
     const tenantIds = await cdsHelper.getAllTenantIds();
     await _checkPeriodicEventUpdate(tenantIds);

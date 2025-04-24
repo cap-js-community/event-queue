@@ -32,7 +32,12 @@ describe("initialize", () => {
     };
     configInstance = eventQueue.config;
     configInstance.initialized = false;
+    jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValue([null]);
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    eventQueue.config.isEventQueueActive = false;
   });
 
   const configFilePath = path.join(__dirname, "asset", "configFaulty.yml");
@@ -437,7 +442,6 @@ describe("initialize", () => {
     it("multi tenant db - updatePeriodicEvents:false", async () => {
       cds.requires.multitenancy = {};
       const periodicEventsSpy = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValueOnce();
-      jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValueOnce([null]);
       await eventQueue.initialize({
         configFilePath,
         registerAsEventProcessor: true,
@@ -451,7 +455,6 @@ describe("initialize", () => {
     it("multi tenant db - updatePeriodicEvents:true", async () => {
       cds.requires.multitenancy = {};
       const periodicEventsSpy = jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValueOnce();
-      jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValueOnce([null]);
       await eventQueue.initialize({
         configFilePath,
         registerAsEventProcessor: true,

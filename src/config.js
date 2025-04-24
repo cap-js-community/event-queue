@@ -75,6 +75,7 @@ const ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT = [
   "cron",
   "utc",
   "useCronTimezone",
+  "randomOffset",
 ];
 
 class Config {

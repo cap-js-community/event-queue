@@ -1019,11 +1019,18 @@ class EventQueueProcessorBase {
   async scheduleNextPeriodEvent(queueEntry) {
     const intervalInMs = this.#eventConfig.cron ? null : this.#eventConfig.interval * 1000;
     const next = this.#calculateCronDates();
+    let newStartAfter;
+
+    if (this.#eventConfig.cron) {
+      newStartAfter = next.getTime() + this.#calculateRandomOffset();
+    } else {
+      newStartAfter = new Date(queueEntry.startAfter).getTime() + intervalInMs + this.#calculateRandomOffset();
+    }
 
     const newEvent = {
       type: this.#eventType,
       subType: this.#eventSubType,
-      startAfter: next ?? new Date(new Date(queueEntry.startAfter).getTime() + intervalInMs),
+      startAfter: new Date(newStartAfter),
     };
     const { relative } = this.#eventSchedulerInstance.calculateOffset(
       this.#eventType,
@@ -1069,6 +1076,14 @@ class EventQueueProcessorBase {
         return true;
       }
     }
+  }
+
+  #calculateRandomOffset() {
+    if (!this.#eventConfig.randomOffset) {
+      return 0;
+    }
+
+    return Math.floor(Math.random() * this.#eventConfig.randomOffset) * 1000;
   }
 
   async handleDuplicatedPeriodicEventEntry(queueEntries) {
