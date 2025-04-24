@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- [Event Configuration] randomOffset: This property allows adding a random offset in seconds to periodic events to
+- [Event Configuration] randomOffsetPeriodicEvents (global default) + randomOffset: This property allows adding a random offset in seconds to periodic events to
   stagger their start times and reduce load spikes on the application server.
 
 ### Fixed
