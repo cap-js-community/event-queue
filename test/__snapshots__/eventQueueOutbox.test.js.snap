@@ -315,6 +315,10 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true return open event types 1`
     "type": "CAP_OUTBOX_PERIODIC",
   },
   {
+    "subType": "NotificationServicePeriodic.randomOffset",
+    "type": "CAP_OUTBOX_PERIODIC",
+  },
+  {
     "subType": "NotificationService",
     "type": "CAP_OUTBOX",
   },
