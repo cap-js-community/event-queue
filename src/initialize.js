@@ -42,6 +42,7 @@ const CONFIG_VARS = [
   ["insertEventsBeforeCommit", true],
   ["enableTelemetry", true],
   ["cronTimezone", null],
+  ["randomOffsetPeriodicEvents", null],
   ["redisNamespace", null],
   ["publishEventBlockList", true],
   ["crashOnRedisUnavailable", false],
@@ -68,6 +69,7 @@ const CONFIG_VARS = [
  * @param {boolean} [options.insertEventsBeforeCommit=true] - Insert events into the queue before committing the transaction.
  * @param {boolean} [options.enableTelemetry=false] - Enable telemetry for CAP.
  * @param {string} [options.cronTimezone=null] - Default timezone for cron jobs.
+ * @param {string} [options.randomOffsetPeriodicEvents=null] - Default random offset for periodic events.
  * @param {string} [options.publishEventBlockList=true] - If redis is available event blocklist is distributed to all application instances
  * @param {string} [options.crashOnRedisUnavailable=true] - If enabled an error is thrown if the redis connection check is not successful
  */

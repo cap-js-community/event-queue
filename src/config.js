@@ -75,6 +75,7 @@ const ALLOWED_EVENT_OPTIONS_PERIODIC_EVENT = [
   "cron",
   "utc",
   "useCronTimezone",
+  "randomOffset",
 ];
 
 class Config {
@@ -108,6 +109,7 @@ class Config {
   #unsubscribeHandlers = [];
   #unsubscribedTenants = {};
   #cronTimezone;
+  #randomOffsetPeriodicEvents;
   #redisNamespace;
   #publishEventBlockList;
   #crashOnRedisUnavailable;
@@ -821,6 +823,14 @@ class Config {
 
   set cronTimezone(value) {
     this.#cronTimezone = value;
+  }
+
+  get randomOffsetPeriodicEvents() {
+    return this.#randomOffsetPeriodicEvents;
+  }
+
+  set randomOffsetPeriodicEvents(value) {
+    this.#randomOffsetPeriodicEvents = value;
   }
 
   get instanceLoadLimit() {

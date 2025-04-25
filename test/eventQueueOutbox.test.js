@@ -38,6 +38,10 @@ cds.env.requires.NotificationServicePeriodic = {
       action: {
         checkForNextChunk: false,
       },
+      randomOffset: {
+        cron: "*/15 * * * * *",
+        randomOffset: 60,
+      },
     },
   },
 };
@@ -891,7 +895,7 @@ describe("event-queue outbox", () => {
       it("insert periodic event for CAP service", async () => {
         await checkAndInsertPeriodicEvents(context);
         const [periodicEvent] = await testHelper.selectEventQueueAndReturn(tx, {
-          expectedLength: 1,
+          expectedLength: 2,
           additionalColumns: ["type", "subType"],
         });
         expect(periodicEvent.startAfter).toBeDefined();
@@ -901,31 +905,118 @@ describe("event-queue outbox", () => {
       });
 
       it("insert periodic event for CAP service and process", async () => {
+        const subType = "NotificationServicePeriodic.main";
         await checkAndInsertPeriodicEvents(context);
         const [periodicEvent] = await testHelper.selectEventQueueAndReturn(tx, {
           expectedLength: 1,
           additionalColumns: ["type", "subType"],
+          subType,
         });
         await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ startAfter: null }));
 
         await eventQueue.processEventQueue(context, periodicEvent.type, periodicEvent.subType);
         const [openEvent, processedEvent] = await testHelper.selectEventQueueAndReturn(tx, {
           expectedLength: 2,
-          additionalColumns: ["type", "subType"],
+          additionalColumns: ["type", "subType", "createdAt"],
+          subType,
         });
         expect(openEvent).toMatchObject({
           status: 0,
           attempts: 0,
           type: "CAP_OUTBOX_PERIODIC",
-          subType: "NotificationServicePeriodic.main",
+          subType,
+          startAfter: CronExpressionParser.parse("*/15 * * * * *", {
+            currentDate: new Date(processedEvent.createdAt),
+          })
+            .next()
+            .toISOString(),
         });
         expect(processedEvent).toMatchObject({
           status: 2,
           attempts: 1,
           type: "CAP_OUTBOX_PERIODIC",
-          subType: "NotificationServicePeriodic.main",
+          subType,
+          startAfter: null,
         });
         expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("insert periodic event for CAP service with random offset", async () => {
+        const subType = "NotificationServicePeriodic.randomOffset";
+        await checkAndInsertPeriodicEvents(context);
+        const [periodicEvent] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["type", "subType"],
+          subType,
+        });
+        await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ startAfter: null }));
+
+        await eventQueue.processEventQueue(context, periodicEvent.type, periodicEvent.subType);
+        const [openEvent, processedEvent] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 2,
+          additionalColumns: ["type", "subType", "createdAt"],
+          subType,
+        });
+        const withoutOffset = CronExpressionParser.parse("*/15 * * * * *", {
+          currentDate: new Date(processedEvent.createdAt),
+        }).next();
+        const calculatedOffset = new Date(openEvent.startAfter).getTime() - withoutOffset.getTime();
+        // NOTE: defined offset for event is 60 seconds
+        expect(calculatedOffset).toBeLessThanOrEqual(60 * 1000);
+        expect(openEvent).toMatchObject({
+          status: 0,
+          attempts: 0,
+          type: "CAP_OUTBOX_PERIODIC",
+          subType,
+        });
+        expect(processedEvent).toMatchObject({
+          status: 2,
+          attempts: 1,
+          type: "CAP_OUTBOX_PERIODIC",
+          subType,
+          startAfter: null,
+        });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("insert periodic event for CAP service with global random offset", async () => {
+        const subType = "NotificationServicePeriodic.main";
+        config.randomOffsetPeriodicEvents = 15;
+        await checkAndInsertPeriodicEvents(context);
+        const [periodicEvent] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["type", "subType"],
+          subType,
+        });
+        await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ startAfter: null }));
+
+        await eventQueue.processEventQueue(context, periodicEvent.type, periodicEvent.subType);
+        const [openEvent, processedEvent] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 2,
+          additionalColumns: ["type", "subType", "createdAt"],
+          subType,
+        });
+        const withoutOffset = CronExpressionParser.parse("*/15 * * * * *", {
+          currentDate: new Date(processedEvent.createdAt),
+        }).next();
+        const calculatedOffset = new Date(openEvent.startAfter).getTime() - withoutOffset.getTime();
+        // NOTE: defined offset for event is 15 seconds
+        expect(calculatedOffset).toBeLessThanOrEqual(15 * 1000);
+        expect(openEvent).toMatchObject({
+          status: 0,
+          attempts: 0,
+          type: "CAP_OUTBOX_PERIODIC",
+          subType,
+        });
+        expect(processedEvent).toMatchObject({
+          status: 2,
+          attempts: 1,
+          type: "CAP_OUTBOX_PERIODIC",
+          subType,
+          startAfter: null,
+        });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+        config.randomOffsetPeriodicEvents = null;
       });
 
       describe("inherit config", () => {
@@ -1528,7 +1619,7 @@ describe("event-queue outbox", () => {
       });
 
       afterAll(() => {
-        config.isEventQueueActive = true;
+        config.isEventQueueActive = false;
       });
 
       it("should connect to CAP service - no specific configuration", async () => {
