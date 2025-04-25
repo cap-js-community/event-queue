@@ -1540,13 +1540,12 @@ describe("event-queue outbox", () => {
         await redisSub.__._messageHandlerProcessEvents(
           JSON.stringify({
             type: "CAP_OUTBOX",
-            subType: "OutboxCustomHooks.action",
+            subType: "OutboxCustomHooks",
           })
         );
         expect(runnerSpy).toHaveBeenCalledTimes(1);
-        expect(connectSpy).toHaveBeenCalledTimes(1);
-        expect(connectSpy).toHaveBeenCalledWith("OutboxCustomHooks");
-        expect(configSpy).toHaveBeenCalledTimes(2);
+        expect(connectSpy).toHaveBeenCalledTimes(0);
+        expect(configSpy).toHaveBeenCalledTimes(1);
         expect(configAddSpy).toHaveBeenCalledTimes(0);
         expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
       });
@@ -1568,6 +1567,25 @@ describe("event-queue outbox", () => {
         expect(connectSpy).toHaveBeenCalledWith("OutboxCustomHooks");
         expect(configSpy).toHaveBeenCalledTimes(3);
         expect(configAddSpy).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
+      });
+
+      it("should connect to CAP service - specific configuration periodic event", async () => {
+        const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
+        const connectSpy = jest.spyOn(cds.connect, "to");
+        const configSpy = jest.spyOn(config, "getCdsOutboxEventSpecificConfig");
+        const configAddSpy = jest.spyOn(config, "addCAPOutboxEventSpecificAction");
+
+        await redisSub.__._messageHandlerProcessEvents(
+          JSON.stringify({
+            type: "CAP_OUTBOX_PERIODIC",
+            subType: "NotificationServicePeriodic.main",
+          })
+        );
+        expect(runnerSpy).toHaveBeenCalledTimes(1);
+        expect(connectSpy).toHaveBeenCalledTimes(0);
+        expect(configSpy).toHaveBeenCalledTimes(1);
+        expect(configAddSpy).toHaveBeenCalledTimes(0);
         expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
       });
     });

@@ -47,7 +47,6 @@ function outboxed(srv, customOpts) {
       customOpts || {}
     );
     config.addCAPOutboxEventBase(srv.name, outboxOpts);
-    // TODO: check req.event ?? req.method
     const specificSettings = config.getCdsOutboxEventSpecificConfig(srv.name, req.event);
     if (specificSettings) {
       outboxOpts = config.addCAPOutboxEventSpecificAction(srv.name, req.event);
