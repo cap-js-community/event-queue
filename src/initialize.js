@@ -182,6 +182,14 @@ const monkeyPatchCAPOutbox = () => {
       get: () => eventQueueAsOutbox.unboxed,
       configurable: true,
     });
+    Object.defineProperty(cds, "queued", {
+      get: () => eventQueueAsOutbox.outboxed,
+      configurable: true,
+    });
+    Object.defineProperty(cds, "unqueued", {
+      get: () => eventQueueAsOutbox.unboxed,
+      configurable: true,
+    });
   }
 };
 
