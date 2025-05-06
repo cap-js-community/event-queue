@@ -1,0 +1,19 @@
+{
+  "name": "sap.eventqueue.monitoring",
+  "version": "1.0.0",
+  "description": "Monitor Event Queue",
+  "keywords": [
+    "ui5"
+  ],
+  "main": "webapp/index.html",
+  "dependencies": {},
+  "devDependencies": {
+    "@ui5/cli": "^4.0.13",
+    "@sap/ux-ui5-tooling": "^1.16.3",
+    "ui5-task-zipper": "^3.0.4"
+  },
+  "scripts": {
+    "build": "ui5 build --config=ui5.yaml --clean-dest --dest dist",
+    "deploy-config": "npx -p @sap/ux-ui5-tooling fiori add deploy-config cf"
+  }
+}
