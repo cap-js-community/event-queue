@@ -174,7 +174,12 @@ class EventQueueProcessorBase {
       eventSubType: this.#eventSubType,
       iterationCounter,
     });
-    this.#eventSchedulerInstance.scheduleEvent(this.__context.tenant, this.#eventType, this.#eventSubType, new Date());
+    this.#eventSchedulerInstance.scheduleEvent(
+      this.__context.tenant,
+      this.#eventType,
+      this.#eventSubType,
+      new Date(Date.now() + 5 * 1000) // add some offset to make sure all locks are released
+    );
   }
 
   logStartMessage() {
