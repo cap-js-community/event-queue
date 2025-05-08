@@ -27,7 +27,7 @@
     },
     "crossNavigation": {
       "inbounds": {
-        "EventQueue-monitor": {
+        "Event-monitor": {
           "semanticObject": "Event",
           "action": "monitor",
           "title": "{{appTitle}}",
@@ -98,38 +98,28 @@
       "routes": [
         {
           "pattern": ":?query:",
-          "name": "JobList",
-          "target": "JobList"
+          "name": "EventList",
+          "target": "EventList"
         },
         {
-          "pattern": "Job({key}):?query:",
-          "name": "JobObjectPage",
-          "target": "JobObjectPage"
-        },
-        {
-          "pattern": "Job({key})/parameters({key2}):?query:",
-          "name": "JobParameterObjectPage",
-          "target": "JobParameterObjectPage"
-        },
-        {
-          "pattern": "Job({key})/results({key2}):?query:",
-          "name": "JobResultObjectPage",
-          "target": "JobResultObjectPage"
+          "pattern": "Event({key}):?query:",
+          "name": "EventObjectPage",
+          "target": "EventObjectPage"
         }
       ],
       "targets": {
-        "JobList": {
+        "EventList": {
           "type": "Component",
-          "id": "JobList",
+          "id": "EventList",
           "name": "sap.fe.templates.ListReport",
           "options": {
             "settings": {
-              "contextPath": "/Job",
+              "contextPath": "/Event",
               "variantManagement": "Page",
               "navigation": {
-                "Job": {
+                "Event": {
                   "detail": {
-                    "route": "JobObjectPage"
+                    "route": "EventObjectPage"
                   }
                 }
               },

@@ -17,7 +17,7 @@
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
                     "title": "Monitor Event-Queue Tasks",
-                    "targetURL": "#event-monitor"
+                    "targetURL": "#Event-monitor"
                   }
                 }
               ]
@@ -50,7 +50,7 @@
               "resolutionResult": {
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=sap.eventqueue.monitoring.events",
-                "url": "./event-queue.monitoring/webapp"
+                "url": "./sap.eventqueue.monitoring/webapp"
               }
             }
           }

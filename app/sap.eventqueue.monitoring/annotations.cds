@@ -154,7 +154,7 @@ annotate EventQueueMonitoringService.Event with @(
 );
 
 annotate EventQueueMonitoringService.Event {
-  status      @Common.ValueListWithFixedValues: true  @Common.Text: status.name             @Common.TextArrangement: #TextFirst;
+//   status      @Common.ValueListWithFixedValues: true  @Common.Text: status.name             @Common.TextArrangement: #TextFirst;
 //   link        @HTML5.LinkTarget: '_blank';
 //   definition  @ValueList                      : {
 //     entity: 'JobDefinition',
