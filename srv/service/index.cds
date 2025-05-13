@@ -1,1 +1,1 @@
-using from './even-queue-monitoring-service';
+using from './admin-service';

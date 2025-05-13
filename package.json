@@ -21,8 +21,8 @@
     "multi-tenancy"
   ],
   "scripts": {
-    "start": "cds-serve",
-    "watch": "cds watch",
+    "start": "PORT=4005 cds-serve",
+    "watch": "PORT=4005 cds watch",
     "test:unit": "jest --testPathIgnorePatterns=\"/test-integration/\"",
     "test:integration": "jest --testPathIgnorePatterns=\"/test/\" --runInBand --forceExit",
     "voter:test:integration": "jest --testPathIgnorePatterns=\"/test/\" --forceExit",
