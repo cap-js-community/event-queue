@@ -1,0 +1,7 @@
+code,locale,name,descr
+0,en,Open,Open
+1,en,InProgress,In Progress
+2,en,Done,Done
+3,en,Error,Error
+4,en,Exceeded,Exceeded
+5,en,Suspended,Suspended

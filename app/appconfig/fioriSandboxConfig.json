@@ -49,7 +49,7 @@
               },
               "resolutionResult": {
                 "applicationType": "SAPUI5",
-                "additionalInformation": "SAPUI5.Component=sap.eventqueue.monitoring.events",
+                "additionalInformation": "SAPUI5.Component=sap.eventqueue.monitoring",
                 "url": "./sap.eventqueue.monitoring/webapp"
               }
             }

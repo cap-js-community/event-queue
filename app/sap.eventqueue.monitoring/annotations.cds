@@ -1,13 +1,6 @@
 using EventQueueMonitoringService from '../../srv/service';
 
 annotate EventQueueMonitoringService.Event with @(
-//   UI.Identification            : [{
-//     $Type             : 'UI.DataFieldForAction',
-//     Label             : '{i18n>Cancel}',
-//     Action            : 'SchedulingMonitoringService.cancel',
-//     InvocationGrouping: #Isolated,
-//     Criticality       : #Negative
-//   }],
   UI.FieldGroup #General       : {
     $Type: 'UI.FieldGroupType',
     Data : [
@@ -40,15 +33,6 @@ annotate EventQueueMonitoringService.Event with @(
         $Type: 'UI.DataField',
         Value: context,
       },
-//       {
-//         $Type: 'UI.DataFieldWithUrl',
-//         Value: link,
-//         Url  : link,
-//       },
-//       {
-//         $Type: 'UI.DataField',
-//         Value: testRun,
-//       },
     ],
   },
   UI.FieldGroup #Administrative: {
@@ -64,19 +48,6 @@ annotate EventQueueMonitoringService.Event with @(
       },
     ],
   },
-//   UI.FieldGroup #Capabilities  : {
-//     $Type: 'UI.FieldGroupType',
-//     Data : [
-//       {
-//         $Type: 'UI.DataField',
-//         Value: definition.supportsStartDateTime,
-//       },
-//       {
-//         $Type: 'UI.DataField',
-//         Value: definition.supportsTestRun,
-//       }
-//     ]
-//   },
   UI.HeaderFacets              : [
     {
       $Type : 'UI.ReferenceFacet',
@@ -94,18 +65,6 @@ annotate EventQueueMonitoringService.Event with @(
       Target: '@UI.FieldGroup#Administrative',
     }
   ],
-//   UI.Facets                    : [
-//     {
-//       $Type : 'UI.ReferenceFacet',
-//       Label : '{i18n>Parameters}',
-//       Target: 'parameters/@UI.PresentationVariant'
-//     },
-//     {
-//       $Type : 'UI.ReferenceFacet',
-//       Label : '{i18n>Results}',
-//       Target: 'results/@UI.PresentationVariant'
-//     }
-//   ],
   UI.LineItem                  : [
     {
       $Type: 'UI.DataField',
@@ -125,15 +84,24 @@ annotate EventQueueMonitoringService.Event with @(
     },
     {
       $Type: 'UI.DataField',
+      Value: attempts,
+    },
+    {
+      $Type: 'UI.DataField',
       Value: payload,
     },
+    {
+      $Type : 'UI.DataFieldForAction',
+      Action: 'EventQueueMonitoringService.restartProcessing',
+      Label : '{i18n>RestartProcessing}'
+    }
   ],
   UI.HeaderInfo                : {
     $Type         : 'UI.HeaderInfoType',
-    TypeName      : '{i18n>Job}',
-    TypeNamePlural: '{i18n>Jobs}',
+    TypeName      : '{i18n>Event}',
+    TypeNamePlural: '{i18n>Events}',
     Title         : {
-      Label: '{i18n>Job}',
+      Label: '{i18n>Event}',
       Value: ID
     },
     Description   : {Value: type}
@@ -154,25 +122,10 @@ annotate EventQueueMonitoringService.Event with @(
 );
 
 annotate EventQueueMonitoringService.Event {
-//   status      @Common.ValueListWithFixedValues: true  @Common.Text: status.name             @Common.TextArrangement: #TextFirst;
-//   link        @HTML5.LinkTarget: '_blank';
-//   definition  @ValueList                      : {
-//     entity: 'JobDefinition',
-//     type  : #Fixed
-//   }                                                   @Common.Text: definition.description  @Common.TextArrangement: #TextFirst;
-};
-
-// annotate SchedulingMonitoringService.Job actions {
-//   cancel  @Common.IsActionCritical  @Core.OperationAvailable: {$edmJson: {$Or: [
-//     {$Eq: [
-//       {$Path: 'in/status_code'},
-//       'requested'
-//     ]},
-//     {$Eq: [
-//       {$Path: 'in/status_code'},
-//       'running'
-//     ]}
-//   ]}}
-// };
-
-// annotate SchedulingMonitoringService.Job with @(UI.LineItem.@UI.Criticality: criticality, );
+  status  @ValueList                      : {
+    entity: 'EventStatus',
+    type  : #Fixed
+  }
+  @Common.ValueListWithFixedValues
+  @Common.Text: statusUi.descr  @Common.TextArrangement: #TextFirst;
+  }
