@@ -161,7 +161,7 @@ const getAllTenantWithSubdomain = async () => {
     result = await result;
     if (await common.isTenantIdValidCb(TenantIdCheckTypes.eventProcessing, tenantId)) {
       result.push({
-        tenantId,
+        ID: tenantId,
         subdomain: row.subscribedSubdomain,
       });
     }
