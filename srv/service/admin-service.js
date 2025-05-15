@@ -2,48 +2,48 @@
 
 const cds = require("@sap/cds");
 const cdsHelper = require("../../src/shared/cdsHelper");
-const common = require("../../src/shared/common");
+const { EventProcessingStatus } = require("../../src");
 
 module.exports = class AdminService extends cds.ApplicationService {
   async init() {
-    const { Event: EventService } = this.entities();
+    const { Event: EventService, Tenant } = this.entities();
     const { Event: EventDb } = cds.db.entities("sap.eventqueue");
+    const { landscape, space } = this.getLandscapeAndSpace();
 
-    // TODO: extract landscape and space from env service-manager
-    // const credentials = cds.requires.db.credentials.url; // https://skyfin.authentication.sap.hana.ondemand.com
-
-    this.on("READ", EventService, async (req, next) => {
-      if (cds.requires.multitenancy) {
-        const tenantId = req.req.headers["z-id"];
-        const tenants = tenantId === "*" ? await cdsHelper.getAllTenantIds() : tenantId.split(",");
-        const resultRaw = [];
-        await common.limiter(10, tenants, async (tenant) => {
-          await cds.tx({ tenant }, async (tx) => {
-            const events = await tx.run(req.query);
-            resultRaw.push(
-              events.map((event) => {
-                event.landscape = "eu10";
-                event.space = "quality";
-                event.tenantId = tenant;
-                return event;
-              })
-            );
-          });
-        });
-        const result = resultRaw.flat();
-        return result;
+    this.before("*", async (req) => {
+      if (req.target.name === Tenant.name) {
+        return;
       }
+      const headers = Object.assign({}, req.headers, req.req?.headers);
+      const tenant = headers["z-id"] ?? req.data.tenant;
 
-      const events = await next();
-      return events.map((event) => {
-        event.landscape = "eu10";
-        event.space = "quality";
-        event.tenantId = "cca55d1a-ec3d-4761-8b68-0a82c2a20fc3";
-        return event;
+      if (tenant == null) {
+        req.reject(400, "Missing tenant ID in request header (z-id)");
+      }
+      req.headers ??= {};
+      req.headers["z-id"] = tenant;
+    });
+
+    this.on("READ", EventService, async (req) => {
+      const tenant = req.headers["z-id"];
+      return await cds.tx({ tenant: tenant }, async (tx) => {
+        const events = await tx.run(req.query);
+        return events.map((event) => {
+          event.landscape = landscape;
+          event.space = space;
+          event.tenant = tenant;
+          return event;
+        });
       });
     });
 
+    this.on("READ", Tenant, async () => {
+      const tenants = await cdsHelper.getAllTenantWithSubdomain();
+      return tenants ?? [];
+    });
+
     this.on("setStatusAndAttempts", async (req) => {
+      const tenant = req.headers["z-id"];
       cds.log("eventQueue").info("Restarting processing for event queue");
       const updateData = {};
 
@@ -51,7 +51,7 @@ module.exports = class AdminService extends cds.ApplicationService {
         updateData.attempts = req.data.attempts;
       }
 
-      if (req.data.status) {
+      if (Object.values(EventProcessingStatus).includes(req.data.status)) {
         updateData.status = req.data.status;
       }
 
@@ -59,13 +59,27 @@ module.exports = class AdminService extends cds.ApplicationService {
         return req.reject(400, "No status or attempts provided");
       }
 
-      await UPDATE.entity(EventDb)
-        .set(updateData)
-        .where({ ID: req.params[0].ID ?? req.params[0] });
-
-      return await req.query;
+      await cds.tx({ tenant, headers: { "z-id": tenant } }, async () => {
+        await UPDATE.entity(EventDb)
+          .set(updateData)
+          .where({ ID: req.params[0].ID ?? req.params[0] });
+      });
+      return await this.send(new cds.Request({ query: req.query, headers: req.headers }));
     });
 
     await super.init();
+  }
+
+  getLandscapeAndSpace() {
+    const url = cds.requires.db.credentials.url;
+    const match = url.match(/https?:\/\/[^.]+\.authentication\.([^.]+)\.hana\.ondemand\.com/);
+    const landscape = (match?.[1] ?? "sap") === "sap" ? "eu10-canary" : match?.[1];
+    let space = "local-dev";
+    try {
+      space = JSON.parse(process.env.VCAP_APPLICATION)?.space_name;
+    } catch {
+      /* empty */
+    }
+    return { landscape, space };
   }
 };

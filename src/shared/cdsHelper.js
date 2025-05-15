@@ -116,7 +116,7 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
   }
 }
 
-const getAllTenantIds = async () => {
+const _getAllTenantBase = async () => {
   if (!config.isMultiTenancy) {
     return null;
   }
@@ -130,7 +130,15 @@ const getAllTenantIds = async () => {
   }
 
   const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");
-  const response = await ssp.get("/tenant");
+  return await ssp.get("/tenant");
+};
+
+const getAllTenantIds = async () => {
+  const response = await _getAllTenantBase();
+  if (!response) {
+    return null;
+  }
+
   return response
     .map((tenant) => tenant.subscribedTenantId ?? tenant.tenant)
     .reduce(async (result, tenantId) => {
@@ -142,7 +150,27 @@ const getAllTenantIds = async () => {
     }, []);
 };
 
+const getAllTenantWithSubdomain = async () => {
+  const response = await _getAllTenantBase();
+  if (!response) {
+    return null;
+  }
+
+  return response.reduce(async (result, row) => {
+    const tenantId = row.subscribedTenantId ?? row.tenant;
+    result = await result;
+    if (await common.isTenantIdValidCb(TenantIdCheckTypes.eventProcessing, tenantId)) {
+      result.push({
+        tenantId,
+        subdomain: row.subscribedSubdomain,
+      });
+    }
+    return result;
+  }, []);
+};
+
 module.exports = {
   executeInNewTransaction,
   getAllTenantIds,
+  getAllTenantWithSubdomain,
 };
