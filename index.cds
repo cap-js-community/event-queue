@@ -1,2 +1,2 @@
 using from './db';
-using from './src';
+using from './srv';
