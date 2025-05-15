@@ -6,6 +6,7 @@ using sap.eventqueue as db from '../../db';
 service EventQueueAdminService {
 
   @readonly
+  @cds.persistence.skip
   entity Event as projection on db.Event {
         null as tenant: String,
         null as landscape: String,
@@ -22,6 +23,7 @@ service EventQueueAdminService {
   }
 
    @readonly
+   @cds.persistence.skip
    entity Tenant {
       Key ID: String;
       subdomain: String;
