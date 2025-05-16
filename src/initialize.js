@@ -206,7 +206,8 @@ const registerCdsShutdown = () => {
   }
   cds.on("shutdown", async () => {
     return await new Promise((resolve) => {
-      const timeoutRef = setTimeout(() => {
+      let timeoutRef;
+      timeoutRef = setTimeout(() => {
         clearTimeout(timeoutRef);
         cds.log(COMPONENT).info("shutdown timeout reached - some locks might not have been released!");
         resolve();
@@ -222,8 +223,7 @@ const registerCdsShutdown = () => {
 };
 
 const registerCleanupForDevDb = async () => {
-  const profile = cds.env.profiles.find((profile) => profile === "development");
-  if (!profile || process.env.NODE_ENV === "production") {
+  if (!config.developmentMode) {
     return;
   }
 

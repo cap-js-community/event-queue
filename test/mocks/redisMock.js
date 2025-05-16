@@ -19,6 +19,7 @@ const _createMainClientAndConnect = async () => ({
 module.exports = {
   createClientAndConnect: _createMainClientAndConnect,
   createMainClientAndConnect: _createMainClientAndConnect,
+  closeSubscribeClient: () => {},
   clearState: () => (state = {}),
   closeMainClient: () => {},
   getState: () => state,
