@@ -212,11 +212,13 @@ const registerCdsShutdown = () => {
         cds.log(COMPONENT).info("shutdown timeout reached - some locks might not have been released!");
         resolve();
       }, TIMEOUT_SHUTDOWN);
-      distributedLock.shutdownHandler().then(() =>
-        Promise.allSettled([redis.closeMainClient(), redis.closeSubscribeClient()]).then((result) => {
-          clearTimeout(timeoutRef);
-          resolve(result);
-        })
+      distributedLock.shutdownHandler().then(
+        () =>
+          config.redisEnabled &&
+          Promise.allSettled([redis.closeMainClient(), redis.closeSubscribeClient()]).then((result) => {
+            clearTimeout(timeoutRef);
+            resolve(result);
+          })
       );
     });
   });
