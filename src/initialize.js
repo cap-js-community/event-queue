@@ -212,14 +212,14 @@ const registerCdsShutdown = () => {
         cds.log(COMPONENT).info("shutdown timeout reached - some locks might not have been released!");
         resolve();
       }, TIMEOUT_SHUTDOWN);
-      distributedLock.shutdownHandler().then(
-        () =>
-          config.redisEnabled &&
-          Promise.allSettled([redis.closeMainClient(), redis.closeSubscribeClient()]).then((result) => {
-            clearTimeout(timeoutRef);
-            resolve(result);
-          })
-      );
+      distributedLock.shutdownHandler().then(() => {
+        Promise.allSettled(
+          config.redisEnabled ? [redis.closeMainClient(), redis.closeSubscribeClient()] : [Promise.resolve()]
+        ).then((result) => {
+          clearTimeout(timeoutRef);
+          resolve(result);
+        });
+      });
     });
   });
 };
@@ -228,7 +228,6 @@ const registerCleanupForDevDb = async () => {
   if (!config.developmentMode) {
     return;
   }
-
   const tenantIds = config.isMultiTenancy ? await getAllTenantIds() : [null];
   for (const tenantId of tenantIds) {
     await cds.tx({ tenant: tenantId }, async (tx) => {
