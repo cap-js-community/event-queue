@@ -27,7 +27,11 @@ module.exports = class AdminService extends cds.ApplicationService {
     this.on("READ", EventService, async (req) => {
       const tenant = req.headers["z-id"];
       return await cds.tx({ tenant: tenant }, async (tx) => {
-        req.query.SELECT.from.ref[0] = EventDb.name;
+        if (req.query.SELECT.from.ref[0].id) {
+          req.query.SELECT.from.ref[0].id = EventDb.name;
+        } else {
+          req.query.SELECT.from.ref[0] = EventDb.name;
+        }
         const events = await tx.run(req.query);
         return events.map((event) => {
           event.landscape = landscape;

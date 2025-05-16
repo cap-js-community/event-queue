@@ -972,6 +972,10 @@ class Config {
     return this.#eventMap;
   }
 
+  get developmentMode() {
+    return cds.env.profiles.find((profile) => profile === "development");
+  }
+
   /**
     @return { Config }
   **/

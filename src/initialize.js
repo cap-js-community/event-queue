@@ -201,8 +201,7 @@ const mixConfigVarsWithEnv = (options) => {
 };
 
 const registerCdsShutdown = () => {
-  const isTestProfile = cds.env.profiles.find((profile) => profile.includes("test"));
-  if (isTestProfile || !config.redisEnabled) {
+  if (!config.developmentMode) {
     return;
   }
   cds.on("shutdown", async () => {
@@ -228,7 +227,7 @@ const registerCleanupForDevDb = async () => {
     return;
   }
 
-  const tenantIds = await getAllTenantIds();
+  const tenantIds = config.isMultiTenancy ? await getAllTenantIds() : [null];
   for (const tenantId of tenantIds) {
     await cds.tx({ tenant: tenantId }, async (tx) => {
       await tx.run(DELETE.from(config.tableNameEventLock));
