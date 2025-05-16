@@ -23,7 +23,7 @@ const EVENT_QUEUE_RUN_TS = "RUN_TS";
 const EVENT_QUEUE_RUN_REDIS_CHECK = "RUN_REDIS_CHECK";
 const EVENT_QUEUE_UPDATE_PERIODIC_EVENTS = "UPDATE_PERIODIC_EVENTS";
 
-let OFFSET_FIRST_RUN = 10 * 1000;
+let OFFSET_FIRST_RUN;
 
 let tenantIdHash;
 let singleRunDone;
@@ -400,7 +400,7 @@ const _acquireRunId = async (context) => {
 };
 
 const _calculateOffsetForFirstRun = async () => {
-  let offsetDependingOnLastRun = config.developmentMode ? 500 : 10 * 1000;
+  let offsetDependingOnLastRun = OFFSET_FIRST_RUN ?? (config.developmentMode ? 500 : 10 * 1000);
   const now = Date.now();
   // NOTE: this is only supported with Redis, because this is a tenant agnostic information
   //       currently there is no proper place to store this information beside t0 schema
