@@ -23,9 +23,10 @@ const common = require("../src/shared/common");
 const config = require("../src/config");
 
 const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
+const basePath = path.join(__dirname, "asset", "outboxProject");
 
 cds.env.requires.NotificationServicePeriodic = {
-  impl: "./outboxProject/srv/service/servicePeriodic.js",
+  impl: path.join(basePath, "srv/service/servicePeriodic.js"),
   outbox: {
     kind: "persistent-outbox",
     load: 60,
@@ -47,7 +48,7 @@ cds.env.requires.NotificationServicePeriodic = {
 };
 
 cds.env.requires.OutboxCustomHooks = {
-  impl: "./outboxProject/srv/service/serviceCustomHooks.js",
+  impl: path.join(basePath, "srv/service/serviceCustomHooks.js"),
   outbox: {
     kind: "persistent-outbox",
     checkForNextChunk: false,
@@ -69,7 +70,7 @@ cds.env.requires.OutboxCustomHooks = {
 };
 
 cds.env.requires.AppNames = {
-  impl: "./outboxProject/srv/service/serviceAppNames.js",
+  impl: path.join(basePath, "srv/service/serviceAppNames.js"),
   outbox: {
     kind: "persistent-outbox",
     checkForNextChunk: false,
@@ -91,7 +92,7 @@ cds.env.requires.AppNames = {
 };
 
 cds.env.requires.StandardService = {
-  impl: "./outboxProject/srv/service/standard-service.js",
+  impl: path.join(basePath, "srv/service/standard-service.js"),
   outbox: {
     kind: "persistent-outbox",
     events: {
