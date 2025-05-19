@@ -1,7 +1,5 @@
 "use strict";
 
-process.env.TZ = "UTC";
-
 const path = require("path");
 const fs = require("fs");
 
