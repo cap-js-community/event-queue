@@ -19,7 +19,6 @@ describe("baseFunctionality", () => {
   let loggerMock, context, tx, fileContent;
   beforeAll(async () => {
     jest.useFakeTimers();
-    jest.setSystemTime(new Date("2023-11-13T11:00:00.000Z"));
     cds.env.eventQueue.periodicEvents = {
       "EVENT_QUEUE_BASE/DELETE_EVENTS": {
         priority: "low",
@@ -57,6 +56,12 @@ describe("baseFunctionality", () => {
 
   afterEach(async () => {
     await tx.rollback();
+  });
+
+  describe("check test setup", () => {
+    it("should always be UTC", () => {
+      expect(new Date().getTimezoneOffset()).toBe(0);
+    });
   });
 
   describe("interval events", () => {
@@ -235,6 +240,53 @@ describe("baseFunctionality", () => {
           additionalColumns: ["type"],
         });
         expect(eventsAfterTimezoneChange[0].startAfter).toMatchInlineSnapshot(`"2023-11-14T07:30:00.000Z"`);
+      });
+
+      it("should use timezone defined in global config", async () => {
+        config.cronTimezone = "Europe/Berlin";
+        const periodicEventsCron = fileContent.periodicEvents
+          .filter((e) => e.cron)
+          .map((e) => {
+            e.cron = "0 3 * * *"; // Runs at 03:00 AM every day.
+            e.utc = false;
+            return e;
+          });
+        const [periodicEvent] = periodicEventsCron;
+        config.mixFileContentWithEnv({
+          events: fileContent.events,
+          periodicEvents: [periodicEvent],
+        });
+        await checkAndInsertPeriodicEvents(context);
+        const events = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 1,
+          additionalColumns: ["type"],
+        });
+        expect(events[0].startAfter).toMatchInlineSnapshot(`"2023-11-14T02:00:00.000Z"`);
+      });
+
+      it("should also work for daylight saving time (germany)", async () => {
+        jest.setSystemTime(new Date("2023-05-19T11:00:00.000Z"));
+        config.cronTimezone = "Europe/Berlin";
+        const periodicEventsCron = fileContent.periodicEvents
+          .filter((e) => e.cron)
+          .map((e) => {
+            e.cron = "0 3 * * *"; // Runs at 03:00 AM every day.
+            e.utc = false;
+            return e;
+          });
+        const [periodicEvent] = periodicEventsCron;
+        config.mixFileContentWithEnv({
+          events: fileContent.events,
+          periodicEvents: [periodicEvent],
+        });
+        await checkAndInsertPeriodicEvents(context);
+        const events = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 1,
+          additionalColumns: ["type"],
+        });
+        expect(events[0].startAfter).toMatchInlineSnapshot(`"2023-05-20T01:00:00.000Z"`);
       });
 
       describe("changed intervals", () => {
