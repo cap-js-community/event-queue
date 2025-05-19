@@ -1,5 +1,7 @@
 "use strict";
 
+process.env.TZ = "UTC";
+
 const path = require("path");
 const fs = require("fs");
 
@@ -57,6 +59,12 @@ describe("baseFunctionality", () => {
 
   afterEach(async () => {
     await tx.rollback();
+  });
+
+  describe("check test setup", () => {
+    it("should always be UTC", () => {
+      expect(new Date().getTimezoneOffset()).toBe(0);
+    });
   });
 
   describe("interval events", () => {
@@ -235,6 +243,29 @@ describe("baseFunctionality", () => {
           additionalColumns: ["type"],
         });
         expect(eventsAfterTimezoneChange[0].startAfter).toMatchInlineSnapshot(`"2023-11-14T07:30:00.000Z"`);
+      });
+
+      it("should use timezone defined in global config", async () => {
+        config.cronTimezone = "Europe/Berlin";
+        const periodicEventsCron = fileContent.periodicEvents
+          .filter((e) => e.cron)
+          .map((e) => {
+            e.cron = "0 3 * * *"; // Runs at 03:00 AM every day.
+            e.utc = false;
+            return e;
+          });
+        const [periodicEvent] = periodicEventsCron;
+        config.mixFileContentWithEnv({
+          events: fileContent.events,
+          periodicEvents: [periodicEvent],
+        });
+        await checkAndInsertPeriodicEvents(context);
+        const events = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 1,
+          additionalColumns: ["type"],
+        });
+        expect(events[0].startAfter).toMatchInlineSnapshot(`"2023-11-14T02:00:00.000Z"`);
       });
 
       describe("changed intervals", () => {
