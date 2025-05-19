@@ -190,6 +190,15 @@ describe("initialize", () => {
     cds.requires.multitenancy = false;
   });
 
+  test("should remove protocol if requested", async () => {
+    await eventQueue.initialize({
+      configFilePath: path.join(__dirname, "asset", "config.yml"),
+      processEventsAfterPublish: false,
+    });
+    cds.emit("loaded", cds.model);
+    expect(cds.model.definitions["EventQueueAdminService"]["@protocol"]).toEqual("none");
+  });
+
   describe("should add events from cds.env", () => {
     beforeEach(async () => {
       config.configEvents = {};

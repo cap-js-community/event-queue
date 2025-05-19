@@ -87,7 +87,7 @@ const initialize = async (options = {}) => {
       "Event queue initialization skipped: no configFilePath provided, and event queue is not configured as a CAP outbox."
     );
   }
-
+  _disableAdminService();
   const redisEnabled = config.checkRedisEnabled();
   let resolveFn;
   let initFinished = new Promise((resolve) => (resolveFn = resolve));
@@ -257,6 +257,15 @@ const _registerUnsubscribe = () => {
       .catch(
         () => {} // ignore errors as the DeploymentService is most of the time only available in the mtx sidecar
       );
+  });
+};
+
+const _disableAdminService = () => {
+  cds.on("loaded", (model) => {
+    const srvDefinition = model.definitions["EventQueueAdminService"];
+    if (srvDefinition) {
+      srvDefinition["@protocol"] = "none";
+    }
   });
 };
 
