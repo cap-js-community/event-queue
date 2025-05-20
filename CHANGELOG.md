@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.10.4 - 2025-05-19
+
+### Added
+
+- [Telemetry] add more telemetry information for event processing
+
+## v1.10.4 - 2025-05-19
+
+### Added
+
+- [CAP outbox] add support for `cds.queued` and `cds.unqueued`
+- [Event Processing] add offset to schedule next run
+- [Telemetry] add more telemetry information for event processing
+
+### Fixed
+
+- [Timezone] server timezone was not always correctly considered starting with version 1.9.4
+
 ## v1.10.3 - 2025-04-25
 
 ### Fixed
