@@ -48,7 +48,7 @@
     "cron-parser": "^5.2.0",
     "redis": "^4.7.0",
     "verror": "^1.10.1",
-    "yaml": "^2.7.1"
+    "yaml": "^2.8.0"
   },
   "devDependencies": {
     "@cap-js/cds-test": "^0.3.0",
