@@ -9,8 +9,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
+- [Telemetry] add more telemetry information for event processing
+
+## v1.10.4 - 2025-05-19
+
+### Added
+
 - [CAP outbox] add support for `cds.queued` and `cds.unqueued`
 - [Event Processing] add offset to schedule next run
+- [Telemetry] add more telemetry information for event processing
 
 ### Fixed
 
