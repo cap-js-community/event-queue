@@ -85,9 +85,20 @@ const _startOtelTrace = async (ctxWithSpan, traceContext, span, fn) => {
 const _setAttributes = (context, span, attributes) => {
   span.setAttribute("sap.tenancy.tenant_id", context.tenant);
   span.setAttribute("sap.correlation_id", context.id);
+  _sanitizeAttributes(attributes);
   for (const attributeKey in attributes) {
     span.setAttribute(attributeKey, attributes[attributeKey]);
   }
+};
+
+const _sanitizeAttributes = (attributes = {}) => {
+  for (const attributeKey in attributes) {
+    attributes[attributeKey] =
+      typeof attributes[attributeKey] !== "string"
+        ? JSON.stringify(attributes[attributeKey])
+        : attributes[attributeKey];
+  }
+  return attributes;
 };
 
 const getCurrentTraceContext = () => {

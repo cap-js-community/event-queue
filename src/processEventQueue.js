@@ -339,7 +339,7 @@ const _processEvent = async (eventTypeInstance, processContext, key, queueEntrie
         return eventTypeInstance.handleErrorDuringProcessing(err, queueEntries);
       }
     },
-    { traceContext }
+    { traceContext, attributes: { eventIds: queueEntries.map(({ ID }) => ID) } }
   );
 };
 
