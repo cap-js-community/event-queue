@@ -1,11 +1,12 @@
 {
   "name": "@cap-js-community/event-queue",
-  "version": "1.10.4",
+  "version": "1.11.0-beta.0",
   "description": "An event queue that enables secure transactional processing of asynchronous and periodic events, featuring instant event processing with Redis Pub/Sub and load distribution across all application instances.",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "files": [
     "src",
+    "srv",
     "db",
     "cds-plugin.js",
     "index.cds"
@@ -21,6 +22,8 @@
     "multi-tenancy"
   ],
   "scripts": {
+    "start": "PORT=4005 cds-serve",
+    "watch": "PORT=4005 cds watch",
     "test:unit": "jest --testPathIgnorePatterns=\"/test-integration/\"",
     "test:integration": "jest --testPathIgnorePatterns=\"/test/\" --runInBand --forceExit",
     "voter:test:integration": "jest --testPathIgnorePatterns=\"/test/\" --forceExit",

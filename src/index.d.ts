@@ -257,6 +257,8 @@ declare class Config {
   get insertEventsBeforeCommit(): any;
   set enableTelemetry(value: any);
   get enableTelemetry(): any;
+  set enableAdminService(value: any);
+  get enableAdminService(): any;
   get isMultiTenancy(): boolean;
 }
 

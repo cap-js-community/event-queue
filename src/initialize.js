@@ -46,6 +46,7 @@ const CONFIG_VARS = [
   ["redisNamespace", null],
   ["publishEventBlockList", true],
   ["crashOnRedisUnavailable", false],
+  ["enableAdminService", false],
 ];
 
 /**
@@ -87,7 +88,7 @@ const initialize = async (options = {}) => {
       "Event queue initialization skipped: no configFilePath provided, and event queue is not configured as a CAP outbox."
     );
   }
-
+  _disableAdminService();
   const redisEnabled = config.checkRedisEnabled();
   let resolveFn;
   let initFinished = new Promise((resolve) => (resolveFn = resolve));
@@ -201,34 +202,34 @@ const mixConfigVarsWithEnv = (options) => {
 };
 
 const registerCdsShutdown = () => {
-  const isTestProfile = cds.env.profiles.find((profile) => profile.includes("test"));
-  if (isTestProfile || !config.redisEnabled) {
+  if (!config.developmentMode) {
     return;
   }
   cds.on("shutdown", async () => {
     return await new Promise((resolve) => {
-      const timeoutRef = setTimeout(() => {
+      let timeoutRef;
+      timeoutRef = setTimeout(() => {
         clearTimeout(timeoutRef);
         cds.log(COMPONENT).info("shutdown timeout reached - some locks might not have been released!");
         resolve();
       }, TIMEOUT_SHUTDOWN);
-      distributedLock.shutdownHandler().then(() =>
-        Promise.allSettled([redis.closeMainClient(), redis.closeSubscribeClient()]).then((result) => {
+      distributedLock.shutdownHandler().then(() => {
+        Promise.allSettled(
+          config.redisEnabled ? [redis.closeMainClient(), redis.closeSubscribeClient()] : [Promise.resolve()]
+        ).then((result) => {
           clearTimeout(timeoutRef);
           resolve(result);
-        })
-      );
+        });
+      });
     });
   });
 };
 
 const registerCleanupForDevDb = async () => {
-  const profile = cds.env.profiles.find((profile) => profile === "development");
-  if (!profile || process.env.NODE_ENV === "production") {
+  if (!config.developmentMode) {
     return;
   }
-
-  const tenantIds = await getAllTenantIds();
+  const tenantIds = config.isMultiTenancy ? await getAllTenantIds() : [null];
   for (const tenantId of tenantIds) {
     await cds.tx({ tenant: tenantId }, async (tx) => {
       await tx.run(DELETE.from(config.tableNameEventLock));
@@ -257,6 +258,18 @@ const _registerUnsubscribe = () => {
       .catch(
         () => {} // ignore errors as the DeploymentService is most of the time only available in the mtx sidecar
       );
+  });
+};
+
+const _disableAdminService = () => {
+  if (config.enableAdminService) {
+    return;
+  }
+  cds.on("loaded", (model) => {
+    const srvDefinition = model.definitions["EventQueueAdminService"];
+    if (srvDefinition) {
+      srvDefinition["@protocol"] = "none";
+    }
   });
 };
 
