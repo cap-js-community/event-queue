@@ -3,6 +3,7 @@
 const cds = require("@sap/cds");
 const cdsHelper = require("../../src/shared/cdsHelper");
 const { EventProcessingStatus } = require("../../src");
+const config = require("../../src/config");
 
 module.exports = class AdminService extends cds.ApplicationService {
   async init() {
@@ -11,13 +12,17 @@ module.exports = class AdminService extends cds.ApplicationService {
     const { landscape, space } = this.getLandscapeAndSpace();
 
     this.before("*", async (req) => {
+      if (!config.enableAdminService) {
+        req.reject(403, "Admin service is disabled by configuration");
+      }
+
       if (req.target.name === Tenant.name) {
         return;
       }
       const headers = Object.assign({}, req.headers, req.req?.headers);
       const tenant = headers["z-id"] ?? req.data.tenant;
 
-      if (tenant == null) {
+      if (config.isMultiTenancy && tenant == null) {
         req.reject(400, "Missing tenant ID in request header (z-id)");
       }
       req.headers ??= {};
@@ -33,7 +38,7 @@ module.exports = class AdminService extends cds.ApplicationService {
           req.query.SELECT.from.ref[0] = EventDb.name;
         }
         const events = await tx.run(req.query);
-        return events.map((event) => {
+        return events?.map((event) => {
           event.landscape = landscape;
           event.space = space;
           event.tenant = tenant;
@@ -77,6 +82,9 @@ module.exports = class AdminService extends cds.ApplicationService {
 
   getLandscapeAndSpace() {
     const url = cds.requires.db.credentials.url;
+    if (!url) {
+      return { landscape: "eu10-canary", space: "local-dev" };
+    }
     const match = url.match(/https?:\/\/[^.]+\.authentication\.([^.]+)\.hana\.ondemand\.com/);
     const landscape = (match?.[1] ?? "sap") === "sap" ? "eu10-canary" : match?.[1];
     let space = "local-dev";

@@ -46,6 +46,7 @@ const CONFIG_VARS = [
   ["redisNamespace", null],
   ["publishEventBlockList", true],
   ["crashOnRedisUnavailable", false],
+  ["enableAdminService", false],
 ];
 
 /**
@@ -261,6 +262,9 @@ const _registerUnsubscribe = () => {
 };
 
 const _disableAdminService = () => {
+  if (config.enableAdminService) {
+    return;
+  }
   cds.on("loaded", (model) => {
     const srvDefinition = model.definitions["EventQueueAdminService"];
     if (srvDefinition) {

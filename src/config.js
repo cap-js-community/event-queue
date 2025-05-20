@@ -117,6 +117,7 @@ class Config {
   #tenantIdFilterEventProcessingCb;
   #configEvents;
   #configPeriodicEvents;
+  #enableAdminService;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -973,6 +974,14 @@ class Config {
 
   get developmentMode() {
     return cds.env.profiles.find((profile) => profile === "development");
+  }
+
+  get enableAdminService() {
+    return this.#enableAdminService;
+  }
+
+  set enableAdminService(value) {
+    this.#enableAdminService = value;
   }
 
   /**
