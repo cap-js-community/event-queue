@@ -123,7 +123,7 @@ const _getAllTenantBase = async () => {
 
   // NOTE: tmp workaround until cds-mtxs fixes the connect.to service
   for (let i = 0; i < 10; i++) {
-    if (cds.services["cds.xt.SaasProvisioningService"]) {
+    if (cds.services["cds.xt.SaasProvisioningService"] || cds.services["saas-registry"]) {
       break;
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));

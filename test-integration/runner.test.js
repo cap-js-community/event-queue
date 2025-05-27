@@ -99,7 +99,7 @@ describe("runner", () => {
     describe("multi tenant", () => {
       beforeAll(() => {
         cds.requires.multitenancy = true;
-        cds.services["saas-registry"] = {};
+        cds.services["cds.xt.SaasProvisioningService"] = {};
       });
 
       it("no open events", async () => {
@@ -251,6 +251,7 @@ describe("runner", () => {
           expect(checkAndInsertPeriodicEventsSpy).toHaveBeenCalledTimes(3);
           // open events - 3 periodic events
           expect(redisPubSpy).toHaveBeenCalledTimes(3);
+          redisPubSpy.mock.calls.sort((a, b) => b[0].localeCompare(a[0]));
           expect(redisPubSpy.mock.calls).toMatchSnapshot();
           // remove context from arguments for snapshot
           expect(acquireLockSpy.mock.calls.map((call) => [call[1], call[2]])).toMatchSnapshot();
@@ -340,7 +341,7 @@ describe("runner", () => {
   describe("multi tenant db", () => {
     beforeAll(() => {
       cds.requires.multitenancy = true;
-      cds.services["saas-registry"] = {};
+      cds.services["cds.xt.SaasProvisioningService"] = {};
       const originalCdsTx = cds.tx;
       jest.spyOn(cds, "tx").mockImplementation(function (context, fn) {
         if (!fn) {
@@ -542,7 +543,7 @@ describe("runner", () => {
     beforeAll(() => {
       configInstance.redisEnabled = false;
       cds.requires.multitenancy = true;
-      cds.services["saas-registry"] = {};
+      cds.services["cds.xt.SaasProvisioningService"] = {};
     });
 
     it("should trigger update periodic events once per tenant", async () => {
