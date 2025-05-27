@@ -11,7 +11,7 @@ module.exports = class AdminService extends cds.ApplicationService {
     const { Event: EventDb } = cds.db.entities("sap.eventqueue");
     const { landscape, space } = this.getLandscapeAndSpace();
 
-    this.before("*", async (req) => {
+    this.before("*", (req) => {
       if (!config.enableAdminService) {
         req.reject(403, "Admin service is disabled by configuration");
       }
