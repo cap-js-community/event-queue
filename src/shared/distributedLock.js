@@ -17,7 +17,7 @@ const acquireLock = async (
   if (config.redisEnabled) {
     return await _acquireLockRedis(context, fullKey, expiryTime, { keepTrackOfLock });
   } else {
-    return await _acquireLockDB(context, fullKey, expiryTime);
+    return await _acquireLockDB(context, fullKey, expiryTime, { keepTrackOfLock });
   }
 };
 
@@ -73,7 +73,7 @@ const _acquireLockRedis = async (
   context,
   fullKey,
   expiryTime,
-  { value = "true", overrideValue = false, keepTrackOfLock } = {}
+  { value = Date.now(), overrideValue = false, keepTrackOfLock } = {}
 ) => {
   const client = await redis.createMainClientAndConnect(config.redisOptions);
   const result = await client.set(fullKey, value, {
@@ -82,7 +82,7 @@ const _acquireLockRedis = async (
   });
   const isOk = result === REDIS_COMMAND_OK;
   if (isOk && keepTrackOfLock) {
-    existingLocks[fullKey] = 1;
+    existingLocks[fullKey] = [context.tenant];
   }
   return isOk;
 };
@@ -129,9 +129,15 @@ const _releaseLockDb = async (context, fullKey) => {
   await cdsHelper.executeInNewTransaction(context, "distributedLock-release", async (tx) => {
     await tx.run(DELETE.from(config.tableNameEventLock).where("code =", fullKey));
   });
+  delete existingLocks[fullKey];
 };
 
-const _acquireLockDB = async (context, fullKey, expiryTime, { value = "true", overrideValue = false } = {}) => {
+const _acquireLockDB = async (
+  context,
+  fullKey,
+  expiryTime,
+  { value = "true", overrideValue = false, keepTrackOfLock } = {}
+) => {
   let result;
   await cdsHelper.executeInNewTransaction(context, "distributedLock-acquire", async (tx) => {
     try {
@@ -171,6 +177,9 @@ const _acquireLockDB = async (context, fullKey, expiryTime, { value = "true", ov
       }
     }
   });
+  if (result && keepTrackOfLock) {
+    existingLocks[fullKey] = context.tenant;
+  }
   return result;
 };
 
@@ -181,14 +190,58 @@ const _generateKey = (context, tenantScoped, key) => {
   return `${keyParts.join("##")}`;
 };
 
+const getAllLocksRedis = async () => {
+  const client = await redis.createMainClientAndConnect(config.redisOptions);
+  const keys = await client.keys(`${config.redisOptions.redisNamespace}*`);
+  const relevantKeys = {};
+  for (const key of keys) {
+    const [, tenant, guidOrType, subType] = key.split("##");
+    if (subType) {
+      relevantKeys[key] = { tenant, guidOrType, subType };
+    }
+  }
+
+  if (!Object.keys(relevantKeys)) {
+    return [];
+  }
+
+  const pipeline = client.multi();
+  for (const key in relevantKeys) {
+    pipeline.ttl(key);
+    pipeline.get(key);
+  }
+
+  const replies = await pipeline.exec();
+
+  let counter = 0;
+  const result = [];
+  for (const value of Object.values(relevantKeys)) {
+    const ttl = replies[counter];
+    const createdAt = replies[counter + 1];
+    result.push({
+      tenant: value.tenant,
+      type: value.guidOrType,
+      subType: value.subType,
+      ttl,
+      createdAt,
+    });
+    counter = counter + 2;
+  }
+  return result;
+};
+
 const shutdownHandler = async () => {
   const logger = cds.log(COMPONENT_NAME);
   logger.info("received shutdown event, trying to release all locks", {
     numberOfLocks: Object.keys(existingLocks).length,
   });
   const result = await Promise.allSettled(
-    Object.keys(existingLocks).map(async (key) => {
-      await _releaseLockRedis(null, key);
+    Object.entries(existingLocks).map(async ([key, tenant]) => {
+      if (config.redisEnabled) {
+        await _releaseLockRedis({ tenant }, key);
+      } else {
+        await _releaseLockDb({ tenant }, key);
+      }
       logger.info("lock released", { key });
     })
   );
@@ -206,4 +259,5 @@ module.exports = {
   setValueWithExpire,
   shutdownHandler,
   renewLock,
+  getAllLocksRedis,
 };

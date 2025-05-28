@@ -890,6 +890,33 @@ describe("event-queue outbox", () => {
         expect(openEvents).toHaveLength(1);
         expect(eventQueue.config.events.find(({ subType }) => subType.includes("action"))).toBeDefined();
       });
+
+      it("unchanged parameter from the generic config should remain the same for the specific event", async () => {
+        const service = (await cds.connect.to("NotificationServicePeriodic")).tx(context);
+        const getQueueEntries = jest.spyOn(
+          EventQueueGenericOutboxHandler.prototype,
+          "getQueueEntriesAndSetToInProgress"
+        );
+        await service.send("action", {});
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", [service.name, "action"].join("."));
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        const specificEventConfig = eventQueue.config.events.find(({ subType }) => subType.includes("action"));
+        const genericEventConfig = eventQueue.config.events.find(
+          ({ subType }) => subType === "NotificationServicePeriodic"
+        );
+        expect(specificEventConfig).toMatchSnapshot();
+        // NOTE: remove the expected changes to check that all other settings are still the same
+        ["checkForNextChunk", "subType"].forEach((element) => {
+          delete specificEventConfig[element];
+          delete genericEventConfig[element];
+        });
+        expect(specificEventConfig).toEqual(genericEventConfig);
+        expect(getQueueEntries).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
     });
 
     describe("periodic events", () => {

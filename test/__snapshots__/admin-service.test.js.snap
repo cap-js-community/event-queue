@@ -27,6 +27,7 @@ exports[`admin-service-test metadata snapshot 1`] = `
       </Annotation>
       <EntityContainer Name="EntityContainer">
         <EntitySet Name="Event" EntityType="EventQueueAdminService.Event"/>
+        <EntitySet Name="Lock" EntityType="EventQueueAdminService.Lock"/>
         <EntitySet Name="Tenant" EntityType="EventQueueAdminService.Tenant"/>
       </EntityContainer>
       <EntityType Name="Event">
@@ -49,6 +50,20 @@ exports[`admin-service-test metadata snapshot 1`] = `
         <Property Name="startAfter" Type="Edm.DateTimeOffset" Precision="7"/>
         <Property Name="context" Type="Edm.String"/>
         <Property Name="error" Type="Edm.String"/>
+      </EntityType>
+      <EntityType Name="Lock">
+        <Key>
+          <PropertyRef Name="tenant"/>
+          <PropertyRef Name="type"/>
+          <PropertyRef Name="subType"/>
+        </Key>
+        <Property Name="tenant" Type="Edm.String" Nullable="false"/>
+        <Property Name="type" Type="Edm.String" Nullable="false"/>
+        <Property Name="subType" Type="Edm.String" Nullable="false"/>
+        <Property Name="landscape" Type="Edm.String"/>
+        <Property Name="space" Type="Edm.String"/>
+        <Property Name="ttl" Type="Edm.Int32"/>
+        <Property Name="createdAt" Type="Edm.Int32"/>
       </EntityType>
       <EntityType Name="Tenant">
         <Key>
@@ -190,6 +205,13 @@ exports[`admin-service-test not allowed if disabled by config 1`] = `[Error: 403
 exports[`admin-service-test read entities: Event 1`] = `
 {
   "@odata.context": "$metadata#Event",
+  "value": [],
+}
+`;
+
+exports[`admin-service-test read entities: Lock 1`] = `
+{
+  "@odata.context": "$metadata#Lock",
   "value": [],
 }
 `;
