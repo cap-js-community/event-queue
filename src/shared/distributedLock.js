@@ -82,7 +82,7 @@ const _acquireLockRedis = async (
   });
   const isOk = result === REDIS_COMMAND_OK;
   if (isOk && keepTrackOfLock) {
-    existingLocks[fullKey] = [context.tenant];
+    existingLocks[fullKey] = context.tenant;
   }
   return isOk;
 };
