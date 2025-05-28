@@ -550,7 +550,7 @@ class Config {
     event.load = event.load ?? DEFAULT_LOAD;
     event.priority = event.priority ?? DEFAULT_PRIORITY;
     event.increasePriorityOverTime = event.increasePriorityOverTime ?? DEFAULT_INCREASE_PRIORITY;
-    event.keepAliveInterval = (event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL) * 1000;
+    event.keepAliveInterval = event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL;
     event.keepAliveMaxInProgressTime = event.keepAliveInterval * DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL;
     event.checkForNextChunk = event.checkForNextChunk ?? DEFAULT_CHECK_FOR_NEXT_CHUNK;
   }

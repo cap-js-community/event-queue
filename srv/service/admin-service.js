@@ -4,10 +4,11 @@ const cds = require("@sap/cds");
 const cdsHelper = require("../../src/shared/cdsHelper");
 const { EventProcessingStatus } = require("../../src");
 const config = require("../../src/config");
+const distributedLock = require("../../src/shared/distributedLock");
 
 module.exports = class AdminService extends cds.ApplicationService {
   async init() {
-    const { Event: EventService, Tenant } = this.entities();
+    const { Event: EventService, Tenant, Lock: LockService } = this.entities();
     const { Event: EventDb } = cds.db.entities("sap.eventqueue");
     const { landscape, space } = this.getLandscapeAndSpace();
 
@@ -45,6 +46,18 @@ module.exports = class AdminService extends cds.ApplicationService {
           return event;
         });
       });
+    });
+
+    this.on("READ", LockService, async () => {
+      if (!config.redisEnabled) {
+        return [];
+      }
+      const locks = await distributedLock.getAllLocksRedis();
+      return locks.map((lock) => ({
+        ...lock,
+        landscape: landscape,
+        space: space,
+      }));
     });
 
     this.on("READ", Tenant, async () => {

@@ -76,7 +76,7 @@ class EventQueueProcessorBase {
     this.__txMap = {};
     this.__txRollback = {};
     this.__queueEntries = [];
-    this.#keepAliveRunner = new SetIntervalDriftSafe(this.#eventConfig.keepAliveInterval);
+    this.#keepAliveRunner = new SetIntervalDriftSafe(this.#eventConfig.keepAliveInterval * 1000);
   }
 
   /**
@@ -617,7 +617,7 @@ class EventQueueProcessorBase {
                   "OR lastAttemptTimestamp IS NULL ) OR ( status =",
                   EventProcessingStatus.InProgress,
                   "AND lastAttemptTimestamp <=",
-                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime).toISOString(),
+                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
                   ") )",
                 ]
               : [
@@ -628,7 +628,7 @@ class EventQueueProcessorBase {
                   ") OR ( status =",
                   EventProcessingStatus.InProgress,
                   "AND lastAttemptTimestamp <=",
-                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime).toISOString(),
+                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
                   ") )",
                 ])
           )
@@ -868,7 +868,7 @@ class EventQueueProcessorBase {
   }
 
   continuesKeepAlive() {
-    if (Date.now() - this.lockAcquiredTime.getTime() >= this.#eventConfig.keepAliveInterval) {
+    if (Date.now() - this.lockAcquiredTime.getTime() >= this.#eventConfig.keepAliveInterval * 1000) {
       trace(this.baseContext, "keepAlive-between-iterations", async () => {
         await this.#renewDistributedLock();
       }).catch((err) => this.logger.error("renewing lock between intervals failed!", err));
@@ -961,7 +961,7 @@ class EventQueueProcessorBase {
       const lockAcquired = await distributedLock.acquireLock(
         this.__context,
         [this.#eventType, this.#eventSubType].join("##"),
-        { keepTrackOfLock: true, expiryTime: this.#eventConfig.keepAliveMaxInProgressTime }
+        { keepTrackOfLock: true, expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000 }
       );
       if (!lockAcquired) {
         this.logger.debug("no lock available, exit processing", {
@@ -983,7 +983,7 @@ class EventQueueProcessorBase {
     const lockAcquired = await distributedLock.renewLock(
       this.__context,
       [this.#eventType, this.#eventSubType].join("##"),
-      { expiryTime: this.#eventConfig.keepAliveMaxInProgressTime }
+      { expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000 }
     );
     if (!lockAcquired) {
       this.logger.error("renewing distributed lock failed!", {

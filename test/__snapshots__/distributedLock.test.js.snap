@@ -7,7 +7,6 @@ exports[`distributedLock redis only accepts integer as lock time 1`] = `
       "NX": true,
       "PX": 6,
     },
-    "value": "true",
   },
 }
 `;

@@ -22,6 +22,17 @@ service EventQueueAdminService {
       attempts: Integer) returns Event;
   }
 
+  @cds.persistence.exists
+  entity Lock {
+    key tenant: String;
+    key type: String;
+    key subType: String;
+    landscape: String;
+    space: String;
+    ttl: Integer;
+    createdAt: Integer;
+  }
+
    @readonly
    @cds.persistence.skip
    entity Tenant {

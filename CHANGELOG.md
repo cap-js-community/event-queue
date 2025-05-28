@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v1.10.5 - 2025-05-28
+
+### Fixed
+
+- [CAP outbox] keepAlive time was not correctly calculated for action specific configuration of a CAP service
+- [general] distributed locks where not correctly released in some cases during shutdown of an application server
+
 ## v1.10.4 - 2025-05-19
 
 ### Added
