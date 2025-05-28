@@ -202,9 +202,6 @@ const mixConfigVarsWithEnv = (options) => {
 };
 
 const registerCdsShutdown = () => {
-  if (!config.developmentMode) {
-    return;
-  }
   cds.on("shutdown", async () => {
     return await new Promise((resolve) => {
       let timeoutRef;
