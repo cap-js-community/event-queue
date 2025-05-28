@@ -181,7 +181,7 @@ configuration (`cds.env.requires`). Nevertheless, outboxing can be performed man
 ```js
 const service = await cds.connect.to("task-service");
 const outboxedService = cds.outboxed(service, {
-  kind: "persitent-outbox",
+  kind: "persistent-outbox",
   transactionMode: "alwaysRollback",
 });
 await outboxedService.send("process", {
