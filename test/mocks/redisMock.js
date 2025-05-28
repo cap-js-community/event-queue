@@ -22,5 +22,11 @@ module.exports = {
   closeSubscribeClient: () => {},
   clearState: () => (state = {}),
   closeMainClient: () => {},
-  getState: () => state,
+  getState: () =>
+    Object.fromEntries(
+      Object.entries(state).map(([key, value]) => {
+        delete value.value;
+        return [key, value];
+      })
+    ),
 };

@@ -115,14 +115,12 @@ exports[`runner redis multi tenant no open events 2`] = `
       "NX": true,
       "PX": 1425000,
     },
-    "value": "true",
   },
   "EVENT_QUEUE##UPDATE_PERIODIC_EVENTS": {
     "options": {
       "NX": true,
       "PX": 60000,
     },
-    "value": "true",
   },
 }
 `;
@@ -228,14 +226,12 @@ exports[`runner redis multi tenant with open events - broadcast should be called
       "NX": true,
       "PX": 1425000,
     },
-    "value": "true",
   },
   "EVENT_QUEUE##UPDATE_PERIODIC_EVENTS": {
     "options": {
       "NX": true,
       "PX": 60000,
     },
-    "value": "true",
   },
 }
 `;
@@ -266,7 +262,6 @@ exports[`runner redis single tenant no open events 2`] = `
       "NX": true,
       "PX": 1425000,
     },
-    "value": "true",
   },
 }
 `;
@@ -297,7 +292,6 @@ exports[`runner redis single tenant with open events - broadcast should be calle
       "NX": true,
       "PX": 1425000,
     },
-    "value": "true",
   },
 }
 `;
