@@ -23,6 +23,7 @@ service EventQueueAdminService {
   }
 
   @cds.persistence.skip
+  @readonly
   entity Lock {
     key tenant: String;
     key type: String;

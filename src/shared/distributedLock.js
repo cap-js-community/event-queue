@@ -192,42 +192,47 @@ const _generateKey = (context, tenantScoped, key) => {
 
 const getAllLocksRedis = async () => {
   const client = await redis.createMainClientAndConnect(config.redisOptions);
-  const keys = await client.keys(`${config.redisOptions.redisNamespace}*`);
-  const relevantKeys = {};
-  for (const key of keys) {
+  const batchSize = 500;
+  const results = [];
+  let pipeline = client.multi();
+  const output = [];
+  let count = 0;
+
+  // NOTE: use SCAN because KEYS is not supported for cluster clients
+  for await (const key of client.scanIterator({ MATCH: "EVENT*", COUNT: 1000 })) {
     const [, tenant, guidOrType, subType] = key.split("##");
-    if (subType) {
-      relevantKeys[key] = { tenant, guidOrType, subType };
+    if (!subType) {
+      continue;
+    }
+
+    output.push({
+      tenant: tenant,
+      type: guidOrType,
+      subType: subType,
+    });
+    pipeline.ttl(key).get(key);
+    count++;
+
+    if (count >= batchSize) {
+      const replies = await pipeline.exec();
+      results.push(...replies);
+      pipeline = client.multi();
+      count = 0;
     }
   }
-
-  if (!Object.keys(relevantKeys)) {
-    return [];
+  if (count > 0) {
+    const replies = await pipeline.exec();
+    results.push(...replies);
   }
-
-  const pipeline = client.multi();
-  for (const key in relevantKeys) {
-    pipeline.ttl(key);
-    pipeline.get(key);
-  }
-
-  const replies = await pipeline.exec();
 
   let counter = 0;
-  const result = [];
-  for (const value of Object.values(relevantKeys)) {
-    const ttl = replies[counter];
-    const createdAt = replies[counter + 1];
-    result.push({
-      tenant: value.tenant,
-      type: value.guidOrType,
-      subType: value.subType,
-      ttl,
-      createdAt,
-    });
+  for (const row of output) {
+    const ttl = results[counter];
+    const createdAt = results[counter + 1];
+    Object.assign(row, { ttl, createdAt });
     counter = counter + 2;
   }
-  return result;
+  return output;
 };
 
 const shutdownHandler = async () => {
