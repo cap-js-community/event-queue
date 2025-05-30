@@ -178,6 +178,23 @@ exports[`admin-service-test metadata snapshot 1`] = `
         <Annotation Term="Validation.Minimum" Int="0"/>
         <Annotation Term="Validation.Maximum" Int="100"/>
       </Annotations>
+      <Annotations Target="EventQueueAdminService.EntityContainer/Lock">
+        <Annotation Term="Capabilities.DeleteRestrictions">
+          <Record Type="Capabilities.DeleteRestrictionsType">
+            <PropertyValue Property="Deletable" Bool="false"/>
+          </Record>
+        </Annotation>
+        <Annotation Term="Capabilities.InsertRestrictions">
+          <Record Type="Capabilities.InsertRestrictionsType">
+            <PropertyValue Property="Insertable" Bool="false"/>
+          </Record>
+        </Annotation>
+        <Annotation Term="Capabilities.UpdateRestrictions">
+          <Record Type="Capabilities.UpdateRestrictionsType">
+            <PropertyValue Property="Updatable" Bool="false"/>
+          </Record>
+        </Annotation>
+      </Annotations>
       <Annotations Target="EventQueueAdminService.EntityContainer/Tenant">
         <Annotation Term="Capabilities.DeleteRestrictions">
           <Record Type="Capabilities.DeleteRestrictionsType">
