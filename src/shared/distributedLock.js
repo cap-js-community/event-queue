@@ -191,38 +191,35 @@ const _generateKey = (context, tenantScoped, key) => {
 };
 
 const getAllLocksRedis = async () => {
-  const client = await redis.createMainClientAndConnect(config.redisOptions);
-  const batchSize = 500;
-  const results = [];
-  let pipeline = client.multi();
+  const clientOrCluster = await redis.createMainClientAndConnect(config.redisOptions);
   const output = [];
-  let count = 0;
+  const results = [];
+
+  let clients;
+  if (redis.isClusterMode()) {
+    clients = clientOrCluster.masters.map((master) => master.client);
+  } else {
+    clients = [clientOrCluster];
+  }
 
   // NOTE: use SCAN because KEYS is not supported for cluster clients
-  for await (const key of client.scanIterator({ MATCH: "EVENT*", COUNT: 1000 })) {
-    const [, tenant, guidOrType, subType] = key.split("##");
-    if (!subType) {
-      continue;
-    }
+  for (const client of clients) {
+    for await (const key of client.scanIterator({ MATCH: "EVENT*", COUNT: 1000 })) {
+      const [, tenant, guidOrType, subType] = key.split("##");
+      if (!subType) {
+        continue;
+      }
 
-    output.push({
-      tenant: tenant,
-      type: guidOrType,
-      subType: subType,
-    });
-    pipeline.ttl(key).get(key);
-    count++;
-
-    if (count >= batchSize) {
+      const pipeline = client.multi();
+      output.push({
+        tenant: tenant,
+        type: guidOrType,
+        subType: subType,
+      });
+      pipeline.ttl(key).get(key);
       const replies = await pipeline.exec();
       results.push(...replies);
-      pipeline = client.multi();
-      count = 0;
     }
-  }
-  if (count > 0) {
-    const replies = await pipeline.exec();
-    results.push(...replies);
   }
 
   let counter = 0;
