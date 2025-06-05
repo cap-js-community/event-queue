@@ -264,12 +264,12 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       return payload;
     }
 
-    const { msg, userId } = this.#buildDispatchData(this.context, payload, {
+    const { req, userId } = this.#buildDispatchData(this.context, payload, {
       queueEntries: [queueEntry],
     });
-    msg.event = handlerName;
-    await this.#setContextUser(this.context, userId, msg);
-    const data = await this.__srvUnboxed.tx(this.context).send(msg);
+    req.event = handlerName;
+    await this.#setContextUser(this.context, userId, req);
+    const data = await this.__srvUnboxed.tx(this.context).send(req);
     if (data) {
       payload.data = data;
       return payload;
@@ -318,29 +318,29 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   #buildDispatchData(context, payload, { key, queueEntries } = {}) {
     const { useEventQueueUser } = this.eventConfig;
     const userId = useEventQueueUser ? config.userId : payload.contextUser;
-    const msg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
+    const req = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
     const invocationFn = payload._fromSend ? "send" : "emit";
-    delete msg._fromSend; // TODO: this changes the source object --> check after multiple invocations
-    delete msg.contextUser;
-    msg.eventQueue = { processor: this, key, queueEntries, payload };
-    return { msg, userId, invocationFn };
+    delete req._fromSend;
+    delete req.contextUser;
+    req.eventQueue = { processor: this, key, queueEntries, payload };
+    return { req, userId, invocationFn };
   }
 
-  async #setContextUser(context, userId, data) {
+  async #setContextUser(context, userId, req) {
     context.user = new cds.User.Privileged({
       id: userId,
       tokenInfo: await common.getTokenInfo(this.baseContext.tenant),
     });
-    if (data) {
-      data.user = context.user;
+    if (req) {
+      req.user = context.user;
     }
   }
 
   async processEvent(processContext, key, queueEntries, payload) {
     try {
-      const { userId, invocationFn, msg } = this.#buildDispatchData(processContext, payload, { key, queueEntries });
-      await this.#setContextUser(processContext, userId, msg);
-      const result = await this.__srvUnboxed.tx(processContext)[invocationFn](msg);
+      const { userId, invocationFn, req } = this.#buildDispatchData(processContext, payload, { key, queueEntries });
+      await this.#setContextUser(processContext, userId, req);
+      const result = await this.__srvUnboxed.tx(processContext)[invocationFn](req);
       return this.#determineResultStatus(result, queueEntries);
     } catch (err) {
       this.logger.error("error processing outboxed service call", err, {

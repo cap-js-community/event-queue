@@ -108,7 +108,7 @@ const _renewLockRedis = async (context, fullKey, expiryTime, { value = "true" } 
 
 const _checkLockExistsRedis = async (context, fullKey) => {
   const client = await redis.createMainClientAndConnect(config.redisOptions);
-  return await client.get(fullKey);
+  return await client.exists(fullKey);
 };
 
 const _checkLockExistsDb = async (context, fullKey) => {
