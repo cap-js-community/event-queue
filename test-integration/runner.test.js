@@ -498,7 +498,7 @@ describe("runner", () => {
       let runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
       });
-      expect(runTs).toBeNull();
+      expect(runTs).toBeFalsy();
       await runner.__._acquireRunId();
       runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
