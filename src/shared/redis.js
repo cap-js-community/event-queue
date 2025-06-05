@@ -178,6 +178,15 @@ const connectionCheck = async (options) => {
     });
 };
 
+const isClusterMode = () => {
+  if (!("__clusterMode" in isClusterMode)) {
+    const env = getEnvInstance();
+    const { credentials } = env.redisRequires;
+    isClusterMode.__clusterMode = credentials.cluster_mode;
+  }
+  return isClusterMode.__clusterMode;
+};
+
 module.exports = {
   createClientAndConnect,
   createMainClientAndConnect,
@@ -186,4 +195,5 @@ module.exports = {
   closeMainClient,
   closeSubscribeClient,
   connectionCheck,
+  isClusterMode,
 };

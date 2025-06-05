@@ -28,6 +28,7 @@ const DEFAULT_CHECK_FOR_NEXT_CHUNK = true;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const CAP_EVENT_TYPE = "CAP_OUTBOX";
 const CAP_PARALLEL_DEFAULT = 5;
+const CAP_MAX_ATTEMPTS_DEFAULT = 5;
 const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
 const PRIORITIES = Object.values(Priorities);
 const UTC_DEFAULT = false;
@@ -387,7 +388,7 @@ class Config {
       kind: config.kind ?? "persistent-outbox",
       selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
-      retryAttempts: config.retryAttempts ?? config.maxAttempts,
+      retryAttempts: config.retryAttempts ?? config.maxAttempts ?? CAP_MAX_ATTEMPTS_DEFAULT,
       ...config,
     });
     eventConfig.internalEvent = true;

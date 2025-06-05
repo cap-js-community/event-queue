@@ -61,7 +61,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
         }
       } else {
         for (const actionName in genericClusterEvents) {
-          const msg = new cds.Request({
+          const reg = new cds.Request({
             event: EVENT_QUEUE_ACTIONS.CLUSTER,
             user: this.context.user,
             eventQueue: {
@@ -74,14 +74,14 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
                 this.#clusterByDataProperty(actionName, genericClusterEvents[actionName], propertyName, cb),
             },
           });
-          const clusterResult = await this.__srvUnboxed.tx(this.context).send(msg);
+          const clusterResult = await this.__srvUnboxed.tx(this.context).send(reg);
           if (this.#validateCluster(clusterResult)) {
             Object.assign(clusterMap, clusterResult);
           } else {
             this.logger.error(
               "cluster result of handler is not valid. Check the documentation for the expected structure. Continuing without clustering!",
               {
-                handler: msg.event,
+                handler: reg.event,
                 clusterResult: JSON.stringify(clusterResult),
               }
             );
@@ -92,7 +92,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     }
 
     for (const actionName in specificClusterEvents) {
-      const msg = new cds.Request({
+      const reg = new cds.Request({
         event: `${EVENT_QUEUE_ACTIONS.CLUSTER}.${actionName}`,
         user: this.context.user,
         eventQueue: {
@@ -105,14 +105,14 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
             this.#clusterByDataProperty(actionName, specificClusterEvents[actionName], propertyName, cb),
         },
       });
-      const clusterResult = await this.__srvUnboxed.tx(this.context).send(msg);
+      const clusterResult = await this.__srvUnboxed.tx(this.context).send(reg);
       if (this.#validateCluster(clusterResult)) {
         Object.assign(clusterMap, clusterResult);
       } else {
         this.logger.error(
           "cluster result of handler is not valid. Check the documentation for the expected structure. Continuing without clustering!",
           {
-            handler: msg.event,
+            handler: reg.event,
             clusterResult: JSON.stringify(clusterResult),
           }
         );
@@ -264,12 +264,12 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       return payload;
     }
 
-    const { msg, userId } = this.#buildDispatchData(this.context, payload, {
+    const { reg, userId } = this.#buildDispatchData(this.context, payload, {
       queueEntries: [queueEntry],
     });
-    msg.event = handlerName;
-    await this.#setContextUser(this.context, userId, msg);
-    const data = await this.__srvUnboxed.tx(this.context).send(msg);
+    reg.event = handlerName;
+    await this.#setContextUser(this.context, userId, reg);
+    const data = await this.__srvUnboxed.tx(this.context).send(reg);
     if (data) {
       payload.data = data;
       return payload;
@@ -285,12 +285,12 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       return await super.hookForExceededEvents(exceededEvent);
     }
 
-    const { msg, userId } = this.#buildDispatchData(this.context, exceededEvent.payload, {
+    const { reg, userId } = this.#buildDispatchData(this.context, exceededEvent.payload, {
       queueEntries: [exceededEvent],
     });
-    await this.#setContextUser(this.context, userId, msg);
-    msg.event = handlerName;
-    await this.__srvUnboxed.tx(this.context).send(msg);
+    await this.#setContextUser(this.context, userId, reg);
+    reg.event = handlerName;
+    await this.__srvUnboxed.tx(this.context).send(reg);
   }
 
   // NOTE: Currently not exposed to CAP service; we wait for a valid use case
@@ -310,37 +310,37 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
 
   async processPeriodicEvent(processContext, key, queueEntry) {
     const [, action] = this.eventSubType.split(".");
-    const msg = new cds.Event({ event: action, eventQueue: { processor: this, key, queueEntries: [queueEntry] } });
-    await this.#setContextUser(processContext, config.userId, msg);
-    await this.__srvUnboxed.tx(processContext).emit(msg);
+    const reg = new cds.Event({ event: action, eventQueue: { processor: this, key, queueEntries: [queueEntry] } });
+    await this.#setContextUser(processContext, config.userId, reg);
+    await this.__srvUnboxed.tx(processContext).emit(reg);
   }
 
   #buildDispatchData(context, payload, { key, queueEntries } = {}) {
     const { useEventQueueUser } = this.eventConfig;
     const userId = useEventQueueUser ? config.userId : payload.contextUser;
-    const msg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
+    const reg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
     const invocationFn = payload._fromSend ? "send" : "emit";
-    delete msg._fromSend; // TODO: this changes the source object --> check after multiple invocations
-    delete msg.contextUser;
-    msg.eventQueue = { processor: this, key, queueEntries, payload };
-    return { msg, userId, invocationFn };
+    delete reg._fromSend;
+    delete reg.contextUser;
+    reg.eventQueue = { processor: this, key, queueEntries, payload };
+    return { reg, userId, invocationFn };
   }
 
-  async #setContextUser(context, userId, data) {
+  async #setContextUser(context, userId, reg) {
     context.user = new cds.User.Privileged({
       id: userId,
       tokenInfo: await common.getTokenInfo(this.baseContext.tenant),
     });
-    if (data) {
-      data.user = context.user;
+    if (reg) {
+      reg.user = context.user;
     }
   }
 
   async processEvent(processContext, key, queueEntries, payload) {
     try {
-      const { userId, invocationFn, msg } = this.#buildDispatchData(processContext, payload, { key, queueEntries });
-      await this.#setContextUser(processContext, userId, msg);
-      const result = await this.__srvUnboxed.tx(processContext)[invocationFn](msg);
+      const { userId, invocationFn, reg } = this.#buildDispatchData(processContext, payload, { key, queueEntries });
+      await this.#setContextUser(processContext, userId, reg);
+      const result = await this.__srvUnboxed.tx(processContext)[invocationFn](reg);
       return this.#determineResultStatus(result, queueEntries);
     } catch (err) {
       this.logger.error("error processing outboxed service call", err, {
