@@ -5,7 +5,7 @@ const { Logger: mockLogger } = require("./mocks/logger");
 
 const cds = require("@sap/cds");
 
-const project = __dirname + "/asset/outboxProject"; // The project's root folder
+const project = __dirname + "./../"; // The project's root folder
 const { GET } = cds.test(project);
 
 const eventQueue = require("../src");
