@@ -52,7 +52,7 @@ function outboxed(srv, customOpts) {
       outboxOpts = config.addCAPOutboxEventSpecificAction(srv.name, req.event);
     }
 
-    if (outboxOpts.kind === "persistent-outbox") {
+    if (["persistent-outbox", "persistent-queue"].includes(outboxOpts.kind)) {
       await _mapToEventAndPublish(context, srv.name, req, !!specificSettings);
       return;
     }
