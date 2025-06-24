@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - correctly account for the random offset of periodic events when checking whether events need to be updated
 
-
 ## v1.10.6 - 2025-05-28
 
 - [admin-service] fix admin service skip persistence
