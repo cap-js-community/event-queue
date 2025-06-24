@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.10.7 - 2025-06-24
 
+### Added
+
+- Added trace context to clustered events when all events share the same trace context
+
 ### Fixed
 
 - correctly account for the random offset of periodic events when checking whether events need to be updated

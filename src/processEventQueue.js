@@ -318,8 +318,11 @@ const _checkEventIsBlocked = async (baseInstance) => {
 
 const _processEvent = async (eventTypeInstance, processContext, key, queueEntries, payload) => {
   let traceContext;
-  if (queueEntries.length === 1 && eventTypeInstance.inheritTraceContext) {
-    traceContext = queueEntries[0].context?.traceContext;
+  if (eventTypeInstance.inheritTraceContext) {
+    const uniqueTraceContext = [...new Set(queueEntries.map((entry) => entry.context?.traceContext).filter((a) => a))];
+    if (uniqueTraceContext.length === 1) {
+      traceContext = uniqueTraceContext[0];
+    }
   }
 
   return await trace(
