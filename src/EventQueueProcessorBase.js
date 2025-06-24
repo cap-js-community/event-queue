@@ -1016,7 +1016,7 @@ class EventQueueProcessorBase {
 
     // NOTE: do not pass current date as we always want to calc. a future date
     const cronExpression = CronExpressionParser.parse(this.#eventConfig.cron, {
-      tz: eventConfig.tz,
+      tz: this.#eventConfig.tz,
     });
     return cronExpression.next();
   }

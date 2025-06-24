@@ -7,8 +7,11 @@ const { EventProcessingStatus } = require("./constants");
 const { processChunkedSync } = require("./shared/common");
 const eventConfig = require("./config");
 
-const COMPONENT_NAME = "/eventQueue/periodicEvents";
 const CHUNK_SIZE_INSERT_PERIODIC_EVENTS = 4;
+
+const ALLOWED_PERIODIC_SEC_DIFF = 30;
+
+const COMPONENT_NAME = "/eventQueue/periodicEvents";
 
 const checkAndInsertPeriodicEvents = async (context) => {
   const now = new Date();
@@ -117,11 +120,16 @@ const _determineChangedCron = (existingEventsCron) => {
     const config = eventConfig.getEventConfig(event.type, event.subType);
     const eventStartAfter = new Date(event.startAfter);
     const eventCreatedAt = new Date(event.createdAt);
+    const randomOffset = config.randomOffset ?? eventConfig.randomOffsetPeriodicEvents ?? 0;
     const cronExpression = CronExpressionParser.parse(config.cron, {
       currentDate: eventCreatedAt,
       tz: config.tz,
     });
-    return Math.abs(cronExpression.next().getTime() - eventStartAfter.getTime()) > 30 * 1000; // report as changed if diff created than 30 seconds
+    // report as changed if diff created than ALLOWED_PERIODIC_SEC_DIFF + the random event offset seconds
+    return (
+      Math.abs(cronExpression.next().getTime() - eventStartAfter.getTime()) >
+      (ALLOWED_PERIODIC_SEC_DIFF + randomOffset) * 1000
+    );
   });
 };
 
