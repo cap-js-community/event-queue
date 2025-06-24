@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 - correctly account for the random offset of periodic events when checking whether events need to be updated
+- improved error handling during Redis broadcast of open events when a database transaction cannot be opened for a tenant
 
 ## v1.10.6 - 2025-05-28
 
