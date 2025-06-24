@@ -138,8 +138,12 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
     if (!couldAcquireLock) {
       return;
     }
+  } catch (err) {
+    logger.error("executing event queue run for multi instance and tenant failed", err);
+  }
 
-    for (const tenantId of tenantIds) {
+  for (const tenantId of tenantIds) {
+    try {
       await cds.tx({ tenant: tenantId }, async (tx) => {
         await trace(
           tx.context,
@@ -168,9 +172,9 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
           { newRootSpan: true }
         );
       });
+    } catch (err) {
+      logger.error("broadcasting events for tenant failed", { tenantId }, err);
     }
-  } catch (err) {
-    logger.info("executing event queue run for multi instance and tenant failed", err);
   }
 };
 
@@ -179,23 +183,29 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
   for (const tenantId of tenantIds) {
     const id = cds.utils.uuid();
     let tenantContext;
-    const events = await trace(
-      { id, tenant: tenantId },
-      "fetch-openEvents-and-tokenInfo",
-      async () => {
-        const user = await cds.tx({ tenant: tenantId }, async () => {
-          return new cds.User.Privileged({ id: config.userId, tokenInfo: await common.getTokenInfo(tenantId) });
-        });
-        tenantContext = {
-          tenant: tenantId,
-          user,
-        };
-        return await cds.tx(tenantContext, async (tx) => {
-          return await openEvents.getOpenQueueEntries(tx);
-        });
-      },
-      { newRootSpan: true }
-    );
+    let events;
+    try {
+      events = await trace(
+        { id, tenant: tenantId },
+        "fetch-openEvents-and-tokenInfo",
+        async () => {
+          const user = await cds.tx({ tenant: tenantId }, async () => {
+            return new cds.User.Privileged({ id: config.userId, tokenInfo: await common.getTokenInfo(tenantId) });
+          });
+          tenantContext = {
+            tenant: tenantId,
+            user,
+          };
+          return await cds.tx(tenantContext, async (tx) => {
+            return await openEvents.getOpenQueueEntries(tx);
+          });
+        },
+        { newRootSpan: true }
+      );
+    } catch (err) {
+      cds.log(COMPONENT_NAME).error("fetching open events for tenant failed", { tenantId }, err);
+      continue;
+    }
 
     if (!events.length) {
       continue;
