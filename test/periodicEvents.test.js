@@ -265,6 +265,96 @@ describe("baseFunctionality", () => {
         expect(events[0].startAfter).toMatchInlineSnapshot(`"2023-11-14T02:00:00.000Z"`);
       });
 
+      it("next interval should also consider timezone correctly", async () => {
+        config.cronTimezone = "Europe/Berlin";
+        const periodicEventsCron = fileContent.periodicEvents
+          .filter((e) => e.cron)
+          .map((e) => {
+            e.cron = "0 3 * * *"; // Runs at 03:00 AM every day.
+            e.utc = false;
+            return e;
+          });
+        const [periodicEvent] = periodicEventsCron;
+        config.mixFileContentWithEnv({
+          events: fileContent.events,
+          periodicEvents: [periodicEvent],
+        });
+        await checkAndInsertPeriodicEvents(context);
+        const [event] = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 1,
+          additionalColumns: ["type", "subType"],
+        });
+        expect(event.startAfter).toMatchInlineSnapshot(`"2023-11-14T02:00:00.000Z"`);
+
+        // add one day
+        jest.setSystemTime(new Date("2023-11-14T02:01:00.000Z"));
+
+        // process should insert next event
+        await eventQueue.processEventQueue(tx.context, event.type, event.subType);
+        const events = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 2,
+          additionalColumns: ["type", "subType"],
+        });
+        events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
+        expect(events[0].startAfter).toMatchInlineSnapshot(`"2023-11-14T02:00:00.000Z"`);
+        expect(events[1].startAfter).toMatchInlineSnapshot(`"2023-11-15T02:00:00.000Z"`);
+      });
+
+      it("random offset should not lead to invalidation of periodic event - defined on event", async () => {
+        config.cronTimezone = "Europe/Berlin";
+        const periodicEventsCron = fileContent.periodicEvents
+          .filter((e) => e.cron)
+          .map((e) => {
+            e.cron = "0 3 * * *"; // Runs at 03:00 AM every day.
+            e.utc = false;
+            e.randomOffset = 60 * 60;
+            return e;
+          });
+        const [periodicEvent] = periodicEventsCron;
+        config.mixFileContentWithEnv({
+          events: fileContent.events,
+          periodicEvents: [periodicEvent],
+        });
+        await checkAndInsertPeriodicEvents(context);
+        const [event] = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 1,
+          additionalColumns: ["type", "subType"],
+        });
+        expect(event.startAfter).toMatchInlineSnapshot(`"2023-11-14T02:00:00.000Z"`);
+
+        // add one day
+        jest.setSystemTime(new Date("2023-11-14T02:01:00.000Z"));
+
+        // process should insert next event
+        await tx.commit();
+        tx = cds.tx(new cds.EventContext({ user: "testUser", tenant: 123 }));
+        await eventQueue.processEventQueue(tx.context, event.type, event.subType);
+        const events = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 2,
+          additionalColumns: ["ID", "type", "subType"],
+        });
+        const ids = events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter)).map((event) => event.ID);
+        await tx.commit();
+
+        // check should not detect required change
+        tx = cds.tx(new cds.EventContext({ user: "testUser", tenant: 123 }));
+        await checkAndInsertPeriodicEvents(tx.context);
+
+        const eventsAfterCheck = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 2,
+          additionalColumns: ["ID", "type", "subType"],
+        });
+        const idsAfterCheck = eventsAfterCheck
+          .sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter))
+          .map((event) => event.ID);
+        expect(ids).toEqual(idsAfterCheck);
+      });
+
       it("should also work for daylight saving time (germany)", async () => {
         jest.setSystemTime(new Date("2023-05-19T11:00:00.000Z"));
         config.cronTimezone = "Europe/Berlin";
