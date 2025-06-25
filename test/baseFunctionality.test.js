@@ -716,7 +716,7 @@ describe("baseFunctionality", () => {
     });
 
     test("should work for CAP Service that is not connected yet", async () => {
-      const connectToSpy = jest.spyOn(cds.connect, "to").mockImplementationOnce(async (...args) => {
+      const connectToSpy = jest.spyOn(cds.connect, "to").mockImplementationOnce(async () => {
         await promisify(setTimeout)(10);
         return { name: "NotificationService" };
       });
