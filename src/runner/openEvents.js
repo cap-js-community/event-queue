@@ -38,34 +38,33 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
   for (const { type, subType } of entries) {
     if (eventConfig.isCapOutboxEvent(type)) {
       const [srvName, actionName] = subType.split(".");
-      cds.connect
-        .to(srvName)
-        .then((service) => {
-          if (!filterAppSpecificEvents) {
-            return; // will be done in finally
-          }
+      try {
+        const service = await cds.connect.to(srvName);
+        if (!filterAppSpecificEvents) {
+          return; // will be done in finally
+        }
 
-          if (!service) {
-            return;
-          }
-          cds.outboxed(service);
-          if (actionName) {
-            config.addCAPOutboxEventSpecificAction(srvName, actionName);
-          }
-          if (filterAppSpecificEvents) {
-            if (eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
-              result.push({ type, subType });
-            }
-          } else {
+        if (!service) {
+          return;
+        }
+        cds.outboxed(service);
+        if (actionName) {
+          config.addCAPOutboxEventSpecificAction(srvName, actionName);
+        }
+        if (filterAppSpecificEvents) {
+          if (eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
             result.push({ type, subType });
           }
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (!filterAppSpecificEvents) {
-            result.push({ type, subType });
-          }
-        });
+        } else {
+          result.push({ type, subType });
+        }
+      } catch {
+        /* ignore catch */
+      } finally {
+        if (!filterAppSpecificEvents) {
+          result.push({ type, subType });
+        }
+      }
     } else {
       if (filterAppSpecificEvents) {
         if (

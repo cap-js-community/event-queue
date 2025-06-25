@@ -1,6 +1,7 @@
 "use strict";
 
 const path = require("path");
+const { promisify } = require("util");
 
 const cds = require("@sap/cds/lib");
 
@@ -715,7 +716,10 @@ describe("baseFunctionality", () => {
     });
 
     test("should work for CAP Service that is not connected yet", async () => {
-      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({ name: "NotificationService" });
+      const connectToSpy = jest.spyOn(cds.connect, "to").mockImplementationOnce(async (...args) => {
+        await promisify(setTimeout)(10);
+        return { name: "NotificationService" };
+      });
       cds.requires.NotificationService = {};
       await cds.tx({}, async (tx) => {
         await testHelper.insertEventEntry(tx);
