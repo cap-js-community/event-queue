@@ -71,6 +71,7 @@ exports[`admin-service-test metadata snapshot 1`] = `
         </Key>
         <Property Name="ID" Type="Edm.String" Nullable="false"/>
         <Property Name="subdomain" Type="Edm.String"/>
+        <Property Name="metadata" Type="Edm.String"/>
       </EntityType>
       <Action Name="setStatusAndAttempts" IsBound="true" EntitySetPath="in">
         <Parameter Name="in" Type="EventQueueAdminService.Event"/>
@@ -78,6 +79,13 @@ exports[`admin-service-test metadata snapshot 1`] = `
         <Parameter Name="status" Type="Edm.Int32"/>
         <Parameter Name="attempts" Type="Edm.Int32"/>
         <ReturnType Type="EventQueueAdminService.Event"/>
+      </Action>
+      <Action Name="releaseLock" IsBound="true">
+        <Parameter Name="in" Type="EventQueueAdminService.Lock"/>
+        <Parameter Name="tenant" Type="Edm.String"/>
+        <Parameter Name="type" Type="Edm.String"/>
+        <Parameter Name="subType" Type="Edm.String"/>
+        <ReturnType Type="Edm.Boolean"/>
       </Action>
       <Annotations Target="EventQueueAdminService.EntityContainer/Event">
         <Annotation Term="Capabilities.DeleteRestrictions">
@@ -195,6 +203,15 @@ exports[`admin-service-test metadata snapshot 1`] = `
           </Record>
         </Annotation>
       </Annotations>
+      <Annotations Target="EventQueueAdminService.releaseLock(EventQueueAdminService.Lock)/tenant">
+        <Annotation Term="Common.FieldControl" EnumMember="Common.FieldControlType/Mandatory"/>
+      </Annotations>
+      <Annotations Target="EventQueueAdminService.releaseLock(EventQueueAdminService.Lock)/type">
+        <Annotation Term="Common.FieldControl" EnumMember="Common.FieldControlType/Mandatory"/>
+      </Annotations>
+      <Annotations Target="EventQueueAdminService.releaseLock(EventQueueAdminService.Lock)/subType">
+        <Annotation Term="Common.FieldControl" EnumMember="Common.FieldControlType/Mandatory"/>
+      </Annotations>
       <Annotations Target="EventQueueAdminService.EntityContainer/Tenant">
         <Annotation Term="Capabilities.DeleteRestrictions">
           <Record Type="Capabilities.DeleteRestrictionsType">
@@ -218,24 +235,3 @@ exports[`admin-service-test metadata snapshot 1`] = `
 `;
 
 exports[`admin-service-test not allowed if disabled by config 1`] = `[Error: 403 - Admin service is disabled by configuration]`;
-
-exports[`admin-service-test read entities: Event 1`] = `
-{
-  "@odata.context": "$metadata#Event",
-  "value": [],
-}
-`;
-
-exports[`admin-service-test read entities: Lock 1`] = `
-{
-  "@odata.context": "$metadata#Lock",
-  "value": [],
-}
-`;
-
-exports[`admin-service-test read entities: Tenant 1`] = `
-{
-  "@odata.context": "$metadata#Tenant",
-  "value": [],
-}
-`;

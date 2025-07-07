@@ -152,7 +152,7 @@ const getAllTenantIds = async () => {
 
 const TENANT_COLUMNS = ["subscribedSubdomain", "createdAt", "modifiedAt"];
 
-const getAllTenantWithSubdomain = async () => {
+const getAllTenantWithMetadata = async () => {
   const response = await _getAllTenantBase();
   if (!response) {
     return null;
@@ -183,5 +183,5 @@ const getAllTenantWithSubdomain = async () => {
 module.exports = {
   executeInNewTransaction,
   getAllTenantIds,
-  getAllTenantWithSubdomain,
+  getAllTenantWithMetadata,
 };
