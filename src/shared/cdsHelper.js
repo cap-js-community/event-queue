@@ -150,6 +150,8 @@ const getAllTenantIds = async () => {
     }, []);
 };
 
+const TENANT_COLUMNS = ["subscribedSubdomain", "createdAt", "modifiedAt"];
+
 const getAllTenantWithSubdomain = async () => {
   const response = await _getAllTenantBase();
   if (!response) {
@@ -160,10 +162,19 @@ const getAllTenantWithSubdomain = async () => {
     const tenantId = row.subscribedTenantId ?? row.tenant;
     result = await result;
     if (await common.isTenantIdValidCb(TenantIdCheckTypes.eventProcessing, tenantId)) {
-      result.push({
-        ID: tenantId,
-        subdomain: row.subscribedSubdomain,
-      });
+      const data = Object.entries(row).reduce(
+        (result, [key, value]) => {
+          if (TENANT_COLUMNS.includes(key)) {
+            result[key] = value;
+          } else {
+            result.metadata[key] = value;
+          }
+          return result;
+        },
+        { metadata: {} }
+      );
+      data.metadata = JSON.stringify(data.metadata);
+      result.push(data);
     }
     return result;
   }, []);

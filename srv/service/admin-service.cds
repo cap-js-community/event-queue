@@ -39,5 +39,6 @@ service EventQueueAdminService {
    entity Tenant {
       Key ID: String;
       subdomain: String;
+      metadata: String;
    }
 }
