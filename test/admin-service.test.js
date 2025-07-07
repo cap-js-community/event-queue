@@ -34,6 +34,7 @@ describe("admin-service-test", () => {
     eventQueue.config.enableAdminService = true;
     context = new cds.EventContext({ user: "testUser", tenant: 123 });
     tx = cds.tx(context);
+    await cds.tx({}, (tx) => tx.run(DELETE.from("sap.eventqueue.Event")));
     jest.clearAllMocks();
     loggerMock = mockLogger();
   });
