@@ -13,14 +13,14 @@ service EventQueueAdminService {
         null as space: String,
         *
   } actions {
-    action setStatusAndAttempts(
-      // TODO: remove tenant as soon as CAP issue is fixed https://github.tools.sap/cap/issues/issues/18445
-      @mandatory
-      tenant: String,
-      status: db.Status,
-      @assert.range: [0,100]
-      attempts: Integer) returns Event;
-  }
+      action setStatusAndAttempts(
+        // TODO: remove tenant as soon as CAP issue is fixed https://github.tools.sap/cap/issues/issues/18445
+        @mandatory
+        tenant: String,
+        status: db.Status,
+        @assert.range: [0,100]
+        attempts: Integer) returns Event;
+    }
 
   @cds.persistence.skip
   @readonly
@@ -32,12 +32,22 @@ service EventQueueAdminService {
     space: String;
     ttl: Integer;
     createdAt: Integer;
-  }
+  } actions {
+      action releaseLock(
+        // TODO: remove tenant as soon as CAP issue is fixed https://github.tools.sap/cap/issues/issues/18445
+        @mandatory
+        tenant: String,
+        @mandatory
+        type: String,
+        @mandatory
+        subType: String) returns Boolean;
+    }
 
    @readonly
    @cds.persistence.skip
    entity Tenant {
       Key ID: String;
       subdomain: String;
+      metadata: String;
    }
 }

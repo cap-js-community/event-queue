@@ -121,8 +121,9 @@ const _checkLockExistsDb = async (context, fullKey) => {
 
 const _releaseLockRedis = async (context, fullKey) => {
   const client = await redis.createMainClientAndConnect(config.redisOptions);
-  await client.del(fullKey);
+  const result = await client.del(fullKey);
   delete existingLocks[fullKey];
+  return result === 1;
 };
 
 const _releaseLockDb = async (context, fullKey) => {
@@ -130,6 +131,7 @@ const _releaseLockDb = async (context, fullKey) => {
     await tx.run(DELETE.from(config.tableNameEventLock).where("code =", fullKey));
   });
   delete existingLocks[fullKey];
+  return true;
 };
 
 const _acquireLockDB = async (

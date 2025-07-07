@@ -5,6 +5,7 @@ const cdsHelper = require("../../src/shared/cdsHelper");
 const { EventProcessingStatus } = require("../../src");
 const config = require("../../src/config");
 const distributedLock = require("../../src/shared/distributedLock");
+const redisPub = require("../../src/redis/redisPub");
 
 module.exports = class AdminService extends cds.ApplicationService {
   async init() {
@@ -61,7 +62,7 @@ module.exports = class AdminService extends cds.ApplicationService {
     });
 
     this.on("READ", Tenant, async () => {
-      const tenants = await cdsHelper.getAllTenantWithSubdomain();
+      const tenants = await cdsHelper.getAllTenantWithMetadata();
       return tenants ?? [];
     });
 
@@ -82,12 +83,25 @@ module.exports = class AdminService extends cds.ApplicationService {
         return req.reject(400, "No status or attempts provided");
       }
 
-      await cds.tx({ tenant, headers: { "z-id": tenant } }, async () => {
+      const event = await cds.tx({ tenant, headers: { "z-id": tenant } }, async () => {
+        const event = await SELECT.one.from(EventDb).where({ ID: req.params[0].ID ?? req.params[0] });
         await UPDATE.entity(EventDb)
           .set(updateData)
           .where({ ID: req.params[0].ID ?? req.params[0] });
+        return event;
+      });
+      redisPub.broadcastEvent(tenant, event).catch(() => {
+        /* ignore errors */
       });
       return await this.send(new cds.Request({ query: req.query, headers: req.headers }));
+    });
+
+    this.on("releaseLock", async (req) => {
+      cds.log("eventQueue").info("Releasing event-queue lock", req.data);
+      const { tenant, type, subType } = req.data;
+      return await cds.tx({ tenant }, async (tx) => {
+        return await distributedLock.releaseLock(tx.context, [type, subType].join("##"));
+      });
     });
 
     await super.init();
