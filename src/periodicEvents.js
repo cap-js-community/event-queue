@@ -15,6 +15,9 @@ const COMPONENT_NAME = "/eventQueue/periodicEvents";
 
 const checkAndInsertPeriodicEvents = async (context) => {
   const now = new Date();
+  cds.log(COMPONENT_NAME).info("updating periodic events", {
+    tenant: context.tenant,
+  });
   const tx = cds.tx(context);
   const baseCqn = SELECT.from(eventConfig.tableNameEventQueue)
     .where([
