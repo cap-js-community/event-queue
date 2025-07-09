@@ -234,7 +234,7 @@ exports[`admin-service-test metadata snapshot 1`] = `
 </edmx:Edmx>"
 `;
 
-exports[`admin-service-test not allowed if disabled by config 1`] = `[Error: 403 - Admin service is disabled by configuration]`;
+exports[`admin-service-test not allowed if disabled by config 1`] = `[AxiosError: 403 - Admin service is disabled by configuration]`;
 
 exports[`admin-service-test read entities: Event 1`] = `
 {
