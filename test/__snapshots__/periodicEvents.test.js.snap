@@ -3,6 +3,12 @@
 exports[`baseFunctionality cron events Cron expression tests changed intervals changed interval 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "deleting periodic events because they have changed",
     {
       "changedEvents": [
@@ -44,7 +50,16 @@ exports[`baseFunctionality cron events Cron expression tests changed intervals c
 ]
 `;
 
-exports[`baseFunctionality cron events Cron expression tests changed intervals interval multiple times overdue 1`] = `[]`;
+exports[`baseFunctionality cron events Cron expression tests changed intervals interval multiple times overdue 1`] = `
+[
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+]
+`;
 
 exports[`baseFunctionality cron events Cron expression tests changed intervals interval multiple times overdue 2`] = `
 [
@@ -61,7 +76,16 @@ exports[`baseFunctionality cron events Cron expression tests changed intervals i
 ]
 `;
 
-exports[`baseFunctionality cron events Cron expression tests changed intervals not changed interval --> no update 1`] = `[]`;
+exports[`baseFunctionality cron events Cron expression tests changed intervals not changed interval --> no update 1`] = `
+[
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+]
+`;
 
 exports[`baseFunctionality cron events Cron expression tests changed intervals not changed interval --> no update 2`] = `
 [
@@ -95,6 +119,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '* * * * *': * * * * * 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/1 | inserting chunk of changed or new periodic events",
     {
@@ -135,6 +165,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '*/15 * * * *': */15 * * * * 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -173,6 +209,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 * * * *': 0 * * * * 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/1 | inserting chunk of changed or new periodic events",
     {
@@ -213,6 +255,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 * * *': 0 0 * * * 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -251,6 +299,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 * * 0': 0 0 * * 0 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/1 | inserting chunk of changed or new periodic events",
     {
@@ -291,6 +345,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 * 5 *': 0 0 * 5 * 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -329,6 +389,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 1 * *': 0 0 1 * * 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/1 | inserting chunk of changed or new periodic events",
     {
@@ -369,6 +435,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 1 1 *': 0 0 1 1 * 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -407,6 +479,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 0 1-7 * 0': 0 0 1-7 * 0 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/1 | inserting chunk of changed or new periodic events",
     {
@@ -447,6 +525,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 3 * * 2': 0 3 * * 2 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -485,6 +569,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 5 1 1 *': 0 5 1 1 * 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/1 | inserting chunk of changed or new periodic events",
     {
@@ -525,6 +615,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 6 * * 2-4': 0 6 * * 2-4 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -563,6 +659,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 8-17/2 * * *': 0 8-17/2 * * * 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/1 | inserting chunk of changed or new periodic events",
     {
@@ -603,6 +705,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 9,17 * * *': 0 9,17 * * * 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -641,6 +749,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 12 * * 1': 0 12 * * 1 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/1 | inserting chunk of changed or new periodic events",
     {
@@ -681,6 +795,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '0 22 * * 5': 0 22 * * 5 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -719,6 +839,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '5,10,15 10 * * *': 5,10,15 10 * * * 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/1 | inserting chunk of changed or new periodic events",
     {
@@ -759,6 +885,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '15 14 1 * *': 15 14 1 * * 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -797,6 +929,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '30 8 * * 1-5': 30 8 * * 1-5 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/1 | inserting chunk of changed or new periodic events",
     {
@@ -837,6 +975,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 exports[`baseFunctionality cron events Cron expression tests should test cron expression: '45 23 * * *': 45 23 * * * 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -860,6 +1004,12 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
 
 exports[`baseFunctionality interval events basic insert all new events 1`] = `
 [
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
   [
     "1/2 | inserting chunk of changed or new periodic events",
     {
@@ -951,6 +1101,12 @@ exports[`baseFunctionality interval events basic insert all new events 2`] = `
 exports[`baseFunctionality interval events delta insert 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/2 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -998,6 +1154,12 @@ exports[`baseFunctionality interval events delta insert 1`] = `
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
       ],
+    },
+  ],
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
     },
   ],
   [
@@ -1073,6 +1235,12 @@ exports[`baseFunctionality interval events delta insert 2`] = `
 exports[`baseFunctionality interval events if periodic event is in progress - no insert should happen 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/2 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -1122,6 +1290,12 @@ exports[`baseFunctionality interval events if periodic event is in progress - no
       ],
     },
   ],
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
 ]
 `;
 
@@ -1163,6 +1337,12 @@ exports[`baseFunctionality interval events if periodic event is in progress - no
 exports[`baseFunctionality interval events interval change if interval is increased next event will autocorrect 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -1179,6 +1359,12 @@ exports[`baseFunctionality interval events interval change if interval is increa
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
       ],
+    },
+  ],
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
     },
   ],
 ]
@@ -1206,6 +1392,12 @@ exports[`baseFunctionality interval events interval change if interval is increa
 exports[`baseFunctionality interval events interval change if too far in future update 1`] = `
 [
   [
+    "updating periodic events",
+    {
+      "tenant": 123,
+    },
+  ],
+  [
     "1/1 | inserting chunk of changed or new periodic events",
     {
       "events": [
@@ -1222,6 +1414,12 @@ exports[`baseFunctionality interval events interval change if too far in future 
           "type": "EVENT_QUEUE_BASE_PERIODIC",
         },
       ],
+    },
+  ],
+  [
+    "updating periodic events",
+    {
+      "tenant": 123,
     },
   ],
   [
