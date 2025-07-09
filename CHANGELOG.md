@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [CAP outbox] adding periodic events of CAP services with the same action name
 
-
 ## v1.10.9 - 2025-07-07
 
 ### Fixed
