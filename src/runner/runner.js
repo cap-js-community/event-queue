@@ -509,6 +509,7 @@ const _checkPeriodicEventsSingleTenantOneTime = async () => {
         tenantScoped: false,
       });
       if (!couldAcquireLock) {
+        logger.info("skipping updating periodic events - lock not acquired");
         return;
       }
       return await cds.tx({}, async (tx) => await periodicEvents.checkAndInsertPeriodicEvents(tx.context));

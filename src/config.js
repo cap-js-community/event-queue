@@ -484,10 +484,11 @@ class Config {
               delete base.interval;
             }
 
-            result[fnName] = Object.assign(
+            const subType = `${name}.${fnName}`;
+            result[subType] = Object.assign(
               {
                 type: CAP_EVENT_TYPE,
-                subType: `${name}.${fnName}`,
+                subType,
                 impl: "./outbox/EventQueueGenericOutboxHandler",
                 internalEvent: true,
               },
