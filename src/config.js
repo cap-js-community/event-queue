@@ -196,9 +196,7 @@ class Config {
             result = config.value.test(this.#env.applicationName);
           } else {
             const shouldBeProcessedBasedOnAppName = appNameConfig[this.#env.applicationName];
-            if (!shouldBeProcessedBasedOnAppName) {
-              result = config.value === this.#env.applicationName;
-            }
+            result = !!shouldBeProcessedBasedOnAppName;
           }
           if (result) {
             break;

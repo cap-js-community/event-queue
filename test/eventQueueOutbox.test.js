@@ -76,16 +76,19 @@ cds.env.requires.AppNames = {
     checkForNextChunk: false,
     events: {
       appNamesString: {
-        appNames: [],
+        appNames: ["srv-backend"],
       },
       appNamesRegex: {
-        appNames: ["/srv-backend.*/i"],
+        appNames: ["/^srv-backend.*/i"],
       },
       appNamesMixStringMatch: {
-        appNames: ["/srv-backend.*/i", "a-srv-backend"],
+        appNames: ["/^srv-backend.*/i", "a-srv-backend"],
       },
       appNamesMixRegexMatch: {
-        appNames: ["/a-srv-backend.*/i", "srv-backend"],
+        appNames: ["/^a-srv-backend.*/i", "srv-backend"],
+      },
+      appNamesReverseMixRegexMatch: {
+        appNames: ["a-srv-backend", "/^srv-backend.*/i"],
       },
     },
   },
@@ -1576,6 +1579,19 @@ describe("event-queue outbox", () => {
         env.vcapApplication = {};
       });
 
+      it("string - match", async () => {
+        const service = (await cds.connect.to("AppNames")).tx(context);
+        env.vcapApplication = { application_name: `srv-backend` };
+        const data = { to: "to" };
+        await service.send("appNamesString", data);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", "AppNames.appNamesString");
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
       it("regex - no match", async () => {
         const service = (await cds.connect.to("AppNames")).tx(context);
         const data = { to: "to" };
@@ -1637,6 +1653,19 @@ describe("event-queue outbox", () => {
         await processEventQueue(tx.context, "CAP_OUTBOX", "AppNames.appNamesMixStringMatch");
         await commitAndOpenNew();
         await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("mix - string no match - regex match", async () => {
+        const service = (await cds.connect.to("AppNames")).tx(context);
+        env.vcapApplication = { application_name: `srv-backend` };
+        const data = { to: "to" };
+        await service.send("appNamesReverseMixRegexMatch", data);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", "AppNames.appNamesReverseMixRegexMatch");
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
         expect(loggerMock.callsLengths().error).toEqual(0);
       });
     });
