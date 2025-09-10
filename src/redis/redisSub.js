@@ -78,7 +78,7 @@ const _messageHandlerProcessEvents = async (messageData) => {
     }
 
     const user = await cds.tx({ tenant: tenantId }, async () => {
-      const authInfo = await common.getAuthContext(this.baseContext.tenant);
+      const authInfo = await common.getAuthContext(tenantId);
       return new cds.User.Privileged({ id: config.userId, authInfo, tokenInfo: authInfo?.token });
     });
     const tenantContext = {

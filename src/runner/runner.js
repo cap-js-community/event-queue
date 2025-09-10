@@ -149,7 +149,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
           tx.context,
           "get-openEvents-and-publish",
           async () => {
-            const authInfo = await common.getAuthContext(this.baseContext.tenant);
+            const authInfo = await common.getAuthContext(tenantId);
             tx.context.user = new cds.User.Privileged({
               id: config.userId,
               authInfo,
@@ -192,7 +192,7 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
         "fetch-openEvents-and-authInfo",
         async () => {
           const user = await cds.tx({ tenant: tenantId }, async () => {
-            const authInfo = await common.getAuthContext(this.baseContext.tenant);
+            const authInfo = await common.getAuthContext(tenantId);
             return new cds.User.Privileged({ id: config.userId, authInfo, tokenInfo: authInfo?.token });
           });
           tenantContext = {
@@ -261,7 +261,7 @@ const _executePeriodicEventsAllTenants = async (tenantIds) => {
   for (const tenantId of tenantIds) {
     try {
       const user = await cds.tx({ tenant: tenantId }, async () => {
-        const authInfo = await common.getAuthContext(this.baseContext.tenant);
+        const authInfo = await common.getAuthContext(tenantId);
         return new cds.User.Privileged({ id: config.userId, authInfo, tokenInfo: authInfo?.token });
       });
       const tenantContext = {

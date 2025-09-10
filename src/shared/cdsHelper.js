@@ -25,7 +25,7 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
   const logger = cds.log(COMPONENT_NAME);
   let transactionRollbackPromise = Promise.resolve(false);
   try {
-    const authInfo = await common.getAuthContext(this.baseContext.tenant);
+    const authInfo = await common.getAuthContext(context.tenant);
     const user = new cds.User.Privileged({ id: config.userId, authInfo, tokenInfo: authInfo?.token });
     if (cds.db.kind === "hana") {
       await cds.tx(
