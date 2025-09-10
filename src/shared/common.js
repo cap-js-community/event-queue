@@ -7,6 +7,7 @@ const xssec = require("@sap/xssec");
 const VError = require("verror");
 
 const config = require("../config");
+const { ExpiringLazyCache } = require("./lazyCache");
 const { TenantIdCheckTypes } = require("../constants");
 
 const MARGIN_AUTH_INFO_EXPIRY = 60 * 1000;
@@ -88,8 +89,6 @@ const processChunkedSync = (inputs, chunkSize, chunkHandler) => {
 const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(value)).digest("base64").slice(0, 32);
 
 const _getNewAuthContext = async (tenantId) => {
-  const authContextCache = getAuthContext._authContextCache;
-  authContextCache[tenantId] = authContextCache[tenantId] ?? {};
   try {
     if (!_getNewAuthContext._xsuaaService) {
       _getNewAuthContext._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
@@ -98,15 +97,14 @@ const _getNewAuthContext = async (tenantId) => {
     const token = await authService.fetchClientCredentialsToken({ zid: tenantId });
     const tokenInfo = new xssec.XsuaaToken(token.access_token);
     const authInfo = new xssec.XsuaaSecurityContext(authService, tokenInfo);
-    authContextCache[tenantId].expireTs = tokenInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
-    return authInfo;
+    return [tokenInfo.getExpirationDate().getTime() - Date.now(), authInfo];
   } catch (err) {
-    authContextCache[tenantId] = null;
     cds.log(COMPONENT_NAME).warn("failed to request authContext", {
       err: err.message,
       responseCode: err.responseCode,
       responseText: err.responseText,
     });
+    return [0, null];
   }
 };
 
@@ -127,20 +125,8 @@ const getAuthContext = async (tenantId) => {
     return null;
   }
 
-  getAuthContext._authContextCache = getAuthContext._authContextCache ?? {};
-  const authContextCache = getAuthContext._authContextCache;
-  // not existing or existing but expired
-  if (
-    !authContextCache[tenantId] ||
-    (authContextCache[tenantId] &&
-      authContextCache[tenantId].expireTs &&
-      Date.now() > authContextCache[tenantId].expireTs)
-  ) {
-    authContextCache[tenantId] ??= {};
-    authContextCache[tenantId].value = _getNewAuthContext(tenantId);
-    authContextCache[tenantId].expireTs = null;
-  }
-  return await authContextCache[tenantId].value;
+  getAuthContext._cache = getAuthContext._cache ?? new ExpiringLazyCache({ expirationGap: MARGIN_AUTH_INFO_EXPIRY });
+  return await getAuthContext._cache.getSetCb(tenantId, async () => _getNewAuthContext(tenantId));
 };
 
 const isTenantIdValidCb = async (checkType, tenantId) => {
@@ -174,6 +160,6 @@ module.exports = {
   isTenantIdValidCb,
   promiseAllDone,
   __: {
-    clearAuthContextCache: () => (getAuthContext._authContextCache = {}),
+    clearAuthContextCache: () => getAuthContext._cache?.clear(),
   },
 };
