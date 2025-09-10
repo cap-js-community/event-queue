@@ -114,7 +114,7 @@ class Config {
   #redisNamespace;
   #publishEventBlockList;
   #crashOnRedisUnavailable;
-  #tenantIdFilterTokenInfoCb;
+  #tenantIdFilterAuthContextCb;
   #tenantIdFilterEventProcessingCb;
   #configEvents;
   #configPeriodicEvents;
@@ -770,12 +770,12 @@ class Config {
     this.#crashOnRedisUnavailable = value;
   }
 
-  get tenantIdFilterTokenInfo() {
-    return this.#tenantIdFilterTokenInfoCb;
+  get tenantIdFilterAuthContext() {
+    return this.#tenantIdFilterAuthContextCb;
   }
 
-  set tenantIdFilterTokenInfo(value) {
-    this.#tenantIdFilterTokenInfoCb = value;
+  set tenantIdFilterAuthContext(value) {
+    this.#tenantIdFilterAuthContextCb = value;
   }
 
   get tenantIdFilterEventProcessing() {

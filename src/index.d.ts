@@ -14,7 +14,7 @@ export declare type EventProcessingStatusType = (typeof EventProcessingStatus)[E
 
 export declare const TenantIdCheckTypes: {
   eventProcessing: "eventProcessing";
-  getTokenInfo: "getTokenInfo";
+  getAuthContext: "getAuthContext";
 };
 
 export declare const TransactionMode: {
@@ -215,8 +215,8 @@ declare class Config {
   get publishEventBlockList(): any;
   set crashOnRedisUnavailable(value: any);
   get crashOnRedisUnavailable(): any;
-  set tenantIdFilterTokenInfo(value: any);
-  get tenantIdFilterTokenInfo(): any;
+  set tenantIdFilterAuthContext(value: any);
+  get tenantIdFilterAuthContext(): any;
   set tenantIdFilterEventProcessing(value: any);
   get tenantIdFilterEventProcessing(): any;
   set runInterval(value: any);

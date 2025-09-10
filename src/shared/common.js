@@ -87,21 +87,22 @@ const processChunkedSync = (inputs, chunkSize, chunkHandler) => {
 
 const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(value)).digest("base64").slice(0, 32);
 
-const _getNewTokenInfo = async (tenantId) => {
-  const tokenInfoCache = getTokenInfo._tokenInfoCache;
-  tokenInfoCache[tenantId] = tokenInfoCache[tenantId] ?? {};
+const _getNewAuthContext = async (tenantId) => {
+  const authContextCache = getAuthContext._authContextCache;
+  authContextCache[tenantId] = authContextCache[tenantId] ?? {};
   try {
-    if (!_getNewTokenInfo._xsuaaService) {
-      _getNewTokenInfo._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
+    if (!_getNewAuthContext._xsuaaService) {
+      _getNewAuthContext._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
     }
-    const authService = _getNewTokenInfo._xsuaaService;
+    const authService = _getNewAuthContext._xsuaaService;
     const token = await authService.fetchClientCredentialsToken({ zid: tenantId });
     const tokenInfo = new xssec.XsuaaToken(token.access_token);
-    tokenInfoCache[tenantId].expireTs = tokenInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
-    return tokenInfo;
+    const authInfo = new xssec.XsuaaSecurityContext(authService, tokenInfo);
+    authContextCache[tenantId].expireTs = tokenInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
+    return authInfo;
   } catch (err) {
-    tokenInfoCache[tenantId] = null;
-    cds.log(COMPONENT_NAME).warn("failed to request tokenInfo", {
+    authContextCache[tenantId] = null;
+    cds.log(COMPONENT_NAME).warn("failed to request authContext", {
       err: err.message,
       responseCode: err.responseCode,
       responseText: err.responseText,
@@ -109,42 +110,44 @@ const _getNewTokenInfo = async (tenantId) => {
   }
 };
 
-const getTokenInfo = async (tenantId) => {
-  if (!(await isTenantIdValidCb(TenantIdCheckTypes.getTokenInfo, tenantId))) {
+const getAuthContext = async (tenantId) => {
+  if (!(await isTenantIdValidCb(TenantIdCheckTypes.getAuthContext, tenantId))) {
     return null;
   }
 
   if (!cds.requires?.auth?.credentials) {
-    return null; // no credentials not tokenInfo
+    return null; // no credentials not authContext
   }
 
   if (!config.isMultiTenancy) {
     return null; // does only make sense for multi tenancy
   }
 
-  if (!cds.requires?.auth.kind.match(/jwt|xsuaa/i)) {
+  if (!cds.requires?.auth.kind.match(/jwt|xsuaa/i) && !cds.requires?.xsuaa) {
     return null;
   }
 
-  getTokenInfo._tokenInfoCache = getTokenInfo._tokenInfoCache ?? {};
-  const tokenInfoCache = getTokenInfo._tokenInfoCache;
+  getAuthContext._authContextCache = getAuthContext._authContextCache ?? {};
+  const authContextCache = getAuthContext._authContextCache;
   // not existing or existing but expired
   if (
-    !tokenInfoCache[tenantId] ||
-    (tokenInfoCache[tenantId] && tokenInfoCache[tenantId].expireTs && Date.now() > tokenInfoCache[tenantId].expireTs)
+    !authContextCache[tenantId] ||
+    (authContextCache[tenantId] &&
+      authContextCache[tenantId].expireTs &&
+      Date.now() > authContextCache[tenantId].expireTs)
   ) {
-    tokenInfoCache[tenantId] ??= {};
-    tokenInfoCache[tenantId].value = _getNewTokenInfo(tenantId);
-    tokenInfoCache[tenantId].expireTs = null;
+    authContextCache[tenantId] ??= {};
+    authContextCache[tenantId].value = _getNewAuthContext(tenantId);
+    authContextCache[tenantId].expireTs = null;
   }
-  return await tokenInfoCache[tenantId].value;
+  return await authContextCache[tenantId].value;
 };
 
 const isTenantIdValidCb = async (checkType, tenantId) => {
   let cb;
   switch (checkType) {
-    case TenantIdCheckTypes.getTokenInfo:
-      cb = config.tenantIdFilterTokenInfo;
+    case TenantIdCheckTypes.getAuthContext:
+      cb = config.tenantIdFilterAuthContext;
       break;
     case TenantIdCheckTypes.eventProcessing:
       cb = config.tenantIdFilterEventProcessing;
@@ -167,10 +170,10 @@ module.exports = {
   isValidDate,
   processChunkedSync,
   hashStringTo32Bit,
-  getTokenInfo,
+  getAuthContext,
   isTenantIdValidCb,
   promiseAllDone,
   __: {
-    clearTokenInfoCache: () => (getTokenInfo._tokenInfoCache = {}),
+    clearAuthContextCache: () => (getAuthContext._authContextCache = {}),
   },
 };
