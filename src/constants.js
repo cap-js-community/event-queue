@@ -22,6 +22,6 @@ module.exports = {
   },
   TenantIdCheckTypes: {
     eventProcessing: "eventProcessing",
-    getTokenInfo: "getTokenInfo",
+    getAuthContext: "getAuthContext",
   },
 };
