@@ -8,6 +8,7 @@ const VError = require("verror");
 
 const config = require("../config");
 const { TenantIdCheckTypes } = require("../constants");
+const { ExpiringLazyCache } = require("./lazyCache");
 
 const MARGIN_AUTH_INFO_EXPIRY = 60 * 1000;
 const COMPONENT_NAME = "/eventQueue/common";
@@ -126,7 +127,7 @@ const getTokenInfo = async (tenantId) => {
     return null;
   }
 
-  getTokenInfo._tokenInfoCache = getTokenInfo._tokenInfoCache ?? {};
+  getTokenInfo._cache = getTokenInfo._tokenInfoCache ?? {};
   const tokenInfoCache = getTokenInfo._tokenInfoCache;
   // not existing or existing but expired
   if (
