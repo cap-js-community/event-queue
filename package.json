@@ -106,16 +106,6 @@
           "label": "redis-cache"
         }
       },
-      "saas-eventQueue": {
-        "vcap": {
-          "label": "saas-registry"
-        }
-      },
-      "sms-eventQueue": {
-        "vcap": {
-          "label": "subscription-manager"
-        }
-      },
       "event-queue": {
         "model": "@cap-js-community/event-queue"
       }
