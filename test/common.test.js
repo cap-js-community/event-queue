@@ -140,14 +140,14 @@ describe("getAuthContext", () => {
   it("should handle error", async () => {
     jest.spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken").mockRejectedValueOnce(new Error());
     const result = await getAuthContext(tenantId1);
-    expect(result).toBeNull();
+    expect(result).toBeUndefined();
     expect(cds.log().warn.mock.calls).toMatchSnapshot();
   });
 
   it("should clear cache for error case", async () => {
     jest.spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken").mockRejectedValueOnce(new Error());
     const result = await getAuthContext(tenantId1);
-    expect(result).toBeNull();
+    expect(result).toBeUndefined();
     expect(cds.log().warn.mock.calls).toMatchSnapshot();
 
     jest

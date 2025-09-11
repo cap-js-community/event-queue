@@ -6,9 +6,12 @@ const cds = require("@sap/cds");
 const config = require("../config");
 const common = require("./common");
 const { TenantIdCheckTypes } = require("../constants");
+const { limiter } = require("./common");
 
 const VERROR_CLUSTER_NAME = "ExecuteInNewTransactionError";
 const COMPONENT_NAME = "/eventQueue/cdsHelper";
+
+const CONCURRENCY_AUTH_INFO = 3;
 
 /**
  * Execute logic in a new managed CDS transaction context, auto-handling commit, rollback and error/exception situations.
@@ -140,15 +143,26 @@ const getAllTenantIds = async () => {
     return null;
   }
 
-  return response
-    .map((tenant) => tenant.subscribedTenantId ?? tenant.tenant)
-    .reduce(async (result, tenantId) => {
-      result = await result;
-      if (await common.isTenantIdValidCb(TenantIdCheckTypes.eventProcessing, tenantId)) {
-        result.push(tenantId);
+  const tenantIds = response.map((tenant) => tenant.subscribedTenantId ?? tenant.tenant);
+  const suspendedTenants = {};
+  if (config.disableProcessingOfSuspendedTenants) {
+    await limiter(CONCURRENCY_AUTH_INFO, tenantIds, async (tenantId) => {
+      const result = await common.getAuthContext(tenantId, { returnError: true });
+      // NOTE: only 404 errors are propagated all others are ignored
+      if (result?.[0]) {
+        suspendedTenants[tenantId] = true;
+        cds.log(COMPONENT_NAME).info("skip event-queue processing, tenant suspended", { tenantId });
       }
-      return result;
-    }, []);
+    });
+  }
+
+  return tenantIds.reduce(async (result, tenantId) => {
+    result = await result;
+    if (!suspendedTenants[tenantId] && (await common.isTenantIdValidCb(TenantIdCheckTypes.eventProcessing, tenantId))) {
+      result.push(tenantId);
+    }
+    return result;
+  }, []);
 };
 
 const TENANT_COLUMNS = ["subscribedSubdomain", "createdAt", "modifiedAt"];

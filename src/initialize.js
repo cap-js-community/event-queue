@@ -47,6 +47,7 @@ const CONFIG_VARS = [
   ["publishEventBlockList", true],
   ["crashOnRedisUnavailable", false],
   ["enableAdminService", false],
+  ["disableProcessingOfSuspendedTenants", true],
 ];
 
 /**
