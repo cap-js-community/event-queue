@@ -10,7 +10,8 @@ const config = require("../config");
 const { ExpiringLazyCache } = require("./lazyCache");
 const { TenantIdCheckTypes } = require("../constants");
 
-const MARGIN_AUTH_INFO_EXPIRY = 60 * 1000;
+const EXPIRE_TIME_TENANT_404 = 10 * 60 * 1000; // 10 minutes
+
 const COMPONENT_NAME = "/eventQueue/common";
 
 const arrayToFlatMap = (array, key = "ID") => {
@@ -97,18 +98,22 @@ const _getNewAuthContext = async (tenantId) => {
     const token = await authService.fetchClientCredentialsToken({ zid: tenantId });
     const tokenInfo = new xssec.XsuaaToken(token.access_token);
     const authInfo = new xssec.XsuaaSecurityContext(authService, tokenInfo);
-    return [tokenInfo.getExpirationDate().getTime() - Date.now(), authInfo];
+    return [tokenInfo.getExpirationDate().getTime() - Date.now(), [null, authInfo]];
   } catch (err) {
     cds.log(COMPONENT_NAME).warn("failed to request authContext", {
       err: err.message,
       responseCode: err.responseCode,
       responseText: err.responseText,
     });
+
+    if (err.responseCode === 404) {
+      return [EXPIRE_TIME_TENANT_404, [err, null]];
+    }
     return [0, null];
   }
 };
 
-const getAuthContext = async (tenantId) => {
+const getAuthContext = async (tenantId, { returnError = false } = {}) => {
   if (!(await isTenantIdValidCb(TenantIdCheckTypes.getAuthContext, tenantId))) {
     return null;
   }
@@ -125,8 +130,13 @@ const getAuthContext = async (tenantId) => {
     return null;
   }
 
-  getAuthContext._cache = getAuthContext._cache ?? new ExpiringLazyCache({ expirationGap: MARGIN_AUTH_INFO_EXPIRY });
-  return await getAuthContext._cache.getSetCb(tenantId, async () => _getNewAuthContext(tenantId));
+  getAuthContext._cache = getAuthContext._cache ?? new ExpiringLazyCache();
+  const result = await getAuthContext._cache.getSetCb(tenantId, async () => _getNewAuthContext(tenantId));
+  if (returnError) {
+    return result;
+  } else {
+    return result[1];
+  }
 };
 
 const isTenantIdValidCb = async (checkType, tenantId) => {
