@@ -135,7 +135,7 @@ const getAuthContext = async (tenantId, { returnError = false } = {}) => {
   if (returnError) {
     return result;
   } else {
-    return result[1];
+    return result?.[1];
   }
 };
 

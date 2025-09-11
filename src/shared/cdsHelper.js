@@ -147,7 +147,7 @@ const getAllTenantIds = async () => {
   const suspendedTenants = {};
   if (config.disableProcessingOfSuspendedTenants) {
     await limiter(CONCURRENCY_AUTH_INFO, tenantIds, async (tenantId) => {
-      const result = await common.getAuthContext(tenantId);
+      const result = await common.getAuthContext(tenantId, { returnError: true });
       // NOTE: only 404 errors are propagated all others are ignored
       if (result?.[0]) {
         suspendedTenants[tenantId] = true;
