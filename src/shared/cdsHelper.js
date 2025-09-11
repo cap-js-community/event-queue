@@ -145,14 +145,16 @@ const getAllTenantIds = async () => {
 
   const tenantIds = response.map((tenant) => tenant.subscribedTenantId ?? tenant.tenant);
   const suspendedTenants = {};
-  await limiter(CONCURRENCY_AUTH_INFO, tenantIds, async (tenantId) => {
-    const result = await common.getAuthContext(tenantId);
-    // NOTE: only 404 errors are propagated all others are ignored
-    if (result?.[0]) {
-      suspendedTenants[tenantId] = true;
-      cds.log(COMPONENT_NAME).info("skip event-queue processing, tenant suspended", { tenantId });
-    }
-  });
+  if (config.disableProcessingOfSuspendedTenants) {
+    await limiter(CONCURRENCY_AUTH_INFO, tenantIds, async (tenantId) => {
+      const result = await common.getAuthContext(tenantId);
+      // NOTE: only 404 errors are propagated all others are ignored
+      if (result?.[0]) {
+        suspendedTenants[tenantId] = true;
+        cds.log(COMPONENT_NAME).info("skip event-queue processing, tenant suspended", { tenantId });
+      }
+    });
+  }
 
   return tenantIds.reduce(async (result, tenantId) => {
     result = await result;

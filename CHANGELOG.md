@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - Added `authInfo` to cds.User as CDS 9.3 deprecated `tokenInfo`.
+- Disable the automatic processing of suspended tenants. Can be turned off using `disableProcessingOfSuspendedTenants`.
 
 ## v1.10.10 - 2025-07-09
 

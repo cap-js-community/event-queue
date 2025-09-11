@@ -119,6 +119,7 @@ class Config {
   #configEvents;
   #configPeriodicEvents;
   #enableAdminService;
+  #disableProcessingOfSuspendedTenants;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -982,6 +983,14 @@ class Config {
 
   set enableAdminService(value) {
     this.#enableAdminService = value;
+  }
+
+  get disableProcessingOfSuspendedTenants() {
+    return this.#disableProcessingOfSuspendedTenants;
+  }
+
+  set disableProcessingOfSuspendedTenants(value) {
+    this.#disableProcessingOfSuspendedTenants = value;
   }
 
   /**
