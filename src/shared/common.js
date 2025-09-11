@@ -7,6 +7,7 @@ const xssec = require("@sap/xssec");
 const VError = require("verror");
 
 const config = require("../config");
+const { ExpiringLazyCache } = require("./lazyCache");
 const { TenantIdCheckTypes } = require("../constants");
 
 const MARGIN_AUTH_INFO_EXPIRY = 60 * 1000;
@@ -87,64 +88,52 @@ const processChunkedSync = (inputs, chunkSize, chunkHandler) => {
 
 const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(value)).digest("base64").slice(0, 32);
 
-const _getNewTokenInfo = async (tenantId) => {
-  const tokenInfoCache = getTokenInfo._tokenInfoCache;
-  tokenInfoCache[tenantId] = tokenInfoCache[tenantId] ?? {};
+const _getNewAuthContext = async (tenantId) => {
   try {
-    if (!_getNewTokenInfo._xsuaaService) {
-      _getNewTokenInfo._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
+    if (!_getNewAuthContext._xsuaaService) {
+      _getNewAuthContext._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
     }
-    const authService = _getNewTokenInfo._xsuaaService;
+    const authService = _getNewAuthContext._xsuaaService;
     const token = await authService.fetchClientCredentialsToken({ zid: tenantId });
     const tokenInfo = new xssec.XsuaaToken(token.access_token);
-    tokenInfoCache[tenantId].expireTs = tokenInfo.getExpirationDate().getTime() - MARGIN_AUTH_INFO_EXPIRY;
-    return tokenInfo;
+    const authInfo = new xssec.XsuaaSecurityContext(authService, tokenInfo);
+    return [tokenInfo.getExpirationDate().getTime() - Date.now(), authInfo];
   } catch (err) {
-    tokenInfoCache[tenantId] = null;
-    cds.log(COMPONENT_NAME).warn("failed to request tokenInfo", {
+    cds.log(COMPONENT_NAME).warn("failed to request authContext", {
       err: err.message,
       responseCode: err.responseCode,
       responseText: err.responseText,
     });
+    return [0, null];
   }
 };
 
-const getTokenInfo = async (tenantId) => {
-  if (!(await isTenantIdValidCb(TenantIdCheckTypes.getTokenInfo, tenantId))) {
+const getAuthContext = async (tenantId) => {
+  if (!(await isTenantIdValidCb(TenantIdCheckTypes.getAuthContext, tenantId))) {
     return null;
   }
 
   if (!cds.requires?.auth?.credentials) {
-    return null; // no credentials not tokenInfo
+    return null; // no credentials not authContext
   }
 
   if (!config.isMultiTenancy) {
     return null; // does only make sense for multi tenancy
   }
 
-  if (!cds.requires?.auth.kind.match(/jwt|xsuaa/i)) {
+  if (!cds.requires?.auth.kind.match(/jwt|xsuaa/i) && !cds.requires?.xsuaa) {
     return null;
   }
 
-  getTokenInfo._tokenInfoCache = getTokenInfo._tokenInfoCache ?? {};
-  const tokenInfoCache = getTokenInfo._tokenInfoCache;
-  // not existing or existing but expired
-  if (
-    !tokenInfoCache[tenantId] ||
-    (tokenInfoCache[tenantId] && tokenInfoCache[tenantId].expireTs && Date.now() > tokenInfoCache[tenantId].expireTs)
-  ) {
-    tokenInfoCache[tenantId] ??= {};
-    tokenInfoCache[tenantId].value = _getNewTokenInfo(tenantId);
-    tokenInfoCache[tenantId].expireTs = null;
-  }
-  return await tokenInfoCache[tenantId].value;
+  getAuthContext._cache = getAuthContext._cache ?? new ExpiringLazyCache({ expirationGap: MARGIN_AUTH_INFO_EXPIRY });
+  return await getAuthContext._cache.getSetCb(tenantId, async () => _getNewAuthContext(tenantId));
 };
 
 const isTenantIdValidCb = async (checkType, tenantId) => {
   let cb;
   switch (checkType) {
-    case TenantIdCheckTypes.getTokenInfo:
-      cb = config.tenantIdFilterTokenInfo;
+    case TenantIdCheckTypes.getAuthContext:
+      cb = config.tenantIdFilterAuthContext;
       break;
     case TenantIdCheckTypes.eventProcessing:
       cb = config.tenantIdFilterEventProcessing;
@@ -167,10 +156,10 @@ module.exports = {
   isValidDate,
   processChunkedSync,
   hashStringTo32Bit,
-  getTokenInfo,
+  getAuthContext,
   isTenantIdValidCb,
   promiseAllDone,
   __: {
-    clearTokenInfoCache: () => (getTokenInfo._tokenInfoCache = {}),
+    clearAuthContextCache: () => getAuthContext._cache?.clear(),
   },
 };

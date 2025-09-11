@@ -630,16 +630,16 @@ describe("event-queue outbox", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
-    it("check that tokenInfo is correctly exposed on the user", async () => {
-      jest.spyOn(common, "getTokenInfo").mockResolvedValue({ tokenInfo: 123 });
+    it("check that authInfo is correctly exposed on the user", async () => {
+      jest.spyOn(common, "getAuthContext").mockResolvedValue({ authInfo: 123 });
       const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
       const data = { to: "to", subject: "subject", body: "body" };
-      await service.send("tokenInfo", data);
+      await service.send("authInfo", data);
       await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
       await commitAndOpenNew();
-      expect(loggerMock).actionCalled("tokenInfo", { tokenInfo: { tokenInfo: 123 } });
+      expect(loggerMock).actionCalled("authInfo", { authInfo: { authInfo: 123 } });
       await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
       expect(loggerMock.callsLengths().error).toEqual(0);
     });

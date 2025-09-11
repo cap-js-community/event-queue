@@ -327,9 +327,11 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   }
 
   async #setContextUser(context, userId, reg) {
+    const authInfo = await common.getAuthContext(context.tenant);
     context.user = new cds.User.Privileged({
       id: userId,
-      tokenInfo: await common.getTokenInfo(this.baseContext.tenant),
+      authInfo,
+      tokenInfo: authInfo?.token,
     });
     if (reg) {
       reg.user = context.user;

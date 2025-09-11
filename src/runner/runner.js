@@ -149,9 +149,11 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
           tx.context,
           "get-openEvents-and-publish",
           async () => {
+            const authInfo = await common.getAuthContext(tenantId);
             tx.context.user = new cds.User.Privileged({
               id: config.userId,
-              tokenInfo: await common.getTokenInfo(tenantId),
+              authInfo,
+              tokenInfo: authInfo?.token,
             });
             const entries = await openEvents.getOpenQueueEntries(tx, false);
             logger.info("broadcasting events for run", {
@@ -187,10 +189,11 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
     try {
       events = await trace(
         { id, tenant: tenantId },
-        "fetch-openEvents-and-tokenInfo",
+        "fetch-openEvents-and-authInfo",
         async () => {
           const user = await cds.tx({ tenant: tenantId }, async () => {
-            return new cds.User.Privileged({ id: config.userId, tokenInfo: await common.getTokenInfo(tenantId) });
+            const authInfo = await common.getAuthContext(tenantId);
+            return new cds.User.Privileged({ id: config.userId, authInfo, tokenInfo: authInfo?.token });
           });
           tenantContext = {
             tenant: tenantId,
@@ -258,7 +261,8 @@ const _executePeriodicEventsAllTenants = async (tenantIds) => {
   for (const tenantId of tenantIds) {
     try {
       const user = await cds.tx({ tenant: tenantId }, async () => {
-        return new cds.User.Privileged({ id: config.userId, tokenInfo: await common.getTokenInfo(tenantId) });
+        const authInfo = await common.getAuthContext(tenantId);
+        return new cds.User.Privileged({ id: config.userId, authInfo, tokenInfo: authInfo?.token });
       });
       const tenantContext = {
         tenant: tenantId,
@@ -289,7 +293,7 @@ const _singleTenantDb = async () => {
   const id = cds.utils.uuid();
   const events = await trace(
     { id },
-    "fetch-openEvents-and-tokenInfo",
+    "fetch-openEvents-and-authInfo",
     async () => {
       return await cds.tx({}, async (tx) => {
         return await openEvents.getOpenQueueEntries(tx);
@@ -530,7 +534,7 @@ const _checkPeriodicEventsSingleTenant = async (context) => {
   try {
     logger.info("executing updating periodic events", {
       tenantId: context.tenant,
-      subdomain: context.user?.tokenInfo?.extAttributes?.zdn,
+      subdomain: context.user?.authInfo?.getSubdomain?.(),
     });
     await periodicEvents.checkAndInsertPeriodicEvents(context);
   } catch (err) {

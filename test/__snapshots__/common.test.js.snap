@@ -1,9 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`getTokenInfo should clear cache for error case 1`] = `
+exports[`getAuthContext should clear cache for error case 1`] = `
 [
   [
-    "failed to request tokenInfo",
+    "failed to request authContext",
     {
       "err": "",
       "responseCode": undefined,
@@ -13,10 +13,10 @@ exports[`getTokenInfo should clear cache for error case 1`] = `
 ]
 `;
 
-exports[`getTokenInfo should handle error 1`] = `
+exports[`getAuthContext should handle error 1`] = `
 [
   [
-    "failed to request tokenInfo",
+    "failed to request authContext",
     {
       "err": "",
       "responseCode": undefined,
