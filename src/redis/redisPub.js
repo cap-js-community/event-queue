@@ -120,7 +120,7 @@ const _processLocalWithoutRedis = async (tenantId, events) => {
     if (tenantId) {
       const user = await cds.tx({ tenant: tenantId }, async () => {
         const authInfo = await common.getAuthContext(tenantId);
-        return new cds.User.Privileged({ id: config.userId, authInfo, tokenInfo: authInfo.token });
+        return new cds.User.Privileged({ id: config.userId, authInfo, tokenInfo: authInfo?.token });
       });
       context = {
         tenant: tenantId,
