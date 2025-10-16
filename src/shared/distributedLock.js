@@ -60,12 +60,21 @@ const releaseLock = async (context, key, { tenantScoped = true } = {}) => {
   }
 };
 
-const checkLockExistsAndReturnValue = async (context, key, { tenantScoped = true } = {}) => {
+const checkLockExists = async (context, key, { tenantScoped = true } = {}) => {
   const fullKey = _generateKey(context, tenantScoped, key);
   if (config.redisEnabled) {
-    return await _checkLockExistsRedis(context, fullKey);
+    return !!(await _getLockValueRedis(context, fullKey));
   } else {
-    return await _checkLockExistsDb(context, fullKey);
+    return !!(await _getLockValueDb(context, fullKey));
+  }
+};
+
+const getValue = async (context, key, { tenantScoped = true } = {}) => {
+  const fullKey = _generateKey(context, tenantScoped, key);
+  if (config.redisEnabled) {
+    return await _getLockValueRedis(context, fullKey);
+  } else {
+    return await _getLockValueDb(context, fullKey);
   }
 };
 
@@ -106,12 +115,12 @@ const _renewLockRedis = async (context, fullKey, expiryTime, { value = "true" } 
   return result === REDIS_COMMAND_OK;
 };
 
-const _checkLockExistsRedis = async (context, fullKey) => {
+const _getLockValueRedis = async (context, fullKey) => {
   const client = await redis.createMainClientAndConnect(config.redisOptions);
-  return await client.exists(fullKey);
+  return await client.get(fullKey);
 };
 
-const _checkLockExistsDb = async (context, fullKey) => {
+const _getLockValueDb = async (context, fullKey) => {
   let result;
   await cdsHelper.executeInNewTransaction(context, "distributedLock-checkExists", async (tx) => {
     result = await tx.run(SELECT.one.from(config.tableNameEventLock).where("code =", fullKey));
@@ -259,7 +268,8 @@ const shutdownHandler = async () => {
 module.exports = {
   acquireLock,
   releaseLock,
-  checkLockExistsAndReturnValue,
+  checkLockExists,
+  getValue,
   setValueWithExpire,
   shutdownHandler,
   renewLock,

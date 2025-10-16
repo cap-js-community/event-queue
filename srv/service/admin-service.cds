@@ -42,12 +42,4 @@ service EventQueueAdminService {
         @mandatory
         subType: String) returns Boolean;
     }
-
-   @readonly
-   @cds.persistence.skip
-   entity Tenant {
-      Key ID: String;
-      subdomain: String;
-      metadata: String;
-   }
 }

@@ -495,12 +495,12 @@ describe("runner", () => {
     });
 
     it("acquireRunId should set ts", async () => {
-      let runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
+      let runTs = await distributedLock.getValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
       });
       expect(runTs).toBeFalsy();
       await runner.__._acquireRunId();
-      runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
+      runTs = await distributedLock.getValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
       });
       expect(runTs).toBeDefined();
@@ -512,7 +512,7 @@ describe("runner", () => {
       jest.useFakeTimers();
       const systemTime = Date.now();
       jest.setSystemTime(systemTime);
-      const runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
+      const runTs = await distributedLock.getValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
       });
       const expectedTs = new Date(runTs).getTime() + configInstance.runInterval - systemTime;
@@ -528,7 +528,7 @@ describe("runner", () => {
       jest.useFakeTimers();
       const systemTime = Date.now();
       jest.setSystemTime(systemTime);
-      const runTs = await distributedLock.checkLockExistsAndReturnValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
+      const runTs = await distributedLock.getValue({}, runner.__.EVENT_QUEUE_RUN_TS, {
         tenantScoped: false,
       });
       const expectedTs = new Date(runTs).getTime() + configInstance.runInterval - systemTime;

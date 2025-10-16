@@ -92,7 +92,7 @@ const hashStringTo32Bit = (value) => crypto.createHash("sha256").update(String(v
 const _getNewAuthContext = async (tenantId) => {
   try {
     if (!_getNewAuthContext._xsuaaService) {
-      _getNewAuthContext._xsuaaService = new xssec.XsuaaService(cds.requires.auth.credentials);
+      _getNewAuthContext._xsuaaService = new xssec.XsuaaService(cds.requires["xsuaa-eventQueue"]?.credentials);
     }
     const authService = _getNewAuthContext._xsuaaService;
     const token = await authService.fetchClientCredentialsToken({ zid: tenantId });
