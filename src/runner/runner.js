@@ -405,7 +405,7 @@ const _acquireRunId = async (context) => {
       overrideValue: true,
     });
   } else {
-    runId = await distributedLock.checkLockExistsAndReturnValue(context, EVENT_QUEUE_RUN_ID, {
+    runId = await distributedLock.getValue(context, EVENT_QUEUE_RUN_ID, {
       tenantScoped: false,
     });
   }

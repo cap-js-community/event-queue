@@ -7,7 +7,7 @@ const setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation((first
 });
 
 const distributedLock = require("../src/shared/distributedLock");
-const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExistsAndReturnValue");
+const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExists");
 const config = require("../src/config");
 const redisPub = require("../src/redis/redisPub");
 const redisSub = require("../src/redis/redisSub");

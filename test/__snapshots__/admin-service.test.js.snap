@@ -28,7 +28,6 @@ exports[`admin-service-test metadata snapshot 1`] = `
       <EntityContainer Name="EntityContainer">
         <EntitySet Name="Event" EntityType="EventQueueAdminService.Event"/>
         <EntitySet Name="Lock" EntityType="EventQueueAdminService.Lock"/>
-        <EntitySet Name="Tenant" EntityType="EventQueueAdminService.Tenant"/>
       </EntityContainer>
       <EntityType Name="Event">
         <Key>
@@ -64,14 +63,6 @@ exports[`admin-service-test metadata snapshot 1`] = `
         <Property Name="space" Type="Edm.String"/>
         <Property Name="ttl" Type="Edm.Int32"/>
         <Property Name="createdAt" Type="Edm.Int32"/>
-      </EntityType>
-      <EntityType Name="Tenant">
-        <Key>
-          <PropertyRef Name="ID"/>
-        </Key>
-        <Property Name="ID" Type="Edm.String" Nullable="false"/>
-        <Property Name="subdomain" Type="Edm.String"/>
-        <Property Name="metadata" Type="Edm.String"/>
       </EntityType>
       <Action Name="setStatusAndAttempts" IsBound="true" EntitySetPath="in">
         <Parameter Name="in" Type="EventQueueAdminService.Event"/>
@@ -212,23 +203,6 @@ exports[`admin-service-test metadata snapshot 1`] = `
       <Annotations Target="EventQueueAdminService.releaseLock(EventQueueAdminService.Lock)/subType">
         <Annotation Term="Common.FieldControl" EnumMember="Common.FieldControlType/Mandatory"/>
       </Annotations>
-      <Annotations Target="EventQueueAdminService.EntityContainer/Tenant">
-        <Annotation Term="Capabilities.DeleteRestrictions">
-          <Record Type="Capabilities.DeleteRestrictionsType">
-            <PropertyValue Property="Deletable" Bool="false"/>
-          </Record>
-        </Annotation>
-        <Annotation Term="Capabilities.InsertRestrictions">
-          <Record Type="Capabilities.InsertRestrictionsType">
-            <PropertyValue Property="Insertable" Bool="false"/>
-          </Record>
-        </Annotation>
-        <Annotation Term="Capabilities.UpdateRestrictions">
-          <Record Type="Capabilities.UpdateRestrictionsType">
-            <PropertyValue Property="Updatable" Bool="false"/>
-          </Record>
-        </Annotation>
-      </Annotations>
     </Schema>
   </edmx:DataServices>
 </edmx:Edmx>"
@@ -246,13 +220,6 @@ exports[`admin-service-test read entities: Event 1`] = `
 exports[`admin-service-test read entities: Lock 1`] = `
 {
   "@odata.context": "$metadata#Lock",
-  "value": [],
-}
-`;
-
-exports[`admin-service-test read entities: Tenant 1`] = `
-{
-  "@odata.context": "$metadata#Tenant",
   "value": [],
 }
 `;
