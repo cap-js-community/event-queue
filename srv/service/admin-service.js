@@ -1,7 +1,6 @@
 "use strict";
 
 const cds = require("@sap/cds");
-const cdsHelper = require("../../src/shared/cdsHelper");
 const { EventProcessingStatus } = require("../../src");
 const config = require("../../src/config");
 const distributedLock = require("../../src/shared/distributedLock");
@@ -59,11 +58,6 @@ module.exports = class AdminService extends cds.ApplicationService {
         landscape: landscape,
         space: space,
       }));
-    });
-
-    this.on("READ", Tenant, async () => {
-      const tenants = await cdsHelper.getAllTenantWithMetadata();
-      return tenants ?? [];
     });
 
     this.on("setStatusAndAttempts", async (req) => {

@@ -165,38 +165,7 @@ const getAllTenantIds = async () => {
   }, []);
 };
 
-const TENANT_COLUMNS = ["subscribedSubdomain", "createdAt", "modifiedAt"];
-
-const getAllTenantWithMetadata = async () => {
-  const response = await _getAllTenantBase();
-  if (!response) {
-    return null;
-  }
-
-  return response.reduce(async (result, row) => {
-    const tenantId = row.subscribedTenantId ?? row.tenant;
-    result = await result;
-    if (await common.isTenantIdValidCb(TenantIdCheckTypes.eventProcessing, tenantId)) {
-      const data = Object.entries(row).reduce(
-        (result, [key, value]) => {
-          if (TENANT_COLUMNS.includes(key)) {
-            result[key] = value;
-          } else {
-            result.metadata[key] = value;
-          }
-          return result;
-        },
-        { metadata: {} }
-      );
-      data.metadata = JSON.stringify(data.metadata);
-      result.push(data);
-    }
-    return result;
-  }, []);
-};
-
 module.exports = {
   executeInNewTransaction,
   getAllTenantIds,
-  getAllTenantWithMetadata,
 };
