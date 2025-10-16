@@ -422,7 +422,7 @@ const _calculateOffsetForFirstRun = async () => {
   try {
     await trace(dummyContext, "calculateOffsetForFirstRun", async () => {
       if (eventQueueConfig.redisEnabled) {
-        let lastRunTs = await distributedLock.checkLockExistsAndReturnValue(dummyContext, EVENT_QUEUE_RUN_TS, {
+        let lastRunTs = await distributedLock.getValue(dummyContext, EVENT_QUEUE_RUN_TS, {
           tenantScoped: false,
         });
         if (!lastRunTs) {
@@ -434,7 +434,7 @@ const _calculateOffsetForFirstRun = async () => {
           if (couldSetValue) {
             lastRunTs = ts;
           } else {
-            lastRunTs = await distributedLock.checkLockExistsAndReturnValue(dummyContext, EVENT_QUEUE_RUN_TS, {
+            lastRunTs = await distributedLock.getValue(dummyContext, EVENT_QUEUE_RUN_TS, {
               tenantScoped: false,
             });
           }
