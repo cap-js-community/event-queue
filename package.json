@@ -47,7 +47,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@sap/xssec": "^4.10.0",
+    "@sap/xssec": "^4.11.0",
     "cron-parser": "^5.4.0",
     "redis": "^4.7.0",
     "verror": "^1.10.1",
@@ -55,10 +55,10 @@
   },
   "devDependencies": {
     "@cap-js/cds-test": "^0.4.0",
-    "@cap-js/hana": "^2.3.3",
-    "@cap-js/sqlite": "^2.0.3",
-    "@sap/cds": "^9.4.1",
-    "@sap/cds-dk": "^9.4.1",
+    "@cap-js/hana": "^2.3.4",
+    "@cap-js/sqlite": "^2.0.4",
+    "@sap/cds": "^9.4.4",
+    "@sap/cds-dk": "^9.4.2",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jest": "^28.6.0",
@@ -100,6 +100,12 @@
       }
     },
     "requires": {
+      "xsuaa-eventQueue": {
+        "vcap": {
+          "label": "xsuaa",
+          "plan": "application"
+        }
+      },
       "redis-eventQueue": {
         "options": {},
         "vcap": {
