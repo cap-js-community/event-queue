@@ -8,7 +8,7 @@ const redisPub = require("../../src/redis/redisPub");
 
 module.exports = class AdminService extends cds.ApplicationService {
   async init() {
-    const { Event: EventService, Lock: LockService } = this.entities();
+    const { Event: EventService, Lock: LockService } = this.entities;
     const { Event: EventDb } = cds.db.entities("sap.eventqueue");
     const { landscape, space } = this.getLandscapeAndSpace();
 
