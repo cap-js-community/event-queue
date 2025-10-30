@@ -143,14 +143,16 @@ The implementation below demonstrates a basic `cds.Service` that can be outboxed
 via `cds.env.requires`, the service needs to inherit from `cds.Service`.
 
 ```js
-class TaskService extends cds.Service {
+const cds = require("@sap/cds");
+
+module.exports = class TaskService extends cds.Service {
   async init() {
     await super.init();
     this.on("process", async function (req) {
       // add your code here
     });
   }
-}
+};
 ```
 
 Outboxing can be enabled via configuration using `cds.env.requires`, for example, through `package.json`.

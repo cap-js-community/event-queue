@@ -23,7 +23,9 @@ function outboxed(srv, customOpts) {
   let outboxOpts = Object.assign(
     {},
     (typeof cds.requires.outbox === "object" && cds.requires.outbox) || {},
+    (typeof cds.requires.queue === "object" && cds.requires.queue) || {},
     (typeof srv.options?.outbox === "object" && srv.options.outbox) || {},
+    (typeof srv.options?.queue === "object" && srv.options.queue) || {},
     customOpts || {}
   );
 
@@ -43,7 +45,9 @@ function outboxed(srv, customOpts) {
     outboxOpts = Object.assign(
       {},
       (typeof cds.requires.outbox === "object" && cds.requires.outbox) || {},
+      (typeof cds.requires.queue === "object" && cds.requires.queue) || {},
       (typeof srv.options?.outbox === "object" && srv.options.outbox) || {},
+      (typeof srv.options?.queued === "object" && srv.options.queued) || {},
       customOpts || {}
     );
     config.addCAPOutboxEventBase(srv.name, outboxOpts);

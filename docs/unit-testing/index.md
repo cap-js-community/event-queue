@@ -145,7 +145,7 @@ it("should process an outboxed service", async () => {
   await tx.rollback();
   expect(publishedEvent[0]).toMatchObject({
     type: "CAP_OUTBOX",
-    subType: "sendFiori",
+    subType: "NotificationService",
     status: EventProcessingStatus.Open,
   });
   expect(service).not.sendFioriActionCalled(); // this is pseudo code
@@ -169,14 +169,14 @@ it("should process an outboxed service", async () => {
   });
 
   // Act - process the event
-  await processEventQueue({}, "CAP_OUTBOX", "sendFiori"); // parameters are cds context, type, and subType
+  await processEventQueue({}, "CAP_OUTBOX", "NotificationService"); // parameters are cds context, type, and subType
 
   // Assert
   tx = cds.tx({});
   const publishedEvents = await tx.run(SELECT.from("sap.eventqueue.Event"));
   expect(publishedEvent[0]).toMatchObject({
     type: "CAP_OUTBOX",
-    subType: "sendFiori",
+    subType: "NotificationService",
     status: EventProcessingStatus.Done,
   });
   expect(service).sendFioriActionCalled(); // this is pseudo code
