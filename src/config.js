@@ -379,12 +379,12 @@ class Config {
       this.#config.events.splice(index, 1);
     }
 
-    // NOTE: CAP outbox defaults are injected by cds.requires.outbox
+    // NOTE: CAP outbox defaults are injected by cds.requires.outbox // cds.requires.queue
     const eventConfig = this.#sanitizeParamsAdHocEvent({
       type: CAP_EVENT_TYPE,
       subType: serviceName,
       impl: "./outbox/EventQueueGenericOutboxHandler",
-      kind: config.kind ?? "persistent-outbox",
+      kind: config.kind ?? "persistent-queue",
       selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.retryAttempts ?? config.maxAttempts ?? CAP_MAX_ATTEMPTS_DEFAULT,
@@ -469,10 +469,11 @@ class Config {
 
   #cdsPeriodicOutboxServicesFromEnv() {
     return Object.entries(cds.env.requires).reduce((result, [name, value]) => {
-      if (value.outbox?.events) {
-        for (const fnName in value.outbox.events) {
-          const base = { ...value.outbox };
-          const fnConfig = value.outbox.events[fnName];
+      const config = value.outbox ?? value.queued;
+      if (config?.events) {
+        for (const fnName in config.events) {
+          const base = { ...config };
+          const fnConfig = config.events[fnName];
           if (fnConfig.interval || fnConfig.cron) {
             if ("interval" in base || "cron" in base) {
               this.#logger.error(
@@ -502,8 +503,10 @@ class Config {
   }
 
   getCdsOutboxEventSpecificConfig(serviceName, action) {
-    if (cds.env.requires[serviceName]?.outbox?.events?.[action]) {
-      return cds.env.requires[serviceName].outbox.events[action];
+    const srv = cds.env.requires[serviceName];
+    const config = srv?.outbox ?? srv?.queued;
+    if (config?.events?.[action]) {
+      return config.events[action];
     } else {
       return null;
     }

@@ -106,6 +106,21 @@ cds.env.requires.StandardService = {
   },
 };
 
+cds.env.requires.QueueService = {
+  impl: path.join(basePath, "srv/service/standard-service.js"),
+  queued: {
+    kind: "persistent-queue",
+    events: {
+      timeBucketAction: {
+        timeBucket: "*/60 * * * * *",
+      },
+      main: {
+        cron: "*/15 * * * * *",
+      },
+    },
+  },
+};
+
 const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
 
@@ -1735,6 +1750,69 @@ describe("event-queue outbox", () => {
         expect(configSpy).toHaveBeenCalledTimes(1);
         expect(configAddSpy).toHaveBeenCalledTimes(0);
         expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
+      });
+    });
+
+    describe("task queues", () => {
+      it("use respect config in srv.queue", async () => {
+        const service = (await cds.connect.to("QueueService")).tx(context);
+        await service.send("timeBucketAction", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["subType", "createdAt"],
+        });
+        const pattern = cds.env.requires.QueueService.queued.events.timeBucketAction.timeBucket;
+        const expectedDate = CronExpressionParser.parse(pattern, {
+          currentDate: new Date(event.createdAt),
+        })
+          .next()
+          .toISOString();
+        expect(event.startAfter).toBeDefined();
+        expect(expectedDate).toEqual(event.startAfter);
+        expect(event.subType).toEqual("QueueService.timeBucketAction");
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("should also insert periodic events from queued", async () => {
+        const subType = "QueueService.main";
+        await checkAndInsertPeriodicEvents(context);
+        const [periodicEvent] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["type", "subType"],
+          subType,
+        });
+        await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ startAfter: null }));
+
+        await eventQueue.processEventQueue(context, periodicEvent.type, periodicEvent.subType);
+        const [openEvent, processedEvent] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 2,
+          additionalColumns: ["type", "subType", "createdAt"],
+          subType,
+        });
+        expect(openEvent).toMatchObject({
+          status: 0,
+          attempts: 0,
+          type: "CAP_OUTBOX_PERIODIC",
+          subType,
+          startAfter: CronExpressionParser.parse("*/15 * * * * *", {
+            currentDate: new Date(processedEvent.createdAt),
+          })
+            .next()
+            .toISOString(),
+        });
+        expect(processedEvent).toMatchObject({
+          status: 2,
+          attempts: 1,
+          type: "CAP_OUTBOX_PERIODIC",
+          subType,
+          startAfter: null,
+        });
+        expect(loggerMock.callsLengths().error).toEqual(0);
       });
     });
   });

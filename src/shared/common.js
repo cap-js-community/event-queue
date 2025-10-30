@@ -1,5 +1,6 @@
 "use strict";
 
+const { AsyncResource } = require("async_hooks");
 const crypto = require("crypto");
 
 const cds = require("@sap/cds");
@@ -104,6 +105,7 @@ const _getNewAuthContext = async (tenantId) => {
       err: err.message,
       responseCode: err.responseCode,
       responseText: err.responseText,
+      tenantId,
     });
 
     if (err.responseCode === 404) {
@@ -131,7 +133,10 @@ const getAuthContext = async (tenantId, { returnError = false } = {}) => {
   }
 
   getAuthContext._cache = getAuthContext._cache ?? new ExpiringLazyCache();
-  const result = await getAuthContext._cache.getSetCb(tenantId, async () => _getNewAuthContext(tenantId));
+  const result = await getAuthContext._cache.getSetCb(
+    tenantId,
+    AsyncResource.bind(async () => _getNewAuthContext(tenantId))
+  );
   if (returnError) {
     return result;
   } else {
