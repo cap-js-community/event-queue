@@ -941,7 +941,7 @@ describe("event-queue outbox", () => {
       it("insert periodic event for CAP service", async () => {
         await checkAndInsertPeriodicEvents(context);
         const [periodicEvent] = await testHelper.selectEventQueueAndReturn(tx, {
-          expectedLength: 2,
+          expectedLength: 3,
           additionalColumns: ["type", "subType"],
         });
         expect(periodicEvent.startAfter).toBeDefined();

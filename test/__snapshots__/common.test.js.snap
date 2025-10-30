@@ -8,6 +8,7 @@ exports[`getAuthContext should clear cache for error case 1`] = `
       "err": "",
       "responseCode": undefined,
       "responseText": undefined,
+      "tenantId": "cc0edebc-58df-44ab-ab1f-1cee383b423e",
     },
   ],
 ]
@@ -21,6 +22,7 @@ exports[`getAuthContext should handle error 1`] = `
       "err": "",
       "responseCode": undefined,
       "responseText": undefined,
+      "tenantId": "cc0edebc-58df-44ab-ab1f-1cee383b423e",
     },
   ],
 ]
