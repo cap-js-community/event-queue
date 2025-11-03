@@ -134,7 +134,6 @@ describe("event-queue outbox", () => {
     await tx.run(DELETE.from("sap.eventqueue.Lock"));
     await tx.run(DELETE.from("sap.eventqueue.Event"));
     await tx.run(DELETE.from("cds.outbox.Messages"));
-    eventQueue.config.clearPeriodicEventBlockList();
     eventQueue.config.isEventBlockedCb = null;
     await commitAndOpenNew();
     jest.clearAllMocks();

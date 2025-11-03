@@ -188,7 +188,6 @@ declare class Config {
   attachConfigChangeHandler(): void;
   attachRedisUnsubscribeHandler(): void;
   executeUnsubscribeHandlers(tenantId: any): void;
-  handleUnsubscribe(tenantId: any): void;
   attachUnsubscribeHandler(cb: any): void;
   publishConfigChange(key: any, value: any): void;
   blockEvent(type: any, subType: any, isPeriodic: any, tenant?: string): void;

@@ -4,18 +4,12 @@ const cds = require("@sap/cds");
 const { CronExpressionParser } = require("cron-parser");
 
 const { getEnvInstance } = require("./shared/env");
-const redis = require("./shared/redis");
 const EventQueueError = require("./EventQueueError");
 const { Priorities } = require("./constants");
 
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
 const REDIS_PREFIX = "EVENT_QUEUE";
-const REDIS_CONFIG_CHANNEL = "CONFIG_CHANNEL";
-const REDIS_OFFBOARD_TENANT_CHANNEL = "REDIS_OFFBOARD_TENANT_CHANNEL";
-const REDIS_CONFIG_BLOCKLIST_CHANNEL = "REDIS_CONFIG_BLOCKLIST_CHANNEL";
-const COMMAND_BLOCK = "EVENT_BLOCK";
-const COMMAND_UNBLOCK = "EVENT_UNBLOCK";
 const COMPONENT_NAME = "/eventQueue/config";
 const MIN_INTERVAL_SEC = 10;
 const DEFAULT_LOAD = 1;
@@ -98,7 +92,6 @@ class Config {
   #env;
   #eventMap;
   #updatePeriodicEvents;
-  #blockedEvents;
   #isEventBlockedCb;
   #thresholdLoggingEventProcessing;
   #useAsCAPOutbox;
@@ -112,7 +105,6 @@ class Config {
   #cronTimezone;
   #randomOffsetPeriodicEvents;
   #redisNamespace;
-  #publishEventBlockList;
   #crashOnRedisUnavailable;
   #tenantIdFilterAuthContextCb;
   #tenantIdFilterEventProcessingCb;
@@ -137,7 +129,6 @@ class Config {
     this.#processEventsAfterPublish = null;
     this.#disableRedis = null;
     this.#env = getEnvInstance();
-    this.#blockedEvents = {};
   }
 
   getEventConfig(type, subType) {
@@ -226,38 +217,6 @@ class Config {
     return this.#redisEnabled;
   }
 
-  attachConfigChangeHandler() {
-    this.#attachBlockListChangeHandler();
-    redis.subscribeRedisChannel(this.redisOptions, REDIS_CONFIG_CHANNEL, (messageData) => {
-      try {
-        const { key, value } = JSON.parse(messageData);
-        if (this[key] !== value) {
-          this.#logger.info("received config change", { key, value });
-          this[key] = value;
-        }
-      } catch (err) {
-        this.#logger.error("could not parse event config change", err, {
-          messageData,
-        });
-      }
-    });
-  }
-
-  attachRedisUnsubscribeHandler() {
-    this.#logger.info("attached redis handle for unsubscribe events");
-    redis.subscribeRedisChannel(this.redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, (messageData) => {
-      try {
-        const { tenantId } = JSON.parse(messageData);
-        this.#logger.info("received unsubscribe broadcast event", { tenantId });
-        this.executeUnsubscribeHandlers(tenantId);
-      } catch (err) {
-        this.#logger.error("could not parse unsubscribe broadcast event", err, {
-          messageData,
-        });
-      }
-    });
-  }
-
   executeUnsubscribeHandlers(tenantId) {
     this.#unsubscribedTenants[tenantId] = true;
     setTimeout(() => delete this.#unsubscribedTenants[tenantId], DELETE_TENANT_BLOCK_AFTER_MS);
@@ -272,103 +231,8 @@ class Config {
     }
   }
 
-  handleUnsubscribe(tenantId) {
-    if (this.redisEnabled) {
-      redis
-        .publishMessage(this.redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, JSON.stringify({ tenantId }))
-        .catch((error) => {
-          this.#logger.error(`publishing tenant unsubscribe failed. tenantId: ${tenantId}`, error);
-        });
-    } else {
-      this.executeUnsubscribeHandlers(tenantId);
-    }
-  }
-
   attachUnsubscribeHandler(cb) {
     this.#unsubscribeHandlers.push(cb);
-  }
-
-  publishConfigChange(key, value) {
-    if (!this.redisEnabled) {
-      this.#logger.info("redis not connected, config change won't be published", { key, value });
-      return;
-    }
-    redis.publishMessage(this.redisOptions, REDIS_CONFIG_CHANNEL, JSON.stringify({ key, value })).catch((error) => {
-      this.#logger.error(`publishing config change failed key: ${key}, value: ${value}`, error);
-    });
-  }
-
-  #attachBlockListChangeHandler() {
-    redis.subscribeRedisChannel(this.redisOptions, REDIS_CONFIG_BLOCKLIST_CHANNEL, (messageData) => {
-      try {
-        const { command, key, tenant } = JSON.parse(messageData);
-        if (command === COMMAND_BLOCK) {
-          this.#blockEventLocalState(key, tenant);
-        } else {
-          this.#unblockEventLocalState(key, tenant);
-        }
-      } catch (err) {
-        this.#logger.error("could not parse event blocklist change", err, {
-          messageData,
-        });
-      }
-    });
-  }
-
-  blockEvent(type, subType, isPeriodic, tenant = "*") {
-    const typeWithSuffix = `${type}${isPeriodic ? SUFFIX_PERIODIC : ""}`;
-    const config = this.getEventConfig(typeWithSuffix, subType);
-    if (!config) {
-      return;
-    }
-    const key = this.generateKey(typeWithSuffix, subType);
-    this.#blockEventLocalState(key, tenant);
-    if (!this.redisEnabled || !this.publishEventBlockList) {
-      return;
-    }
-
-    redis
-      .publishMessage(
-        this.redisOptions,
-        REDIS_CONFIG_BLOCKLIST_CHANNEL,
-        JSON.stringify({ command: COMMAND_BLOCK, key, tenant })
-      )
-      .catch((error) => {
-        this.#logger.error(`publishing config block failed key: ${key}`, error);
-      });
-  }
-
-  #blockEventLocalState(key, tenant) {
-    this.#blockedEvents[key] ??= {};
-    this.#blockedEvents[key][tenant] = true;
-    return key;
-  }
-
-  clearPeriodicEventBlockList() {
-    this.#blockedEvents = {};
-  }
-
-  unblockEvent(type, subType, isPeriodic, tenant = "*") {
-    const typeWithSuffix = `${type}${isPeriodic ? SUFFIX_PERIODIC : ""}`;
-    const key = this.generateKey(typeWithSuffix, subType);
-    const config = this.getEventConfig(typeWithSuffix, subType);
-    if (!config) {
-      return;
-    }
-    this.#unblockEventLocalState(key, tenant);
-    if (!this.redisEnabled) {
-      return;
-    }
-
-    redis
-      .publishMessage(
-        this.redisOptions,
-        REDIS_CONFIG_BLOCKLIST_CHANNEL,
-        JSON.stringify({ command: COMMAND_UNBLOCK, key, tenant })
-      )
-      .catch((error) => {
-        this.#logger.error(`publishing config block failed key: ${key}`, error);
-      });
   }
 
   addCAPOutboxEventBase(serviceName, config) {
@@ -421,25 +285,6 @@ class Config {
     this.#config.events.push(eventConfig);
     this.#eventMap[this.generateKey(CAP_EVENT_TYPE, subType)] = eventConfig;
     return eventConfig;
-  }
-
-  #unblockEventLocalState(key, tenant) {
-    const map = this.#blockedEvents[key];
-    if (!map) {
-      return;
-    }
-    this.#blockedEvents[key][tenant] = false;
-    return key;
-  }
-
-  isEventBlocked(type, subType, isPeriodicEvent, tenant) {
-    const map = this.#blockedEvents[this.generateKey(`${type}${isPeriodicEvent ? SUFFIX_PERIODIC : ""}`, subType)];
-    if (!map) {
-      return false;
-    }
-    const tenantSpecific = map[tenant];
-    const allTenants = map["*"];
-    return tenantSpecific ?? allTenants;
   }
 
   get isEventQueueActive() {
@@ -758,14 +603,6 @@ class Config {
     this.#forUpdateTimeout = value;
   }
 
-  get publishEventBlockList() {
-    return this.#publishEventBlockList;
-  }
-
-  set publishEventBlockList(value) {
-    this.#publishEventBlockList = value;
-  }
-
   get crashOnRedisUnavailable() {
     return this.#crashOnRedisUnavailable;
   }
@@ -940,7 +777,6 @@ class Config {
   get redisOptions() {
     return {
       ...this.#redisOptions,
-      redisNamespace: `${[REDIS_PREFIX, this.redisNamespace].filter((a) => a).join("_")}`,
     };
   }
 
@@ -949,7 +785,7 @@ class Config {
   }
 
   get redisNamespace() {
-    return this.#redisNamespace;
+    return `${[REDIS_PREFIX, this.#redisNamespace].filter((a) => a).join("_")}`;
   }
 
   set insertEventsBeforeCommit(value) {

@@ -101,7 +101,7 @@ const initialize = async (options = {}) => {
     }
   });
   if (redisEnabled) {
-    config.redisEnabled = await redis.connectionCheck(config.redisOptions);
+    config.redisEnabled = await redis.connectionCheck();
     if (!config.redisEnabled && config.crashOnRedisUnavailable) {
       throw EventQueueError.redisConnectionFailure();
     }
@@ -148,7 +148,7 @@ const readConfigFromFile = async (configFilepath) => {
 
 const registerEventProcessors = () => {
   _registerUnsubscribe();
-  config.redisEnabled && config.attachRedisUnsubscribeHandler();
+  config.redisEnabled && redis.attachRedisUnsubscribeHandler();
 
   if (!config.registerAsEventProcessor) {
     return;
@@ -158,7 +158,6 @@ const registerEventProcessors = () => {
 
   if (config.redisEnabled) {
     redisSub.initEventQueueRedisSubscribe();
-    config.attachConfigChangeHandler();
     if (config.isMultiTenancy) {
       runner.multiTenancyRedis().catch(errorHandler);
     } else {
@@ -250,7 +249,7 @@ const _registerUnsubscribe = () => {
         });
         ds.after("unsubscribe", async (_, req) => {
           const { tenant } = req.data;
-          config.handleUnsubscribe(tenant);
+          redis.handleUnsubscribe(tenant);
         });
       })
       .catch(

@@ -84,7 +84,7 @@ const _acquireLockRedis = async (
   expiryTime,
   { value = Date.now(), overrideValue = false, keepTrackOfLock } = {}
 ) => {
-  const client = await redis.createMainClientAndConnect(config.redisOptions);
+  const client = await redis.createMainClientAndConnect();
   const result = await client.set(fullKey, value, {
     PX: Math.round(expiryTime),
     ...(overrideValue ? null : { NX: true }),
@@ -97,7 +97,7 @@ const _acquireLockRedis = async (
 };
 
 const _renewLockRedis = async (context, fullKey, expiryTime, { value = "true" } = {}) => {
-  const client = await redis.createMainClientAndConnect(config.redisOptions);
+  const client = await redis.createMainClientAndConnect();
   let result = await client.set(fullKey, value, {
     PX: Math.round(expiryTime),
     XX: true,
@@ -116,7 +116,7 @@ const _renewLockRedis = async (context, fullKey, expiryTime, { value = "true" } 
 };
 
 const _getLockValueRedis = async (context, fullKey) => {
-  const client = await redis.createMainClientAndConnect(config.redisOptions);
+  const client = await redis.createMainClientAndConnect();
   return await client.get(fullKey);
 };
 
@@ -129,7 +129,7 @@ const _getLockValueDb = async (context, fullKey) => {
 };
 
 const _releaseLockRedis = async (context, fullKey) => {
-  const client = await redis.createMainClientAndConnect(config.redisOptions);
+  const client = await redis.createMainClientAndConnect();
   const result = await client.del(fullKey);
   delete existingLocks[fullKey];
   return result === 1;
@@ -195,14 +195,14 @@ const _acquireLockDB = async (
 };
 
 const _generateKey = (context, tenantScoped, key) => {
-  const keyParts = [config.redisOptions.redisNamespace];
+  const keyParts = [config.redisNamespace];
   tenantScoped && keyParts.push(context.tenant);
   keyParts.push(key);
   return `${keyParts.join("##")}`;
 };
 
 const getAllLocksRedis = async () => {
-  const clientOrCluster = await redis.createMainClientAndConnect(config.redisOptions);
+  const clientOrCluster = await redis.createMainClientAndConnect();
   const output = [];
   const results = [];
 
