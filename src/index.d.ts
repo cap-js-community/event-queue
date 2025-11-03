@@ -190,9 +190,6 @@ declare class Config {
   executeUnsubscribeHandlers(tenantId: any): void;
   attachUnsubscribeHandler(cb: any): void;
   publishConfigChange(key: any, value: any): void;
-  blockEvent(type: any, subType: any, isPeriodic: any, tenant?: string): void;
-  clearPeriodicEventBlockList(): void;
-  unblockEvent(type: any, subType: any, isPeriodic: any, tenant?: string): void;
   addCAPOutboxEventBase(serviceName: any, config: any): void;
   isEventBlocked(type: any, subType: any, isPeriodicEvent: any, tenant: any): any;
   set isEventQueueActive(value: boolean);
