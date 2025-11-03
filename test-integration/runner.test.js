@@ -6,7 +6,7 @@ const cds = require("@sap/cds");
 cds.test(__dirname + "/_env");
 
 const mockRedis = require("../test/mocks/redisMock");
-jest.mock("../src/shared/redis", () => mockRedis);
+jest.mock("../src/shared/redis/redis", () => mockRedis);
 const WorkerQueue = require("../src/shared/WorkerQueue");
 const processEventQueue = require("../src/processEventQueue");
 const openEvents = require("../src/runner/openEvents");
