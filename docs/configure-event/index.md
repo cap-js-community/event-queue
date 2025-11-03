@@ -222,9 +222,9 @@ eventConfig.load = 5;
 
 ## Limitation
 
-The current implementation of config does not persistently store runtime configuration changes. This means that 
-configuration changes done during runtime are only available until the next restart of the application. If you want 
-this information to be persistent, it is recommended to use the callback API. This allows for accessing persistent 
+The current implementation of config does not persistently store runtime configuration changes. This means that
+configuration changes done during runtime are only available until the next restart of the application. If you want
+this information to be persistent, it is recommended to use the callback API. This allows for accessing persistent
 information.
 
 ## Blocking Events
