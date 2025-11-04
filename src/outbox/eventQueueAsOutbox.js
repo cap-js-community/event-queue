@@ -9,7 +9,7 @@ const OUTBOXED = Symbol("outboxed");
 const UNBOXED = Symbol("unboxed");
 const CDS_EVENT_TYPE = "CAP_OUTBOX";
 const COMPONENT_NAME = "/eventQueue/eventQueueAsOutbox";
-const EVENT_QUEUE_SPECIFIC_FIELDS = ["startAfter", "referenceEntity", "referenceEntityKey"];
+const EVENT_QUEUE_SPECIFIC_FIELDS = ["startAfter", "referenceEntity", "referenceEntityKey", "namespace"];
 
 function outboxed(srv, customOpts) {
   if (!(new.target || customOpts)) {
@@ -57,7 +57,7 @@ function outboxed(srv, customOpts) {
     }
 
     if (["persistent-outbox", "persistent-queue"].includes(outboxOpts.kind)) {
-      await _mapToEventAndPublish(context, srv.name, req, !!specificSettings);
+      await _mapToEventAndPublish(context, srv.name, req, !!specificSettings, outboxOpts);
       return;
     }
     context.on("succeeded", async () => {
@@ -83,7 +83,7 @@ function unboxed(srv) {
   return srv[UNBOXED] || srv;
 }
 
-const _mapToEventAndPublish = async (context, name, req, actionSpecific) => {
+const _mapToEventAndPublish = async (context, name, req, actionSpecific, outboxOpts) => {
   const eventQueueSpecificValues = {};
   for (const header in req.headers ?? {}) {
     for (const field of EVENT_QUEUE_SPECIFIC_FIELDS) {
@@ -108,6 +108,9 @@ const _mapToEventAndPublish = async (context, name, req, actionSpecific) => {
     type: CDS_EVENT_TYPE,
     subType: actionSpecific ? [name, req.event].join(".") : name,
     payload: JSON.stringify(event),
+    namespace: [eventQueueSpecificValues.namespace, outboxOpts.namespace, null].find(
+      (namespace) => namespace !== undefined
+    ),
     ...eventQueueSpecificValues,
   });
 };

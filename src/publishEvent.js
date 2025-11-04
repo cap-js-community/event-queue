@@ -42,9 +42,10 @@ const publishEvent = async (
   }
   const eventsForProcessing = Array.isArray(events) ? events : [events];
   for (const event of eventsForProcessing) {
-    const { type, subType, startAfter } = event;
+    const { type, subType, startAfter, namespace } = event;
     const eventConfig = config.getEventConfig(type, subType);
-    if (!eventConfig) {
+    if (!eventConfig && !namespace) {
+      //TODO: --> check if we want to allow this or not
       throw EventQueueError.unknownEventType(type, subType);
     }
     if (startAfter && !common.isValidDate(startAfter)) {
