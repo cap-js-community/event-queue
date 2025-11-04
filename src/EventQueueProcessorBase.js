@@ -13,6 +13,7 @@ const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
 const { trace } = require("./shared/openTelemetry");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
+const config = require("./config");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
 const COMPONENT_NAME = "/eventQueue/EventQueueProcessorBase";
@@ -597,43 +598,51 @@ class EventQueueProcessorBase {
     const baseDate = Date.now();
     const refDateStartAfter = new Date(baseDate + this.#config.runInterval * 1.2);
     await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
-      const entries = await tx.run(
-        SELECT.from(this.#config.tableNameEventQueue)
-          .forUpdate({ wait: this.#config.forUpdateTimeout })
-          .limit(this.selectMaxChunkSize)
-          .where(
-            "type =",
-            this.#eventType,
-            "AND subType=",
-            this.#eventSubType,
-            "AND ( startAfter IS NULL OR startAfter <=",
-            refDateStartAfter.toISOString(),
-            " ) AND ( status =",
-            EventProcessingStatus.Open,
-            "AND ( lastAttemptTimestamp <=",
-            this.startTime.toISOString(),
-            ...(this.isPeriodicEvent
-              ? [
-                  "OR lastAttemptTimestamp IS NULL ) OR ( status =",
-                  EventProcessingStatus.InProgress,
-                  "AND lastAttemptTimestamp <=",
-                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
-                  ") )",
-                ]
-              : [
-                  "OR lastAttemptTimestamp IS NULL ) OR ( status =",
-                  EventProcessingStatus.Error,
-                  "AND lastAttemptTimestamp <=",
-                  this.startTime.toISOString(),
-                  ") OR ( status =",
-                  EventProcessingStatus.InProgress,
-                  "AND lastAttemptTimestamp <=",
-                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
-                  ") )",
-                ])
-          )
-          .orderBy("createdAt", "ID")
-      );
+      const cqn = SELECT.from(this.#config.tableNameEventQueue)
+        .forUpdate({ wait: this.#config.forUpdateTimeout })
+        .limit(this.selectMaxChunkSize)
+        .where(
+          "type =",
+          this.#eventType,
+          "AND subType=",
+          this.#eventSubType,
+          "AND ( startAfter IS NULL OR startAfter <=",
+          refDateStartAfter.toISOString(),
+          " ) AND ( status =",
+          EventProcessingStatus.Open,
+          "AND ( lastAttemptTimestamp <=",
+          this.startTime.toISOString(),
+          ...(this.isPeriodicEvent
+            ? [
+                "OR lastAttemptTimestamp IS NULL ) OR ( status =",
+                EventProcessingStatus.InProgress,
+                "AND lastAttemptTimestamp <=",
+                new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
+                ") )",
+              ]
+            : [
+                "OR lastAttemptTimestamp IS NULL ) OR ( status =",
+                EventProcessingStatus.Error,
+                "AND lastAttemptTimestamp <=",
+                this.startTime.toISOString(),
+                ") OR ( status =",
+                EventProcessingStatus.InProgress,
+                "AND lastAttemptTimestamp <=",
+                new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
+                ") )",
+              ])
+        )
+        .orderBy("createdAt", "ID");
+
+      if (this.#config.processDefaultNamespace && this.#config.processingNamespaces.length) {
+        cqn.where("(namespace IS NULL OR namespace IN", this.#config.processingNamespaces);
+      } else if (this.#config.processDefaultNamespace && !this.#config.processingNamespaces.length) {
+        cqn.where("namespace IS NULL");
+      } else {
+        cqn.where("namespace IN", this.#config.processingNamespaces);
+      }
+
+      const entries = await tx.run(cqn);
 
       if (!entries.length) {
         this.logger.debug("no entries available for processing", {

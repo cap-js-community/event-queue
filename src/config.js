@@ -120,6 +120,9 @@ class Config {
   #configPeriodicEvents;
   #enableAdminService;
   #disableProcessingOfSuspendedTenants;
+  #publishNamespace;
+  #processingNamespaces;
+  #processDefaultNamespace;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -994,6 +997,27 @@ class Config {
 
   set disableProcessingOfSuspendedTenants(value) {
     this.#disableProcessingOfSuspendedTenants = value;
+  }
+
+  get publishNamespace() {
+    return this.#publishNamespace;
+  }
+
+  set publishNamespace(value) {
+    this.#publishNamespace = value;
+  }
+
+  get processingNamespaces() {
+    return this.#processingNamespaces;
+  }
+
+  set processingNamespaces(value) {
+    this.#processingNamespaces = value.filter((value) => value !== null);
+    this.#processDefaultNamespace = value.find((value) => value === null);
+  }
+
+  get processDefaultNamespace() {
+    return this.#processDefaultNamespace;
   }
 
   /**

@@ -25,4 +25,5 @@ entity Event: cuid {
     startAfter: Timestamp;
     context: LargeString;
     error: String;
+    namespace: String;
 }

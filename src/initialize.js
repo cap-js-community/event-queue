@@ -48,6 +48,8 @@ const CONFIG_VARS = [
   ["crashOnRedisUnavailable", false],
   ["enableAdminService", false],
   ["disableProcessingOfSuspendedTenants", true],
+  ["publishNamespace", null],
+  ["processingNamespaces", [null]],
 ];
 
 /**
@@ -74,6 +76,8 @@ const CONFIG_VARS = [
  * @param {string} [options.randomOffsetPeriodicEvents=null] - Default random offset for periodic events.
  * @param {string} [options.publishEventBlockList=true] - If redis is available event blocklist is distributed to all application instances
  * @param {string} [options.crashOnRedisUnavailable=true] - If enabled an error is thrown if the redis connection check is not successful
+ * @param {string} [options.publishNamespace=null] - Default namespace in which events are published
+ * @param {string} [options.processingNamespaces=[null]] - Namespaces which the application processes
  */
 const initialize = async (options = {}) => {
   if (config.initialized) {
