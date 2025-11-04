@@ -69,7 +69,7 @@ const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
     }
     await cds.tx({ tenant: tenantId }, async ({ context }) => {
       await trace(context, "broadcast-inserted-events", async () => {
-        for (const { type, subType } of events) {
+        for (const { type, subType, namespace } of events) {
           const eventConfig = config.getEventConfig(type, subType);
           if (!eventConfig) {
             continue;
@@ -77,7 +77,7 @@ const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
           for (let i = 0; i < TRIES_FOR_PUBLISH_PERIODIC_EVENT; i++) {
             const result = eventConfig.multiInstanceProcessing
               ? false
-              : await distributedLock.checkLockExists(context, [type, subType].join("##"));
+              : await distributedLock.checkLockExists(context, [namespace, type, subType].join("##"));
             if (result) {
               logger.debug("skip publish redis event as no lock is available", {
                 type,
@@ -99,8 +99,8 @@ const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
             });
             await redis.publishMessage(
               config.redisOptions,
-              EVENT_MESSAGE_CHANNEL,
-              JSON.stringify({ lockId: cds.utils.uuid(), tenantId, type, subType })
+              [namespace, EVENT_MESSAGE_CHANNEL].join("_"),
+              JSON.stringify({ lockId: cds.utils.uuid(), tenantId, type, subType, namespace })
             );
             break;
           }
@@ -128,9 +128,12 @@ const _processLocalWithoutRedis = async (tenantId, events) => {
       };
     }
 
-    for (const { type, subType } of events) {
+    for (const { type, subType, namespace } of events) {
+      if (!config.shouldProcessNamespace(namespace)) {
+        continue;
+      }
       await cds.tx(context, async ({ context }) => {
-        await runEventCombinationForTenant(context, type, subType, { shouldTrace: true });
+        await runEventCombinationForTenant(context, type, subType, namespace, { shouldTrace: true });
       });
     }
   }

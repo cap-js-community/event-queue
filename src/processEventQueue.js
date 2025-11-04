@@ -13,7 +13,7 @@ const { trace } = require("./shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/processEventQueue";
 
-const processEventQueue = async (context, eventType, eventSubType) => {
+const processEventQueue = async (context, eventType, eventSubType, namespace = null) => {
   let iterationCounter = 0;
   let shouldContinue = true;
   let baseInstance;
@@ -34,7 +34,7 @@ const processEventQueue = async (context, eventType, eventSubType) => {
       return;
     }
 
-    const continueProcessing = await baseInstance.acquireDistributedLock();
+    const continueProcessing = await baseInstance.acquireDistributedLock(namespace);
     if (!continueProcessing) {
       return;
     }
@@ -105,7 +105,7 @@ const processEventQueue = async (context, eventType, eventSubType) => {
       eventSubType,
     });
   } finally {
-    await baseInstance?.handleReleaseLock();
+    await baseInstance?.handleReleaseLock(namespace);
   }
 };
 

@@ -16,13 +16,25 @@ const initEventQueueRedisSubscribe = () => {
     return;
   }
   initEventQueueRedisSubscribe._initDone = true;
-  redis.subscribeRedisChannel(config.redisOptions, EVENT_MESSAGE_CHANNEL, _messageHandlerProcessEvents);
+
+  const namespaces = [config.processingNamespaces];
+  if (config.processDefaultNamespace) {
+    namespaces.push("");
+  }
+
+  namespaces.forEach((namespace) => {
+    redis.subscribeRedisChannel(
+      config.redisOptions,
+      [namespace, EVENT_MESSAGE_CHANNEL].join("_"),
+      _messageHandlerProcessEvents
+    );
+  });
 };
 
 const _messageHandlerProcessEvents = async (messageData) => {
   const logger = cds.log(COMPONENT_NAME);
   try {
-    const { lockId, tenantId, type, subType } = JSON.parse(messageData);
+    const { lockId, tenantId, type, subType, namespace } = JSON.parse(messageData);
     const tenantShouldBeProcessed = await common.isTenantIdValidCb(TenantIdCheckTypes.eventProcessing, tenantId);
     if (!tenantShouldBeProcessed) {
       return;
@@ -87,7 +99,10 @@ const _messageHandlerProcessEvents = async (messageData) => {
     };
 
     return await cds.tx(tenantContext, async ({ context }) => {
-      return await runnerHelper.runEventCombinationForTenant(context, type, subType, { lockId, shouldTrace: true });
+      return await runnerHelper.runEventCombinationForTenant(context, type, subType, namespace, {
+        lockId,
+        shouldTrace: true,
+      });
     });
   } catch (err) {
     logger.error("could not parse event information", {

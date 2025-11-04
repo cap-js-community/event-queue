@@ -717,6 +717,14 @@ class Config {
     return this.#unsubscribedTenants[tenantId];
   }
 
+  shouldProcessNamespace(namespace) {
+    if (namespace === null) {
+      return this.#processDefaultNamespace;
+    }
+
+    return this.#processingNamespaces.includes(namespace);
+  }
+
   get fileContent() {
     return this.#config;
   }

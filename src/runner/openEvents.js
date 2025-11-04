@@ -29,7 +29,7 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
       new Date(startTime.getTime() - 30 * MS_IN_DAYS).toISOString(),
       ")"
     )
-    .columns("type", "subType")
+    .columns("type", "subType", "namespace")
     .groupBy("type", "subType");
 
   if (config.processDefaultNamespace && config.processingNamespaces.length) {

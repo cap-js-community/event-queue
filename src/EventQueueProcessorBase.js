@@ -961,7 +961,7 @@ class EventQueueProcessorBase {
     });
   }
 
-  async acquireDistributedLock() {
+  async acquireDistributedLock(namespace) {
     if (this.concurrentEventProcessing) {
       return true;
     }
@@ -969,7 +969,7 @@ class EventQueueProcessorBase {
     return await trace(this.baseContext, "acquire-lock", async () => {
       const lockAcquired = await distributedLock.acquireLock(
         this.__context,
-        [this.#eventType, this.#eventSubType].join("##"),
+        [namespace, this.#eventType, this.#eventSubType].join("##"),
         { keepTrackOfLock: true, expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000 }
       );
       if (!lockAcquired) {
@@ -1005,13 +1005,13 @@ class EventQueueProcessorBase {
     return true;
   }
 
-  async handleReleaseLock() {
+  async handleReleaseLock(namespace) {
     if (!this.__lockAcquired) {
       return;
     }
     try {
       await trace(this.baseContext, "release-lock", async () => {
-        await distributedLock.releaseLock(this.context, [this.#eventType, this.#eventSubType].join("##"));
+        await distributedLock.releaseLock(this.context, [namespace, this.#eventType, this.#eventSubType].join("##"));
       });
     } catch (err) {
       this.logger.error("Releasing distributed lock failed.", err);
