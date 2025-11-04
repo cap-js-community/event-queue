@@ -561,7 +561,7 @@ class Config {
     event.keepAliveInterval = event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL;
     event.keepAliveMaxInProgressTime = event.keepAliveInterval * DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL;
     event.checkForNextChunk = event.checkForNextChunk ?? DEFAULT_CHECK_FOR_NEXT_CHUNK;
-    event.namespace = event.namespace === undefined ? null : event.namespace;
+    event.namespace = event.namespace === undefined ? this.#publishNamespace : event.namespace;
   }
 
   #sanitizeParamsBase(config, allowList) {

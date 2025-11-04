@@ -67,6 +67,10 @@ const publishEvent = async (
     if (eventConfig.timeBucket && !(startAfter in event)) {
       event.startAfter = CronExpressionParser.parse(eventConfig.timeBucket).next().toISOString();
     }
+
+    if (event.namespace === undefined) {
+      event.namespace = config.publishNamespace;
+    }
   }
   if (config.insertEventsBeforeCommit && !skipInsertEventsBeforeCommit) {
     _registerHandlerAndAddEvents(tx, events);

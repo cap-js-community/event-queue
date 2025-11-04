@@ -108,7 +108,7 @@ const _mapToEventAndPublish = async (context, name, req, actionSpecific, outboxO
     type: CDS_EVENT_TYPE,
     subType: actionSpecific ? [name, req.event].join(".") : name,
     payload: JSON.stringify(event),
-    namespace: [eventQueueSpecificValues.namespace, outboxOpts.namespace, null].find(
+    namespace: [eventQueueSpecificValues.namespace, outboxOpts.namespace, config.publishNamespace].find(
       (namespace) => namespace !== undefined
     ),
     ...eventQueueSpecificValues,

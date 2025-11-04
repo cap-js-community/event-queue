@@ -42,7 +42,7 @@ const registerEventQueueDbHandler = (dbService) => {
       req.on("succeeded", () => {
         const events = eventCombinations.map((eventCombination) => {
           const [type, subType, namespace] = eventCombination.split("##");
-          return { type, subType, namespace: namespace === "" ? null : namespace };
+          return { type, subType, namespace: namespace === "" ? config.publishNamespace : namespace };
         });
 
         redisPub.broadcastEvent(req.tenant, events).catch((err) => {
