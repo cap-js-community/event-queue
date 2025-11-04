@@ -178,6 +178,7 @@ class EventQueueProcessorBase {
       this.__context.tenant,
       this.#eventType,
       this.#eventSubType,
+      null, //FIXME: not finished yet!!
       new Date(Date.now() + 5 * 1000) // add some offset to make sure all locks are released
     );
   }
@@ -477,6 +478,7 @@ class EventQueueProcessorBase {
             this.__context.tenant,
             this.#eventType,
             this.#eventSubType,
+            null, //FIXME: not finished yet!!
             startAfter
           );
         }
