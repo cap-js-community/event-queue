@@ -979,10 +979,12 @@ describe("keep-alive-tx-handling-e2e", () => {
       await waitEntriesIsDone();
       expect(broadcastSpy).toHaveBeenCalledWith(undefined, [
         {
+          namespace: null,
           subType: "Task",
           type: "Notifications",
         },
         {
+          namespace: null,
           subType: "isolated",
           type: "TransactionMode",
         },
@@ -998,6 +1000,7 @@ describe("keep-alive-tx-handling-e2e", () => {
       await promisify(setTimeout)(2000);
       expect(broadcastSpy).toHaveBeenCalledWith(undefined, [
         {
+          namespace: null,
           subType: "Task",
           type: "Notifications",
         },

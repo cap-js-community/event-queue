@@ -1053,6 +1053,7 @@ class EventQueueProcessorBase {
       type: this.#eventType,
       subType: this.#eventSubType,
       startAfter: new Date(newStartAfter),
+      namespace: this.#eventConfig.namespace,
     };
     const { relative } = this.#eventSchedulerInstance.calculateOffset(
       this.#eventType,
