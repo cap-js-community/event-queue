@@ -13,7 +13,6 @@ const eventConfig = require("./config");
 const PerformanceTracer = require("./shared/PerformanceTracer");
 const { trace } = require("./shared/openTelemetry");
 const SetIntervalDriftSafe = require("./shared/SetIntervalDriftSafe");
-const config = require("./config");
 
 const IMPLEMENT_ERROR_MESSAGE = "needs to be reimplemented";
 const COMPONENT_NAME = "/eventQueue/EventQueueProcessorBase";
