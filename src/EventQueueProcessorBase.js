@@ -642,7 +642,7 @@ class EventQueueProcessorBase {
         .orderBy("createdAt", "ID");
 
       if (this.#config.processDefaultNamespace && this.#config.processingNamespaces.length) {
-        cqn.where("(namespace IS NULL OR namespace IN", this.#config.processingNamespaces);
+        cqn.where("(namespace IS NULL OR namespace IN", this.#config.processingNamespaces, ")");
       } else if (this.#config.processDefaultNamespace && !this.#config.processingNamespaces.length) {
         cqn.where("namespace IS NULL");
       } else {
