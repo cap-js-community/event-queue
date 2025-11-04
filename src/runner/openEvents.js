@@ -30,7 +30,7 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
       ")"
     )
     .columns("type", "subType", "namespace")
-    .groupBy("type", "subType");
+    .groupBy("type", "subType", "namespace");
 
   if (config.processDefaultNamespace && config.processingNamespaces.length) {
     cqn.where("(namespace IS NULL OR namespace IN", config.processingNamespaces);

@@ -15,9 +15,9 @@ class EventScheduler {
     config.attachUnsubscribeHandler(this.clearForTenant.bind(this));
   }
 
-  scheduleEvent(tenantId, type, subType, startAfter) {
+  scheduleEvent(tenantId, type, subType, namespace, startAfter) {
     const { date, relative } = this.calculateOffset(type, subType, startAfter);
-    const key = [tenantId, type, subType, date.toISOString()].join("##");
+    const key = [tenantId, type, subType, namespace, date.toISOString()].join("##");
     if (this.#scheduledEvents[key]) {
       return; // event combination already scheduled
     }
@@ -34,7 +34,7 @@ class EventScheduler {
       clearTimeout(timeout);
       delete this.#eventsByTenants[tenantId][timeout];
       delete this.#scheduledEvents[key];
-      redisPub.broadcastEvent(tenantId, { type, subType }).catch((err) => {
+      redisPub.broadcastEvent(tenantId, { type, subType, namespace }).catch((err) => {
         cds.log(COMPONENT_NAME).error("could not execute scheduled event", err, {
           tenantId,
           type,

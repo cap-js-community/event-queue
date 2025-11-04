@@ -1023,7 +1023,7 @@ class Config {
 
   set processingNamespaces(value) {
     this.#processingNamespaces = value.filter((value) => value !== null);
-    this.#processDefaultNamespace = value.find((value) => value === null);
+    this.#processDefaultNamespace = value.some((value) => value === null);
   }
 
   get processDefaultNamespace() {

@@ -26,37 +26,37 @@ exports[`runner multi tenant db no open events 1`] = `
 exports[`runner multi tenant db open periodic events 1`] = `
 [
   [
-    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID__EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID__EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID__EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID__EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID__EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },
   ],
   [
-    "RUN_ID_EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
+    "RUN_ID__EVENT_QUEUE_BASE_PERIODIC_DELETE_EVENTS",
     {
       "expiryTime": 1425000,
     },

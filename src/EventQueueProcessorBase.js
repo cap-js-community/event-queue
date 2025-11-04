@@ -640,7 +640,6 @@ class EventQueueProcessorBase {
       } else {
         cqn.where("namespace IN", this.#config.processingNamespaces);
       }
-
       const entries = await tx.run(cqn);
 
       if (!entries.length) {
@@ -751,6 +750,7 @@ class EventQueueProcessorBase {
         this.__context.tenant,
         this.#eventType,
         this.#eventSubType,
+        delayedEvent.namespace,
         delayedEvent.startAfter
       );
     }
