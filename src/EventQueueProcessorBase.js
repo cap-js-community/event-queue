@@ -42,6 +42,7 @@ class EventQueueProcessorBase {
   #keepAliveRunner;
   #currentKeepAlivePromise = Promise.resolve();
   #etagMap;
+  #selectedNamespaces;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -174,13 +175,15 @@ class EventQueueProcessorBase {
       eventSubType: this.#eventSubType,
       iterationCounter,
     });
-    this.#eventSchedulerInstance.scheduleEvent(
-      this.__context.tenant,
-      this.#eventType,
-      this.#eventSubType,
-      null, //FIXME: not finished yet!!
-      new Date(Date.now() + 5 * 1000) // add some offset to make sure all locks are released
-    );
+    for (const namespace of this.#selectedNamespaces) {
+      this.#eventSchedulerInstance.scheduleEvent(
+        this.__context.tenant,
+        this.#eventType,
+        this.#eventSubType,
+        namespace,
+        new Date(Date.now() + 5 * 1000) // add some offset to make sure all locks are released
+      );
+    }
   }
 
   logStartMessage() {
@@ -474,13 +477,16 @@ class EventQueueProcessorBase {
         let startAfter;
         if (status === EventProcessingStatus.Error) {
           startAfter = new Date(Date.now() + this.#retryFailedAfter);
-          this.#eventSchedulerInstance.scheduleEvent(
-            this.__context.tenant,
-            this.#eventType,
-            this.#eventSubType,
-            null, //FIXME: not finished yet!!
-            startAfter
-          );
+          // TODO: check again
+          for (const namespace of this.#selectedNamespaces) {
+            this.#eventSchedulerInstance.scheduleEvent(
+              this.__context.tenant,
+              this.#eventType,
+              this.#eventSubType,
+              namespace,
+              startAfter
+            );
+          }
         }
 
         await tx.run(
@@ -643,6 +649,7 @@ class EventQueueProcessorBase {
         cqn.where("namespace IN", this.#config.processingNamespaces);
       }
       const entries = await tx.run(cqn);
+      this.#selectedNamespaces = [...new Set(entries.map((entry) => entry.namespace))];
 
       if (!entries.length) {
         this.logger.debug("no entries available for processing", {
