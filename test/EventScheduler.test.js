@@ -46,7 +46,7 @@ describe("EventScheduler", () => {
     const broadcastEventSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValueOnce();
     jest.setSystemTime(new Date(1633046400000)); // 2021-10-01T00:00:00.000Z
     const startAfter = new Date("2021-10-01T00:00:01.000Z");
-    eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
+    eventScheduler.scheduleEvent("1", "type", "subType", null, startAfter);
 
     expect(cds.log().info).toHaveBeenCalledTimes(0);
     expect(cds.log().debug).toHaveBeenCalledTimes(1);
@@ -61,8 +61,8 @@ describe("EventScheduler", () => {
     jest.setSystemTime(new Date(1633046400000)); // 2021-10-01T00:00:00.000Z
 
     const startAfter = new Date("2021-10-01T00:00:01.000Z");
-    eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
-    eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
+    eventScheduler.scheduleEvent("1", "type", "subType", null, startAfter);
+    eventScheduler.scheduleEvent("1", "type", "subType", null, startAfter);
 
     expect(cds.log().info).toHaveBeenCalledTimes(0);
     expect(cds.log().debug).toHaveBeenCalledTimes(1);
@@ -79,7 +79,7 @@ describe("EventScheduler", () => {
     setTimeoutSpy = jest.spyOn(global, "setTimeout");
     jest.setSystemTime(new Date(1633046400000)); // 2021-10-01T00:00:00.000Z
     const startAfter = new Date("2021-10-01T00:00:01.000Z");
-    eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
+    eventScheduler.scheduleEvent("1", "type", "subType", null, startAfter);
 
     expect(cds.log().info).toHaveBeenCalledTimes(0);
     expect(cds.log().debug).toHaveBeenCalledTimes(1);
@@ -94,6 +94,7 @@ describe("EventScheduler", () => {
       [
         "1",
         {
+          "namespace": null,
           "subType": "subType",
           "type": "type",
         },
@@ -110,7 +111,7 @@ describe("EventScheduler", () => {
     jest.setSystemTime(new Date(1633046400000)); // 2021-10-01T00:00:00.000Z
     const startAfter = new Date("2021-10-01T00:00:01.000Z");
 
-    eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
+    eventScheduler.scheduleEvent("1", "type", "subType", null, startAfter);
     await jest.runAllTimersAsync();
 
     expect(cds.log().info).toHaveBeenCalledTimes(0);
@@ -125,6 +126,7 @@ describe("EventScheduler", () => {
       [
         "1",
         {
+          "namespace": null,
           "subType": "subType",
           "type": "type",
         },
@@ -136,7 +138,7 @@ describe("EventScheduler", () => {
     setTimeoutSpy.mockRestore();
     const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
     const startAfter = new Date(Date.now() + 10 * 1000 * 60);
-    eventScheduler.scheduleEvent("1", "type", "subType", startAfter);
+    eventScheduler.scheduleEvent("1", "type", "subType", null, startAfter);
     const events = eventScheduler.eventsByTenants;
     expect(Object.keys(events)).toEqual(["1"]);
     expect(Object.values(Object.values(events)[0]).length).toEqual(1);
