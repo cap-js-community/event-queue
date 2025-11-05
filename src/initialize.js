@@ -22,7 +22,6 @@ const readFileAsync = promisify(fs.readFile);
 
 const VERROR_CLUSTER_NAME = "EventQueueInitialization";
 const COMPONENT = "eventQueue/initialize";
-const TIMEOUT_SHUTDOWN = 2500;
 
 const CONFIG_VARS = [
   ["configFilePath", null],
