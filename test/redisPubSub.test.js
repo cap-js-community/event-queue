@@ -3,7 +3,8 @@
 const path = require("path");
 
 const setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation((first, second) => {
-  (first instanceof Function ? first : second)();
+  setImmediate(() => (first instanceof Function ? first : second)());
+  return "";
 });
 
 const distributedLock = require("../src/shared/distributedLock");
@@ -42,6 +43,7 @@ jest.mock("../src/shared/redis", () => {
     }),
     closeMainClient: () => {},
     closeSubscribeClient: () => {},
+    registerShutdownHandler: () => {},
   };
 });
 
@@ -97,9 +99,6 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          {
-            "redisNamespace": "EVENT_QUEUE",
-          },
           "_EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":null}",
         ]
@@ -127,9 +126,6 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          {
-            "redisNamespace": "EVENT_QUEUE",
-          },
           "_EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
         ]
@@ -149,9 +145,6 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          {
-            "redisNamespace": "EVENT_QUEUE",
-          },
           "_EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","tenantId":123,"type":"Notifications","subType":"Task"}",
         ]
@@ -165,9 +158,6 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          {
-            "redisNamespace": "EVENT_QUEUE",
-          },
           "_EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":null}",
         ]
@@ -181,9 +171,6 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          {
-            "redisNamespace": "EVENT_QUEUE",
-          },
           "_EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":null}",
         ]
@@ -200,16 +187,10 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toMatchInlineSnapshot(`
         [
           [
-            {
-              "redisNamespace": "EVENT_QUEUE",
-            },
             "_EVENT_QUEUE_MESSAGE_CHANNEL",
             "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":null}",
           ],
           [
-            {
-              "redisNamespace": "EVENT_QUEUE",
-            },
             "_EVENT_QUEUE_MESSAGE_CHANNEL",
             "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Fiori","subType":"Task","namespace":null}",
           ],
@@ -242,7 +223,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       await tx.commit();
 
       expect(mockRedisPublishCalls).toHaveLength(1);
-      await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][2]);
+      await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][1]);
       expect(runnerSpy).toHaveBeenCalledTimes(1);
       expect(runnerSpy).toHaveBeenCalledWith(expect.any(Object), "Notifications", "Task", null, {
         lockId: expect.any(String),
@@ -274,7 +255,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       await tx.commit();
 
       expect(mockRedisPublishCalls).toHaveLength(1);
-      const data = JSON.parse(mockRedisPublishCalls[0][2]);
+      const data = JSON.parse(mockRedisPublishCalls[0][1]);
 
       await redisSub.__._messageHandlerProcessEvents({ ...data, type: "NOT_EXISTING" });
       expect(runnerSpy).toHaveBeenCalledTimes(0);

@@ -23,6 +23,7 @@ module.exports = {
   closeSubscribeClient: () => {},
   clearState: () => (state = {}),
   closeMainClient: () => {},
+  registerShutdownHandler: () => {},
   getState: () =>
     Object.fromEntries(
       Object.entries(state).map(([key, value]) => {

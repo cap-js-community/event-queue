@@ -289,14 +289,6 @@ const _checkEventIsBlocked = async (baseInstance) => {
         subType: baseInstance.eventSubType,
       });
     }
-  } else {
-    // TODO: we should be able to get rid of baseInstance.isPeriodicEvent with rawEventType
-    eventBlocked = config.isEventBlocked(
-      baseInstance.eventType,
-      baseInstance.eventSubType,
-      baseInstance.isPeriodicEvent,
-      baseInstance.context.tenant
-    );
   }
 
   if (!eventBlocked) {

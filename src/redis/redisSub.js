@@ -24,7 +24,6 @@ const initEventQueueRedisSubscribe = () => {
 
   namespaces.forEach((namespace) => {
     redis.subscribeRedisChannel(
-      config.redisOptions,
       [namespace, EVENT_MESSAGE_CHANNEL].join("_"),
       _messageHandlerProcessEvents
     );

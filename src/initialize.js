@@ -22,7 +22,6 @@ const readFileAsync = promisify(fs.readFile);
 
 const VERROR_CLUSTER_NAME = "EventQueueInitialization";
 const COMPONENT = "eventQueue/initialize";
-const TIMEOUT_SHUTDOWN = 2500;
 
 const CONFIG_VARS = [
   ["configFilePath", null],
@@ -105,7 +104,7 @@ const initialize = async (options = {}) => {
     }
   });
   if (redisEnabled) {
-    config.redisEnabled = await redis.connectionCheck(config.redisOptions);
+    config.redisEnabled = await redis.connectionCheck();
     if (!config.redisEnabled && config.crashOnRedisUnavailable) {
       throw EventQueueError.redisConnectionFailure();
     }
@@ -152,7 +151,7 @@ const readConfigFromFile = async (configFilepath) => {
 
 const registerEventProcessors = () => {
   _registerUnsubscribe();
-  config.redisEnabled && config.attachRedisUnsubscribeHandler();
+  config.redisEnabled && redis.attachRedisUnsubscribeHandler();
 
   if (!config.registerAsEventProcessor) {
     return;
@@ -162,7 +161,6 @@ const registerEventProcessors = () => {
 
   if (config.redisEnabled) {
     redisSub.initEventQueueRedisSubscribe();
-    config.attachConfigChangeHandler();
     if (config.isMultiTenancy) {
       runner.multiTenancyRedis().catch(errorHandler);
     } else {
@@ -207,24 +205,7 @@ const mixConfigVarsWithEnv = (options) => {
 };
 
 const registerCdsShutdown = () => {
-  cds.on("shutdown", async () => {
-    return await new Promise((resolve) => {
-      let timeoutRef;
-      timeoutRef = setTimeout(() => {
-        clearTimeout(timeoutRef);
-        cds.log(COMPONENT).info("shutdown timeout reached - some locks might not have been released!");
-        resolve();
-      }, TIMEOUT_SHUTDOWN);
-      distributedLock.shutdownHandler().then(() => {
-        Promise.allSettled(
-          config.redisEnabled ? [redis.closeMainClient(), redis.closeSubscribeClient()] : [Promise.resolve()]
-        ).then((result) => {
-          clearTimeout(timeoutRef);
-          resolve(result);
-        });
-      });
-    });
-  });
+  redis.registerShutdownHandler(distributedLock.shutdownHandler);
 };
 
 const registerCleanupForDevDb = async () => {
@@ -254,7 +235,7 @@ const _registerUnsubscribe = () => {
         });
         ds.after("unsubscribe", async (_, req) => {
           const { tenant } = req.data;
-          config.handleUnsubscribe(tenant);
+          redis.handleUnsubscribe(tenant);
         });
       })
       .catch(
