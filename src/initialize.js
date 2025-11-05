@@ -202,25 +202,7 @@ const mixConfigVarsWithEnv = (options) => {
 };
 
 const registerCdsShutdown = () => {
-  cds.on("shutdown", async () => {
-    return await new Promise((resolve) => {
-      let timeoutRef;
-      timeoutRef = setTimeout(() => {
-        clearTimeout(timeoutRef);
-        cds.log(COMPONENT).info("shutdown timeout reached - some locks might not have been released!");
-        resolve();
-      }, TIMEOUT_SHUTDOWN);
-      distributedLock.shutdownHandler().then(() => {
-        Promise.allSettled(
-          // FIXME: shutdown cds-common - Oli?
-          config.redisEnabled ? [] : [Promise.resolve()]
-        ).then((result) => {
-          clearTimeout(timeoutRef);
-          resolve(result);
-        });
-      });
-    });
-  });
+  redis.registerShutdownHandler(distributedLock.shutdownHandler);
 };
 
 const registerCleanupForDevDb = async () => {
