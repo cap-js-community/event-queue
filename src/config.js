@@ -33,6 +33,7 @@ const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
 const PRIORITIES = Object.values(Priorities);
 const UTC_DEFAULT = false;
 const USE_CRON_TZ_DEFAULT = true;
+const DEFAULT_NAMESPACE = "default";
 
 const BASE_TABLES = {
   EVENT: "sap.eventqueue.Event",
@@ -144,9 +145,9 @@ class Config {
     this.#blockedEvents = {};
   }
 
-  getEventConfig(type, subType) {
-    return this.#eventMap[this.generateKey(type, subType)]
-      ? { ...this.#eventMap[this.generateKey(type, subType)] }
+  getEventConfig(type, subType, namespace = DEFAULT_NAMESPACE) {
+    return this.#eventMap[this.generateKey(type, subType, namespace)]
+      ? { ...this.#eventMap[this.generateKey(type, subType, namespace)] }
       : undefined;
   }
 
@@ -154,8 +155,8 @@ class Config {
     return type === CAP_EVENT_TYPE;
   }
 
-  hasEventAfterCommitFlag(type, subType) {
-    return this.#eventMap[this.generateKey(type, subType)]?.processAfterCommit ?? true;
+  hasEventAfterCommitFlag(type, subType, namespace = DEFAULT_NAMESPACE) {
+    return this.#eventMap[this.generateKey(type, subType, namespace)]?.processAfterCommit ?? true;
   }
 
   _checkRedisIsBound() {
@@ -182,10 +183,10 @@ class Config {
     return actionSpecificCall ? rawSubType : serviceName;
   }
 
-  shouldBeProcessedInThisApplication(type, rawSubType) {
+  shouldBeProcessedInThisApplication(type, rawSubType, namespace = DEFAULT_NAMESPACE) {
     const subType = this.#normalizeSubType(rawSubType);
 
-    const config = this.#eventMap[this.generateKey(type, subType)];
+    const config = this.#eventMap[this.generateKey(type, subType, namespace)];
     const appNameConfig = config._appNameMap;
     const appInstanceConfig = config._appInstancesMap;
     let result = true;
@@ -376,9 +377,10 @@ class Config {
   }
 
   addCAPOutboxEventBase(serviceName, config) {
-    if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)]) {
+    const namespace = this.#extractNamespace(serviceName);
+    if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName, namespace)]) {
       const index = this.#config.events.findIndex(
-        (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
+        (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName && event.namespace === namespace
       );
       this.#config.events.splice(index, 1);
     }
@@ -392,6 +394,7 @@ class Config {
       selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.retryAttempts ?? config.maxAttempts ?? CAP_MAX_ATTEMPTS_DEFAULT,
+      namespace: namespace ?? DEFAULT_NAMESPACE,
       ...config,
     });
     eventConfig.internalEvent = true;
@@ -400,10 +403,19 @@ class Config {
     this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
     this.#basicEventTransformationAfterValidate(eventConfig);
     this.#config.events.push(eventConfig);
-    this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
+    this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName, namespace)] = eventConfig;
+  }
+
+  #extractNamespace(serviceName) {
+    const parts = serviceName.split(".");
+    if (parts.length > 1) {
+      return parts.pop();
+    }
+    return DEFAULT_NAMESPACE;
   }
 
   addCAPOutboxEventSpecificAction(serviceName, actionName) {
+    const namespace = this.#extractNamespace(serviceName);
     const subType = [serviceName, actionName].join(".");
     if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, subType)]) {
       const index = this.#config.events.findIndex(
