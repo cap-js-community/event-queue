@@ -146,8 +146,8 @@ class Config {
   }
 
   getEventConfig(type, subType, namespace = DEFAULT_NAMESPACE) {
-    return this.#eventMap[this.generateKey(type, subType, namespace)]
-      ? { ...this.#eventMap[this.generateKey(type, subType, namespace)] }
+    return this.#eventMap[this.generateKey(namespace, type, subType)]
+      ? { ...this.#eventMap[this.generateKey(namespace, type, subType)] }
       : undefined;
   }
 
@@ -156,7 +156,7 @@ class Config {
   }
 
   hasEventAfterCommitFlag(type, subType, namespace = DEFAULT_NAMESPACE) {
-    return this.#eventMap[this.generateKey(type, subType, namespace)]?.processAfterCommit ?? true;
+    return this.#eventMap[this.generateKey(namespace, type, subType)]?.processAfterCommit ?? true;
   }
 
   _checkRedisIsBound() {
@@ -186,7 +186,7 @@ class Config {
   shouldBeProcessedInThisApplication(type, rawSubType, namespace = DEFAULT_NAMESPACE) {
     const subType = this.#normalizeSubType(rawSubType);
 
-    const config = this.#eventMap[this.generateKey(type, subType, namespace)];
+    const config = this.#eventMap[this.generateKey(namespace, type, subType)];
     const appNameConfig = config._appNameMap;
     const appInstanceConfig = config._appInstancesMap;
     let result = true;
@@ -377,8 +377,8 @@ class Config {
   }
 
   addCAPOutboxEventBase(serviceName, config) {
-    const namespace = this.#extractNamespace(serviceName);
-    if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName, namespace)]) {
+    const namespace = config.namespace ?? DEFAULT_NAMESPACE;
+    if (this.#eventMap[this.generateKey(namespace, CAP_EVENT_TYPE, serviceName)]) {
       const index = this.#config.events.findIndex(
         (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName && event.namespace === namespace
       );
@@ -394,7 +394,7 @@ class Config {
       selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.retryAttempts ?? config.maxAttempts ?? CAP_MAX_ATTEMPTS_DEFAULT,
-      namespace: namespace ?? DEFAULT_NAMESPACE,
+      namespace,
       ...config,
     });
     eventConfig.internalEvent = true;
@@ -403,29 +403,15 @@ class Config {
     this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
     this.#basicEventTransformationAfterValidate(eventConfig);
     this.#config.events.push(eventConfig);
-    this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName, namespace)] = eventConfig;
+    this.#eventMap[this.generateKey(namespace, CAP_EVENT_TYPE, serviceName)] = eventConfig;
+    return eventConfig;
   }
 
-  #extractNamespace(serviceName) {
-    const parts = serviceName.split(".");
-    if (parts.length > 1) {
-      return parts.pop();
-    }
-    return DEFAULT_NAMESPACE;
-  }
-
-  addCAPOutboxEventSpecificAction(serviceName, actionName) {
-    const namespace = this.#extractNamespace(serviceName);
+  addCAPOutboxEventSpecificAction(serviceName, actionName, baseSettings) {
     const subType = [serviceName, actionName].join(".");
-    if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, subType)]) {
-      const index = this.#config.events.findIndex(
-        (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
-      );
-      this.#config.events.splice(index, 1);
-    }
 
     const eventConfig = this.#sanitizeParamsAdHocEvent({
-      ...this.getEventConfig(CAP_EVENT_TYPE, serviceName),
+      ...this.getEventConfig(CAP_EVENT_TYPE, serviceName, baseSettings.namespace),
       ...this.getCdsOutboxEventSpecificConfig(serviceName, actionName),
       subType,
     });
@@ -434,8 +420,17 @@ class Config {
     this.#basicEventTransformation(eventConfig);
     this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
     this.#basicEventTransformationAfterValidate(eventConfig);
+
+    if (this.#eventMap[this.generateKey(eventConfig.namespace, CAP_EVENT_TYPE, subType)]) {
+      const index = this.#config.events.findIndex(
+        (event) =>
+          event.type === CAP_EVENT_TYPE && event.subType === serviceName && event.namespace === eventConfig.namespace
+      );
+      this.#config.events.splice(index, 1);
+    }
+
     this.#config.events.push(eventConfig);
-    this.#eventMap[this.generateKey(CAP_EVENT_TYPE, subType)] = eventConfig;
+    this.#eventMap[this.generateKey(eventConfig.namespace, CAP_EVENT_TYPE, subType)] = eventConfig;
     return eventConfig;
   }
 
@@ -715,8 +710,8 @@ class Config {
     this.#basicEventValidation(event);
   }
 
-  generateKey(type, subType) {
-    return [type, subType].join("##");
+  generateKey(namespace, type, subType) {
+    return [namespace, type, subType].join("##");
   }
 
   removeEvent(type, subType) {

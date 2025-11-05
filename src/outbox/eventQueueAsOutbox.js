@@ -50,10 +50,10 @@ function outboxed(srv, customOpts) {
       (typeof srv.options?.queued === "object" && srv.options.queued) || {},
       customOpts || {}
     );
-    config.addCAPOutboxEventBase(srv.name, outboxOpts);
+    const baseSettings = config.addCAPOutboxEventBase(srv.name, outboxOpts);
     const specificSettings = config.getCdsOutboxEventSpecificConfig(srv.name, req.event);
     if (specificSettings) {
-      outboxOpts = config.addCAPOutboxEventSpecificAction(srv.name, req.event);
+      outboxOpts = config.addCAPOutboxEventSpecificAction(srv.name, req.event, baseSettings);
     }
 
     if (["persistent-outbox", "persistent-queue"].includes(outboxOpts.kind)) {
