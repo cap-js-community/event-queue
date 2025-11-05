@@ -1832,6 +1832,7 @@ describe("event-queue outbox", () => {
     describe("namespaces", () => {
       beforeEach(() => {
         config.processingNamespaces = [null, "namespaceA"];
+        config.publishNamespace = null;
       });
 
       it("should publish with namespace", async () => {
@@ -1875,6 +1876,50 @@ describe("event-queue outbox", () => {
         await commitAndOpenNew();
         await processEventQueue(tx.context, "CAP_OUTBOX", service.name, "namespaceA");
         await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock).actionCalled("main");
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("should publish in default namespace if outbox has no config", async () => {
+        config.publishNamespace = "namespaceB";
+        const service = (await cds.connect.to("Namespace")).tx(context);
+        await service.send("main", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["subType", "createdAt", "namespace"],
+        });
+        expect(event.namespace).toEqual("namespaceC");
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name, "namespaceB");
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock).actionCalled("main");
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("header should overrule default and outbox namespace", async () => {
+        config.publishNamespace = "namespaceB";
+        const service = (await cds.connect.to("StandardService")).tx(context);
+        await service.send(
+          "main",
+          {
+            to: "to",
+            subject: "subject",
+            body: "body",
+          },
+          { "x-eventqueue-namespace": "namespaceC" }
+        );
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["subType", "createdAt", "namespace"],
+        });
+        expect(event.namespace).toEqual("namespaceC");
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name, "namespaceC");
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
         expect(loggerMock).actionCalled("main");
         expect(loggerMock.callsLengths().error).toEqual(0);
