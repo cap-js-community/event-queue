@@ -212,7 +212,8 @@ const registerCdsShutdown = () => {
       }, TIMEOUT_SHUTDOWN);
       distributedLock.shutdownHandler().then(() => {
         Promise.allSettled(
-          config.redisEnabled ? [redis.closeMainClient(), redis.closeSubscribeClient()] : [Promise.resolve()]
+          // FIXME: shutdown cds-common - Oli?
+          config.redisEnabled ? [] : [Promise.resolve()]
         ).then((result) => {
           clearTimeout(timeoutRef);
           resolve(result);

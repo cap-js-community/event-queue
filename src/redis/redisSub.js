@@ -16,7 +16,7 @@ const initEventQueueRedisSubscribe = () => {
     return;
   }
   initEventQueueRedisSubscribe._initDone = true;
-  redis.subscribeRedisChannel(config.redisOptions, EVENT_MESSAGE_CHANNEL, _messageHandlerProcessEvents);
+  redis.subscribeRedisChannel(EVENT_MESSAGE_CHANNEL, _messageHandlerProcessEvents);
 };
 
 const _messageHandlerProcessEvents = async (messageData) => {

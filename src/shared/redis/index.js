@@ -11,7 +11,7 @@ const REDIS_OFFBOARD_TENANT_CHANNEL = "REDIS_OFFBOARD_TENANT_CHANNEL";
 const attachRedisUnsubscribeHandler = () => {
   cds.log(COMPONENT_NAME).info("attached redis handle for unsubscribe events");
   client
-    .subscribeRedisChannel(config.redisOptions, REDIS_OFFBOARD_TENANT_CHANNEL, (messageData) => {
+    .subscribeRedisChannel(REDIS_OFFBOARD_TENANT_CHANNEL, (messageData) => {
       try {
         const { tenantId } = JSON.parse(messageData);
         cds.log(COMPONENT_NAME).info("received unsubscribe broadcast event", { tenantId });

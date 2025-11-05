@@ -24,7 +24,7 @@ const publishMessage = async (channel, message) => {
   // TODO: why websockets: options?.config
   const redisClient = RedisClient.default(REDIS_CLIENT_NAME);
   const channelWithNamespace = [config.redisNamespace, channel].join("_");
-  return await redisClient.publish(config.redisOptions, channelWithNamespace, message);
+  return await redisClient.publishMessage(config.redisOptions, channelWithNamespace, message);
 };
 
 const connectionCheck = async () => {
