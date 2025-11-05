@@ -43,6 +43,7 @@ jest.mock("../src/shared/redis", () => {
     }),
     closeMainClient: () => {},
     closeSubscribeClient: () => {},
+    registerShutdownHandler: () => {},
   };
 });
 
