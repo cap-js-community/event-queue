@@ -42,13 +42,14 @@ class EventQueueProcessorBase {
   #keepAliveRunner;
   #currentKeepAlivePromise = Promise.resolve();
   #etagMap;
-  #selectedNamespaces;
+  #namespace;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
     this.__baseContext = context;
     this.__tx = cds.tx(context);
     this.__baseLogger = cds.log(COMPONENT_NAME);
+    this.#namespace = null;
     this.#eventSchedulerInstance = eventScheduler.getInstance();
     this.#config = eventConfig;
     this.#isPeriodic = this.#config.isPeriodicEvent(eventType, eventSubType);
@@ -175,15 +176,13 @@ class EventQueueProcessorBase {
       eventSubType: this.#eventSubType,
       iterationCounter,
     });
-    for (const namespace of this.#selectedNamespaces) {
-      this.#eventSchedulerInstance.scheduleEvent(
-        this.__context.tenant,
-        this.#eventType,
-        this.#eventSubType,
-        namespace,
-        new Date(Date.now() + 5 * 1000) // add some offset to make sure all locks are released
-      );
-    }
+    this.#eventSchedulerInstance.scheduleEvent(
+      this.__context.tenant,
+      this.#eventType,
+      this.#eventSubType,
+      this.#namespace,
+      new Date(Date.now() + 5 * 1000) // add some offset to make sure all locks are released
+    );
   }
 
   logStartMessage() {
@@ -477,16 +476,13 @@ class EventQueueProcessorBase {
         let startAfter;
         if (status === EventProcessingStatus.Error) {
           startAfter = new Date(Date.now() + this.#retryFailedAfter);
-          // TODO: check again
-          for (const namespace of this.#selectedNamespaces) {
-            this.#eventSchedulerInstance.scheduleEvent(
-              this.__context.tenant,
-              this.#eventType,
-              this.#eventSubType,
-              namespace,
-              startAfter
-            );
-          }
+          this.#eventSchedulerInstance.scheduleEvent(
+            this.__context.tenant,
+            this.#eventType,
+            this.#eventSubType,
+            this.#namespace,
+            startAfter
+          );
         }
 
         await tx.run(
@@ -641,15 +637,12 @@ class EventQueueProcessorBase {
         )
         .orderBy("createdAt", "ID");
 
-      if (this.#config.processDefaultNamespace && this.#config.processingNamespaces.length) {
-        cqn.where("(namespace IS NULL OR namespace IN", this.#config.processingNamespaces, ")");
-      } else if (this.#config.processDefaultNamespace && !this.#config.processingNamespaces.length) {
+      if (this.#namespace === null) {
         cqn.where("namespace IS NULL");
       } else {
-        cqn.where("namespace IN", this.#config.processingNamespaces);
+        cqn.where("namespace =", this.#namespace);
       }
       const entries = await tx.run(cqn);
-      this.#selectedNamespaces = [...new Set(entries.map((entry) => entry.namespace))];
 
       if (!entries.length) {
         this.logger.debug("no entries available for processing", {
@@ -1310,6 +1303,10 @@ class EventQueueProcessorBase {
 
   get inheritTraceContext() {
     return this.#eventConfig.inheritTraceContext;
+  }
+
+  set namespace(value) {
+    this.#namespace = value;
   }
 }
 

@@ -30,6 +30,7 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = n
       return;
     }
     baseInstance = new EventTypeClass(context, eventType, eventSubType, eventConfig);
+    baseInstance.namespace = namespace;
     if (await _checkEventIsBlocked(baseInstance)) {
       return;
     }
@@ -47,6 +48,7 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = n
       iterationCounter++;
       await executeInNewTransaction(context, `eventQueue-pre-processing-${eventType}##${eventSubType}`, async (tx) => {
         eventTypeInstance = new EventTypeClass(tx.context, eventType, eventSubType, eventConfig);
+        eventTypeInstance.namespace = namespace;
         await trace(eventTypeInstance.context, "preparation", async () => {
           const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
           eventTypeInstance.startPerformanceTracerPreprocessing();

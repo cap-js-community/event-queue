@@ -246,12 +246,11 @@ describe("integration-main", () => {
     expect(processSpy).toHaveBeenCalledTimes(1);
   });
 
-  // FIXME: fix test
-  it.skip("should do nothing if lock for event combination cannot be acquired", async () => {
+  it("should do nothing if lock for event combination cannot be acquired", async () => {
     const event = eventQueue.config.events[0];
     await cds.tx({}, async (tx2) => {
       await testHelper.insertEventEntry(tx2);
-      await distributedLock.acquireLock(tx2.context, [event.type, event.subType].join("##"));
+      await distributedLock.acquireLock(tx2.context, [null, event.type, event.subType].join("##"));
     });
     dbCounts = {};
     await eventQueue.processEventQueue(context, event.type, event.subType);
