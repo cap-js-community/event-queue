@@ -29,7 +29,10 @@ const registerEventQueueDbHandler = (dbService) => {
     const eventCombinations = Object.keys(
       data.reduce((result, event) => {
         const key = [event.type, event.subType, event.namespace].join("##");
-        if (!config.hasEventAfterCommitFlag(event.type, event.subType) || eventQueuePublishEvents[key]) {
+        if (
+          !config.hasEventAfterCommitFlag(event.type, event.subType, event.namespace) ||
+          eventQueuePublishEvents[key]
+        ) {
           return result;
         }
         eventQueuePublishEvents[key] = true;
@@ -42,7 +45,7 @@ const registerEventQueueDbHandler = (dbService) => {
       req.on("succeeded", () => {
         const events = eventCombinations.map((eventCombination) => {
           const [type, subType, namespace] = eventCombination.split("##");
-          return { type, subType, namespace: namespace === "" ? config.publishNamespace : namespace };
+          return { type, subType, namespace };
         });
 
         redisPub.broadcastEvent(req.tenant, events).catch((err) => {

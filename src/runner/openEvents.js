@@ -32,18 +32,12 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
     .columns("type", "subType", "namespace")
     .groupBy("type", "subType", "namespace");
 
-  if (config.processDefaultNamespace && config.processingNamespaces.length) {
-    cqn.where("(namespace IS NULL OR namespace IN", config.processingNamespaces);
-  } else if (config.processDefaultNamespace && !config.processingNamespaces.length) {
-    cqn.where("namespace IS NULL");
-  } else {
-    cqn.where("namespace IN", config.processingNamespaces);
-  }
+  cqn.where("namespace IN", config.processingNamespaces);
 
   const entries = await tx.run(cqn);
 
   const result = [];
-  for (const { type, subType } of entries) {
+  for (const { type, subType, namespace } of entries) {
     if (eventConfig.isCapOutboxEvent(type)) {
       const [srvName, actionName] = subType.split(".");
       try {
@@ -56,24 +50,24 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
           if (actionName) {
             config.addCAPOutboxEventSpecificAction(srvName, actionName);
           }
-          if (eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
-            result.push({ type, subType });
+          if (eventConfig.shouldBeProcessedInThisApplication(type, subType, namespace)) {
+            result.push({ namespace, type, subType });
           }
         }
       } catch {
         /* ignore catch */
       } finally {
         if (!filterAppSpecificEvents) {
-          result.push({ type, subType });
+          result.push({ namespace, type, subType });
         }
       }
     } else {
       if (filterAppSpecificEvents) {
         if (
-          eventConfig.getEventConfig(type, subType) &&
-          eventConfig.shouldBeProcessedInThisApplication(type, subType)
+          eventConfig.getEventConfig(type, subType, namespace) &&
+          eventConfig.shouldBeProcessedInThisApplication(type, subType, namespace)
         ) {
-          result.push({ type, subType });
+          result.push({ namespace, type, subType });
         }
       } else {
         result.push({ type, subType });

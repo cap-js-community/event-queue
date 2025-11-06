@@ -50,14 +50,15 @@ function outboxed(srv, customOpts) {
       (typeof srv.options?.queued === "object" && srv.options.queued) || {},
       customOpts || {}
     );
-    const baseSettings = config.addCAPOutboxEventBase(srv.name, outboxOpts);
+    config.addCAPOutboxEventBase(srv.name, outboxOpts);
     const specificSettings = config.getCdsOutboxEventSpecificConfig(srv.name, req.event);
     if (specificSettings) {
-      outboxOpts = config.addCAPOutboxEventSpecificAction(srv.name, req.event, baseSettings);
+      outboxOpts = config.addCAPOutboxEventSpecificAction(srv.name, req.event);
     }
 
+    const namespace = (specificSettings ?? outboxOpts).namespace ?? config.namespace;
     if (["persistent-outbox", "persistent-queue"].includes(outboxOpts.kind)) {
-      await _mapToEventAndPublish(context, srv.name, req, !!specificSettings, outboxOpts);
+      await _mapToEventAndPublish(context, srv.name, req, !!specificSettings, namespace);
       return;
     }
     context.on("succeeded", async () => {
@@ -83,7 +84,7 @@ function unboxed(srv) {
   return srv[UNBOXED] || srv;
 }
 
-const _mapToEventAndPublish = async (context, name, req, actionSpecific, outboxOpts) => {
+const _mapToEventAndPublish = async (context, name, req, actionSpecific, namespace) => {
   const eventQueueSpecificValues = {};
   for (const header in req.headers ?? {}) {
     for (const field of EVENT_QUEUE_SPECIFIC_FIELDS) {
@@ -104,15 +105,17 @@ const _mapToEventAndPublish = async (context, name, req, actionSpecific, outboxO
     ...(req.query && { query: req.query }),
   };
 
-  await publishEvent(cds.tx(context), {
-    type: CDS_EVENT_TYPE,
-    subType: actionSpecific ? [name, req.event].join(".") : name,
-    payload: JSON.stringify(event),
-    namespace: [eventQueueSpecificValues.namespace, outboxOpts.namespace, config.publishNamespace].find(
-      (namespace) => namespace !== undefined
-    ),
-    ...eventQueueSpecificValues,
-  });
+  await publishEvent(
+    cds.tx(context),
+    {
+      type: CDS_EVENT_TYPE,
+      subType: actionSpecific ? [name, req.event].join(".") : name,
+      payload: JSON.stringify(event),
+      namespace: eventQueueSpecificValues.namespace ?? namespace,
+      ...eventQueueSpecificValues,
+    },
+    { allowNotExistingConfiguration: eventQueueSpecificValues.namespace }
+  );
 };
 
 const isUnrecoverable = (service, error) => {

@@ -216,7 +216,7 @@ To change the configuration of a specific event, you can refer to the example be
 ```js
 const { config } = require("@cap-js-community/event-queue");
 
-const eventConfig = config.getEventConfig("HealthCheck", "DB");
+const eventConfig = config.getEventConfig("HealthCheck", "DB", "default");
 eventConfig.load = 5;
 ```
 

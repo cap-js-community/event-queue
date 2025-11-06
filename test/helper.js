@@ -48,6 +48,7 @@ const insertEventEntry = async (
         subType,
         startAfter,
         status,
+        namespace: eventQueue.config.namespace,
       },
     ];
     Array(numberOfEntries - 1)

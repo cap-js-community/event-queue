@@ -99,8 +99,8 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          "_EVENT_QUEUE_MESSAGE_CHANNEL",
-          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":null}",
+          "default_EVENT_QUEUE_MESSAGE_CHANNEL",
+          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":"default"}",
         ]
       `);
     });
@@ -158,8 +158,8 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          "_EVENT_QUEUE_MESSAGE_CHANNEL",
-          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":null}",
+          "default_EVENT_QUEUE_MESSAGE_CHANNEL",
+          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":"default"}",
         ]
       `);
     });
@@ -171,8 +171,8 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          "_EVENT_QUEUE_MESSAGE_CHANNEL",
-          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":null}",
+          "default_EVENT_QUEUE_MESSAGE_CHANNEL",
+          "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":"default"}",
         ]
       `);
     });
@@ -187,12 +187,12 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toMatchInlineSnapshot(`
         [
           [
-            "_EVENT_QUEUE_MESSAGE_CHANNEL",
-            "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":null}",
+            "default_EVENT_QUEUE_MESSAGE_CHANNEL",
+            "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":"default"}",
           ],
           [
-            "_EVENT_QUEUE_MESSAGE_CHANNEL",
-            "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Fiori","subType":"Task","namespace":null}",
+            "default_EVENT_QUEUE_MESSAGE_CHANNEL",
+            "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Fiori","subType":"Task","namespace":"default"}",
           ],
         ]
       `);
@@ -225,7 +225,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       await redisSub.__._messageHandlerProcessEvents(mockRedisPublishCalls[0][1]);
       expect(runnerSpy).toHaveBeenCalledTimes(1);
-      expect(runnerSpy).toHaveBeenCalledWith(expect.any(Object), "Notifications", "Task", null, {
+      expect(runnerSpy).toHaveBeenCalledWith(expect.any(Object), "Notifications", "Task", config.namespace, {
         lockId: expect.any(String),
         shouldTrace: true,
       });

@@ -49,7 +49,7 @@ exports[`admin-service-test metadata snapshot 1`] = `
         <Property Name="startAfter" Type="Edm.DateTimeOffset" Precision="7"/>
         <Property Name="context" Type="Edm.String"/>
         <Property Name="error" Type="Edm.String"/>
-        <Property Name="namespace" Type="Edm.String"/>
+        <Property Name="namespace" Type="Edm.String" DefaultValue="default"/>
       </EntityType>
       <EntityType Name="Lock">
         <Key>

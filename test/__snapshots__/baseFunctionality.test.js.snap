@@ -94,26 +94,32 @@ exports[`baseFunctionality ad-hoc events error handling missing event implementa
 exports[`baseFunctionality getOpenQueueEntries event types in error should be considered 2`] = `
 [
   {
+    "namespace": "default",
     "subType": "DELETE_EVENTS",
     "type": "EVENT_QUEUE_BASE_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "DBKeepAlive",
     "type": "HealthCheckKeepAlive_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "DB",
     "type": "HealthCheck_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "Task",
     "type": "Notifications",
   },
   {
+    "namespace": "default",
     "subType": "everyFiveMin",
     "type": "TimeSpecificEveryFiveMin_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "cron",
     "type": "TimeSpecificEveryMin_PERIODIC",
   },
@@ -123,22 +129,27 @@ exports[`baseFunctionality getOpenQueueEntries event types in error should be co
 exports[`baseFunctionality getOpenQueueEntries event types in progress should be ignored 2`] = `
 [
   {
+    "namespace": "default",
     "subType": "DELETE_EVENTS",
     "type": "EVENT_QUEUE_BASE_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "DBKeepAlive",
     "type": "HealthCheckKeepAlive_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "DB",
     "type": "HealthCheck_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "everyFiveMin",
     "type": "TimeSpecificEveryFiveMin_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "cron",
     "type": "TimeSpecificEveryMin_PERIODIC",
   },
@@ -189,26 +200,32 @@ exports[`baseFunctionality getOpenQueueEntries filterAppSpecificEvents return op
 exports[`baseFunctionality getOpenQueueEntries return open event types 2`] = `
 [
   {
+    "namespace": "default",
     "subType": "DELETE_EVENTS",
     "type": "EVENT_QUEUE_BASE_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "DBKeepAlive",
     "type": "HealthCheckKeepAlive_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "DB",
     "type": "HealthCheck_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "Task",
     "type": "Notifications",
   },
   {
+    "namespace": "default",
     "subType": "everyFiveMin",
     "type": "TimeSpecificEveryFiveMin_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "cron",
     "type": "TimeSpecificEveryMin_PERIODIC",
   },
@@ -218,10 +235,12 @@ exports[`baseFunctionality getOpenQueueEntries return open event types 2`] = `
 exports[`baseFunctionality getOpenQueueEntries should respect app instance configuration both open event relevant for app 2`] = `
 [
   {
+    "namespace": "default",
     "subType": "AppInstance",
     "type": "AppSpecific",
   },
   {
+    "namespace": "default",
     "subType": "Task",
     "type": "Notifications",
   },
@@ -231,6 +250,7 @@ exports[`baseFunctionality getOpenQueueEntries should respect app instance confi
 exports[`baseFunctionality getOpenQueueEntries should respect app instance configuration one open event for app and one not for this app 2`] = `
 [
   {
+    "namespace": "default",
     "subType": "Task",
     "type": "Notifications",
   },
@@ -253,10 +273,12 @@ exports[`baseFunctionality getOpenQueueEntries should respect app instance confi
 exports[`baseFunctionality getOpenQueueEntries should respect app name configuration both open event relevant for app 2`] = `
 [
   {
+    "namespace": "default",
     "subType": "AppName",
     "type": "AppSpecific",
   },
   {
+    "namespace": "default",
     "subType": "Task",
     "type": "Notifications",
   },
@@ -266,6 +288,7 @@ exports[`baseFunctionality getOpenQueueEntries should respect app name configura
 exports[`baseFunctionality getOpenQueueEntries should respect app name configuration one open event for app and one not for this app 2`] = `
 [
   {
+    "namespace": "default",
     "subType": "Task",
     "type": "Notifications",
   },

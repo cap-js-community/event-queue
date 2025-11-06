@@ -23,7 +23,7 @@ const runEventCombinationForTenant = async (
     if (skipWorkerPool) {
       return await processEventQueue(context, type, subType, namespace);
     } else {
-      const eventConfig = eventQueueConfig.getEventConfig(type, subType);
+      const eventConfig = eventQueueConfig.getEventConfig(type, subType, namespace);
       const label = `${type}_${subType}`;
       return await WorkerQueue.instance.addToQueue(
         eventConfig.load,

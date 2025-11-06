@@ -17,16 +17,8 @@ const initEventQueueRedisSubscribe = () => {
   }
   initEventQueueRedisSubscribe._initDone = true;
 
-  const namespaces = [config.processingNamespaces];
-  if (config.processDefaultNamespace) {
-    namespaces.push("");
-  }
-
-  namespaces.forEach((namespace) => {
-    redis.subscribeRedisChannel(
-      [namespace, EVENT_MESSAGE_CHANNEL].join("_"),
-      _messageHandlerProcessEvents
-    );
+  config.processingNamespaces.forEach((namespace) => {
+    redis.subscribeRedisChannel([namespace, EVENT_MESSAGE_CHANNEL].join("_"), _messageHandlerProcessEvents);
   });
 };
 
@@ -52,7 +44,7 @@ const _messageHandlerProcessEvents = async (messageData) => {
     }
 
     const [serviceNameOrSubType, actionName] = subType.split(".");
-    if (!config.getEventConfig(type, subType)) {
+    if (!config.getEventConfig(type, subType, namespace)) {
       if (config.isCapOutboxEvent(type)) {
         try {
           const service = await cds.connect.to(serviceNameOrSubType);
@@ -79,7 +71,12 @@ const _messageHandlerProcessEvents = async (messageData) => {
       }
     }
 
-    if (!(config.getEventConfig(type, subType) && config.shouldBeProcessedInThisApplication(type, subType))) {
+    if (
+      !(
+        config.getEventConfig(type, subType, namespace) &&
+        config.shouldBeProcessedInThisApplication(type, subType, namespace)
+      )
+    ) {
       logger.debug("event is not configured to be processed on this app-name", {
         tenantId,
         type,

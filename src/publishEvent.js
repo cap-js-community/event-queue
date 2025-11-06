@@ -35,7 +35,12 @@ const openTelemetry = require("./shared/openTelemetry");
 const publishEvent = async (
   tx,
   events,
-  { skipBroadcast = false, skipInsertEventsBeforeCommit = false, addTraceContext = true } = {}
+  {
+    skipBroadcast = false,
+    skipInsertEventsBeforeCommit = false,
+    addTraceContext = true,
+    allowNotExistingConfiguration = false,
+  } = {}
 ) => {
   if (!config.initialized) {
     throw EventQueueError.notInitialized();
@@ -43,16 +48,16 @@ const publishEvent = async (
   const eventsForProcessing = Array.isArray(events) ? events : [events];
   for (const event of eventsForProcessing) {
     const { type, subType, startAfter, namespace } = event;
-    const eventConfig = config.getEventConfig(type, subType);
-    if (!eventConfig && !namespace) {
-      //TODO: --> check if we want to allow this or not
+    const eventConfig = config.getEventConfig(type, subType, namespace);
+    //TODO: --> check if we want to allow this or not --> use const
+    if (!eventConfig && !allowNotExistingConfiguration) {
       throw EventQueueError.unknownEventType(type, subType);
     }
     if (startAfter && !common.isValidDate(startAfter)) {
       throw EventQueueError.malformedDate(startAfter);
     }
 
-    if (eventConfig.isPeriodic) {
+    if (eventConfig?.isPeriodic) {
       throw EventQueueError.manuelPeriodicEventInsert(type, subType);
     }
 
@@ -64,12 +69,12 @@ const publishEvent = async (
       event.context = JSON.stringify({ traceContext: openTelemetry.getCurrentTraceContext() });
     }
 
-    if (eventConfig.timeBucket && !(startAfter in event)) {
+    if (eventConfig?.timeBucket && !(startAfter in event)) {
       event.startAfter = CronExpressionParser.parse(eventConfig.timeBucket).next().toISOString();
     }
 
     if (event.namespace === undefined) {
-      event.namespace = config.publishNamespace;
+      event.namespace = config.namespace;
     }
   }
   if (config.insertEventsBeforeCommit && !skipInsertEventsBeforeCommit) {

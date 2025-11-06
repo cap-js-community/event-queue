@@ -70,7 +70,7 @@ const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
     await cds.tx({ tenant: tenantId }, async ({ context }) => {
       await trace(context, "broadcast-inserted-events", async () => {
         for (const { type, subType, namespace } of events) {
-          const eventConfig = config.getEventConfig(type, subType);
+          const eventConfig = config.getEventConfig(type, subType, namespace);
           if (!eventConfig) {
             continue;
           }

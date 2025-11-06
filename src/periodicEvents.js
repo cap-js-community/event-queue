@@ -21,11 +21,11 @@ const checkAndInsertPeriodicEvents = async (context) => {
   const tx = cds.tx(context);
   const baseCqn = SELECT.from(eventConfig.tableNameEventQueue)
     .where([
-      { list: [{ ref: ["type"] }, { ref: ["subType"] }] },
+      { list: [{ ref: ["type"] }, { ref: ["subType"] }, { ref: ["namespace"] }] },
       "IN",
       {
         list: eventConfig.periodicEvents.map((periodicEvent) => ({
-          list: [{ val: periodicEvent.type }, { val: periodicEvent.subType }],
+          list: [{ val: periodicEvent.type }, { val: periodicEvent.subType }, { val: periodicEvent.namespace }],
         })),
       },
       "AND",
@@ -35,8 +35,8 @@ const checkAndInsertPeriodicEvents = async (context) => {
         list: [{ val: EventProcessingStatus.Open }, { val: EventProcessingStatus.InProgress }],
       },
     ])
-    .groupBy("type", "subType", "createdAt")
-    .columns(["type", "subType", "createdAt", "max(startAfter) as startAfter"]);
+    .groupBy("type", "subType", "createdAt", "namespace")
+    .columns(["type", "subType", "createdAt", "namespace", "max(startAfter) as startAfter"]);
   const currentPeriodEvents = await tx.run(baseCqn);
   currentPeriodEvents.length &&
     (await tx.run(_addWhere(SELECT.from(eventConfig.tableNameEventQueue).columns("ID"), currentPeriodEvents)));
@@ -56,7 +56,7 @@ const checkAndInsertPeriodicEvents = async (context) => {
     (result, event) => {
       const existingEvent = exitingEventMap[_generateKey(event)];
       if (existingEvent) {
-        const config = eventConfig.getEventConfig(existingEvent.type, existingEvent.subType);
+        const config = eventConfig.getEventConfig(existingEvent.type, existingEvent.subType, existingEvent.namespace);
         if (config.cron) {
           result.existingEventsCron.push(exitingEventMap[_generateKey(event)]);
         } else {
@@ -110,7 +110,7 @@ const _addWhere = (cqnBase, events) => {
 
 const _determineChangedInterval = (existingEvents, currentDate) => {
   return existingEvents.filter((existingEvent) => {
-    const config = eventConfig.getEventConfig(existingEvent.type, existingEvent.subType);
+    const config = eventConfig.getEventConfig(existingEvent.type, existingEvent.subType, existingEvent.namespace);
     const eventStartAfter = new Date(existingEvent.startAfter);
     // check if too far in future
     const dueInWithNewInterval = new Date(currentDate.getTime() + config.interval * 1000);
@@ -120,7 +120,7 @@ const _determineChangedInterval = (existingEvents, currentDate) => {
 
 const _determineChangedCron = (existingEventsCron) => {
   return existingEventsCron.filter((event) => {
-    const config = eventConfig.getEventConfig(event.type, event.subType);
+    const config = eventConfig.getEventConfig(event.type, event.subType, event.namespace);
     const eventStartAfter = new Date(event.startAfter);
     const eventCreatedAt = new Date(event.createdAt);
     const randomOffset = config.randomOffset ?? eventConfig.randomOffsetPeriodicEvents ?? 0;
@@ -143,7 +143,7 @@ const _insertPeriodEvents = async (tx, events, now) => {
   const eventsToBeInserted = events.map((event) => {
     const base = { type: event.type, subType: event.subType };
     let startTime = now;
-    const config = eventConfig.getEventConfig(event.type, event.subType);
+    const config = eventConfig.getEventConfig(event.type, event.subType, event.namespace);
     if (config.cron) {
       startTime = CronExpressionParser.parse(config.cron, {
         currentDate: now,
@@ -156,8 +156,8 @@ const _insertPeriodEvents = async (tx, events, now) => {
 
   processChunkedSync(eventsToBeInserted, CHUNK_SIZE_INSERT_PERIODIC_EVENTS, (chunk) => {
     logger.info(`${counter}/${chunks} | inserting chunk of changed or new periodic events`, {
-      events: chunk.map(({ type, subType, startAfter }) => {
-        const { interval, cron } = eventConfig.getEventConfig(type, subType);
+      events: chunk.map(({ type, subType, startAfter, namespace }) => {
+        const { interval, cron } = eventConfig.getEventConfig(type, subType, namespace);
         return {
           type,
           subType,
@@ -175,7 +175,7 @@ const _insertPeriodEvents = async (tx, events, now) => {
   tx._skipEventQueueBroadcase = false;
 };
 
-const _generateKey = ({ type, subType }) => [type, subType].join("##");
+const _generateKey = ({ type, subType, namespace }) => [namespace, type, subType].join("##");
 
 module.exports = {
   checkAndInsertPeriodicEvents,

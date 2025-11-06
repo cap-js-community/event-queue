@@ -13,14 +13,14 @@ const { trace } = require("./shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/processEventQueue";
 
-const processEventQueue = async (context, eventType, eventSubType, namespace = null) => {
+const processEventQueue = async (context, eventType, eventSubType, namespace = config.namespace) => {
   let iterationCounter = 0;
   let shouldContinue = true;
   let baseInstance;
   let startTime = new Date();
   try {
     let eventTypeInstance;
-    const eventConfig = config.getEventConfig(eventType, eventSubType);
+    const eventConfig = config.getEventConfig(eventType, eventSubType, namespace);
     const [err, EventTypeClass] = await resilientRequire(eventConfig);
     if (!eventConfig || err || !(typeof EventTypeClass.constructor === "function")) {
       cds.log(COMPONENT_NAME).error("No Implementation found in the provided configuration file.", {
@@ -30,7 +30,6 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = n
       return;
     }
     baseInstance = new EventTypeClass(context, eventType, eventSubType, eventConfig);
-    baseInstance.namespace = namespace;
     if (await _checkEventIsBlocked(baseInstance)) {
       return;
     }
@@ -48,7 +47,6 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = n
       iterationCounter++;
       await executeInNewTransaction(context, `eventQueue-pre-processing-${eventType}##${eventSubType}`, async (tx) => {
         eventTypeInstance = new EventTypeClass(tx.context, eventType, eventSubType, eventConfig);
-        eventTypeInstance.namespace = namespace;
         await trace(eventTypeInstance.context, "preparation", async () => {
           const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
           eventTypeInstance.startPerformanceTracerPreprocessing();
@@ -304,7 +302,11 @@ const _checkEventIsBlocked = async (baseInstance) => {
   }
 
   if (!eventBlocked) {
-    eventBlocked = !config.shouldBeProcessedInThisApplication(baseInstance.rawEventType, baseInstance.eventSubType);
+    eventBlocked = !config.shouldBeProcessedInThisApplication(
+      baseInstance.rawEventType,
+      baseInstance.eventSubType,
+      baseInstance.namespace
+    );
   }
 
   return eventBlocked;

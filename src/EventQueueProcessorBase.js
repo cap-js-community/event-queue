@@ -49,10 +49,10 @@ class EventQueueProcessorBase {
     this.__baseContext = context;
     this.__tx = cds.tx(context);
     this.__baseLogger = cds.log(COMPONENT_NAME);
-    this.#namespace = null;
+    this.#namespace = config.namespace;
     this.#eventSchedulerInstance = eventScheduler.getInstance();
     this.#config = eventConfig;
-    this.#isPeriodic = this.#config.isPeriodicEvent(eventType, eventSubType);
+    this.#isPeriodic = this.#config.isPeriodicEvent(eventType, eventSubType, this.#namespace);
     this.__logger = null;
     this.__eventProcessingMap = {};
     this.__statusMap = {};
@@ -637,11 +637,7 @@ class EventQueueProcessorBase {
         )
         .orderBy("createdAt", "ID");
 
-      if (this.#namespace === null) {
-        cqn.where("namespace IS NULL");
-      } else {
-        cqn.where("namespace =", this.#namespace);
-      }
+      cqn.where("namespace =", this.#namespace);
       const entries = await tx.run(cqn);
 
       if (!entries.length) {
@@ -1305,8 +1301,8 @@ class EventQueueProcessorBase {
     return this.#eventConfig.inheritTraceContext;
   }
 
-  set namespace(value) {
-    this.#namespace = value;
+  get namespace() {
+    return this.#namespace;
   }
 }
 
