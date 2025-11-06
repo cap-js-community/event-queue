@@ -49,7 +49,6 @@ const publishEvent = async (
   for (const event of eventsForProcessing) {
     const { type, subType, startAfter, namespace } = event;
     const eventConfig = config.getEventConfig(type, subType, namespace);
-    //TODO: --> check if we want to allow this or not --> use const
     if (!eventConfig && !allowNotExistingConfiguration) {
       throw EventQueueError.unknownEventType(type, subType);
     }
