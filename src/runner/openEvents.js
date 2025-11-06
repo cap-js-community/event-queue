@@ -70,7 +70,7 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
           result.push({ namespace, type, subType });
         }
       } else {
-        result.push({ type, subType });
+        result.push({ namespace, type, subType });
       }
     }
   }
