@@ -159,38 +159,47 @@ exports[`baseFunctionality getOpenQueueEntries event types in progress should be
 exports[`baseFunctionality getOpenQueueEntries filterAppSpecificEvents return open event types 2`] = `
 [
   {
+    "namespace": "default",
     "subType": "AppInstance",
     "type": "AppSpecific_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "AppName",
     "type": "AppSpecific_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "both",
     "type": "AppSpecific_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "DELETE_EVENTS",
     "type": "EVENT_QUEUE_BASE_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "DBKeepAlive",
     "type": "HealthCheckKeepAlive_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "DB",
     "type": "HealthCheck_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "Task",
     "type": "Notifications",
   },
   {
+    "namespace": "default",
     "subType": "everyFiveMin",
     "type": "TimeSpecificEveryFiveMin_PERIODIC",
   },
   {
+    "namespace": "default",
     "subType": "cron",
     "type": "TimeSpecificEveryMin_PERIODIC",
   },
@@ -260,10 +269,12 @@ exports[`baseFunctionality getOpenQueueEntries should respect app instance confi
 exports[`baseFunctionality getOpenQueueEntries should respect app instance configuration one open event for app and one not for this app but redis should ignore filter 2`] = `
 [
   {
+    "namespace": "default",
     "subType": "AppInstance",
     "type": "AppSpecific",
   },
   {
+    "namespace": "default",
     "subType": "Task",
     "type": "Notifications",
   },
@@ -298,10 +309,12 @@ exports[`baseFunctionality getOpenQueueEntries should respect app name configura
 exports[`baseFunctionality getOpenQueueEntries should respect app name configuration one open event for app and one not for this app but redis should ignore filter 2`] = `
 [
   {
+    "namespace": "default",
     "subType": "AppName",
     "type": "AppSpecific",
   },
   {
+    "namespace": "default",
     "subType": "Task",
     "type": "Notifications",
   },
