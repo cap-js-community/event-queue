@@ -99,7 +99,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          "default_EVENT_QUEUE_MESSAGE_CHANNEL",
+          "default##EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":"default"}",
         ]
       `);
@@ -126,7 +126,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          "_EVENT_QUEUE_MESSAGE_CHANNEL",
+          "##EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","tenantId":123,"type":"HealthCheck_PERIODIC","subType":"DB"}",
         ]
       `);
@@ -145,7 +145,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          "_EVENT_QUEUE_MESSAGE_CHANNEL",
+          "##EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","tenantId":123,"type":"Notifications","subType":"Task"}",
         ]
       `);
@@ -158,7 +158,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          "default_EVENT_QUEUE_MESSAGE_CHANNEL",
+          "default##EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":"default"}",
         ]
       `);
@@ -171,7 +171,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
-          "default_EVENT_QUEUE_MESSAGE_CHANNEL",
+          "default##EVENT_QUEUE_MESSAGE_CHANNEL",
           "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":"default"}",
         ]
       `);
@@ -187,11 +187,11 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       expect(mockRedisPublishCalls).toMatchInlineSnapshot(`
         [
           [
-            "default_EVENT_QUEUE_MESSAGE_CHANNEL",
+            "default##EVENT_QUEUE_MESSAGE_CHANNEL",
             "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Notifications","subType":"Task","namespace":"default"}",
           ],
           [
-            "default_EVENT_QUEUE_MESSAGE_CHANNEL",
+            "default##EVENT_QUEUE_MESSAGE_CHANNEL",
             "{"lockId":"6e31047a-d2b5-4e3c-83d8-deab20165956","type":"Fiori","subType":"Task","namespace":"default"}",
           ],
         ]
