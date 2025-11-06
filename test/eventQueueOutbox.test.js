@@ -121,6 +121,20 @@ cds.env.requires.QueueService = {
   },
 };
 
+cds.env.requires.Namespace = {
+  impl: path.join(basePath, "srv/service/standard-service.js"),
+  outbox: {
+    kind: "persistent-outbox",
+    namespace: "namespaceA",
+    events: {
+      timeBucketAction: {
+        namespace: "namespaceC",
+        timeBucket: "*/60 * * * * *",
+      },
+    },
+  },
+};
+
 const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
 
@@ -894,12 +908,14 @@ describe("event-queue outbox", () => {
         const service = (await cds.connect.to("NotificationServicePeriodic")).tx(context);
         await service.send("action", {});
         await commitAndOpenNew();
-        delete eventQueue.config._rawEventMap["CAP_OUTBOX##NotificationServicePeriodic.action"];
+        delete eventQueue.config._rawEventMap["default##CAP_OUTBOX##NotificationServicePeriodic.action"];
 
         // NOTE: after deleting the config make sure config is not available
         await processEventQueue(tx.context, "CAP_OUTBOX", [service.name, "action"].join("."));
         expect(eventQueue.config.events.find(({ subType }) => subType.includes("action"))).toBeUndefined();
         expect(loggerMock.calls().error[0]).toMatchSnapshot();
+
+        delete cds.services["NotificationServicePeriodic"];
 
         const openEvents = await getOpenQueueEntries(tx);
         await promisify(setTimeout)(1);
@@ -1812,6 +1828,124 @@ describe("event-queue outbox", () => {
           startAfter: null,
         });
         expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+    });
+
+    describe("namespaces", () => {
+      beforeEach(() => {
+        config.processingNamespaces = ["default", "namespaceA"];
+        config.namespace = "default";
+      });
+
+      it("should publish with namespace", async () => {
+        const service = (await cds.connect.to("Namespace")).tx(context);
+        await service.send("main", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["subType", "createdAt", "namespace"],
+        });
+        expect(event.namespace).toEqual("namespaceA");
+      });
+
+      it("should not process if different namespace", async () => {
+        config.processingNamespaces = ["default"];
+        const service = (await cds.connect.to("Namespace")).tx(context);
+        await service.send("main", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        expect(loggerMock).not.sendFioriActionCalled();
+        // found no impl: event is configured in namespaceA but processing is in default
+        expect(loggerMock.callsLengths().error).toEqual(1);
+      });
+
+      it("should process in namespace", async () => {
+        const service = (await cds.connect.to("Namespace")).tx(context);
+        await service.send("main", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name, "namespaceA");
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock).actionCalled("main");
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("should prefer service namespace over app namespace", async () => {
+        config.namespace = "namespaceB";
+        const service = (await cds.connect.to("Namespace")).tx(context);
+        await service.send("main", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["subType", "createdAt", "namespace"],
+        });
+        expect(event.namespace).toEqual("namespaceA");
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name, "namespaceA");
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock).actionCalled("main");
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("should use app namespace if service has no configuration", async () => {
+        config.namespace = "namespaceB";
+        const service = (await cds.connect.to("StandardService")).tx(context);
+        await service.send("main", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["subType", "createdAt", "namespace"],
+        });
+        expect(event.namespace).toEqual("namespaceB");
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name, "namespaceB");
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock).actionCalled("main");
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("header should overrule default and outbox namespace", async () => {
+        config.namespace = "namespaceB";
+        const service = (await cds.connect.to("StandardService")).tx(context);
+        await service.send(
+          "main",
+          {
+            to: "to",
+            subject: "subject",
+            body: "body",
+          },
+          { "x-eventqueue-namespace": "namespaceC" }
+        );
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["subType", "createdAt", "namespace"],
+        });
+        expect(event.namespace).toEqual("namespaceC");
+        expect(event.status).toEqual(EventProcessingStatus.Open);
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name, "namespaceC");
+        expect(loggerMock).not.actionCalled("main");
+        expect(loggerMock.callsLengths().error).toEqual(1); // no config
       });
     });
   });

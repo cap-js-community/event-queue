@@ -282,7 +282,13 @@ describe("periodic events", () => {
       await processEventQueue(context, event.type, event.subType);
 
       expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
-      expect(scheduleEventSpy.mock.calls[0]).toEqual([undefined, "HealthCheck_PERIODIC", "DB", expect.anything()]);
+      expect(scheduleEventSpy.mock.calls[0]).toEqual([
+        undefined,
+        "HealthCheck_PERIODIC",
+        "DB",
+        "default",
+        expect.anything(),
+      ]);
       expect(loggerMock.callsLengths().error).toEqual(0);
       const events = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 2,
@@ -544,7 +550,13 @@ describe("periodic events", () => {
       await processEventQueue(context, event.type, event.subType);
 
       expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
-      expect(scheduleEventSpy.mock.calls[0]).toEqual([undefined, "HealthCheck_PERIODIC", "DB", expect.anything()]);
+      expect(scheduleEventSpy.mock.calls[0]).toEqual([
+        undefined,
+        "HealthCheck_PERIODIC",
+        "DB",
+        "default",
+        expect.anything(),
+      ]);
       expect(loggerMock.callsLengths().error).toEqual(0);
       const events = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 2,

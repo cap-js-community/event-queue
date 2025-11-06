@@ -27,6 +27,7 @@ const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
 const PRIORITIES = Object.values(Priorities);
 const UTC_DEFAULT = false;
 const USE_CRON_TZ_DEFAULT = true;
+const DEFAULT_NAMESPACE = "default";
 
 const BASE_TABLES = {
   EVENT: "sap.eventqueue.Event",
@@ -47,6 +48,7 @@ const ALLOWED_EVENT_OPTIONS_BASE = [
   "keepAliveMaxInProgressTime",
   "appNames",
   "appInstances",
+  "namespace",
   "internalEvent",
 ];
 
@@ -112,6 +114,8 @@ class Config {
   #configPeriodicEvents;
   #enableAdminService;
   #disableProcessingOfSuspendedTenants;
+  #namespace;
+  #processingNamespaces;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -131,9 +135,9 @@ class Config {
     this.#env = getEnvInstance();
   }
 
-  getEventConfig(type, subType) {
-    return this.#eventMap[this.generateKey(type, subType)]
-      ? { ...this.#eventMap[this.generateKey(type, subType)] }
+  getEventConfig(type, subType, namespace = DEFAULT_NAMESPACE) {
+    return this.#eventMap[this.generateKey(namespace, type, subType)]
+      ? { ...this.#eventMap[this.generateKey(namespace, type, subType)] }
       : undefined;
   }
 
@@ -141,8 +145,8 @@ class Config {
     return type === CAP_EVENT_TYPE;
   }
 
-  hasEventAfterCommitFlag(type, subType) {
-    return this.#eventMap[this.generateKey(type, subType)]?.processAfterCommit ?? true;
+  hasEventAfterCommitFlag(type, subType, namespace = DEFAULT_NAMESPACE) {
+    return this.#eventMap[this.generateKey(namespace, type, subType)]?.processAfterCommit ?? true;
   }
 
   _checkRedisIsBound() {
@@ -169,10 +173,10 @@ class Config {
     return actionSpecificCall ? rawSubType : serviceName;
   }
 
-  shouldBeProcessedInThisApplication(type, rawSubType) {
+  shouldBeProcessedInThisApplication(type, rawSubType, namespace = DEFAULT_NAMESPACE) {
     const subType = this.#normalizeSubType(rawSubType);
 
-    const config = this.#eventMap[this.generateKey(type, subType)];
+    const config = this.#eventMap[this.generateKey(namespace, type, subType)];
     const appNameConfig = config._appNameMap;
     const appInstanceConfig = config._appInstancesMap;
     let result = true;
@@ -236,12 +240,8 @@ class Config {
   }
 
   addCAPOutboxEventBase(serviceName, config) {
-    if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)]) {
-      const index = this.#config.events.findIndex(
-        (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
-      );
-      this.#config.events.splice(index, 1);
-    }
+    const namespace = config.namespace ?? this.#namespace;
+    delete this.#eventMap[this.generateKey(namespace, CAP_EVENT_TYPE, serviceName)];
 
     // NOTE: CAP outbox defaults are injected by cds.requires.outbox // cds.requires.queue
     const eventConfig = this.#sanitizeParamsAdHocEvent({
@@ -252,6 +252,7 @@ class Config {
       selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.retryAttempts ?? config.maxAttempts ?? CAP_MAX_ATTEMPTS_DEFAULT,
+      namespace,
       ...config,
     });
     eventConfig.internalEvent = true;
@@ -259,21 +260,20 @@ class Config {
     this.#basicEventTransformation(eventConfig);
     this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
     this.#basicEventTransformationAfterValidate(eventConfig);
-    this.#config.events.push(eventConfig);
-    this.#eventMap[this.generateKey(CAP_EVENT_TYPE, serviceName)] = eventConfig;
+    this.#eventMap[this.generateKey(namespace, CAP_EVENT_TYPE, serviceName)] = eventConfig;
   }
 
   addCAPOutboxEventSpecificAction(serviceName, actionName) {
     const subType = [serviceName, actionName].join(".");
-    if (this.#eventMap[this.generateKey(CAP_EVENT_TYPE, subType)]) {
-      const index = this.#config.events.findIndex(
-        (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
-      );
-      this.#config.events.splice(index, 1);
+
+    const specific = this.#findBaseCAPServiceWithoutNamespace(subType);
+    if (specific) {
+      delete this.#eventMap[this.generateKey(specific.namespace, CAP_EVENT_TYPE, subType)];
     }
 
+    const base = this.#findBaseCAPServiceWithoutNamespace(serviceName);
     const eventConfig = this.#sanitizeParamsAdHocEvent({
-      ...this.getEventConfig(CAP_EVENT_TYPE, serviceName),
+      ...this.getEventConfig(CAP_EVENT_TYPE, serviceName, base.namespace),
       ...this.getCdsOutboxEventSpecificConfig(serviceName, actionName),
       subType,
     });
@@ -282,9 +282,14 @@ class Config {
     this.#basicEventTransformation(eventConfig);
     this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
     this.#basicEventTransformationAfterValidate(eventConfig);
-    this.#config.events.push(eventConfig);
-    this.#eventMap[this.generateKey(CAP_EVENT_TYPE, subType)] = eventConfig;
+    this.#eventMap[this.generateKey(eventConfig.namespace, CAP_EVENT_TYPE, subType)] = eventConfig;
     return eventConfig;
+  }
+
+  #findBaseCAPServiceWithoutNamespace(serviceName) {
+    return Object.values(this.#eventMap).find(
+      (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
+    );
   }
 
   get isEventQueueActive() {
@@ -379,7 +384,7 @@ class Config {
       this.#basicEventTransformation(eventSanitized);
       this.#validateAdHocEvents(result, eventSanitized);
       this.#basicEventTransformationAfterValidate(eventSanitized);
-      result[this.generateKey(eventSanitized.type, eventSanitized.subType)] = eventSanitized;
+      result[this.generateKey(eventSanitized.namespace, eventSanitized.type, eventSanitized.subType)] = eventSanitized;
       return result;
     }, {});
     this.#eventMap = config.periodicEvents.reduce((result, event) => {
@@ -389,7 +394,7 @@ class Config {
       this.#basicEventTransformation(eventSanitized);
       this.#validatePeriodicConfig(result, eventSanitized);
       this.#basicEventTransformationAfterValidate(eventSanitized);
-      result[this.generateKey(eventSanitized.type, eventSanitized.subType)] = eventSanitized;
+      result[this.generateKey(eventSanitized.namespace, eventSanitized.type, eventSanitized.subType)] = eventSanitized;
       return result;
     }, this.#eventMap);
     this.#config = config;
@@ -402,6 +407,7 @@ class Config {
     event.keepAliveInterval = event.keepAliveInterval ?? DEFAULT_KEEP_ALIVE_INTERVAL;
     event.keepAliveMaxInProgressTime = event.keepAliveInterval * DEFAULT_MAX_FACTOR_STUCK_2_KEEP_ALIVE_INTERVAL;
     event.checkForNextChunk = event.checkForNextChunk ?? DEFAULT_CHECK_FOR_NEXT_CHUNK;
+    event.namespace = event.namespace === undefined ? this.#namespace : event.namespace;
   }
 
   #sanitizeParamsBase(config, allowList) {
@@ -471,7 +477,7 @@ class Config {
   }
 
   #validatePeriodicConfig(eventMap, event) {
-    const key = this.generateKey(event.type, event.subType);
+    const key = this.generateKey(event.namespace, event.type, event.subType);
     if (eventMap[key] && eventMap[key].isPeriodic) {
       throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
     }
@@ -522,7 +528,7 @@ class Config {
   }
 
   #validateAdHocEvents(eventMap, event, checkForDuplication = true) {
-    const key = this.generateKey(event.type, event.subType);
+    const key = this.generateKey(event.namespace, event.type, event.subType);
     if (eventMap[key] && !eventMap[key].isPeriodic && checkForDuplication) {
       throw EventQueueError.duplicateEventRegistration(event.type, event.subType);
     }
@@ -543,20 +549,20 @@ class Config {
     this.#basicEventValidation(event);
   }
 
-  generateKey(type, subType) {
-    return [type, subType].join("##");
+  generateKey(namespace, type, subType) {
+    return [namespace, type, subType].join("##");
   }
 
-  removeEvent(type, subType) {
-    const index = this.#config.events.findIndex((event) => event.type === "CAP_OUTBOX");
-    if (index >= 0) {
-      this.#config.events.splice(index, 1);
-    }
-    delete this.#eventMap[this.generateKey(type, subType)];
+  removeEvent(type, subType, namespace = DEFAULT_NAMESPACE) {
+    delete this.#eventMap[this.generateKey(namespace, type, subType)];
   }
 
   isTenantUnsubscribed(tenantId) {
     return this.#unsubscribedTenants[tenantId];
+  }
+
+  shouldProcessNamespace(namespace) {
+    return this.#processingNamespaces.includes(namespace);
   }
 
   get fileContent() {
@@ -583,8 +589,8 @@ class Config {
     return Object.values(this.#eventMap).filter((e) => e.isPeriodic);
   }
 
-  isPeriodicEvent(type, subType) {
-    return this.#eventMap[this.generateKey(type, subType)]?.isPeriodic;
+  isPeriodicEvent(type, subType, namespace = DEFAULT_NAMESPACE) {
+    return this.#eventMap[this.generateKey(namespace, type, subType)]?.isPeriodic;
   }
 
   get allEvents() {
@@ -830,6 +836,22 @@ class Config {
 
   set disableProcessingOfSuspendedTenants(value) {
     this.#disableProcessingOfSuspendedTenants = value;
+  }
+
+  get namespace() {
+    return this.#namespace;
+  }
+
+  set namespace(value) {
+    this.#namespace = value;
+  }
+
+  get processingNamespaces() {
+    return this.#processingNamespaces;
+  }
+
+  set processingNamespaces(value) {
+    this.#processingNamespaces = value;
   }
 
   /**

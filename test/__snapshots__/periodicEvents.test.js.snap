@@ -25,6 +25,7 @@ exports[`baseFunctionality cron events Cron expression tests changed intervals c
       "events": [
         {
           "cron": "0 0 * * *",
+          "namespace": "default",
           "startAfter": "2023-11-14T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
@@ -131,12 +132,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "* * * * *",
+          "namespace": "default",
           "startAfter": "2023-11-13T11:01:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -176,12 +179,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "*/15 * * * *",
+          "namespace": "default",
           "startAfter": "2023-11-13T11:15:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -221,12 +226,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 * * * *",
+          "namespace": "default",
           "startAfter": "2023-11-13T12:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -266,12 +273,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 0 * * *",
+          "namespace": "default",
           "startAfter": "2023-11-14T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -311,12 +320,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 0 * * 0",
+          "namespace": "default",
           "startAfter": "2023-11-19T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -356,12 +367,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 0 * 5 *",
+          "namespace": "default",
           "startAfter": "2024-05-01T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -401,12 +414,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 0 1 * *",
+          "namespace": "default",
           "startAfter": "2023-12-01T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -446,12 +461,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 0 1 1 *",
+          "namespace": "default",
           "startAfter": "2024-01-01T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -491,12 +508,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 0 1-7 * 0",
+          "namespace": "default",
           "startAfter": "2023-11-19T00:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -536,12 +555,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 3 * * 2",
+          "namespace": "default",
           "startAfter": "2023-11-14T03:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -581,12 +602,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 5 1 1 *",
+          "namespace": "default",
           "startAfter": "2024-01-01T05:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -626,12 +649,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 6 * * 2-4",
+          "namespace": "default",
           "startAfter": "2023-11-14T06:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -671,12 +696,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 8-17/2 * * *",
+          "namespace": "default",
           "startAfter": "2023-11-13T12:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -716,12 +743,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 9,17 * * *",
+          "namespace": "default",
           "startAfter": "2023-11-13T17:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -761,12 +790,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 12 * * 1",
+          "namespace": "default",
           "startAfter": "2023-11-13T12:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -806,12 +837,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "0 22 * * 5",
+          "namespace": "default",
           "startAfter": "2023-11-17T22:00:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -851,12 +884,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "5,10,15 10 * * *",
+          "namespace": "default",
           "startAfter": "2023-11-14T10:05:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -896,12 +931,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "15 14 1 * *",
+          "namespace": "default",
           "startAfter": "2023-12-01T14:15:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -941,12 +978,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "30 8 * * 1-5",
+          "namespace": "default",
           "startAfter": "2023-11-14T08:30:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -986,12 +1025,14 @@ exports[`baseFunctionality cron events Cron expression tests should test cron ex
       "events": [
         {
           "cron": "45 23 * * *",
+          "namespace": "default",
           "startAfter": "2023-11-13T23:45:00.000Z",
           "subType": "cron",
           "type": "TimeSpecificEveryMin_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -1016,24 +1057,28 @@ exports[`baseFunctionality interval events basic insert all new events 1`] = `
       "events": [
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DBKeepAlive",
           "type": "HealthCheckKeepAlive_PERIODIC",
         },
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppName",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppInstance",
           "type": "AppSpecific_PERIODIC",
@@ -1047,12 +1092,14 @@ exports[`baseFunctionality interval events basic insert all new events 1`] = `
       "events": [
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "both",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -1112,24 +1159,28 @@ exports[`baseFunctionality interval events delta insert 1`] = `
       "events": [
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DBKeepAlive",
           "type": "HealthCheckKeepAlive_PERIODIC",
         },
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppName",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppInstance",
           "type": "AppSpecific_PERIODIC",
@@ -1143,12 +1194,14 @@ exports[`baseFunctionality interval events delta insert 1`] = `
       "events": [
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "both",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -1168,6 +1221,7 @@ exports[`baseFunctionality interval events delta insert 1`] = `
       "events": [
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB2",
           "type": "HealthCheck_PERIODIC",
@@ -1246,24 +1300,28 @@ exports[`baseFunctionality interval events if periodic event is in progress - no
       "events": [
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DBKeepAlive",
           "type": "HealthCheckKeepAlive_PERIODIC",
         },
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppName",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "AppInstance",
           "type": "AppSpecific_PERIODIC",
@@ -1277,12 +1335,14 @@ exports[`baseFunctionality interval events if periodic event is in progress - no
       "events": [
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "both",
           "type": "AppSpecific_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -1348,12 +1408,14 @@ exports[`baseFunctionality interval events interval change if interval is increa
       "events": [
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -1403,12 +1465,14 @@ exports[`baseFunctionality interval events interval change if too far in future 
       "events": [
         {
           "interval": 30,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",
         },
         {
           "interval": 86400,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DELETE_EVENTS",
           "type": "EVENT_QUEUE_BASE_PERIODIC",
@@ -1439,6 +1503,7 @@ exports[`baseFunctionality interval events interval change if too far in future 
       "events": [
         {
           "interval": 450,
+          "namespace": "default",
           "startAfter": "2023-11-13T11:00:00.000Z",
           "subType": "DB",
           "type": "HealthCheck_PERIODIC",

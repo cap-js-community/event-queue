@@ -11,31 +11,33 @@ const MS_IN_DAYS = 24 * 60 * 60 * 1000;
 const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
   const startTime = new Date();
   const refDateStartAfter = new Date(startTime.getTime() + eventConfig.runInterval * 1.2);
-  const entries = await tx.run(
-    SELECT.from(eventConfig.tableNameEventQueue)
-      .where(
-        "( startAfter IS NULL OR startAfter <=",
-        refDateStartAfter.toISOString(),
-        " ) AND ( status =",
-        EventProcessingStatus.Open,
-        "OR ( status =",
-        EventProcessingStatus.Error,
-        ") OR ( status =",
-        EventProcessingStatus.InProgress,
-        "AND lastAttemptTimestamp <=",
-        new Date(startTime.getTime() - eventConfig.globalTxTimeout).toISOString(),
-        ") ) AND (createdAt >=",
-        new Date(startTime.getTime() - 30 * MS_IN_DAYS).toISOString(),
-        " OR startAfter >=",
-        new Date(startTime.getTime() - 30 * MS_IN_DAYS).toISOString(),
-        ")"
-      )
-      .columns("type", "subType")
-      .groupBy("type", "subType")
-  );
+  const cqn = SELECT.from(eventConfig.tableNameEventQueue)
+    .where(
+      "( startAfter IS NULL OR startAfter <=",
+      refDateStartAfter.toISOString(),
+      " ) AND ( status =",
+      EventProcessingStatus.Open,
+      "OR ( status =",
+      EventProcessingStatus.Error,
+      ") OR ( status =",
+      EventProcessingStatus.InProgress,
+      "AND lastAttemptTimestamp <=",
+      new Date(startTime.getTime() - eventConfig.globalTxTimeout).toISOString(),
+      ") ) AND (createdAt >=",
+      new Date(startTime.getTime() - 30 * MS_IN_DAYS).toISOString(),
+      " OR startAfter >=",
+      new Date(startTime.getTime() - 30 * MS_IN_DAYS).toISOString(),
+      ")"
+    )
+    .columns("type", "subType", "namespace")
+    .groupBy("type", "subType", "namespace");
+
+  cqn.where("namespace IN", config.processingNamespaces);
+
+  const entries = await tx.run(cqn);
 
   const result = [];
-  for (const { type, subType } of entries) {
+  for (const { type, subType, namespace } of entries) {
     if (eventConfig.isCapOutboxEvent(type)) {
       const [srvName, actionName] = subType.split(".");
       try {
@@ -48,24 +50,24 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
           if (actionName) {
             config.addCAPOutboxEventSpecificAction(srvName, actionName);
           }
-          if (eventConfig.shouldBeProcessedInThisApplication(type, subType)) {
-            result.push({ type, subType });
+          if (eventConfig.shouldBeProcessedInThisApplication(type, subType, namespace)) {
+            result.push({ namespace, type, subType });
           }
         }
       } catch {
         /* ignore catch */
       } finally {
         if (!filterAppSpecificEvents) {
-          result.push({ type, subType });
+          result.push({ namespace, type, subType });
         }
       }
     } else {
       if (filterAppSpecificEvents) {
         if (
-          eventConfig.getEventConfig(type, subType) &&
-          eventConfig.shouldBeProcessedInThisApplication(type, subType)
+          eventConfig.getEventConfig(type, subType, namespace) &&
+          eventConfig.shouldBeProcessedInThisApplication(type, subType, namespace)
         ) {
-          result.push({ type, subType });
+          result.push({ namespace, type, subType });
         }
       } else {
         result.push({ type, subType });

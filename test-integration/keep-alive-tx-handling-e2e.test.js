@@ -85,10 +85,12 @@ describe("keep-alive-tx-handling-e2e", () => {
   describe("keep alive processing", () => {
     let isolatedNoParallel, alwaysCommit, isolatedNoParallelSingleSelect;
     beforeEach(() => {
-      isolatedNoParallel = eventQueue.config._rawEventMap[["TransactionMode", "isolatedForKeepAlive"].join("##")];
+      isolatedNoParallel =
+        eventQueue.config._rawEventMap[["default", "TransactionMode", "isolatedForKeepAlive"].join("##")];
       isolatedNoParallelSingleSelect =
-        eventQueue.config._rawEventMap[["TransactionMode", "isolatedForKeepAliveSingleSelect"].join("##")];
-      alwaysCommit = eventQueue.config._rawEventMap[["TransactionMode", "alwaysCommitForKeepAlive"].join("##")];
+        eventQueue.config._rawEventMap[["default", "TransactionMode", "isolatedForKeepAliveSingleSelect"].join("##")];
+      alwaysCommit =
+        eventQueue.config._rawEventMap[["default", "TransactionMode", "alwaysCommitForKeepAlive"].join("##")];
       isolatedNoParallel.parallelEventProcessing = 1;
       alwaysCommit.parallelEventProcessing = 1;
       for (let i = 0; i < cds.services.db._handlers.before.length; i++) {
@@ -979,10 +981,12 @@ describe("keep-alive-tx-handling-e2e", () => {
       await waitEntriesIsDone();
       expect(broadcastSpy).toHaveBeenCalledWith(undefined, [
         {
+          namespace: "default",
           subType: "Task",
           type: "Notifications",
         },
         {
+          namespace: "default",
           subType: "isolated",
           type: "TransactionMode",
         },
@@ -998,6 +1002,7 @@ describe("keep-alive-tx-handling-e2e", () => {
       await promisify(setTimeout)(2000);
       expect(broadcastSpy).toHaveBeenCalledWith(undefined, [
         {
+          namespace: "default",
           subType: "Task",
           type: "Notifications",
         },

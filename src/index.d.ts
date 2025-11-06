@@ -169,7 +169,12 @@ export function publishEvent(
   }
 ): Promise<any>;
 
-export function processEventQueue(context: cds.EventContext, eventType: string, eventSubType: string): Promise<any>;
+export function processEventQueue(
+  context: cds.EventContext,
+  eventType: string,
+  eventSubType: string,
+  namespace: string
+): Promise<any>;
 
 export function triggerEventProcessingRedis(
   tenantId: string,
@@ -180,10 +185,10 @@ export function triggerEventProcessingRedis(
 declare class Config {
   constructor();
 
-  getEventConfig(type: any, subType: any): any;
+  getEventConfig(type: string, subType: string, namespace: string): any;
   isCapOutboxEvent(type: any): boolean;
-  hasEventAfterCommitFlag(type: any, subType: any): any;
-  shouldBeProcessedInThisApplication(type: any, subType: any): boolean;
+  hasEventAfterCommitFlag(type: any, subType: any, namespace: string): any;
+  shouldBeProcessedInThisApplication(type: any, subType: any, namespace: string): boolean;
   checkRedisEnabled(): any;
   attachConfigChangeHandler(): void;
   attachRedisUnsubscribeHandler(): void;
@@ -201,7 +206,7 @@ declare class Config {
   isTenantUnsubscribed(tenantId: any): any;
   get events(): any;
   get periodicEvents(): any;
-  isPeriodicEvent(type: any, subType: any): any;
+  isPeriodicEvent(type: any, subType: any, namespace: string): any;
   get allEvents(): any;
   set forUpdateTimeout(value: number);
   get forUpdateTimeout(): number;

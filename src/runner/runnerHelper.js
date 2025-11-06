@@ -12,12 +12,18 @@ const { trace } = require("../shared/openTelemetry");
 
 const COMPONENT_NAME = "/eventQueue/runnerHelper";
 
-const runEventCombinationForTenant = async (context, type, subType, { skipWorkerPool, lockId, shouldTrace } = {}) => {
+const runEventCombinationForTenant = async (
+  context,
+  type,
+  subType,
+  namespace,
+  { skipWorkerPool, lockId, shouldTrace } = {}
+) => {
   try {
     if (skipWorkerPool) {
-      return await processEventQueue(context, type, subType);
+      return await processEventQueue(context, type, subType, namespace);
     } else {
-      const eventConfig = eventQueueConfig.getEventConfig(type, subType);
+      const eventConfig = eventQueueConfig.getEventConfig(type, subType, namespace);
       const label = `${type}_${subType}`;
       return await WorkerQueue.instance.addToQueue(
         eventConfig.load,
@@ -33,7 +39,7 @@ const runEventCombinationForTenant = async (context, type, subType, { skipWorker
               }
             }
 
-            await processEventQueue(context, type, subType);
+            await processEventQueue(context, type, subType, namespace);
           };
           if (shouldTrace) {
             return await trace(context, label, _exec, { newRootSpan: true });

@@ -42,15 +42,17 @@ class EventQueueProcessorBase {
   #keepAliveRunner;
   #currentKeepAlivePromise = Promise.resolve();
   #etagMap;
+  #namespace;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
     this.__baseContext = context;
     this.__tx = cds.tx(context);
     this.__baseLogger = cds.log(COMPONENT_NAME);
+    this.#namespace = config.namespace;
     this.#eventSchedulerInstance = eventScheduler.getInstance();
     this.#config = eventConfig;
-    this.#isPeriodic = this.#config.isPeriodicEvent(eventType, eventSubType);
+    this.#isPeriodic = this.#config.isPeriodicEvent(eventType, eventSubType, this.#namespace);
     this.__logger = null;
     this.__eventProcessingMap = {};
     this.__statusMap = {};
@@ -178,6 +180,7 @@ class EventQueueProcessorBase {
       this.__context.tenant,
       this.#eventType,
       this.#eventSubType,
+      this.#namespace,
       new Date(Date.now() + 5 * 1000) // add some offset to make sure all locks are released
     );
   }
@@ -477,6 +480,7 @@ class EventQueueProcessorBase {
             this.__context.tenant,
             this.#eventType,
             this.#eventSubType,
+            this.#namespace,
             startAfter
           );
         }
@@ -606,6 +610,8 @@ class EventQueueProcessorBase {
             this.#eventType,
             "AND subType=",
             this.#eventSubType,
+            "AND namespace =",
+            this.#namespace,
             "AND ( startAfter IS NULL OR startAfter <=",
             refDateStartAfter.toISOString(),
             " ) AND ( status =",
@@ -743,6 +749,7 @@ class EventQueueProcessorBase {
         this.__context.tenant,
         this.#eventType,
         this.#eventSubType,
+        delayedEvent.namespace,
         delayedEvent.startAfter
       );
     }
@@ -952,7 +959,7 @@ class EventQueueProcessorBase {
     });
   }
 
-  async acquireDistributedLock() {
+  async acquireDistributedLock(namespace) {
     if (this.concurrentEventProcessing) {
       return true;
     }
@@ -960,7 +967,7 @@ class EventQueueProcessorBase {
     return await trace(this.baseContext, "acquire-lock", async () => {
       const lockAcquired = await distributedLock.acquireLock(
         this.__context,
-        [this.#eventType, this.#eventSubType].join("##"),
+        [namespace, this.#eventType, this.#eventSubType].join("##"),
         { keepTrackOfLock: true, expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000 }
       );
       if (!lockAcquired) {
@@ -996,13 +1003,13 @@ class EventQueueProcessorBase {
     return true;
   }
 
-  async handleReleaseLock() {
+  async handleReleaseLock(namespace) {
     if (!this.__lockAcquired) {
       return;
     }
     try {
       await trace(this.baseContext, "release-lock", async () => {
-        await distributedLock.releaseLock(this.context, [this.#eventType, this.#eventSubType].join("##"));
+        await distributedLock.releaseLock(this.context, [namespace, this.#eventType, this.#eventSubType].join("##"));
       });
     } catch (err) {
       this.logger.error("Releasing distributed lock failed.", err);
@@ -1036,6 +1043,7 @@ class EventQueueProcessorBase {
       type: this.#eventType,
       subType: this.#eventSubType,
       startAfter: new Date(newStartAfter),
+      namespace: this.#eventConfig.namespace,
     };
     const { relative } = this.#eventSchedulerInstance.calculateOffset(
       this.#eventType,
@@ -1292,6 +1300,10 @@ class EventQueueProcessorBase {
 
   get inheritTraceContext() {
     return this.#eventConfig.inheritTraceContext;
+  }
+
+  get namespace() {
+    return this.#namespace;
   }
 }
 

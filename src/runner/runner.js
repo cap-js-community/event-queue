@@ -216,8 +216,8 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
 
     promises.concat(
       events.map(async (openEvent) => {
-        const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType);
-        const label = `${eventConfig.type}_${eventConfig.subType}`;
+        const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType, openEvent.namespace);
+        const label = [openEvent.namespace, eventConfig.type, eventConfig.subType].join("_");
         return await WorkerQueue.instance.addToQueue(
           eventConfig.load,
           label,
@@ -237,9 +237,15 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
                     if (!couldAcquireLock) {
                       return;
                     }
-                    await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-                      skipWorkerPool: true,
-                    });
+                    await runEventCombinationForTenant(
+                      context,
+                      eventConfig.type,
+                      eventConfig.subType,
+                      openEvent.namespace,
+                      {
+                        skipWorkerPool: true,
+                      }
+                    );
                   } catch (err) {
                     cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed", {
                       tenantId,
@@ -304,8 +310,8 @@ const _singleTenantDb = async () => {
 
   return await Promise.allSettled(
     events.map(async (openEvent) => {
-      const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType);
-      const label = `${eventConfig.type}_${eventConfig.subType}`;
+      const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType, openEvent.namespace);
+      const label = [openEvent.namespace, eventConfig.type, eventConfig.subType].join("_");
       return await WorkerQueue.instance.addToQueue(
         eventConfig.load,
         label,
@@ -318,18 +324,23 @@ const _singleTenantDb = async () => {
               label,
               async () => {
                 try {
-                  const lockId = `${label}`;
                   const couldAcquireLock = eventConfig.multiInstanceProcessing
                     ? true
-                    : await distributedLock.acquireLock(context, lockId, {
+                    : await distributedLock.acquireLock(context, label, {
                         expiryTime: eventQueueConfig.runInterval * 0.95,
                       });
                   if (!couldAcquireLock) {
                     return;
                   }
-                  await runEventCombinationForTenant(context, eventConfig.type, eventConfig.subType, {
-                    skipWorkerPool: true,
-                  });
+                  await runEventCombinationForTenant(
+                    context,
+                    eventConfig.type,
+                    eventConfig.subType,
+                    openEvent.namespace,
+                    {
+                      skipWorkerPool: true,
+                    }
+                  );
                 } catch (err) {
                   cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed");
                 }
