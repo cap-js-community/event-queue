@@ -131,6 +131,7 @@ exports[`runner redis multi tenant tenant id filter should not acquire lock - on
     "e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792",
     [
       {
+        "namespace": "default",
         "subType": "DELETE_EVENTS",
         "type": "EVENT_QUEUE_BASE_PERIODIC",
       },
@@ -140,6 +141,7 @@ exports[`runner redis multi tenant tenant id filter should not acquire lock - on
     "cd805323-879c-4bf7-b19c-8ffbbee22e1f",
     [
       {
+        "namespace": "default",
         "subType": "DELETE_EVENTS",
         "type": "EVENT_QUEUE_BASE_PERIODIC",
       },
@@ -149,6 +151,7 @@ exports[`runner redis multi tenant tenant id filter should not acquire lock - on
     "9f3ed8f0-8aaf-439e-a96a-04cd5b680c59",
     [
       {
+        "namespace": "default",
         "subType": "DELETE_EVENTS",
         "type": "EVENT_QUEUE_BASE_PERIODIC",
       },
@@ -167,6 +170,7 @@ exports[`runner redis multi tenant with open events - broadcast should be called
     "cd805323-879c-4bf7-b19c-8ffbbee22e1f",
     [
       {
+        "namespace": "default",
         "subType": "DELETE_EVENTS",
         "type": "EVENT_QUEUE_BASE_PERIODIC",
       },
@@ -176,6 +180,7 @@ exports[`runner redis multi tenant with open events - broadcast should be called
     "9f3ed8f0-8aaf-439e-a96a-04cd5b680c59",
     [
       {
+        "namespace": "default",
         "subType": "DELETE_EVENTS",
         "type": "EVENT_QUEUE_BASE_PERIODIC",
       },
@@ -185,6 +190,7 @@ exports[`runner redis multi tenant with open events - broadcast should be called
     "e9bb8ec0-c85e-4035-b7cf-1b11ba8e5792",
     [
       {
+        "namespace": "default",
         "subType": "DELETE_EVENTS",
         "type": "EVENT_QUEUE_BASE_PERIODIC",
       },
