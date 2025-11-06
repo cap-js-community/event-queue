@@ -98,7 +98,7 @@ const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
               subType,
             });
             await redis.publishMessage(
-              [namespace, EVENT_MESSAGE_CHANNEL].join("_"),
+              [namespace, EVENT_MESSAGE_CHANNEL].join("##"),
               JSON.stringify({ lockId: cds.utils.uuid(), tenantId, type, subType, namespace })
             );
             break;

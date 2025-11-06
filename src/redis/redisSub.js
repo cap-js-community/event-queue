@@ -18,7 +18,7 @@ const initEventQueueRedisSubscribe = () => {
   initEventQueueRedisSubscribe._initDone = true;
 
   config.processingNamespaces.forEach((namespace) => {
-    redis.subscribeRedisChannel([namespace, EVENT_MESSAGE_CHANNEL].join("_"), _messageHandlerProcessEvents);
+    redis.subscribeRedisChannel([namespace, EVENT_MESSAGE_CHANNEL].join("##"), _messageHandlerProcessEvents);
   });
 };
 

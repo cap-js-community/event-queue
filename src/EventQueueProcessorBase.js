@@ -959,7 +959,7 @@ class EventQueueProcessorBase {
     });
   }
 
-  async acquireDistributedLock(namespace) {
+  async acquireDistributedLock() {
     if (this.concurrentEventProcessing) {
       return true;
     }
@@ -967,7 +967,7 @@ class EventQueueProcessorBase {
     return await trace(this.baseContext, "acquire-lock", async () => {
       const lockAcquired = await distributedLock.acquireLock(
         this.__context,
-        [namespace, this.#eventType, this.#eventSubType].join("##"),
+        [this.#namespace, this.#eventType, this.#eventSubType].join("##"),
         { keepTrackOfLock: true, expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000 }
       );
       if (!lockAcquired) {
@@ -1003,13 +1003,16 @@ class EventQueueProcessorBase {
     return true;
   }
 
-  async handleReleaseLock(namespace) {
+  async handleReleaseLock() {
     if (!this.__lockAcquired) {
       return;
     }
     try {
       await trace(this.baseContext, "release-lock", async () => {
-        await distributedLock.releaseLock(this.context, [namespace, this.#eventType, this.#eventSubType].join("##"));
+        await distributedLock.releaseLock(
+          this.context,
+          [this.#namespace, this.#eventType, this.#eventSubType].join("##")
+        );
       });
     } catch (err) {
       this.logger.error("Releasing distributed lock failed.", err);
@@ -1042,8 +1045,8 @@ class EventQueueProcessorBase {
     const newEvent = {
       type: this.#eventType,
       subType: this.#eventSubType,
-      startAfter: new Date(newStartAfter),
       namespace: this.#eventConfig.namespace,
+      startAfter: new Date(newStartAfter),
     };
     const { relative } = this.#eventSchedulerInstance.calculateOffset(
       this.#eventType,

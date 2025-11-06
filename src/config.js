@@ -27,7 +27,6 @@ const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
 const PRIORITIES = Object.values(Priorities);
 const UTC_DEFAULT = false;
 const USE_CRON_TZ_DEFAULT = true;
-const DEFAULT_NAMESPACE = "default";
 
 const BASE_TABLES = {
   EVENT: "sap.eventqueue.Event",
@@ -135,7 +134,7 @@ class Config {
     this.#env = getEnvInstance();
   }
 
-  getEventConfig(type, subType, namespace = DEFAULT_NAMESPACE) {
+  getEventConfig(type, subType, namespace = this.namespace) {
     return this.#eventMap[this.generateKey(namespace, type, subType)]
       ? { ...this.#eventMap[this.generateKey(namespace, type, subType)] }
       : undefined;
@@ -145,7 +144,7 @@ class Config {
     return type === CAP_EVENT_TYPE;
   }
 
-  hasEventAfterCommitFlag(type, subType, namespace = DEFAULT_NAMESPACE) {
+  hasEventAfterCommitFlag(type, subType, namespace = this.namespace) {
     return this.#eventMap[this.generateKey(namespace, type, subType)]?.processAfterCommit ?? true;
   }
 
@@ -173,7 +172,7 @@ class Config {
     return actionSpecificCall ? rawSubType : serviceName;
   }
 
-  shouldBeProcessedInThisApplication(type, rawSubType, namespace = DEFAULT_NAMESPACE) {
+  shouldBeProcessedInThisApplication(type, rawSubType, namespace = this.namespace) {
     const subType = this.#normalizeSubType(rawSubType);
 
     const config = this.#eventMap[this.generateKey(namespace, type, subType)];
@@ -553,7 +552,7 @@ class Config {
     return [namespace, type, subType].join("##");
   }
 
-  removeEvent(type, subType, namespace = DEFAULT_NAMESPACE) {
+  removeEvent(type, subType, namespace = this.namespace) {
     delete this.#eventMap[this.generateKey(namespace, type, subType)];
   }
 
@@ -589,7 +588,7 @@ class Config {
     return Object.values(this.#eventMap).filter((e) => e.isPeriodic);
   }
 
-  isPeriodicEvent(type, subType, namespace = DEFAULT_NAMESPACE) {
+  isPeriodicEvent(type, subType, namespace = this.namespace) {
     return this.#eventMap[this.generateKey(namespace, type, subType)]?.isPeriodic;
   }
 
@@ -791,7 +790,7 @@ class Config {
   }
 
   get redisNamespace() {
-    return `${[REDIS_PREFIX, this.#redisNamespace].filter((a) => a).join("_")}`;
+    return `${[REDIS_PREFIX, this.#redisNamespace].filter((a) => a).join("##")}`;
   }
 
   set insertEventsBeforeCommit(value) {

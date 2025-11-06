@@ -34,7 +34,7 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = c
       return;
     }
 
-    const continueProcessing = await baseInstance.acquireDistributedLock(namespace);
+    const continueProcessing = await baseInstance.acquireDistributedLock();
     if (!continueProcessing) {
       return;
     }
@@ -105,7 +105,7 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = c
       eventSubType,
     });
   } finally {
-    await baseInstance?.handleReleaseLock(namespace);
+    await baseInstance?.handleReleaseLock();
   }
 };
 

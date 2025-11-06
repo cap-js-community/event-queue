@@ -217,7 +217,7 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
     promises.concat(
       events.map(async (openEvent) => {
         const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType, openEvent.namespace);
-        const label = [openEvent.namespace, eventConfig.type, eventConfig.subType].join("_");
+        const label = [openEvent.namespace, eventConfig.type, eventConfig.subType].join("##");
         return await WorkerQueue.instance.addToQueue(
           eventConfig.load,
           label,
@@ -311,7 +311,7 @@ const _singleTenantDb = async () => {
   return await Promise.allSettled(
     events.map(async (openEvent) => {
       const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType, openEvent.namespace);
-      const label = [openEvent.namespace, eventConfig.type, eventConfig.subType].join("_");
+      const label = [openEvent.namespace, eventConfig.type, eventConfig.subType].join("##");
       return await WorkerQueue.instance.addToQueue(
         eventConfig.load,
         label,
