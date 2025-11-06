@@ -601,44 +601,45 @@ class EventQueueProcessorBase {
     const baseDate = Date.now();
     const refDateStartAfter = new Date(baseDate + this.#config.runInterval * 1.2);
     await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
-      const cqn = SELECT.from(this.#config.tableNameEventQueue)
-        .forUpdate({ wait: this.#config.forUpdateTimeout })
-        .limit(this.selectMaxChunkSize)
-        .where(
-          "type =",
-          this.#eventType,
-          "AND subType=",
-          this.#eventSubType,
-          "AND ( startAfter IS NULL OR startAfter <=",
-          refDateStartAfter.toISOString(),
-          " ) AND ( status =",
-          EventProcessingStatus.Open,
-          "AND ( lastAttemptTimestamp <=",
-          this.startTime.toISOString(),
-          ...(this.isPeriodicEvent
-            ? [
-                "OR lastAttemptTimestamp IS NULL ) OR ( status =",
-                EventProcessingStatus.InProgress,
-                "AND lastAttemptTimestamp <=",
-                new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
-                ") )",
-              ]
-            : [
-                "OR lastAttemptTimestamp IS NULL ) OR ( status =",
-                EventProcessingStatus.Error,
-                "AND lastAttemptTimestamp <=",
-                this.startTime.toISOString(),
-                ") OR ( status =",
-                EventProcessingStatus.InProgress,
-                "AND lastAttemptTimestamp <=",
-                new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
-                ") )",
-              ])
-        )
-        .orderBy("createdAt", "ID");
-
-      cqn.where("namespace =", this.#namespace);
-      const entries = await tx.run(cqn);
+      const entries = await tx.run(
+        SELECT.from(this.#config.tableNameEventQueue)
+          .forUpdate({ wait: this.#config.forUpdateTimeout })
+          .limit(this.selectMaxChunkSize)
+          .where(
+            "type =",
+            this.#eventType,
+            "AND subType=",
+            this.#eventSubType,
+            "AND ( startAfter IS NULL OR startAfter <=",
+            refDateStartAfter.toISOString(),
+            " ) AND ( status =",
+            EventProcessingStatus.Open,
+            "AND ( lastAttemptTimestamp <=",
+            this.startTime.toISOString(),
+            ...(this.isPeriodicEvent
+              ? [
+                  "OR lastAttemptTimestamp IS NULL ) OR ( status =",
+                  EventProcessingStatus.InProgress,
+                  "AND lastAttemptTimestamp <=",
+                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
+                  ") )",
+                ]
+              : [
+                  "OR lastAttemptTimestamp IS NULL ) OR ( status =",
+                  EventProcessingStatus.Error,
+                  "AND lastAttemptTimestamp <=",
+                  this.startTime.toISOString(),
+                  ") OR ( status =",
+                  EventProcessingStatus.InProgress,
+                  "AND lastAttemptTimestamp <=",
+                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
+                  ") )",
+                ]),
+            "AND namespace =",
+            this.#namespace
+          )
+          .orderBy("createdAt", "ID")
+      );
 
       if (!entries.length) {
         this.logger.debug("no entries available for processing", {
