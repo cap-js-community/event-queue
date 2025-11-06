@@ -473,7 +473,7 @@ describe("runner", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(workerQueue.mock.calls[0]).toEqual([
         1,
-        "default_SingleTenant_NoPrioIncrease",
+        "default##SingleTenant##NoPrioIncrease",
         "medium",
         false,
         expect.any(Function),
