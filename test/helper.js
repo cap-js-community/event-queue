@@ -23,6 +23,7 @@ const getEventEntry = () => {
     payload: JSON.stringify({
       testPayload: 123,
     }),
+    namespace: "default",
   };
 };
 
@@ -62,6 +63,7 @@ const insertEventEntry = async (
           }),
           startAfter,
           status,
+          namespace: eventQueue.config.namespace,
         });
       });
   }

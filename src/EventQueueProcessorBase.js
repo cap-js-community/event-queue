@@ -610,6 +610,8 @@ class EventQueueProcessorBase {
             this.#eventType,
             "AND subType=",
             this.#eventSubType,
+            "AND namespace =",
+            this.#namespace,
             "AND ( startAfter IS NULL OR startAfter <=",
             refDateStartAfter.toISOString(),
             " ) AND ( status =",
@@ -634,9 +636,7 @@ class EventQueueProcessorBase {
                   "AND lastAttemptTimestamp <=",
                   new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
                   ") )",
-                ]),
-            "AND namespace =",
-            this.#namespace
+                ])
           )
           .orderBy("createdAt", "ID")
       );

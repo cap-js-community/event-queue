@@ -141,7 +141,7 @@ const _insertPeriodEvents = async (tx, events, now) => {
   const chunks = Math.ceil(events.length / CHUNK_SIZE_INSERT_PERIODIC_EVENTS);
   const logger = cds.log(COMPONENT_NAME);
   const eventsToBeInserted = events.map((event) => {
-    const base = { type: event.type, subType: event.subType };
+    const base = { type: event.type, subType: event.subType, namespace: event.namespace };
     let startTime = now;
     const config = eventConfig.getEventConfig(event.type, event.subType, event.namespace);
     if (config.cron) {
@@ -156,11 +156,12 @@ const _insertPeriodEvents = async (tx, events, now) => {
 
   processChunkedSync(eventsToBeInserted, CHUNK_SIZE_INSERT_PERIODIC_EVENTS, (chunk) => {
     logger.info(`${counter}/${chunks} | inserting chunk of changed or new periodic events`, {
-      events: chunk.map(({ type, subType, startAfter, namespace }) => {
+      events: chunk.map(({ namespace, type, subType, startAfter }) => {
         const { interval, cron } = eventConfig.getEventConfig(type, subType, namespace);
         return {
           type,
           subType,
+          namespace,
           ...(startAfter && { startAfter }),
           ...(interval && { interval }),
           ...(cron && { cron }),

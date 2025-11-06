@@ -208,6 +208,7 @@ describe("integration-main", () => {
           status: 1,
           lastAttemptTimestamp: new Date(Date.now() - 4 * 60 * 1000),
           attempts: 1,
+          namespace: "default",
         })
       );
     });
@@ -250,7 +251,7 @@ describe("integration-main", () => {
     const event = eventQueue.config.events[0];
     await cds.tx({}, async (tx2) => {
       await testHelper.insertEventEntry(tx2);
-      await distributedLock.acquireLock(tx2.context, [null, event.type, event.subType].join("##"));
+      await distributedLock.acquireLock(tx2.context, ["default", event.type, event.subType].join("##"));
     });
     dbCounts = {};
     await eventQueue.processEventQueue(context, event.type, event.subType);
@@ -311,7 +312,7 @@ describe("integration-main", () => {
   it("if processing time is exceeded broadcast should trigger processing again", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
-    const event = eventQueue.config._rawEventMap[["Notifications", "Task"].join("##")];
+    const event = eventQueue.config._rawEventMap[["default", "Notifications", "Task"].join("##")];
     event.checkForNextChunk = true;
     const scheduler = jest.spyOn(eventScheduler.getInstance(), "scheduleEvent").mockReturnValueOnce(null);
     const processSpy = jest

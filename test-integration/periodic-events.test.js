@@ -286,7 +286,7 @@ describe("periodic events", () => {
         undefined,
         "HealthCheck_PERIODIC",
         "DB",
-        null,
+        "default",
         expect.anything(),
       ]);
       expect(loggerMock.callsLengths().error).toEqual(0);
@@ -554,7 +554,7 @@ describe("periodic events", () => {
         undefined,
         "HealthCheck_PERIODIC",
         "DB",
-        null,
+        "default",
         expect.anything(),
       ]);
       expect(loggerMock.callsLengths().error).toEqual(0);
