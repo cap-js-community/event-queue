@@ -42,7 +42,6 @@ const CONFIG_VARS = [
   ["enableTelemetry", true],
   ["cronTimezone", null],
   ["randomOffsetPeriodicEvents", null],
-  ["redisNamespace", null],
   ["publishEventBlockList", true],
   ["crashOnRedisUnavailable", false],
   ["enableAdminService", false],
