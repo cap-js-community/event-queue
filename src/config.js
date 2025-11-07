@@ -105,7 +105,6 @@ class Config {
   #unsubscribedTenants = {};
   #cronTimezone;
   #randomOffsetPeriodicEvents;
-  #redisNamespace;
   #crashOnRedisUnavailable;
   #tenantIdFilterAuthContextCb;
   #tenantIdFilterEventProcessingCb;
@@ -785,12 +784,8 @@ class Config {
     };
   }
 
-  set redisNamespace(value) {
-    this.#redisNamespace = value;
-  }
-
   get redisNamespace() {
-    return `${[REDIS_PREFIX, this.#redisNamespace].filter((a) => a).join("##")}`;
+    return `${[REDIS_PREFIX, this.#namespace].filter((a) => a).join("##")}`;
   }
 
   set insertEventsBeforeCommit(value) {
