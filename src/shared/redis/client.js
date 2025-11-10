@@ -17,9 +17,9 @@ const subscribeRedisChannel = async (channel, subscribeHandler) => {
   return await redisClient.subscribeChannel(config.redisOptions, channelWithNamespace, subscribeHandler);
 };
 
-const publishMessage = async (channel, message, { addNamespace = true } = {}) => {
+const publishMessage = async (channel, message) => {
   const redisClient = RedisClient.create(REDIS_CLIENT_NAME);
-  const channelWithNamespace = [config.redisNamespace(addNamespace), channel].join("##");
+  const channelWithNamespace = [config.redisNamespace(false), channel].join("##");
   return await redisClient.publishMessage(config.redisOptions, channelWithNamespace, message);
 };
 
