@@ -784,8 +784,8 @@ class Config {
     };
   }
 
-  get redisNamespace() {
-    return `${[REDIS_PREFIX, this.#namespace].filter((a) => a).join("##")}`;
+  redisNamespace(addPublishNamespace = true) {
+    return addPublishNamespace ? `${[REDIS_PREFIX, this.#namespace].filter((a) => a).join("##")}` : REDIS_PREFIX;
   }
 
   set insertEventsBeforeCommit(value) {

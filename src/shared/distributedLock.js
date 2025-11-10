@@ -195,7 +195,7 @@ const _acquireLockDB = async (
 };
 
 const _generateKey = (context, tenantScoped, key) => {
-  const keyParts = [config.redisNamespace];
+  const keyParts = [config.redisNamespace()];
   tenantScoped && keyParts.push(context.tenant);
   keyParts.push(key);
   return `${keyParts.join("##")}`;

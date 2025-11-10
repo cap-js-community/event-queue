@@ -15,7 +15,7 @@ const attachRedisUnsubscribeHandler = () => {
       try {
         const { tenantId } = JSON.parse(messageData);
         cds.log(COMPONENT_NAME).info("received unsubscribe broadcast event", { tenantId });
-        this.executeUnsubscribeHandlers(tenantId);
+        config.executeUnsubscribeHandlers(tenantId);
       } catch (err) {
         cds.log(COMPONENT_NAME).error("could not parse unsubscribe broadcast event", err, {
           messageData,
@@ -27,9 +27,11 @@ const attachRedisUnsubscribeHandler = () => {
 
 const handleUnsubscribe = (tenantId) => {
   if (config.redisEnabled) {
-    client.publishMessage(REDIS_OFFBOARD_TENANT_CHANNEL, JSON.stringify({ tenantId })).catch((error) => {
-      cds.log(COMPONENT_NAME).error(`publishing tenant unsubscribe failed. tenantId: ${tenantId}`, error);
-    });
+    client
+      .publishMessage(REDIS_OFFBOARD_TENANT_CHANNEL, JSON.stringify({ tenantId }), { addNamespace: false })
+      .catch((error) => {
+        cds.log(COMPONENT_NAME).error(`publishing tenant unsubscribe failed. tenantId: ${tenantId}`, error);
+      });
   } else {
     config.executeUnsubscribeHandlers(tenantId);
   }
