@@ -13,13 +13,13 @@ const createMainClientAndConnect = async () => {
 
 const subscribeRedisChannel = async (channel, subscribeHandler) => {
   const redisClient = RedisClient.create(REDIS_CLIENT_NAME);
-  const channelWithNamespace = [config.redisNamespace, channel].join("##");
+  const channelWithNamespace = [config.redisNamespace(false), channel].join("##");
   return await redisClient.subscribeChannel(config.redisOptions, channelWithNamespace, subscribeHandler);
 };
 
-const publishMessage = async (channel, message) => {
+const publishMessage = async (channel, message, { addNamespace = true } = {}) => {
   const redisClient = RedisClient.create(REDIS_CLIENT_NAME);
-  const channelWithNamespace = [config.redisNamespace, channel].join("##");
+  const channelWithNamespace = [config.redisNamespace(addNamespace), channel].join("##");
   return await redisClient.publishMessage(config.redisOptions, channelWithNamespace, message);
 };
 
