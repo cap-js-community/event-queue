@@ -45,6 +45,7 @@ they should be processed.
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                                                                                                                                                                                               | -               |
 | type                          | Specifies the type of the event.                                                                                                                                                                                                                                                                                                                                                                                                          | -               |
 | subType                       | Specifies the subtype of the event, further categorizing the event type.                                                                                                                                                                                                                                                                                                                                                                  | -               |
+| namespace                     | Default namespace in which event is published                                                                                                                                                                                                                                                                                                                                                                                             | default         |
 | load                          | Indicates the load of the event, affecting the processing concurrency.                                                                                                                                                                                                                                                                                                                                                                    | 1               |
 | retryAttempts                 | Number of retry attempts for failed events. Set to `-1` for infinite retries.                                                                                                                                                                                                                                                                                                                                                             | 3               |
 | processAfterCommit            | Indicates whether an event is processed immediately after the transaction, in which the event was written, has been committed.                                                                                                                                                                                                                                                                                                            | true            |
@@ -76,6 +77,7 @@ instance is overloaded.
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                                                                                                                                                                                               | -             |
 | type                          | Specifies the type of the periodic event.                                                                                                                                                                                                                                                                                                                                                                                                 | -             |
 | subType                       | Specifies the subtype of the periodic event, further categorizing the event type.                                                                                                                                                                                                                                                                                                                                                         | -             |
+| namespace                     | Default namespace in which event is published                                                                                                                                                                                                                                                                                                                                                                                             | default       |
 | load                          | Indicates the load of the event, affecting the processing concurrency.                                                                                                                                                                                                                                                                                                                                                                    | 1             |
 | transactionMode               | Specifies the transaction mode for the periodic event. For allowed values, refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes).                                                                                                                                                                                                                                                                         | isolated      |
 | interval                      | The interval, in seconds, at which the periodic event should be triggered.                                                                                                                                                                                                                                                                                                                                                                | -             |
@@ -187,6 +189,133 @@ maintains stability and avoids overloading.
 | `0 0 25 12 *`       | Runs at midnight on Christmas Day, December 25th.                         |
 | `0 0 L * *`         | Runs at midnight on the last day of every month.                          |
 | `0 6,18 * * *`      | Runs at 6:00 AM and 6:00 PM every day.                                    |
+
+# Namespaces
+
+The event-queue supports namespaces to logically partition events within the same database table. This feature is
+particularly useful in architectures where multiple, distinct microservices operate on the same database schema but have
+different application logic and responsibilities. By using namespaces, you can ensure that events published by one
+service are only processed by the intended service(s), preventing conflicts and unintended behavior.
+
+## Use Case
+
+Imagine two microservices, Service-A and Service-B, both connected to the same database. Service-A is responsible for
+order management, while Service-B handles inventory updates. Both services use the event queue for asynchronous processing.
+
+Without namespaces, an “order created” event published by Service-A would be visible to Service-B. Service-B might try
+to process this event, leading to errors because it lacks the necessary logic to handle order events. Namespaces solve
+this by creating separate, logical channels for events, ensuring each microservice only interacts with relevant events.
+
+## How It Works
+
+The namespace mechanism is based on two key configuration parameters:
+
+- **namespace**: When an event is published, it is tagged with a namespace. This configuration sets the default namespace
+  for all events published by the application.
+- **processingNamespaces**: This configuration defines a list of namespaces that the current application instance will
+  listen to. The event-queue scheduler will only select events for processing if their namespace is included in this list.
+
+By default, all events are published to the "default" namespace, and all applications process events from the "default"
+namespace, ensuring backward compatibility for existing projects.
+
+## Example Scenario
+
+Let’s apply this to our use case with Service-A (Orders) and Service-B (Inventory).
+
+### Configuration for Service-A (package.json):
+
+```json
+{
+  "cds": {
+    "eventQueue": {
+      "namespace": "orders",
+      "processingNamespaces": ["orders"]
+    }
+  }
+}
+```
+
+- Service-A will publish all its events to the orders namespace.
+- It will only process events that belong to the orders namespace.
+
+### Configuration for Service-B (package.json):
+
+```json
+{
+  "cds": {
+    "eventQueue": {
+      "namespace": "inventory",
+      "processingNamespaces": ["inventory"]
+    }
+  }
+}
+```
+
+- Service-B will publish all its events to the inventory namespace.
+- It will only process events that belong to the inventory namespace.
+
+With this setup, order events from Service-A will be completely isolated from Service-B, and vice versa, even though they
+share the same physical event queue table.
+
+## Processing Events from Multiple Namespaces
+
+An application can also be configured to process events from multiple namespaces. For instance, a central monitoring or
+logging service might need to process events from all other services.
+
+### Configuration for a Logging-Service (package.json):
+
+```json
+{
+  "cds": {
+    "eventQueue": {
+      "processingNamespaces": ["orders", "inventory", "default"]
+    }
+  }
+}
+```
+
+This service will now pick up events from the orders, inventory, and default namespaces, while still ignoring events from
+any other unlisted namespaces.
+
+## Advanced Namespace Control & Precedence
+
+While the global namespace configuration is straightforward, you can achieve more granular control by defining namespaces
+at the service level or even dynamically for a single event emission.
+
+The namespace for an event is determined based on the following order of precedence, from highest to lowest:
+
+1. Dynamic Header (`x-eventqueue-namespace`): A namespace specified in the headers during an event emit/send call.
+2. Service/Event Definition: A namespace defined for a specific service or event in your `cds.env.requires.<service>` configuration.
+3. Global Configuration: The default namespace set in the top-level `cds.env.eventQueue` configuration.
+
+### Configuration at the Service or Event Level
+
+You can assign a specific namespace to a CAP service’s outbox or even to a particular event within that outbox. This is
+useful when a service consistently publishes events to a namespace different from the global default.
+
+In this example, the `StandardService` defaults to publishing events to `namespaceA`. However, the specific event
+`timeBucketAction` is configured to publish to `namespaceC`.
+
+```json
+{
+  "cds": {
+    "requires": {
+      "StandardService": {
+        "impl": "...",
+        "outbox": {
+          "kind": "persistent-outbox",
+          "namespace": "namespaceA",
+          "events": {
+            "timeBucketAction": {
+              "namespace": "namespaceC"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
 
 # Runtime Configuration Changes
 

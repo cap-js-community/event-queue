@@ -5,11 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.12.0 - 2025-XX-XX
+## v2.0.0 - 2025-XX-XX
+
+### Breaking Changes
+
+- `redisNamespace` has been removed in favour of the new namespace concept. The same can be archived with the `namespace` parameter.
 
 ### Added
 
-- fully support cds.queued
+- add namespaces to support setups where multiple microservices share the same database (HDI Container). See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces).
+- support for cds.queued
 
 ## v1.11.0 - 2025-07-09
 
