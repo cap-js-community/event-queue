@@ -26,6 +26,8 @@ const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 const SUFFIX_PERIODIC = "_PERIODIC";
 const DEFAULT_RETRY_AFTER = 5 * 60 * 1000;
 
+const ALLOWED_FIELDS_FOR_UPDATE = ["status", "startAfter"];
+
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
   #exceededTriesExceeded = [];
@@ -345,17 +347,21 @@ class EventQueueProcessorBase {
     }
   }
 
-  #determineAndAddEventStatusToMap(id, processingStatus, statusMap = this.__statusMap) {
+  #determineAndAddEventStatusToMap(id, statusOrUpdateData, statusMap = this.__statusMap) {
+    if (typeof statusOrUpdateData === "number") {
+      statusOrUpdateData = { status: statusOrUpdateData };
+    }
+
     if (!statusMap[id]) {
-      statusMap[id] = processingStatus;
+      statusMap[id] = statusOrUpdateData;
       return;
     }
-    if ([EventProcessingStatus.Error, EventProcessingStatus.Exceeded].includes(statusMap[id])) {
+    if ([EventProcessingStatus.Error, EventProcessingStatus.Exceeded].includes(statusMap[id].status)) {
       // NOTE: worst aggregation --> if already error|exceeded keep this state
       return;
     }
-    if (statusMap[id] >= 0) {
-      statusMap[id] = processingStatus;
+    if (statusMap[id].status >= 0) {
+      statusMap[id] = { status: statusOrUpdateData };
     }
   }
 
@@ -396,6 +402,25 @@ class EventQueueProcessorBase {
     );
   }
 
+  #normalizeStatusMap(statusMap) {
+    const originalMap = {};
+    for (const [id, entry] of Object.entries(statusMap)) {
+      originalMap[id] = entry;
+      const result = {};
+      if (typeof entry === "number") {
+        result.status = entry;
+      } else if (typeof entry === "object") {
+        for (const fieldName of ALLOWED_FIELDS_FOR_UPDATE) {
+          if (fieldName in entry) {
+            result[fieldName] = entry[fieldName];
+          }
+        }
+      }
+      statusMap[id] = result;
+    }
+    return originalMap;
+  }
+
   /**
    * This function validates for all selected events one status has been submitted. It's also validated that only for
    * selected events a status has been submitted. Persisting the status of events is done in a dedicated database tx.
@@ -406,75 +431,48 @@ class EventQueueProcessorBase {
       eventType: this.#eventType,
       eventSubType: this.#eventSubType,
     });
+    const originalStatusMap = this.#normalizeStatusMap(statusMap);
     this.#ensureOnlySelectedQueueEntries(statusMap);
     if (!skipChecks) {
       this.#ensureEveryQueueEntryHasStatus();
     }
     this.#ensureEveryStatusIsAllowed(statusMap);
-
-    const { success, failed, exceeded, invalidAttempts } = Object.entries(statusMap).reduce(
-      (result, [queueEntryId, processingStatus]) => {
-        this.__commitedStatusMap[queueEntryId] = processingStatus;
-        delete this.__notCommitedStatusMap[queueEntryId];
-        if (processingStatus === EventProcessingStatus.Open) {
-          result.invalidAttempts.push(queueEntryId);
-        } else if (processingStatus === EventProcessingStatus.Done) {
-          result.success.push(queueEntryId);
-        } else if (processingStatus === EventProcessingStatus.Error) {
-          result.failed.push(queueEntryId);
-        } else if (processingStatus === EventProcessingStatus.Exceeded) {
-          result.exceeded.push(queueEntryId);
-        }
-        return result;
-      },
-      {
-        success: [],
-        failed: [],
-        exceeded: [],
-        invalidAttempts: [],
-      }
-    );
-    if (![success, failed, exceeded, invalidAttempts].some((statusArray) => statusArray.length)) {
-      this.logger.debug("exiting persistEventStatus", {
-        eventType: this.#eventType,
-        eventSubType: this.#eventSubType,
-      });
-      return;
-    }
-
     return await trace(this.baseContext, "persist-event-status", async () => {
       this.logger.debug("persistEventStatus for entries", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
-        invalidAttempts,
-        failed,
-        exceeded,
-        success,
+        statusMap,
       });
-      if (invalidAttempts.length) {
-        await tx.run(
-          UPDATE.entity(this.#config.tableNameEventQueue)
-            .set({
-              status: EventProcessingStatus.Open,
-              lastAttemptTimestamp: new Date().toISOString(),
-              attempts: { "-=": 1 },
-            })
-            .where("ID IN", invalidAttempts)
-        );
-      }
       const ts = new Date().toISOString();
-      const updateTuples = [
-        [success, EventProcessingStatus.Done],
-        [failed, EventProcessingStatus.Error],
-        [exceeded, EventProcessingStatus.Exceeded],
-      ];
+      const updateData = Object.entries(statusMap).reduce((result, [id, data]) => {
+        const key = ALLOWED_FIELDS_FOR_UPDATE.map((name) => [name, data[name]])
+          .flat()
+          .join("##");
 
-      for (const [eventIds, status] of updateTuples) {
-        if (!eventIds.length) {
+        result[key] ??= { data, ids: [] };
+        result[key].ids.push(id);
+        return result;
+      }, {});
+
+      // TODO: schedule open events???
+      for (const { ids, data } of Object.values(updateData)) {
+        let startAfter;
+
+        if (!("status" in data)) {
+          this.logger.error("can't find status value in return value of event-processing. Setting event to done", {
+            ids,
+            // NOTE: use first id as same return values are clustered
+            eventReturnValue: originalStatusMap[ids[0]],
+          });
           continue;
         }
-        let startAfter;
-        if (status === EventProcessingStatus.Error) {
+
+        for (const id of ids) {
+          this.__commitedStatusMap[id] = data.status;
+          delete this.__notCommitedStatusMap[id];
+        }
+
+        if ([EventProcessingStatus.Error, EventProcessingStatus.Open].includes(data.status)) {
           startAfter = new Date(Date.now() + this.#retryFailedAfter);
           this.#eventSchedulerInstance.scheduleEvent(
             this.__context.tenant,
@@ -488,11 +486,11 @@ class EventQueueProcessorBase {
         await tx.run(
           UPDATE.entity(this.#config.tableNameEventQueue)
             .set({
-              status: status,
+              ...data,
               lastAttemptTimestamp: ts,
-              ...(status === EventProcessingStatus.Error ? { startAfter: startAfter.toISOString() } : {}),
+              ...(data.status === EventProcessingStatus.Error ? { startAfter: startAfter.toISOString() } : {}),
             })
-            .where("ID IN", eventIds)
+            .where("ID IN", ids)
         );
       }
     });
@@ -507,17 +505,17 @@ class EventQueueProcessorBase {
       ) {
         return;
       }
-      this.logger.error("Missing status for selected event entry. Setting status to error", {
+      this.logger.error("Missing status for selected event entry. Setting status to done", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
         queueEntry,
       });
-      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
+      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Done);
     });
   }
 
   #ensureEveryStatusIsAllowed(statusMap) {
-    Object.entries(statusMap).forEach(([queueEntryId, status]) => {
+    Object.entries(statusMap).forEach(([queueEntryId, { status }]) => {
       if (
         [
           EventProcessingStatus.Open,
@@ -529,11 +527,15 @@ class EventQueueProcessorBase {
         return;
       }
 
+      if (!status) {
+        return;
+      }
+
       this.logger.error("Not allowed event status returned. Only Open, Done, Error is allowed!", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
         queueEntryId,
-        status: statusMap[queueEntryId],
+        status: statusMap[queueEntryId].status,
       });
       delete statusMap[queueEntryId];
     });

@@ -325,13 +325,13 @@ describe("integration-main", () => {
           randomGuid: true,
         });
         this.eventConfig.startTime = new Date(Date.now() - eventQueue.config.runInterval);
-        return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Open]);
+        return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
       });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(scheduler).toHaveBeenCalledTimes(1);
     expect(processSpy).toHaveBeenCalledTimes(1);
-    await testHelper.selectEventQueueAndExpectOpen(tx);
+    await testHelper.selectEventQueueAndExpectDone(tx);
     expect(dbCounts).toMatchSnapshot();
 
     jest.spyOn(EventQueueTest.prototype, "processEvent").mockRestore();

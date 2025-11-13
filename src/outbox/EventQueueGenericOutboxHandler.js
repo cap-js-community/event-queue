@@ -359,6 +359,10 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       return queueEntries.map((queueEntry) => [queueEntry.ID, result]);
     }
 
+    if (result instanceof Object && !Array.isArray(result)) {
+      return queueEntries.map((queueEntry) => [queueEntry.ID, result]);
+    }
+
     if (!Array.isArray(result)) {
       return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
     }

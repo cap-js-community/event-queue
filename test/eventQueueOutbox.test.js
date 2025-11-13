@@ -1850,6 +1850,7 @@ describe("event-queue outbox", () => {
           additionalColumns: ["subType", "createdAt", "namespace"],
         });
         expect(event.namespace).toEqual("namespaceA");
+        expect(loggerMock.callsLengths().error).toEqual(0);
       });
 
       it("should not process if different namespace", async () => {
@@ -1946,6 +1947,24 @@ describe("event-queue outbox", () => {
         await processEventQueue(tx.context, "CAP_OUTBOX", service.name, "namespaceC");
         expect(loggerMock).not.actionCalled("main");
         expect(loggerMock.callsLengths().error).toEqual(1); // no config
+      });
+    });
+
+    // TODO: write test for return open with default start after value!
+    describe("update payload and startAfter", () => {
+      it("should update status via object", async () => {
+        const service = (await cds.connect.to("StandardService")).tx(context);
+        await service.send("statusViaObject", {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        });
+        await commitAndOpenNew();
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await testHelper.selectEventQueueAndExpectError(tx, {
+          expectedLength: 1,
+        });
+        expect(loggerMock.callsLengths().error).toEqual(0);
       });
     });
   });
