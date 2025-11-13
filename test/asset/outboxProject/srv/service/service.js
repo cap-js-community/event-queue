@@ -10,6 +10,7 @@ class NotificationService extends cds.Service {
         data: req.data,
         user: req.user.id,
         subType: req.eventQueue?.processor.eventSubType,
+        headers: req.headers,
       });
     });
 

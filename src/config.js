@@ -65,6 +65,7 @@ const ALLOWED_EVENT_OPTIONS_AD_HOC = [
   "processAfterCommit",
   "checkForNextChunk",
   "retryFailedAfter",
+  "propagateHeaders",
   "multiInstanceProcessing",
   "kind",
   "timeBucket",
@@ -388,6 +389,7 @@ class Config {
       selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.retryAttempts ?? config.maxAttempts ?? CAP_MAX_ATTEMPTS_DEFAULT,
+      propagateHeaders: config.propagateHeaders ?? [],
       ...config,
     });
     eventConfig.internalEvent = true;
@@ -583,6 +585,7 @@ class Config {
     event._appInstancesMap = event.appInstances
       ? Object.fromEntries(new Map(event.appInstances.map((a) => [a, true])))
       : null;
+    event.propagateHeaders = event.propagateHeaders ?? [];
   }
 
   #basicEventValidation(event) {

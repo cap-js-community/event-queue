@@ -98,6 +98,7 @@ cds.env.requires.StandardService = {
   impl: path.join(basePath, "srv/service/standard-service.js"),
   outbox: {
     kind: "persistent-outbox",
+    propagateHeaders: ["authId", "customHeader"],
     events: {
       timeBucketAction: {
         timeBucket: "*/60 * * * * *",
@@ -641,6 +642,62 @@ describe("event-queue outbox", () => {
       await commitAndOpenNew();
       expect(loggerMock).actionCalled("authInfo", { authInfo: { authInfo: 123 } });
       await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("should correctly propagate headers: send/emit event from CAP service with existing headers", async () => {
+      const service = await cds.connect.to("StandardService");
+      const outboxedService = cds.outboxed(service).tx(context);
+      const headers = { customHeader: 123, authId: 123 };
+      await outboxedService.send(
+        "callNextOutbox",
+        {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        },
+        { ...headers, xyz: 123 }
+      );
+      await commitAndOpenNew();
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+      expect(loggerMock).actionCalled("main", {
+        headers,
+      });
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("should correctly propagate headers: should mix headers from both calls", async () => {
+      const service = await cds.connect.to("StandardService");
+      const outboxedService = cds.outboxed(service).tx(context);
+      const headers = { customHeader: 123, authId: 123 };
+      await outboxedService.send(
+        "callNextOutboxMix",
+        {
+          to: "to",
+          subject: "subject",
+          body: "body",
+        },
+        { ...headers, xyz: 123 }
+      );
+      await commitAndOpenNew();
+      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      expect(loggerMock).not.sendFioriActionCalled();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await commitAndOpenNew();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+      expect(loggerMock).actionCalled("main", {
+        headers: {
+          customHeader: 456,
+          authId: 123,
+          myNextHeader: 123,
+        },
+      });
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
@@ -1766,7 +1823,7 @@ expect.extend({
     };
   },
   actionCalled: (loggerMock, actionName, properties = {}) => {
-    const call = loggerMock.calls().info.find((c) => c[0] === actionName);
+    const call = loggerMock.calls().info.find((c) => c[0]?.includes(actionName));
     if (!call) {
       return {
         message: () => `action not called! name: ${actionName}`,

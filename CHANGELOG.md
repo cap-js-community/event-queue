@@ -5,14 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.11.0 - 2025-07-09
+## v1.11.1 - 2025-11-13
+
+### Added
+
+- [Event Configuration] `propagateHeaders` allows forwarding headers from the original CDS context to the outbox call by specifying their names in an array.
+
+
+## v1.11.0 - 2025-10-16
 
 ### Added
 
 - Added `authInfo` to cds.User as CDS 9.3 deprecated `tokenInfo`.
 - Disable the automatic processing of suspended tenants. Can be turned off using `disableProcessingOfSuspendedTenants`.
 
-## v1.10.10 - 2025-07-09
+## v1.10.10 - 2025-07-10
 
 ### Fixed
 
