@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Breaking Changes
 
 - `redisNamespace` has been removed in favour of the new namespace concept. The same can be archived with the `namespace` parameter.
+- [Legacy Events] if not status is returned for processed events. Events are now set to `Done` instead of `Error` to avoid double processing.
 
 ### Added
 
