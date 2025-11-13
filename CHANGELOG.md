@@ -5,11 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v1.12.0 - 2025-XX-XX
+## v2.0.0 - 2025-XX-XX
 
-### Added
+### Breaking Changes
 
-- fully support cds.queued
+- redisNamespace has been removed in favor of the new namespace concept. The same behavior can be achieved using the namespace parameter.
+- [Legacy Events] If no status is returned for processed events, they are now set to Done instead of Error to prevent double processing.
+- Processed events that return a status of Open are now reprocessed after the configured delay (retryFailedAfter in the event configuration) to ensure they are not immediately retried.
+
+## Added
+
+- Introduced namespaces to support scenarios where multiple microservices share the same database (HDI container). See the [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces) for details.
+- Added support for cds.queued.
 
 ## v1.11.0 - 2025-07-09
 
