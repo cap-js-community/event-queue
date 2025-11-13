@@ -97,7 +97,7 @@ const _mapToEventAndPublish = async (context, subType, req, eventHeaders) => {
     for (const field of EVENT_QUEUE_SPECIFIC_FIELDS) {
       if (header.toLocaleLowerCase() === `x-eventqueue-${field.toLocaleLowerCase()}`) {
         eventQueueSpecificValues[field] = req.headers[header];
-        delete req.headers[header];
+        delete eventHeaders[header];
         break;
       }
     }

@@ -1823,7 +1823,7 @@ expect.extend({
     };
   },
   actionCalled: (loggerMock, actionName, properties = {}) => {
-    const call = loggerMock.calls().info.find((c) => c[0]?.includes(actionName));
+    const call = loggerMock.calls().info.find((c) => actionName === c[0]);
     if (!call) {
       return {
         message: () => `action not called! name: ${actionName}`,

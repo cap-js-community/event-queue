@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [Event Configuration] `propagateHeaders` allows forwarding headers from the original CDS context to the outbox call by specifying their names in an array.
 
-
 ## v1.11.0 - 2025-10-16
 
 ### Added
