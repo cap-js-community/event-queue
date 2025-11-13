@@ -9,13 +9,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Breaking Changes
 
-- `redisNamespace` has been removed in favour of the new namespace concept. The same can be archived with the `namespace` parameter.
-- [Legacy Events] if not status is returned for processed events. Events are now set to `Done` instead of `Error` to avoid double processing.
+- redisNamespace has been removed in favor of the new namespace concept. The same behavior can be achieved using the namespace parameter.
+- [Legacy Events] If no status is returned for processed events, they are now set to Done instead of Error to prevent double processing.
+- Processed events that return a status of Open are now reprocessed after the configured delay (retryFailedAfter in the event configuration) to ensure they are not immediately retried.
 
-### Added
+## Added
 
-- add namespaces to support setups where multiple microservices share the same database (HDI Container). See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces).
-- support for cds.queued
+- Introduced namespaces to support scenarios where multiple microservices share the same database (HDI container). See the [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces) for details.
+- Added support for cds.queued.
 
 ## v1.11.0 - 2025-07-09
 
