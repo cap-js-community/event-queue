@@ -51,14 +51,16 @@ function outboxed(srv, customOpts) {
       customOpts || {}
     );
     config.addCAPOutboxEventBase(srv.name, outboxOpts);
-    const specificSettings = config.getCdsOutboxEventSpecificConfig(srv.name, req.event);
-    if (specificSettings) {
+    const hasSpecificSettings = !!config.getCdsOutboxEventSpecificConfig(srv.name, req.event);
+    if (hasSpecificSettings) {
       outboxOpts = config.addCAPOutboxEventSpecificAction(srv.name, req.event);
     }
-
-    const namespace = (specificSettings ?? outboxOpts).namespace ?? config.namespace;
+    const subType = hasSpecificSettings ? [srv.name, req.event].join(".") : srv.name;
+    outboxOpts = config.getEventConfig(CDS_EVENT_TYPE, subType);
+    const eventHeaders = getPropagatedHeaders(outboxOpts, req);
+    const namespace = outboxOpts.namespace ?? config.namespace;
     if (["persistent-outbox", "persistent-queue"].includes(outboxOpts.kind)) {
-      await _mapToEventAndPublish(context, srv.name, req, !!specificSettings, namespace);
+      await _mapToEventAndPublish(context, subType , req, eventHeaders, namespace);
       return;
     }
     context.on("succeeded", async () => {
@@ -84,24 +86,35 @@ function unboxed(srv) {
   return srv[UNBOXED] || srv;
 }
 
-const _mapToEventAndPublish = async (context, name, req, actionSpecific, namespace) => {
+const getPropagatedHeaders = (config, req) => {
+  const propagateHeaders = config.propagateHeaders.reduce((headers, headerName) => {
+    if (headerName in req.tx.context.headers) {
+      headers[headerName] = req.tx.context.headers[headerName];
+    }
+    return headers;
+  }, {});
+  return Object.assign(propagateHeaders, req.headers);
+};
+
+const _mapToEventAndPublish = async (context, subType, req, eventHeaders, namespace) => {
   const eventQueueSpecificValues = {};
   for (const header in req.headers ?? {}) {
     for (const field of EVENT_QUEUE_SPECIFIC_FIELDS) {
       if (header.toLocaleLowerCase() === `x-eventqueue-${field.toLocaleLowerCase()}`) {
         eventQueueSpecificValues[field] = req.headers[header];
-        delete req.headers[header];
+        delete eventHeaders[header];
         break;
       }
     }
   }
+
   const event = {
     contextUser: context.user.id,
     ...(req._fromSend || (req.reply && { _fromSend: true })), // send or emit
     ...(req.inbound && { inbound: req.inbound }),
     ...(req.event && { event: req.event }),
     ...(req.data && { data: req.data }),
-    ...(req.headers && { headers: req.headers }),
+    ...(eventHeaders && { headers: eventHeaders }),
     ...(req.query && { query: req.query }),
   };
 
@@ -109,7 +122,7 @@ const _mapToEventAndPublish = async (context, name, req, actionSpecific, namespa
     cds.tx(context),
     {
       type: CDS_EVENT_TYPE,
-      subType: actionSpecific ? [name, req.event].join(".") : name,
+      subType,
       payload: JSON.stringify(event),
       namespace: eventQueueSpecificValues.namespace ?? namespace,
       ...eventQueueSpecificValues,
