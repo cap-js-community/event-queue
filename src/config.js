@@ -60,6 +60,7 @@ const ALLOWED_EVENT_OPTIONS_AD_HOC = [
   "processAfterCommit",
   "checkForNextChunk",
   "retryFailedAfter",
+  "retryOpenAfter",
   "multiInstanceProcessing",
   "kind",
   "timeBucket",

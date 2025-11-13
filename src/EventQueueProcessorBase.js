@@ -41,6 +41,7 @@ class EventQueueProcessorBase {
   #isPeriodic;
   #lastSuccessfulRunTimestamp;
   #retryFailedAfter;
+  #retryOpenAfter;
   #keepAliveRunner;
   #currentKeepAlivePromise = Promise.resolve();
   #etagMap;
@@ -69,6 +70,7 @@ class EventQueueProcessorBase {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
     this.#retryFailedAfter = this.#eventConfig.retryFailedAfter ?? DEFAULT_RETRY_AFTER;
+    this.#retryOpenAfter = this.#eventConfig.retryOpenAfter ?? DEFAULT_RETRY_AFTER;
     this.__concurrentEventProcessing = this.#eventConfig.multiInstanceProcessing;
     this.__retryAttempts = this.#isPeriodic ? 1 : this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
     this.__selectMaxChunkSize = this.#eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
