@@ -14,7 +14,10 @@ class NotificationService extends cds.Service {
       });
     });
 
-    this.on("rejectEvent", (req) => {
+    this.on("rejectEvent", async (req) => {
+      await INSERT.into("sap.eventqueue.Lock").entries({
+        code: req.data.lockId,
+      });
       req.reject(404, "error occurred");
     });
 

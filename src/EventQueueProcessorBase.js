@@ -1204,7 +1204,10 @@ class EventQueueProcessorBase {
   }
 
   statusMapContainsError(statusMap) {
-    return Object.values(statusMap).includes(EventProcessingStatus.Error);
+    this.#normalizeStatusMap(statusMap);
+    return Object.values(statusMap)
+      .map(({ status }) => status)
+      .includes(EventProcessingStatus.Error);
   }
 
   clearEventProcessingContext() {

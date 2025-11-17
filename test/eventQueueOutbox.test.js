@@ -510,22 +510,30 @@ describe("event-queue outbox", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
-    it("req reject should be caught for send", async () => {
+    it("req reject should be caught for send and rollback transaction", async () => {
       const service = await cds.connect.to("NotificationService");
       const outboxedService = cds.outboxed(service).tx(context);
+      const lockId = cds.utils.uuid();
       await outboxedService.send("rejectEvent", {
         to: "to",
         subject: "subject",
         body: "body",
+        lockId,
       });
       await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
+      await commitAndOpenNew();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
       await commitAndOpenNew();
-      const [event] = await testHelper.selectEventQueueAndReturn(tx, {
-        expectedLength: 1,
-        additionalColumns: ["error"],
+
+      const [event] = await cds.tx({}, async (tx) => {
+        const lock = await tx.run(SELECT.one.from("sap.eventqueue.Lock").where({ code: lockId }));
+        expect(lock).toBeUndefined();
+        return await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["error"],
+        });
       });
       expect(event.status).toEqual(EventProcessingStatus.Error);
       expect(JSON.parse(event.error)).toEqual(
@@ -542,16 +550,22 @@ describe("event-queue outbox", () => {
     it("req reject should cause an error for emit", async () => {
       const service = await cds.connect.to("NotificationService");
       const outboxedService = cds.outboxed(service).tx(context);
+      const lockId = cds.utils.uuid();
       await outboxedService.emit("rejectEvent", {
         to: "to",
         subject: "subject",
         body: "body",
+        lockId,
       });
       await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
-      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
       await commitAndOpenNew();
+      await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+      await cds.tx({}, async (tx) => {
+        const lock = await tx.run(SELECT.one.from("sap.eventqueue.Lock").where({ code: lockId }));
+        expect(lock).toBeUndefined();
+      });
       await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error).toMatchSnapshot();
@@ -566,7 +580,9 @@ describe("event-queue outbox", () => {
         body: "body",
       });
       await commitAndOpenNew();
-      await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      await cds.tx({}, async (tx) => {
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+      });
 
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
       await commitAndOpenNew();
@@ -582,10 +598,12 @@ describe("event-queue outbox", () => {
         to: "to",
         subject: "subject",
         body: "body",
+        lockId: cds.utils.uuid(),
       });
       await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
 
+      await commitAndOpenNew();
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
       await commitAndOpenNew();
       await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
