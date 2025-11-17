@@ -21,6 +21,7 @@ const { getEnvInstance } = require("../src/shared/env");
 const { CronExpressionParser } = require("cron-parser");
 const common = require("../src/shared/common");
 const config = require("../src/config");
+const eventScheduler = require("../src/shared/eventScheduler");
 
 const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
 const basePath = path.join(__dirname, "asset", "outboxProject");
@@ -791,78 +792,6 @@ describe("event-queue outbox", () => {
       await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
       expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1]).toMatchSnapshot();
       expect(loggerMock.callsLengths().error).toEqual(0);
-    });
-
-    describe("allow to return status", () => {
-      it("simple status value to done", async () => {
-        const service = await cds.connect.to("NotificationService");
-        const outboxedService = cds.outboxed(service).tx(context);
-        await outboxedService.send("returnPlainStatus", {
-          status: EventProcessingStatus.Done,
-        });
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
-        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
-        expect(loggerMock.callsLengths().error).toEqual(0);
-      });
-
-      it("simple status value to error", async () => {
-        const service = await cds.connect.to("NotificationService");
-        const outboxedService = cds.outboxed(service).tx(context);
-        await outboxedService.send("returnPlainStatus", {
-          status: EventProcessingStatus.Error,
-        });
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
-        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
-        expect(loggerMock.callsLengths().error).toEqual(0);
-      });
-
-      it("return status with array syntax to done", async () => {
-        const service = await cds.connect.to("NotificationService");
-        const outboxedService = cds.outboxed(service).tx(context);
-        await outboxedService.send("returnStatusAsArray", {
-          status: EventProcessingStatus.Done,
-        });
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
-        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
-        expect(loggerMock.callsLengths().error).toEqual(0);
-      });
-
-      it("return status with array syntax to error", async () => {
-        const service = await cds.connect.to("NotificationService");
-        const outboxedService = cds.outboxed(service).tx(context);
-        await outboxedService.send("returnStatusAsArray", {
-          status: EventProcessingStatus.Error,
-        });
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
-        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
-        expect(loggerMock.callsLengths().error).toEqual(0);
-      });
-
-      it("not valid status should be ignored", async () => {
-        const service = await cds.connect.to("NotificationService");
-        const outboxedService = cds.outboxed(service).tx(context);
-        await outboxedService.send("returnStatusAsArray", {
-          status: "K",
-        });
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
-        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
-        expect(loggerMock.callsLengths().error).toEqual(0);
-      });
     });
 
     describe("trace context", () => {
@@ -2007,21 +1936,325 @@ describe("event-queue outbox", () => {
       });
     });
 
-    // TODO: write test for return open with default start after value!
-    describe("update payload and startAfter", () => {
-      it("should update status via object", async () => {
-        const service = (await cds.connect.to("StandardService")).tx(context);
-        await service.send("statusViaObject", {
-          to: "to",
-          subject: "subject",
-          body: "body",
+    describe("return status and startAfter", () => {
+      let scheduleEventSpy;
+      beforeAll(() => {
+        const scheduler = eventScheduler.getInstance();
+        scheduleEventSpy = jest.spyOn(scheduler, "scheduleEvent");
+      });
+
+      describe("plain Status", () => {
+        it("simple status value to done", async () => {
+          const service = await cds.connect.to("StandardService");
+          await service.send("plainStatus", {
+            status: EventProcessingStatus.Done,
+          });
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
         });
-        await commitAndOpenNew();
-        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-        await testHelper.selectEventQueueAndExpectError(tx, {
-          expectedLength: 1,
+
+        it("simple status value to error", async () => {
+          const service = await cds.connect.to("StandardService");
+          await service.send("plainStatus", {
+            status: EventProcessingStatus.Error,
+          });
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
         });
-        expect(loggerMock.callsLengths().error).toEqual(0);
+
+        it("return status with array syntax to done", async () => {
+          const service = await cds.connect.to("StandardService");
+          await service.send("returnStatusAsArray", {
+            status: EventProcessingStatus.Done,
+          });
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("return status with array syntax to error", async () => {
+          const service = await cds.connect.to("StandardService");
+          await service.send("returnStatusAsArray", {
+            status: EventProcessingStatus.Error,
+          });
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("not valid status should be ignored", async () => {
+          const service = await cds.connect.to("StandardService");
+          await service.send("returnStatusAsArray", {
+            status: "K",
+          });
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(2);
+        });
+      });
+
+      describe("as object", () => {
+        it("only status", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          await service.send("asObject", {
+            to: "to",
+            subject: "subject",
+            body: "body",
+            status: 2,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await testHelper.selectEventQueueAndExpectDone(tx, {
+            expectedLength: 1,
+          });
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(0);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("status 0; should set startAfter and call scheduleNext", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          await service.send("asObject", {
+            to: "to",
+            subject: "subject",
+            body: "body",
+            status: 0,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeDefined();
+          const date = Date.now() - (new Date(event.startAfter).getTime() - 5 * 60 * 1000);
+          expect(date).toBeLessThanOrEqual(1000);
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("event return startAfter in return value should take precedence over default value", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          const startAfter = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+          await service.send("asObject", {
+            to: "to",
+            subject: "subject",
+            body: "body",
+            status: 0,
+            startAfter,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeDefined();
+          const date = Date.now() - (new Date(event.startAfter).getTime() - 5 * 60 * 1000);
+          expect(date).toBeLessThanOrEqual(1000);
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("startAfter should be cleared in case where this makes no sense: Status: Done, Exceeded", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          const startAfter = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+          await service.send("asObject", {
+            to: "to",
+            subject: "subject",
+            body: "body",
+            status: 2,
+            startAfter,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeNull();
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(0);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("ID in return object", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          const startAfter = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+          await service.send("asObject", {
+            to: "to",
+            subject: "subject",
+            body: "body",
+            status: 2,
+            startAfter,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeNull();
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(0);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+      });
+
+      describe("as Array Tuple", () => {
+        it("simple status value to error", async () => {
+          const service = await cds.connect.to("StandardService");
+          await service.send("asArrayTuple", {
+            status: EventProcessingStatus.Error,
+          });
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("error with startAfter", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          const startAfter = new Date(Date.now() + 10 * 60 * 1000);
+          await service.send("asArrayTuple", {
+            to: "to",
+            subject: "subject",
+            body: "body",
+            status: 3,
+            startAfter,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeDefined();
+          expect(startAfter.toISOString()).toEqual(startAfter.toISOString());
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("open should set startAfter", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          await service.send("asArrayTuple", {
+            to: "to",
+            subject: "subject",
+            body: "body",
+            status: 0,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeDefined();
+          const date = Math.abs(Date.now() - (new Date(event.startAfter).getTime() - 5 * 60 * 1000));
+          expect(date).toBeLessThanOrEqual(1000);
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+      });
+
+      describe("as Array Object (ID)", () => {
+        it("simple status value to error", async () => {
+          const service = await cds.connect.to("StandardService");
+          await service.send("asArrayWithId", {
+            status: EventProcessingStatus.Error,
+          });
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("error with startAfter", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          const startAfter = new Date(Date.now() + 10 * 60 * 1000);
+          await service.send("asArrayWithId", {
+            to: "to",
+            subject: "subject",
+            body: "body",
+            status: 3,
+            startAfter,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeDefined();
+          expect(startAfter.toISOString()).toEqual(startAfter.toISOString());
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("open should set startAfter", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          await service.send("asArrayWithId", {
+            to: "to",
+            subject: "subject",
+            body: "body",
+            status: 0,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeDefined();
+          const date = Math.abs(Date.now() - (new Date(event.startAfter).getTime() - 5 * 60 * 1000));
+          expect(date).toBeLessThanOrEqual(1000);
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("startAfter without status: should remove startAfter as default status is done", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          await service.send("asArrayWithId", {
+            to: "to",
+            subject: "subject",
+            startAfter: new Date(),
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeNull();
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(0);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("Status InProcess (1) is not allowed: Defaults to done", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          await service.send("asArrayWithId", {
+            to: "to",
+            subject: "subject",
+            status: 1,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeNull();
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(0);
+          expect(loggerMock.callsLengths().error).toEqual(2);
+        });
       });
     });
   });

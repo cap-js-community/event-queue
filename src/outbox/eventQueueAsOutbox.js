@@ -56,11 +56,11 @@ function outboxed(srv, customOpts) {
       outboxOpts = config.addCAPOutboxEventSpecificAction(srv.name, req.event);
     }
     const subType = hasSpecificSettings ? [srv.name, req.event].join(".") : srv.name;
-    outboxOpts = config.getEventConfig(CDS_EVENT_TYPE, subType);
-    const eventHeaders = getPropagatedHeaders(outboxOpts, req);
     const namespace = outboxOpts.namespace ?? config.namespace;
+    outboxOpts = config.getEventConfig(CDS_EVENT_TYPE, subType, namespace);
+    const eventHeaders = getPropagatedHeaders(outboxOpts, req);
     if (["persistent-outbox", "persistent-queue"].includes(outboxOpts.kind)) {
-      await _mapToEventAndPublish(context, subType , req, eventHeaders, namespace);
+      await _mapToEventAndPublish(context, subType, req, eventHeaders, namespace);
       return;
     }
     context.on("succeeded", async () => {

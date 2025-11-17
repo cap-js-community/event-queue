@@ -24,7 +24,6 @@ const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 const SUFFIX_PERIODIC = "_PERIODIC";
-const DEFAULT_RETRY_AFTER = 5 * 60 * 1000;
 
 const ALLOWED_FIELDS_FOR_UPDATE = ["status", "startAfter"];
 
@@ -40,8 +39,6 @@ class EventQueueProcessorBase {
   #eventConfig;
   #isPeriodic;
   #lastSuccessfulRunTimestamp;
-  #retryFailedAfter;
-  #retryOpenAfter;
   #keepAliveRunner;
   #currentKeepAlivePromise = Promise.resolve();
   #etagMap;
@@ -69,8 +66,6 @@ class EventQueueProcessorBase {
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
-    this.#retryFailedAfter = this.#eventConfig.retryFailedAfter ?? DEFAULT_RETRY_AFTER;
-    this.#retryOpenAfter = this.#eventConfig.retryOpenAfter ?? DEFAULT_RETRY_AFTER;
     this.__concurrentEventProcessing = this.#eventConfig.multiInstanceProcessing;
     this.__retryAttempts = this.#isPeriodic ? 1 : this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
     this.__selectMaxChunkSize = this.#eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
@@ -456,10 +451,7 @@ class EventQueueProcessorBase {
         return result;
       }, {});
 
-      // TODO: schedule open events???
       for (const { ids, data } of Object.values(updateData)) {
-        let startAfter;
-
         if (!("status" in data)) {
           this.logger.error("can't find status value in return value of event-processing. Setting event to done", {
             ids,
@@ -474,14 +466,29 @@ class EventQueueProcessorBase {
           delete this.__notCommitedStatusMap[id];
         }
 
-        if ([EventProcessingStatus.Error, EventProcessingStatus.Open].includes(data.status)) {
-          startAfter = new Date(Date.now() + this.#retryFailedAfter);
+        if (![EventProcessingStatus.Open, EventProcessingStatus.Error].includes(data.status)) {
+          delete data.startAfter;
+        }
+
+        if (data.startAfter) {
+          data.startAfter = this.#normalizeDate(data.startAfter);
+        }
+
+        if (!data.startAfter && [EventProcessingStatus.Error, EventProcessingStatus.Open].includes(data.status)) {
+          data.startAfter = new Date(
+            Date.now() +
+              (EventProcessingStatus.Error ? this.#eventConfig.retryFailedAfter : this.#eventConfig.retryOpenAfter)
+          );
+        }
+
+        // TODO: check that startAfter is only allowed for tbp events
+        if (data.startAfter) {
           this.#eventSchedulerInstance.scheduleEvent(
             this.__context.tenant,
             this.#eventType,
             this.#eventSubType,
             this.#namespace,
-            startAfter
+            data.startAfter
           );
         }
 
@@ -490,12 +497,26 @@ class EventQueueProcessorBase {
             .set({
               ...data,
               lastAttemptTimestamp: ts,
-              ...(data.status === EventProcessingStatus.Error ? { startAfter: startAfter.toISOString() } : {}),
             })
             .where("ID IN", ids)
         );
       }
     });
+  }
+
+  #normalizeDate(value) {
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (typeof value === "string" || typeof value === "number") {
+      const date = new Date(value);
+      if (!isNaN(date)) {
+        return date;
+      }
+    }
+
+    return null;
   }
 
   #ensureEveryQueueEntryHasStatus() {
@@ -526,10 +547,6 @@ class EventQueueProcessorBase {
           EventProcessingStatus.Exceeded,
         ].includes(status)
       ) {
-        return;
-      }
-
-      if (!status) {
         return;
       }
 

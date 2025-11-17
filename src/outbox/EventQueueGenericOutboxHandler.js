@@ -367,6 +367,40 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
     }
 
+    const [firstEntry] = result;
+    if (Array.isArray(firstEntry)) {
+      const [, innerResult] = firstEntry;
+      if (innerResult instanceof Object) {
+        return result;
+      } else {
+        return result.map(([id, status]) => {
+          return [id, { status }];
+        });
+      }
+    } else if (firstEntry instanceof Object) {
+      return result.reduce((result, entry) => {
+        let { ID } = entry;
+
+        if (!ID) {
+          if (queueEntries.length > 1) {
+            throw new Error(
+              "The CAP handler return value does not match the event-queue specification. Please check the documentation"
+            );
+          } else {
+            ID = queueEntries[0].ID;
+          }
+        }
+
+        delete entry.ID;
+        if (!("status" in entry)) {
+          entry.status = EventProcessingStatus.Done;
+        }
+
+        result.push([ID, entry]);
+        return result;
+      }, []);
+    }
+
     const valid = !result.some((entry) => {
       const [, status] = entry;
       return !validStatusValues.includes(status);

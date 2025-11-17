@@ -57,37 +57,40 @@ class StandardService extends cds.Service {
         user: req.user.id,
       });
 
-      return 3;
+      return req.data.status ?? 3;
     });
 
-    this.on("statusViaObject", (req) => {
+    this.on("returnStatusAsArray", (req) => {
+      return [[req.eventQueue.queueEntries[0].ID, req.data.status]];
+    });
+
+    this.on("asObject", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        startAfter: req.data.startAfter,
+      });
+
+      if (req.data.startAfter) {
+        req.data.startAfter = new Date(req.data.startAfter);
+      }
+
+      return { status: req.data.status ?? 3, startAfter: req.data.startAfter };
+    });
+
+    this.on("asArrayTuple", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
       });
 
-      return { status: 3 };
+      return req.eventQueue.queueEntries.map(({ ID }) => [
+        ID,
+        { startAfter: req.data.startAfter, status: 3 ?? req.data.status },
+      ]);
     });
 
-    this.on("startAfterAndStatusViaObject", (req) => {
-      cds.log(this.name).info(req.event, {
-        data: req.data,
-        user: req.user.id,
-      });
-
-      return { status: 3, startAfter: new Date(Date.now() + 10 * 60 * 1000) };
-    });
-
-    this.on("startAfterAndStatusViaArray", (req) => {
-      cds.log(this.name).info(req.event, {
-        data: req.data,
-        user: req.user.id,
-      });
-
-      return req.eventQueue.queueEntries.map(({ ID }) => [ID, { startAfter: new Date(Date.now() + 10 * 60 * 1000) }]);
-    });
-
-    this.on("startAfterAndStatusViaObjectArray", (req) => {
+    this.on("asArrayWithId", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -95,8 +98,8 @@ class StandardService extends cds.Service {
 
       return req.eventQueue.queueEntries.map(({ ID }) => ({
         ID,
-        status: 3,
-        startAfter: new Date(Date.now() + 10 * 60 * 1000),
+        ...((req.data.status || req.data.status === 0) && { status: req.data.status }),
+        startAfter: req.data.startAfter,
       }));
     });
   }

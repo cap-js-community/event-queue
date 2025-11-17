@@ -24,6 +24,7 @@ const CAP_EVENT_TYPE = "CAP_OUTBOX";
 const CAP_PARALLEL_DEFAULT = 5;
 const CAP_MAX_ATTEMPTS_DEFAULT = 5;
 const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
+const DEFAULT_RETRY_AFTER = 5 * 60 * 1000;
 const PRIORITIES = Object.values(Priorities);
 const UTC_DEFAULT = false;
 const USE_CRON_TZ_DEFAULT = true;
@@ -252,7 +253,6 @@ class Config {
       selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.retryAttempts ?? config.maxAttempts ?? CAP_MAX_ATTEMPTS_DEFAULT,
-      propagateHeaders: config.propagateHeaders ?? [],
       namespace,
       ...config,
     });
@@ -439,6 +439,8 @@ class Config {
       ? Object.fromEntries(new Map(event.appInstances.map((a) => [a, true])))
       : null;
     event.propagateHeaders = event.propagateHeaders ?? [];
+    event.retryFailedAfter = event.retryFailedAfter ?? DEFAULT_RETRY_AFTER;
+    event.retryOpenAfter = event.retryOpenAfter ?? DEFAULT_RETRY_AFTER;
   }
 
   #basicEventValidation(event) {
@@ -755,11 +757,22 @@ class Config {
   }
 
   set useAsCAPOutbox(value) {
+    if (this.#useAsCAPOutbox) {
+      return;
+    }
     this.#useAsCAPOutbox = value;
   }
 
   get useAsCAPOutbox() {
     return this.#useAsCAPOutbox;
+  }
+
+  set useAsCAPQueue(value) {
+    this.useAsCAPOutbox = value;
+  }
+
+  get useAsCAPQueue() {
+    return this.useAsCAPOutbox;
   }
 
   set userId(value) {
