@@ -348,7 +348,13 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       this.logger.error("error processing outboxed service call", err, {
         serviceName: this.eventSubType,
       });
-      return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Error]);
+      return queueEntries.map((queueEntry) => [
+        queueEntry.ID,
+        {
+          status: EventProcessingStatus.Error,
+          error: err,
+        },
+      ]);
     }
   }
 

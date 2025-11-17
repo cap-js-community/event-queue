@@ -523,7 +523,18 @@ describe("event-queue outbox", () => {
 
       await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
       await commitAndOpenNew();
-      await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 1 });
+      const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 1,
+        additionalColumns: ["error"],
+      });
+      expect(event.status).toEqual(EventProcessingStatus.Error);
+      expect(JSON.parse(event.error)).toEqual(
+        expect.objectContaining({
+          code: 404,
+          message: "error occurred",
+          numericSeverity: 4,
+        })
+      );
       expect(loggerMock.callsLengths().error).toEqual(1);
       expect(loggerMock.calls().error).toMatchSnapshot();
     });
@@ -2254,6 +2265,26 @@ describe("event-queue outbox", () => {
           expect(event.startAfter).toBeNull();
           expect(scheduleEventSpy).toHaveBeenCalledTimes(0);
           expect(loggerMock.callsLengths().error).toEqual(2);
+        });
+
+        it("Should allow to return error", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          await service.send("asArrayWithId", {
+            to: "to",
+            subject: "subject",
+            status: 3,
+            errorMessage: "error occurred",
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+            additionalColumns: ["error"],
+          });
+          expect(event.startAfter).toBeDefined();
+          expect(event.error).toContain("error occurred");
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+          expect(loggerMock.callsLengths().error).toEqual(0);
         });
       });
     });

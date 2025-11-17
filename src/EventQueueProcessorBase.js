@@ -25,7 +25,7 @@ const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 const SUFFIX_PERIODIC = "_PERIODIC";
 
-const ALLOWED_FIELDS_FOR_UPDATE = ["status", "startAfter"];
+const ALLOWED_FIELDS_FOR_UPDATE = ["status", "startAfter", "error"];
 
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
@@ -453,6 +453,7 @@ class EventQueueProcessorBase {
 
       for (const { ids, data } of Object.values(updateData)) {
         if (!("status" in data)) {
+          // TODO: Can this still happen?
           this.logger.error("can't find status value in return value of event-processing. Setting event to done", {
             ids,
             // NOTE: use first id as same return values are clustered
@@ -474,6 +475,10 @@ class EventQueueProcessorBase {
           data.startAfter = this.#normalizeDate(data.startAfter);
         }
 
+        if (data.error) {
+          data.error = this.#error2String(data.error);
+        }
+
         if (!data.startAfter && [EventProcessingStatus.Error, EventProcessingStatus.Open].includes(data.status)) {
           data.startAfter = new Date(
             Date.now() +
@@ -481,7 +486,6 @@ class EventQueueProcessorBase {
           );
         }
 
-        // TODO: check that startAfter is only allowed for tbp events
         if (data.startAfter) {
           this.#eventSchedulerInstance.scheduleEvent(
             this.__context.tenant,
@@ -502,6 +506,28 @@ class EventQueueProcessorBase {
         );
       }
     });
+  }
+
+  #error2String(error) {
+    return JSON.stringify(error, (_, value) => this.#errorReplacer(value));
+  }
+
+  #errorReplacer(value) {
+    if (!(value instanceof Error)) {
+      return value;
+    }
+
+    const plain = {
+      name: value.name,
+      message: value.message,
+      stack: value.stack,
+    };
+
+    for (const key in value) {
+      plain[key] = value[key];
+    }
+
+    return plain;
   }
 
   #normalizeDate(value) {

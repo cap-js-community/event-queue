@@ -278,7 +278,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req error should be caught
 [
   [
     "error processing outboxed service call",
-    [Error: error occured],
+    [Error: error occurred],
     {
       "serviceName": "NotificationService",
     },
@@ -290,7 +290,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req reject should be caugh
 [
   [
     "error processing outboxed service call",
-    [Error: error occured],
+    [Error: error occurred],
     {
       "serviceName": "NotificationService",
     },

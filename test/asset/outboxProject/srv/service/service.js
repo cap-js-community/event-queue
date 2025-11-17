@@ -15,11 +15,11 @@ class NotificationService extends cds.Service {
     });
 
     this.on("rejectEvent", (req) => {
-      req.reject(404, "error occured");
+      req.reject(404, "error occurred");
     });
 
     this.on("errorEvent", (req) => {
-      req.error(404, "error occured");
+      req.error(404, "error occurred");
     });
   }
 }
