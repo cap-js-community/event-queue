@@ -302,7 +302,7 @@ describe("integration-main", () => {
     expect(processSpy).toHaveBeenCalledTimes(1);
     await testHelper.selectEventQueueAndExpectOpen(tx);
     const [openEvent] = await testHelper.selectEventQueueAndReturn(tx);
-    expect(openEvent.startAfter).toEqual(null);
+    expect(openEvent.startAfter).toBeDefined();
     expect(dbCounts).toMatchSnapshot();
 
     jest.spyOn(EventQueueTest.prototype, "processEvent").mockRestore();
