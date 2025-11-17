@@ -286,18 +286,6 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req error should be caught
 ]
 `;
 
-exports[`event-queue outbox monkeyPatchCAPOutbox=true req reject should be caught for send 1`] = `
-[
-  [
-    "error processing outboxed service call",
-    [Error: error occurred],
-    {
-      "serviceName": "NotificationService",
-    },
-  ],
-]
-`;
-
 exports[`event-queue outbox monkeyPatchCAPOutbox=true req reject should be caught for send and rollback transaction 1`] = `
 [
   [
