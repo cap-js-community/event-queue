@@ -76,11 +76,13 @@ class StandardService extends cds.Service {
         req.data.startAfter = new Date(req.data.startAfter);
       }
 
-      return {
-        status: req.data.status ?? 3,
-        startAfter: req.data.startAfter,
-        ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
-      };
+      return req.data.returnData
+        ? req.data
+        : {
+            status: req.data.status ?? 3,
+            startAfter: req.data.startAfter,
+            ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
+          };
     });
 
     this.on("asArrayTuple", (req) => {
@@ -92,11 +94,13 @@ class StandardService extends cds.Service {
 
       return req.eventQueue.queueEntries.map(({ ID }) => [
         ID,
-        {
-          startAfter: req.data.startAfter,
-          status: 3 ?? req.data.status,
-          ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
-        },
+        req.data.returnData
+          ? req.data
+          : {
+              startAfter: req.data.startAfter,
+              status: 3 ?? req.data.status,
+              ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
+            },
       ]);
     });
 
@@ -109,9 +113,13 @@ class StandardService extends cds.Service {
 
       return req.eventQueue.queueEntries.map(({ ID }) => ({
         ID,
-        ...((req.data.status || req.data.status === 0) && { status: req.data.status }),
-        startAfter: req.data.startAfter,
-        ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
+        ...(req.data.returnData
+          ? req.data
+          : {
+              ...((req.data.status || req.data.status === 0) && { status: req.data.status }),
+              startAfter: req.data.startAfter,
+              ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
+            }),
       }));
     });
   }
