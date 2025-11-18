@@ -10,23 +10,19 @@ class NotificationService extends cds.Service {
         data: req.data,
         user: req.user.id,
         subType: req.eventQueue?.processor.eventSubType,
+        headers: req.headers,
       });
     });
 
-    this.on("returnPlainStatus", (req) => {
-      return req.data.status;
-    });
-
-    this.on("returnStatusAsArray", (req) => {
-      return [[req.eventQueue.queueEntries[0].ID, req.data.status]];
-    });
-
-    this.on("rejectEvent", (req) => {
-      req.reject(404, "error occured");
+    this.on("rejectEvent", async (req) => {
+      await INSERT.into("sap.eventqueue.Lock").entries({
+        code: req.data.lockId,
+      });
+      req.reject(404, "error occurred");
     });
 
     this.on("errorEvent", (req) => {
-      req.error(404, "error occured");
+      req.error(404, "error occurred");
     });
   }
 }

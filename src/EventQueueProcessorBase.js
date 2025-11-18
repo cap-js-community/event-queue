@@ -24,7 +24,8 @@ const SELECT_LIMIT_EVENTS_PER_TICK = 100;
 const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 const SUFFIX_PERIODIC = "_PERIODIC";
-const DEFAULT_RETRY_AFTER = 5 * 60 * 1000;
+
+const ALLOWED_FIELDS_FOR_UPDATE = ["status", "startAfter", "error"];
 
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];
@@ -38,7 +39,6 @@ class EventQueueProcessorBase {
   #eventConfig;
   #isPeriodic;
   #lastSuccessfulRunTimestamp;
-  #retryFailedAfter;
   #keepAliveRunner;
   #currentKeepAlivePromise = Promise.resolve();
   #etagMap;
@@ -66,7 +66,6 @@ class EventQueueProcessorBase {
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
-    this.#retryFailedAfter = this.#eventConfig.retryFailedAfter ?? DEFAULT_RETRY_AFTER;
     this.__concurrentEventProcessing = this.#eventConfig.multiInstanceProcessing;
     this.__retryAttempts = this.#isPeriodic ? 1 : this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
     this.__selectMaxChunkSize = this.#eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
@@ -345,17 +344,23 @@ class EventQueueProcessorBase {
     }
   }
 
-  #determineAndAddEventStatusToMap(id, processingStatus, statusMap = this.__statusMap) {
+  #determineAndAddEventStatusToMap(id, statusOrUpdateData, statusMap = this.__statusMap) {
+    if (typeof statusOrUpdateData === "number") {
+      statusOrUpdateData = { status: statusOrUpdateData };
+    }
+
     if (!statusMap[id]) {
-      statusMap[id] = processingStatus;
+      statusMap[id] = statusOrUpdateData;
       return;
     }
-    if ([EventProcessingStatus.Error, EventProcessingStatus.Exceeded].includes(statusMap[id])) {
+
+    if ([EventProcessingStatus.Error, EventProcessingStatus.Exceeded].includes(statusMap[id].status)) {
       // NOTE: worst aggregation --> if already error|exceeded keep this state
       return;
     }
-    if (statusMap[id] >= 0) {
-      statusMap[id] = processingStatus;
+
+    if (statusMap[id].status >= statusOrUpdateData.status) {
+      statusMap[id] = statusOrUpdateData;
     }
   }
 
@@ -396,6 +401,25 @@ class EventQueueProcessorBase {
     );
   }
 
+  #normalizeStatusMap(statusMap) {
+    const originalMap = {};
+    for (const [id, entry] of Object.entries(statusMap)) {
+      originalMap[id] = entry;
+      const result = {};
+      if (typeof entry === "number") {
+        result.status = entry;
+      } else if (typeof entry === "object") {
+        for (const fieldName of ALLOWED_FIELDS_FOR_UPDATE) {
+          if (fieldName in entry) {
+            result[fieldName] = entry[fieldName];
+          }
+        }
+      }
+      statusMap[id] = result;
+    }
+    return originalMap;
+  }
+
   /**
    * This function validates for all selected events one status has been submitted. It's also validated that only for
    * selected events a status has been submitted. Persisting the status of events is done in a dedicated database tx.
@@ -406,96 +430,121 @@ class EventQueueProcessorBase {
       eventType: this.#eventType,
       eventSubType: this.#eventSubType,
     });
+    const originalStatusMap = this.#normalizeStatusMap(statusMap);
     this.#ensureOnlySelectedQueueEntries(statusMap);
     if (!skipChecks) {
       this.#ensureEveryQueueEntryHasStatus();
     }
     this.#ensureEveryStatusIsAllowed(statusMap);
-
-    const { success, failed, exceeded, invalidAttempts } = Object.entries(statusMap).reduce(
-      (result, [queueEntryId, processingStatus]) => {
-        this.__commitedStatusMap[queueEntryId] = processingStatus;
-        delete this.__notCommitedStatusMap[queueEntryId];
-        if (processingStatus === EventProcessingStatus.Open) {
-          result.invalidAttempts.push(queueEntryId);
-        } else if (processingStatus === EventProcessingStatus.Done) {
-          result.success.push(queueEntryId);
-        } else if (processingStatus === EventProcessingStatus.Error) {
-          result.failed.push(queueEntryId);
-        } else if (processingStatus === EventProcessingStatus.Exceeded) {
-          result.exceeded.push(queueEntryId);
-        }
-        return result;
-      },
-      {
-        success: [],
-        failed: [],
-        exceeded: [],
-        invalidAttempts: [],
-      }
-    );
-    if (![success, failed, exceeded, invalidAttempts].some((statusArray) => statusArray.length)) {
-      this.logger.debug("exiting persistEventStatus", {
-        eventType: this.#eventType,
-        eventSubType: this.#eventSubType,
-      });
-      return;
-    }
-
     return await trace(this.baseContext, "persist-event-status", async () => {
       this.logger.debug("persistEventStatus for entries", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
-        invalidAttempts,
-        failed,
-        exceeded,
-        success,
+        statusMap,
       });
-      if (invalidAttempts.length) {
-        await tx.run(
-          UPDATE.entity(this.#config.tableNameEventQueue)
-            .set({
-              status: EventProcessingStatus.Open,
-              lastAttemptTimestamp: new Date().toISOString(),
-              attempts: { "-=": 1 },
-            })
-            .where("ID IN", invalidAttempts)
-        );
-      }
       const ts = new Date().toISOString();
-      const updateTuples = [
-        [success, EventProcessingStatus.Done],
-        [failed, EventProcessingStatus.Error],
-        [exceeded, EventProcessingStatus.Exceeded],
-      ];
+      const updateData = Object.entries(statusMap).reduce((result, [id, data]) => {
+        const key = ALLOWED_FIELDS_FOR_UPDATE.map((name) => [name, data[name]])
+          .flat()
+          .join("##");
 
-      for (const [eventIds, status] of updateTuples) {
-        if (!eventIds.length) {
+        result[key] ??= { data, ids: [] };
+        result[key].ids.push(id);
+        return result;
+      }, {});
+
+      for (const { ids, data } of Object.values(updateData)) {
+        if (!("status" in data)) {
+          // TODO: Can this still happen?
+          this.logger.error("can't find status value in return value of event-processing. Setting event to done", {
+            ids,
+            // NOTE: use first id as same return values are clustered
+            eventReturnValue: originalStatusMap[ids[0]],
+          });
           continue;
         }
-        let startAfter;
-        if (status === EventProcessingStatus.Error) {
-          startAfter = new Date(Date.now() + this.#retryFailedAfter);
+
+        for (const id of ids) {
+          this.__commitedStatusMap[id] = data.status;
+          delete this.__notCommitedStatusMap[id];
+        }
+
+        if (![EventProcessingStatus.Open, EventProcessingStatus.Error].includes(data.status)) {
+          delete data.startAfter;
+        }
+
+        if (data.startAfter) {
+          data.startAfter = this.#normalizeDate(data.startAfter);
+        }
+
+        if (data.error) {
+          data.error = this.#error2String(data.error);
+        }
+
+        if (!data.startAfter && [EventProcessingStatus.Error, EventProcessingStatus.Open].includes(data.status)) {
+          data.startAfter = new Date(
+            Date.now() +
+              (EventProcessingStatus.Error ? this.#eventConfig.retryFailedAfter : this.#eventConfig.retryOpenAfter)
+          );
+        }
+
+        if (data.startAfter) {
           this.#eventSchedulerInstance.scheduleEvent(
             this.__context.tenant,
             this.#eventType,
             this.#eventSubType,
             this.#namespace,
-            startAfter
+            data.startAfter
           );
         }
 
         await tx.run(
           UPDATE.entity(this.#config.tableNameEventQueue)
             .set({
-              status: status,
+              ...data,
               lastAttemptTimestamp: ts,
-              ...(status === EventProcessingStatus.Error ? { startAfter: startAfter.toISOString() } : {}),
             })
-            .where("ID IN", eventIds)
+            .where("ID IN", ids)
         );
       }
     });
+  }
+
+  #error2String(error) {
+    return JSON.stringify(error, (_, value) => this.#errorReplacer(value));
+  }
+
+  #errorReplacer(value) {
+    if (!(value instanceof Error)) {
+      return value;
+    }
+
+    const plain = {
+      name: value.name,
+      message: value.message,
+      stack: value.stack,
+    };
+
+    for (const key in value) {
+      plain[key] = value[key];
+    }
+
+    return plain;
+  }
+
+  #normalizeDate(value) {
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (typeof value === "string" || typeof value === "number") {
+      const date = new Date(value);
+      if (!isNaN(date)) {
+        return date;
+      }
+    }
+
+    return null;
   }
 
   #ensureEveryQueueEntryHasStatus() {
@@ -507,17 +556,17 @@ class EventQueueProcessorBase {
       ) {
         return;
       }
-      this.logger.error("Missing status for selected event entry. Setting status to error", {
+      this.logger.error("Missing status for selected event entry. Setting status to done", {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
         queueEntry,
       });
-      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
+      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Done);
     });
   }
 
   #ensureEveryStatusIsAllowed(statusMap) {
-    Object.entries(statusMap).forEach(([queueEntryId, status]) => {
+    Object.entries(statusMap).forEach(([queueEntryId, { status }]) => {
       if (
         [
           EventProcessingStatus.Open,
@@ -533,7 +582,7 @@ class EventQueueProcessorBase {
         eventType: this.#eventType,
         eventSubType: this.#eventSubType,
         queueEntryId,
-        status: statusMap[queueEntryId],
+        status: statusMap[queueEntryId].status,
       });
       delete statusMap[queueEntryId];
     });
@@ -1157,7 +1206,10 @@ class EventQueueProcessorBase {
   }
 
   statusMapContainsError(statusMap) {
-    return Object.values(statusMap).includes(EventProcessingStatus.Error);
+    this.#normalizeStatusMap(statusMap);
+    return Object.values(statusMap)
+      .map(({ status }) => status)
+      .includes(EventProcessingStatus.Error);
   }
 
   clearEventProcessingContext() {

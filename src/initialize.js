@@ -35,6 +35,7 @@ const CONFIG_VARS = [
   ["updatePeriodicEvents", true],
   ["thresholdLoggingEventProcessing", 50],
   ["useAsCAPOutbox", false],
+  ["useAsCAPQueue", false],
   ["userId", null],
   ["cleanupLocksAndEventsForDev", false],
   ["redisOptions", {}],
@@ -65,6 +66,7 @@ const CONFIG_VARS = [
  * @param {boolean} [options.updatePeriodicEvents=true] - Automatically update periodic events.
  * @param {number} [options.thresholdLoggingEventProcessing=50] - Threshold for logging event processing time (in milliseconds).
  * @param {boolean} [options.useAsCAPOutbox=false] - Use the event queue as a CAP Outbox.
+ * @param {boolean} [options.useAsCAPQueue=false] - Use the event queue as a CAP Outbox.
  * @param {string} [options.userId=null] - ID of the user initiating the process.
  * @param {boolean} [options.cleanupLocksAndEventsForDev=false] - Cleanup locks and events for development environments.
  * @param {Object} [options.redisOptions={}] - Configuration options for Redis.
