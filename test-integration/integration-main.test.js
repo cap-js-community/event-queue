@@ -155,6 +155,24 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
+  it("cluster multiplies out", async () => {
+    await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
+    dbCounts = {};
+    const event = eventQueue.config.events[0];
+    jest
+      .spyOn(EventQueueTest.prototype, "clusterQueueEntries")
+      .mockImplementationOnce(function (queueEntriesWithPayloadMap) {
+        Object.entries(queueEntriesWithPayloadMap).forEach(([key, { queueEntry, payload }]) => {
+          this.addEntryToProcessingMap(key, queueEntry, payload);
+          this.addEntryToProcessingMap(key, queueEntry, payload);
+        });
+      });
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectDone(tx);
+    expect(dbCounts).toMatchSnapshot();
+  });
+
   it("if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};

@@ -353,12 +353,14 @@ class EventQueueProcessorBase {
       statusMap[id] = statusOrUpdateData;
       return;
     }
+
     if ([EventProcessingStatus.Error, EventProcessingStatus.Exceeded].includes(statusMap[id].status)) {
       // NOTE: worst aggregation --> if already error|exceeded keep this state
       return;
     }
-    if (statusMap[id].status >= 0) {
-      statusMap[id] = { status: statusOrUpdateData };
+
+    if (statusMap[id].status >= statusOrUpdateData.status) {
+      statusMap[id] = statusOrUpdateData;
     }
   }
 
