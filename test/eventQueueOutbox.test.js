@@ -137,6 +137,21 @@ cds.env.requires.Namespace = {
   },
 };
 
+cds.env.requires["sapafcsdk.scheduling.ProviderService"] = {
+  impl: path.join(basePath, "srv/service/standard-service.js"),
+  outbox: {
+    kind: "persistent-outbox",
+    events: {
+      main: {
+        priority: "high",
+      },
+      timeBucketAction: {
+        cron: "*/5 * * * *",
+      },
+    },
+  },
+};
+
 const project = __dirname + "/asset/outboxProject"; // The project's root folder
 cds.test(project);
 
@@ -971,7 +986,7 @@ describe("event-queue outbox", () => {
       it("insert periodic event for CAP service", async () => {
         await checkAndInsertPeriodicEvents(context);
         const [periodicEvent] = await testHelper.selectEventQueueAndReturn(tx, {
-          expectedLength: 3,
+          expectedLength: 4,
           additionalColumns: ["type", "subType"],
         });
         expect(periodicEvent.startAfter).toBeDefined();
@@ -2304,6 +2319,34 @@ describe("event-queue outbox", () => {
           expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
+      });
+    });
+
+    describe("CDS namespace support", () => {
+      it("action without any specific config", async () => {
+        const service = await cds.connect.to("sapafcsdk.scheduling.ProviderService");
+        await service.send("plainStatus", {
+          status: EventProcessingStatus.Done,
+        });
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("action with any specific config", async () => {
+        const service = await cds.connect.to("sapafcsdk.scheduling.ProviderService");
+        await service.send("main", {
+          status: EventProcessingStatus.Done,
+        });
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.main`);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
       });
     });
   });
