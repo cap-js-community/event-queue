@@ -409,7 +409,7 @@ class EventQueueProcessorBase {
       if (typeof entry === "number") {
         result.status = entry;
       } else if (typeof entry === "object") {
-        for (const fieldName of ALLOWED_FIELDS_FOR_UPDATE) {
+        for (const fieldName of this.allowedFieldsEventHandler) {
           if (fieldName in entry) {
             result[fieldName] = entry[fieldName];
           }
@@ -444,7 +444,8 @@ class EventQueueProcessorBase {
       });
       const ts = new Date().toISOString();
       const updateData = Object.entries(statusMap).reduce((result, [id, data]) => {
-        const key = ALLOWED_FIELDS_FOR_UPDATE.map((name) => [name, data[name]])
+        const key = this.allowedFieldsEventHandler
+          .map((name) => [name, data[name]])
           .flat()
           .join("##");
 
@@ -1359,6 +1360,10 @@ class EventQueueProcessorBase {
 
   get namespace() {
     return this.#namespace;
+  }
+
+  get allowedFieldsEventHandler() {
+    return ALLOWED_FIELDS_FOR_UPDATE;
   }
 }
 
