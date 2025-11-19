@@ -9,12 +9,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Breaking Changes
 
-- `redisNamespace` has been removed in favour of the new namespace concept. The same can be archived with the `namespace` parameter.
+- **Removed `redisNamespace`**: The `redisNamespace` parameter has been replaced by the new `namespace` concept. Use the `namespace` parameter to achieve the same functionality.
+- **Legacy Event Processor behavior change**: Events without a returned status are now treated as *successfully processed* (instead of erroneous). This prevents multiple processing attempts for the same event.
 
 ### Added
 
-- add namespaces to support setups where multiple microservices share the same database (HDI Container). See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces).
-- support for cds.queued
+- **Namespace support for multi-service setups**: Introduced namespaces to support scenarios where multiple microservices share the same database (HDI Container). See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces).
+- **Enhanced CAP outbox service return values**: CAP outbox services can now return more detailed information. In addition to the event status, you can now update the `startAfter` and `error` fields of an event. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces).
+- **Configurable reprocessing for 'Open' event status**: With the event configuration property `` When an event status of `Open` is returned, you can now configure when such events should be reprocessed. This allows you to mark event processing as invalid without increasing the attempt counter.
+- **CDS namespace support in service names**: Service names now support CDS namespaces, e.g., `cds.env.requires["cds.xt.DeploymentService"]`.
+- **Support for `cds.queued`**: Added support for the `cds.queued` property.
 
 ## v1.11.1 - 2025-11-13
 

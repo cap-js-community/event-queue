@@ -17,7 +17,7 @@ nav_order: 4
 
 # Where to Define Events?
 
-Events don't need to be defined if the CAP Outbox approach is used as they are auto detected. However, if you want to
+Events don't need to be defined if the CAP Queue approach is used as they are auto detected. However, if you want to
 customize the event configuration like retry attempts, transaction mode, parallel processing, etc., you can configure
 this via `cds.env`. The legacy approach of explictly define Events and implementing Event-Queue classes is still
 supported
@@ -26,7 +26,7 @@ and decribed here, but not recommended to use.
 {% include warning.html message="
 Before event-queue version 1.10.0, it was necessary to implement EventQueue classes to take full advantage of features
 such as periodic events, clustering, hooks for exceeded events, and more. Since version 1.10.0, all these features are
-also available for CAP services using [event-queue as an outbox](/event-queue/use-as-cap-outbox/). Therefore, it is
+also available for CAP services using [event-queue as CAP Queue](/event-queue/use-as-cap-outbox/). Therefore, it is
 strongly recommended to use CAP
 services instead of EventQueue classes.
 " %}
@@ -41,7 +41,7 @@ they should be processed.
 ## Parameters
 
 | Property                      | Description                                                                                                                                                                                                                                                                                                                                                                                                                               | Default Value   |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| ----------------------------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| --------------- |
 | impl                          | Path of the implementation class associated with the event.                                                                                                                                                                                                                                                                                                                                                                               | -               |
 | type                          | Specifies the type of the event.                                                                                                                                                                                                                                                                                                                                                                                                          | -               |
 | subType                       | Specifies the subtype of the event, further categorizing the event type.                                                                                                                                                                                                                                                                                                                                                                  | -               |
@@ -49,7 +49,7 @@ they should be processed.
 | load                          | Indicates the load of the event, affecting the processing concurrency.                                                                                                                                                                                                                                                                                                                                                                    | 1               |
 | retryAttempts                 | Number of retry attempts for failed events. Set to `-1` for infinite retries.                                                                                                                                                                                                                                                                                                                                                             | 3               |
 | processAfterCommit            | Indicates whether an event is processed immediately after the transaction, in which the event was written, has been committed.                                                                                                                                                                                                                                                                                                            | true            |
-| propagateHeaders              | Specifies which headers from the original CDS context should be forwarded to the outbox call. Provide an array of header names to propagate.                                                                                                                                                                                                                                                                                              | []              |
+| propagateHeaders              | Specifies which headers from the original CDS context should be forwarded to the queue call. Provide an array of header names to propagate.                                                                                                                                                                                                                                                                                               | []              |
 | parallelEventProcessing       | Number of events of the same type and subType that can be processed in parallel. The maximum limit is 10.                                                                                                                                                                                                                                                                                                                                 | 1               |
 | transactionMode               | Specifies the transaction mode for the event. For allowed values, refer to [Transaction Handling](/event-queue/transaction-handling/#transaction-modes).                                                                                                                                                                                                                                                                                  | isolated        |
 | selectMaxChunkSize            | Number of events selected in a single batch. Set `checkForNextChunk` to `true` if you want to check for more available events after processing a batch.                                                                                                                                                                                                                                                                                   | 100             |
@@ -292,7 +292,7 @@ The namespace for an event is determined based on the following order of precede
 
 ### Configuration at the Service or Event Level
 
-You can assign a specific namespace to a CAP service’s outbox or even to a particular event within that outbox. This is
+You can assign a specific namespace to a CAP service’s or even to a particular event within that service. This is
 useful when a service consistently publishes events to a namespace different from the global default.
 
 In this example, the `StandardService` defaults to publishing events to `namespaceA`. However, the specific event
@@ -304,8 +304,8 @@ In this example, the `StandardService` defaults to publishing events to `namespa
     "requires": {
       "StandardService": {
         "impl": "...",
-        "outbox": {
-          "kind": "persistent-outbox",
+        "queued": {
+          "kind": "persistent-queue",
           "namespace": "namespaceA",
           "events": {
             "timeBucketAction": {
