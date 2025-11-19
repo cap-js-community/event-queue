@@ -170,7 +170,7 @@ class Config {
 
   normalizeSubType(type, rawSubType) {
     if (![CAP_EVENT_TYPE, [CAP_EVENT_TYPE, SUFFIX_PERIODIC].join("")].includes(type)) {
-      return {subType: rawSubType};
+      return { subType: rawSubType };
     }
 
     const serviceParts = rawSubType.split(".");
