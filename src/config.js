@@ -169,7 +169,7 @@ class Config {
   }
 
   normalizeSubType(type, rawSubType) {
-    if (!type.startsWith(CAP_EVENT_TYPE)) {
+    if (![CAP_EVENT_TYPE, [CAP_EVENT_TYPE, SUFFIX_PERIODIC].join("")].includes(type)) {
       return rawSubType;
     }
 
