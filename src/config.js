@@ -143,7 +143,7 @@ class Config {
   }
 
   isCapOutboxEvent(type) {
-    return type === CAP_EVENT_TYPE;
+    return [CAP_EVENT_TYPE, [CAP_EVENT_TYPE, SUFFIX_PERIODIC].join("")].includes(type);
   }
 
   hasEventAfterCommitFlag(type, subType, namespace = this.namespace) {
@@ -170,7 +170,7 @@ class Config {
 
   normalizeSubType(type, rawSubType) {
     if (![CAP_EVENT_TYPE, [CAP_EVENT_TYPE, SUFFIX_PERIODIC].join("")].includes(type)) {
-      return rawSubType;
+      return {subType: rawSubType};
     }
 
     const serviceParts = rawSubType.split(".");

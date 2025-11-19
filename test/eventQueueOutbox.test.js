@@ -1731,8 +1731,19 @@ describe("event-queue outbox", () => {
     });
 
     describe("redisPubSub", () => {
-      beforeAll(() => {
+      beforeAll(async () => {
         config.isEventQueueActive = true;
+        for (const serviceName in cds.env.requires) {
+          const config = cds.env.requires[serviceName];
+          if (!config.outbox) {
+            continue;
+          }
+
+          delete cds.services[serviceName];
+        }
+        Object.keys(config._rawEventMap)
+          .filter((name) => !name.includes("PERIODIC"))
+          .forEach((key) => delete config._rawEventMap[key]);
       });
 
       afterAll(() => {
@@ -1749,11 +1760,12 @@ describe("event-queue outbox", () => {
           JSON.stringify({
             type: "CAP_OUTBOX",
             subType: "OutboxCustomHooks",
+            namespace: config.namespace,
           })
         );
         expect(runnerSpy).toHaveBeenCalledTimes(1);
-        expect(connectSpy).toHaveBeenCalledTimes(0);
-        expect(configSpy).toHaveBeenCalledTimes(1);
+        expect(connectSpy).toHaveBeenCalledTimes(1);
+        expect(configSpy).toHaveBeenCalledTimes(2);
         expect(configAddSpy).toHaveBeenCalledTimes(0);
         expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
       });
@@ -1768,12 +1780,13 @@ describe("event-queue outbox", () => {
           JSON.stringify({
             type: "CAP_OUTBOX",
             subType: "OutboxCustomHooks.connectSpecific",
+            namespace: config.namespace,
           })
         );
         expect(runnerSpy).toHaveBeenCalledTimes(1);
         expect(connectSpy).toHaveBeenCalledTimes(1);
         expect(connectSpy).toHaveBeenCalledWith("OutboxCustomHooks");
-        expect(configSpy).toHaveBeenCalledTimes(3);
+        expect(configSpy).toHaveBeenCalledTimes(4);
         expect(configAddSpy).toHaveBeenCalledTimes(1);
         expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
       });
@@ -1788,11 +1801,12 @@ describe("event-queue outbox", () => {
           JSON.stringify({
             type: "CAP_OUTBOX_PERIODIC",
             subType: "NotificationServicePeriodic.main",
+            namespace: config.namespace,
           })
         );
         expect(runnerSpy).toHaveBeenCalledTimes(1);
         expect(connectSpy).toHaveBeenCalledTimes(0);
-        expect(configSpy).toHaveBeenCalledTimes(1);
+        expect(configSpy).toHaveBeenCalledTimes(2);
         expect(configAddSpy).toHaveBeenCalledTimes(0);
         expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
       });
