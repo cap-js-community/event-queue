@@ -136,7 +136,12 @@ describe("integration-main", () => {
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(1);
     expect(loggerMock.calls().error[0][1]).toMatchInlineSnapshot(`[Error: error during processing]`);
-    await testHelper.selectEventQueueAndExpectError(tx);
+    const [eventDb] = await testHelper.selectEventQueueAndReturn(tx, { additionalColumns: ["error"] });
+    expect(eventDb.status).toEqual(EventProcessingStatus.Error);
+    expect(JSON.parse(eventDb.error)).toMatchObject({
+      name: "Error",
+      message: "error during processing",
+    });
     expect(dbCounts).toMatchSnapshot();
   });
 

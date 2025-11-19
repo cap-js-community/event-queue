@@ -42,7 +42,7 @@ Services can be queued without any additional configuration. In this scenario, t
 default parameters of the CAP queue and the event-queue. Currently, the CAP queue implementation supports the
 following parameters, which are mapped to the corresponding configuration parameters of the event-queue:
 
-| CAP queue  | event-queue             | CAP default       |
+| CAP queue   | event-queue             | CAP default       |
 | ----------- | ----------------------- | ----------------- |
 | chunkSize   | selectMaxChunkSize      | 100               |
 | maxAttempts | retryAttempts           | 20                |
@@ -332,13 +332,80 @@ class TaskService extends cds.Service {
 }
 ```
 
-## How to return a custom status?
+## Returning a Custom Status and Event Properties from a Service Handler
 
-It's possible to return a custom status for an event. The allowed status values are
-explained [here](/event-queue/status-handling/).
+Service handlers can return not just a processing **status**, but also event properties like **startAfter** and
+**error**. This enables fine-grained management of the event lifecycle, including custom retry schedules and detailed
+error reporting.
 
-```js
-this.on("returnPlainStatus", (req) => {
+### Supported Return Properties
+
+For all object or array return structures, the return value is **only interpreted** if each object contains **only the allowed properties**:
+
+- **`status`**: A numerical value indicating the processing result for an event entry. The allowed status values are
+  explained [here](/event-queue/status-handling/).
+- **`startAfter`**: A `Date` object that specifies the exact time after which a failed or pending event should be retried. This allows for custom backoff strategies.
+- **`error`**: An `Error` object or a string to attach a custom error message to the event log, which is useful for diagnostics.
+
+### Return Formats
+
+You can return this information in several ways, depending on whether you are setting the outcome for an entire batch or
+for individual entries within it.
+
+**1. Plain Status Value**
+
+For simple cases, returning a single number sets the status for all event entries in the current batch.
+
+```javascript
+this.on("plainStatus", (req) => {
+  // Sets the status to Done for all entries in the batch
   return EventProcessingStatus.Done;
+});
+```
+
+**2. Single Object for All Entries**
+
+To apply the same outcome to all entries in a batch, return a single object containing `status`, `startAfter`, and/or `error`.
+
+```javascript
+this.on("myEvent", (req) => {
+  return {
+    status: EventProcessingStatus.Error,
+    startAfter: new Date(Date.now() + 60000),
+    error: new Error("Temporary failure, will retry."),
+  };
+});
+```
+
+**3. Array of Tuples for Per-Entry Control**
+
+To set a different outcome for each event entry, return an array of tuples. Each tuple should contain the entry `ID` and
+an object with its specific `status`, `startAfter`, and/or `error`. This is only useful if event clustering is used as
+described [here](#how-to-cluster-multiple-queue-events).
+
+```javascript
+this.on("myBatchEvent", (req) => {
+  return req.eventQueue.queueEntries.map(({ ID }, index) => [
+    ID,
+    {
+      status: index % 2 === 0 ? EventProcessingStatus.Done : EventProcessingStatus.Error,
+      error: index % 2 === 0 ? undefined : new Error("Odd entry failed."),
+    },
+  ]);
+});
+```
+
+**4. Array of Objects with IDs**
+
+As an alternative to tuples, you can return an array of objects. Each object must include the `ID` of the event entry
+along with its specific outcome properties.
+
+```javascript
+this.on("myBatchEvent", (req) => {
+  return req.eventQueue.queueEntries.map(({ ID }, index) => ({
+    ID,
+    status: index % 2 === 0 ? EventProcessingStatus.Done : EventProcessingStatus.Error,
+    startAfter: index % 2 === 0 ? undefined : new Date(Date.now() + 30000),
+  }));
 });
 ```
