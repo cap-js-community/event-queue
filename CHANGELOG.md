@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - **Removed `redisNamespace`**: The `redisNamespace` parameter has been replaced by the new `namespace` concept. Use the `namespace` parameter to achieve the same functionality.
 - **Legacy Event Processor behavior change**: Events without a returned status are now treated as *successfully processed* (instead of erroneous). This prevents multiple processing attempts for the same event.
 
-### Added
+## Added
 
 - **Namespace support for multi-service setups**: Introduced namespaces to support scenarios where multiple microservices share the same database (HDI Container). See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces).
 - **Enhanced CAP outbox service return values**: CAP outbox services can now return more detailed information. In addition to the event status, you can now update the `startAfter` and `error` fields of an event. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces).
