@@ -366,7 +366,11 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     }
 
     if (result instanceof Object && !Array.isArray(result)) {
-      return queueEntries.map((queueEntry) => [queueEntry.ID, result]);
+      const allAllowed = !Object.keys(result).some((name) => !this.allowedFieldsEventHandler.includes(name));
+      return queueEntries.map((queueEntry) => [
+        queueEntry.ID,
+        allAllowed ? result : { status: EventProcessingStatus.Done },
+      ]);
     }
 
     if (!Array.isArray(result)) {
@@ -377,7 +381,11 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     if (Array.isArray(firstEntry)) {
       const [, innerResult] = firstEntry;
       if (innerResult instanceof Object) {
-        return result;
+        const allAllowed = !Object.keys(innerResult).some((name) => !this.allowedFieldsEventHandler.includes(name));
+        if (allAllowed) {
+          return result;
+        }
+        return queueEntries.map((queueEntry) => [queueEntry.ID, { status: EventProcessingStatus.Done }]);
       } else {
         return result.map(([id, status]) => {
           return [id, { status }];
@@ -398,6 +406,12 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
         }
 
         delete entry.ID;
+        const allAllowed = !Object.keys(entry).some((name) => !this.allowedFieldsEventHandler.includes(name));
+
+        if (!allAllowed) {
+          result.push([ID, { status: EventProcessingStatus.Done }]);
+        }
+
         if (!("status" in entry)) {
           entry.status = EventProcessingStatus.Done;
         }

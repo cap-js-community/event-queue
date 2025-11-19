@@ -2066,6 +2066,19 @@ describe("event-queue outbox", () => {
           await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
           expect(loggerMock.callsLengths().error).toEqual(2);
         });
+
+        it("return null", async () => {
+          const service = await cds.connect.to("StandardService");
+          await service.send("returnStatusAsArray", {
+            status: null,
+          });
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+          expect(loggerMock.callsLengths().error).toEqual(2);
+        });
       });
 
       describe("as object", () => {
@@ -2167,6 +2180,24 @@ describe("event-queue outbox", () => {
           expect(scheduleEventSpy).toHaveBeenCalledTimes(0);
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
+
+        it("object without any valid field; just random properties", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          await service.send("asObject", {
+            returnData: true,
+            abc: 123,
+            status: 3,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeNull();
+          expect(event.status).toEqual(EventProcessingStatus.Done);
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(0);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
       });
 
       describe("as Array Tuple", () => {
@@ -2221,6 +2252,22 @@ describe("event-queue outbox", () => {
           const date = Math.abs(Date.now() - (new Date(event.startAfter).getTime() - 5 * 60 * 1000));
           expect(date).toBeLessThanOrEqual(1000);
           expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("object without any valid field; just random properties", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          await service.send("asArrayTuple", {
+            returnData: true,
+            abc: 123,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeNull();
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(0);
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
       });
@@ -2331,6 +2378,24 @@ describe("event-queue outbox", () => {
           expect(event.startAfter).toBeDefined();
           expect(event.error).toContain("error occurred");
           expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("object without any valid field; just random properties", async () => {
+          const service = (await cds.connect.to("StandardService")).tx(context);
+          await service.send("asArrayWithId", {
+            returnData: true,
+            abc: 123,
+            status: EventProcessingStatus.Error,
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 1,
+          });
+          expect(event.startAfter).toBeDefined();
+          expect(event.status).toEqual(EventProcessingStatus.Done); // because unknown props in return value
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(0);
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
       });
