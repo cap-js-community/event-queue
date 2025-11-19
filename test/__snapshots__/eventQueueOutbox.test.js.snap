@@ -41,7 +41,10 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true ad-hoc events overwrite se
   "namespace": "default",
   "parallelEventProcessing": 5,
   "priority": "medium",
+  "propagateHeaders": [],
   "retryAttempts": 20,
+  "retryFailedAfter": 300000,
+  "retryOpenAfter": 300000,
   "selectMaxChunkSize": 10,
   "subType": "NotificationServicePeriodic.action",
   "transactionMode": "isolated",
@@ -66,7 +69,10 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true ad-hoc events overwrite se
   "namespace": "default",
   "parallelEventProcessing": 5,
   "priority": "medium",
+  "propagateHeaders": [],
   "retryAttempts": 20,
+  "retryFailedAfter": 300000,
+  "retryOpenAfter": 300000,
   "selectMaxChunkSize": 10,
   "subType": "NotificationServicePeriodic.action",
   "transactionMode": "isolated",
@@ -91,7 +97,10 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true custom options should win 
   "namespace": "default",
   "parallelEventProcessing": 5,
   "priority": "medium",
+  "propagateHeaders": [],
   "retryAttempts": 20,
+  "retryFailedAfter": 300000,
+  "retryOpenAfter": 300000,
   "selectMaxChunkSize": 10,
   "subType": "NotificationServiceOutboxedByConfig",
   "transactionMode": "alwaysCommit",
@@ -128,7 +137,10 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true map config to event-queue 
   "namespace": "default",
   "parallelEventProcessing": 5,
   "priority": "medium",
+  "propagateHeaders": [],
   "retryAttempts": 20,
+  "retryFailedAfter": 300000,
+  "retryOpenAfter": 300000,
   "selectMaxChunkSize": 10,
   "subType": "NotificationService",
   "type": "CAP_OUTBOX",
@@ -142,6 +154,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true option to use eventQueue.u
     "subject": "subject",
     "to": "to",
   },
+  "headers": {},
   "subType": "NotificationServiceOutboxedByConfigUserId",
   "user": "dummyTestUser",
 }
@@ -163,6 +176,9 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit co
   "load": 60,
   "namespace": "default",
   "priority": "medium",
+  "propagateHeaders": [],
+  "retryFailedAfter": 300000,
+  "retryOpenAfter": 300000,
   "subType": "NotificationServicePeriodic.main",
   "transactionMode": "isolated",
   "type": "CAP_OUTBOX_PERIODIC",
@@ -197,6 +213,9 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit co
   "load": 60,
   "namespace": "default",
   "priority": "medium",
+  "propagateHeaders": [],
+  "retryFailedAfter": 300000,
+  "retryOpenAfter": 300000,
   "subType": "NotificationServicePeriodic.main",
   "transactionMode": "alwaysRollback",
   "type": "CAP_OUTBOX_PERIODIC",
@@ -222,6 +241,9 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true periodic events inherit co
   "load": 60,
   "namespace": "default",
   "priority": "medium",
+  "propagateHeaders": [],
+  "retryFailedAfter": 300000,
+  "retryOpenAfter": 300000,
   "subType": "NotificationServicePeriodic.main",
   "transactionMode": "isolated",
   "type": "CAP_OUTBOX_PERIODIC",
@@ -256,7 +278,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req error should be caught
 [
   [
     "error processing outboxed service call",
-    [Error: error occured],
+    [Error: error occurred],
     {
       "serviceName": "NotificationService",
     },
@@ -264,11 +286,11 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req error should be caught
 ]
 `;
 
-exports[`event-queue outbox monkeyPatchCAPOutbox=true req reject should be caught for send 1`] = `
+exports[`event-queue outbox monkeyPatchCAPOutbox=true req reject should be caught for send and rollback transaction 1`] = `
 [
   [
     "error processing outboxed service call",
-    [Error: error occured],
+    [Error: error occurred],
     {
       "serviceName": "NotificationService",
     },
@@ -309,6 +331,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored 
     "subject": "subject",
     "to": "to",
   },
+  "headers": {},
   "subType": "NotificationService",
   "user": "testUser",
 }
@@ -334,6 +357,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true req.data should be stored 
     "subject": "subject",
     "to": "to",
   },
+  "headers": {},
   "subType": "NotificationService",
   "user": "testUser",
 }
@@ -361,6 +385,11 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true return open event types 1`
     "subType": "QueueService.main",
     "type": "CAP_OUTBOX_PERIODIC",
   },
+  {
+    "namespace": "default",
+    "subType": "sapafcsdk.scheduling.ProviderService.timeBucketAction",
+    "type": "CAP_OUTBOX_PERIODIC",
+  },
 ]
 `;
 
@@ -385,6 +414,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true should store correct user 
     "subject": "subject",
     "to": "to",
   },
+  "headers": {},
   "subType": "NotificationService",
   "user": "badman",
 }
@@ -407,7 +437,10 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true should work for outboxed s
   "namespace": "default",
   "parallelEventProcessing": 5,
   "priority": "medium",
+  "propagateHeaders": [],
   "retryAttempts": 20,
+  "retryFailedAfter": 300000,
+  "retryOpenAfter": 300000,
   "selectMaxChunkSize": 10,
   "subType": "NotificationServiceOutboxedByConfig",
   "transactionMode": "alwaysRollback",

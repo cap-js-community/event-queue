@@ -22,8 +22,8 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   }
 
   async getQueueEntriesAndSetToInProgress() {
-    const [serviceName] = this.eventSubType.split(".");
-    this.__srv = await cds.connect.to(serviceName);
+    const { srvName } = config.normalizeSubType(this.eventType, this.eventSubType);
+    this.__srv = await cds.connect.to(srvName);
     this.__srvUnboxed = cds.unboxed(this.__srv);
     const { handlers, clusterRelevant, specificClusterRelevant } = this.__srvUnboxed.handlers.on.reduce(
       (result, handler) => {
@@ -309,8 +309,8 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   }
 
   async processPeriodicEvent(processContext, key, queueEntry) {
-    const [, action] = this.eventSubType.split(".");
-    const reg = new cds.Event({ event: action, eventQueue: { processor: this, key, queueEntries: [queueEntry] } });
+    const { actionName } = config.normalizeSubType(this.eventType, this.eventSubType);
+    const reg = new cds.Event({ event: actionName, eventQueue: { processor: this, key, queueEntries: [queueEntry] } });
     await this.#setContextUser(processContext, config.userId, reg);
     await this.__srvUnboxed.tx(processContext).emit(reg);
   }
@@ -348,7 +348,13 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       this.logger.error("error processing outboxed service call", err, {
         serviceName: this.eventSubType,
       });
-      return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Error]);
+      return queueEntries.map((queueEntry) => [
+        queueEntry.ID,
+        {
+          status: EventProcessingStatus.Error,
+          error: err,
+        },
+      ]);
     }
   }
 
@@ -359,8 +365,60 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       return queueEntries.map((queueEntry) => [queueEntry.ID, result]);
     }
 
+    if (result instanceof Object && !Array.isArray(result)) {
+      const allAllowed = !Object.keys(result).some((name) => !this.allowedFieldsEventHandler.includes(name));
+      return queueEntries.map((queueEntry) => [
+        queueEntry.ID,
+        allAllowed ? result : { status: EventProcessingStatus.Done },
+      ]);
+    }
+
     if (!Array.isArray(result)) {
       return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+    }
+
+    const [firstEntry] = result;
+    if (Array.isArray(firstEntry)) {
+      const [, innerResult] = firstEntry;
+      if (innerResult instanceof Object) {
+        const allAllowed = !Object.keys(innerResult).some((name) => !this.allowedFieldsEventHandler.includes(name));
+        if (allAllowed) {
+          return result;
+        }
+        return queueEntries.map((queueEntry) => [queueEntry.ID, { status: EventProcessingStatus.Done }]);
+      } else {
+        return result.map(([id, status]) => {
+          return [id, { status }];
+        });
+      }
+    } else if (firstEntry instanceof Object) {
+      return result.reduce((result, entry) => {
+        let { ID } = entry;
+
+        if (!ID) {
+          if (queueEntries.length > 1) {
+            throw new Error(
+              "The CAP handler return value does not match the event-queue specification. Please check the documentation"
+            );
+          } else {
+            ID = queueEntries[0].ID;
+          }
+        }
+
+        delete entry.ID;
+        const allAllowed = !Object.keys(entry).some((name) => !this.allowedFieldsEventHandler.includes(name));
+
+        if (!allAllowed) {
+          result.push([ID, { status: EventProcessingStatus.Done }]);
+        }
+
+        if (!("status" in entry)) {
+          entry.status = EventProcessingStatus.Done;
+        }
+
+        result.push([ID, entry]);
+        return result;
+      }, []);
     }
 
     const valid = !result.some((entry) => {

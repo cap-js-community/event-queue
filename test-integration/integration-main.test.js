@@ -155,6 +155,24 @@ describe("integration-main", () => {
     expect(dbCounts).toMatchSnapshot();
   });
 
+  it("cluster multiplies out", async () => {
+    await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
+    dbCounts = {};
+    const event = eventQueue.config.events[0];
+    jest
+      .spyOn(EventQueueTest.prototype, "clusterQueueEntries")
+      .mockImplementationOnce(function (queueEntriesWithPayloadMap) {
+        Object.entries(queueEntriesWithPayloadMap).forEach(([key, { queueEntry, payload }]) => {
+          this.addEntryToProcessingMap(key, queueEntry, payload);
+          this.addEntryToProcessingMap(key, queueEntry, payload);
+        });
+      });
+    await eventQueue.processEventQueue(context, event.type, event.subType);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+    await testHelper.selectEventQueueAndExpectDone(tx);
+    expect(dbCounts).toMatchSnapshot();
+  });
+
   it("if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error", async () => {
     await cds.tx({}, (tx2) => testHelper.insertEventEntry(tx2));
     dbCounts = {};
@@ -302,7 +320,7 @@ describe("integration-main", () => {
     expect(processSpy).toHaveBeenCalledTimes(1);
     await testHelper.selectEventQueueAndExpectOpen(tx);
     const [openEvent] = await testHelper.selectEventQueueAndReturn(tx);
-    expect(openEvent.startAfter).toEqual(null);
+    expect(openEvent.startAfter).toBeDefined();
     expect(dbCounts).toMatchSnapshot();
 
     jest.spyOn(EventQueueTest.prototype, "processEvent").mockRestore();
@@ -325,13 +343,13 @@ describe("integration-main", () => {
           randomGuid: true,
         });
         this.eventConfig.startTime = new Date(Date.now() - eventQueue.config.runInterval);
-        return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Open]);
+        return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
       });
     await eventQueue.processEventQueue(context, event.type, event.subType);
     expect(loggerMock.callsLengths().error).toEqual(0);
     expect(scheduler).toHaveBeenCalledTimes(1);
     expect(processSpy).toHaveBeenCalledTimes(1);
-    await testHelper.selectEventQueueAndExpectOpen(tx);
+    await testHelper.selectEventQueueAndExpectDone(tx);
     expect(dbCounts).toMatchSnapshot();
 
     jest.spyOn(EventQueueTest.prototype, "processEvent").mockRestore();

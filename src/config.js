@@ -24,6 +24,7 @@ const CAP_EVENT_TYPE = "CAP_OUTBOX";
 const CAP_PARALLEL_DEFAULT = 5;
 const CAP_MAX_ATTEMPTS_DEFAULT = 5;
 const DELETE_TENANT_BLOCK_AFTER_MS = 5 * 60 * 1000;
+const DEFAULT_RETRY_AFTER = 5 * 60 * 1000;
 const PRIORITIES = Object.values(Priorities);
 const UTC_DEFAULT = false;
 const USE_CRON_TZ_DEFAULT = true;
@@ -60,6 +61,8 @@ const ALLOWED_EVENT_OPTIONS_AD_HOC = [
   "processAfterCommit",
   "checkForNextChunk",
   "retryFailedAfter",
+  "propagateHeaders",
+  "retryOpenAfter",
   "multiInstanceProcessing",
   "kind",
   "timeBucket",
@@ -140,7 +143,7 @@ class Config {
   }
 
   isCapOutboxEvent(type) {
-    return type === CAP_EVENT_TYPE;
+    return [CAP_EVENT_TYPE, [CAP_EVENT_TYPE, SUFFIX_PERIODIC].join("")].includes(type);
   }
 
   hasEventAfterCommitFlag(type, subType, namespace = this.namespace) {
@@ -165,15 +168,27 @@ class Config {
     return { type: "string", value: str };
   }
 
-  #normalizeSubType(rawSubType) {
-    const [serviceName, actionName] = rawSubType.split(".");
-    const actionSpecificCall = this.getCdsOutboxEventSpecificConfig(serviceName, actionName);
-    return actionSpecificCall ? rawSubType : serviceName;
+  normalizeSubType(type, rawSubType) {
+    if (![CAP_EVENT_TYPE, [CAP_EVENT_TYPE, SUFFIX_PERIODIC].join("")].includes(type)) {
+      return { subType: rawSubType };
+    }
+
+    const serviceParts = rawSubType.split(".");
+    let srvName = serviceParts.shift();
+    while (!cds.env.requires[srvName] && serviceParts.length) {
+      srvName = [srvName, serviceParts.shift()].join(".");
+    }
+    const actionName = serviceParts.shift();
+    const actionSpecificCall = this.getCdsOutboxEventSpecificConfig(srvName, actionName);
+    return {
+      subType: actionSpecificCall ? rawSubType : srvName,
+      actionName,
+      srvName,
+    };
   }
 
   shouldBeProcessedInThisApplication(type, rawSubType, namespace = this.namespace) {
-    const subType = this.#normalizeSubType(rawSubType);
-
+    const { subType } = this.normalizeSubType(type, rawSubType);
     const config = this.#eventMap[this.generateKey(namespace, type, subType)];
     const appNameConfig = config._appNameMap;
     const appInstanceConfig = config._appInstancesMap;
@@ -435,6 +450,9 @@ class Config {
     event._appInstancesMap = event.appInstances
       ? Object.fromEntries(new Map(event.appInstances.map((a) => [a, true])))
       : null;
+    event.propagateHeaders = event.propagateHeaders ?? [];
+    event.retryFailedAfter = event.retryFailedAfter ?? DEFAULT_RETRY_AFTER;
+    event.retryOpenAfter = event.retryOpenAfter ?? DEFAULT_RETRY_AFTER;
   }
 
   #basicEventValidation(event) {
@@ -751,11 +769,22 @@ class Config {
   }
 
   set useAsCAPOutbox(value) {
+    if (this.#useAsCAPOutbox) {
+      return;
+    }
     this.#useAsCAPOutbox = value;
   }
 
   get useAsCAPOutbox() {
     return this.#useAsCAPOutbox;
+  }
+
+  set useAsCAPQueue(value) {
+    this.useAsCAPOutbox = value;
+  }
+
+  get useAsCAPQueue() {
+    return this.useAsCAPOutbox;
   }
 
   set userId(value) {

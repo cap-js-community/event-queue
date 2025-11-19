@@ -32,7 +32,7 @@
     "eventQueue": {
       "plugin": true,
       "runInterval": 300000,
-      "useAsCAPOutbox": true,
+      "useAsCAPQueue": true,
       "thresholdLoggingEventProcessing": 5000,
       "cleanupLocksAndEventsForDev": true,
       "events": {

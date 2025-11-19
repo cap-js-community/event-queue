@@ -1,5 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`integration-main cluster multiplies out 1`] = `
+{
+  "BEGIN": 7,
+  "COMMIT": 4,
+  "CREATE": 1,
+  "DELETE": 1,
+  "READ": 4,
+  "ROLLBACK": 2,
+  "UPDATE": 2,
+}
+`;
+
 exports[`integration-main empty queue - nothing to do 1`] = `
 {
   "BEGIN": 4,

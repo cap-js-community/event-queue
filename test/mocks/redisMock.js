@@ -18,6 +18,8 @@ const _createMainClientAndConnect = async () => ({
 });
 
 module.exports = {
+  attachRedisUnsubscribeHandler: () => {},
+  subscribeRedisChannel: () => {},
   createClientAndConnect: _createMainClientAndConnect,
   createMainClientAndConnect: _createMainClientAndConnect,
   closeSubscribeClient: () => {},

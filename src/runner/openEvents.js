@@ -39,7 +39,7 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
   const result = [];
   for (const { type, subType, namespace } of entries) {
     if (eventConfig.isCapOutboxEvent(type)) {
-      const [srvName, actionName] = subType.split(".");
+      const { srvName, actionName } = config.normalizeSubType(type, subType);
       try {
         const service = await cds.connect.to(srvName);
         if (filterAppSpecificEvents) {
