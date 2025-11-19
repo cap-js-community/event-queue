@@ -143,7 +143,7 @@ class Config {
   }
 
   isCapOutboxEvent(type) {
-    return type === CAP_EVENT_TYPE;
+    return [CAP_EVENT_TYPE, [CAP_EVENT_TYPE, SUFFIX_PERIODIC].join("")].includes(type);
   }
 
   hasEventAfterCommitFlag(type, subType, namespace = this.namespace) {
@@ -168,15 +168,27 @@ class Config {
     return { type: "string", value: str };
   }
 
-  #normalizeSubType(rawSubType) {
-    const [serviceName, actionName] = rawSubType.split(".");
-    const actionSpecificCall = this.getCdsOutboxEventSpecificConfig(serviceName, actionName);
-    return actionSpecificCall ? rawSubType : serviceName;
+  normalizeSubType(type, rawSubType) {
+    if (![CAP_EVENT_TYPE, [CAP_EVENT_TYPE, SUFFIX_PERIODIC].join("")].includes(type)) {
+      return { subType: rawSubType };
+    }
+
+    const serviceParts = rawSubType.split(".");
+    let srvName = serviceParts.shift();
+    while (!cds.env.requires[srvName] && serviceParts.length) {
+      srvName = [srvName, serviceParts.shift()].join(".");
+    }
+    const actionName = serviceParts.shift();
+    const actionSpecificCall = this.getCdsOutboxEventSpecificConfig(srvName, actionName);
+    return {
+      subType: actionSpecificCall ? rawSubType : srvName,
+      actionName,
+      srvName,
+    };
   }
 
   shouldBeProcessedInThisApplication(type, rawSubType, namespace = this.namespace) {
-    const subType = this.#normalizeSubType(rawSubType);
-
+    const { subType } = this.normalizeSubType(type, rawSubType);
     const config = this.#eventMap[this.generateKey(namespace, type, subType)];
     const appNameConfig = config._appNameMap;
     const appInstanceConfig = config._appInstancesMap;

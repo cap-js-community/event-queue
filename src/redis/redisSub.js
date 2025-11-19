@@ -43,16 +43,16 @@ const _messageHandlerProcessEvents = async (messageData) => {
       return;
     }
 
-    const [serviceNameOrSubType, actionName] = subType.split(".");
+    const { srvName, actionName } = config.normalizeSubType(type, subType);
     if (!config.getEventConfig(type, subType, namespace)) {
       if (config.isCapOutboxEvent(type)) {
         try {
-          const service = await cds.connect.to(serviceNameOrSubType);
+          const service = await cds.connect.to(srvName);
           cds.outboxed(service);
           if (actionName) {
-            const specificSettings = config.getCdsOutboxEventSpecificConfig(serviceNameOrSubType, actionName);
+            const specificSettings = config.getCdsOutboxEventSpecificConfig(srvName, actionName);
             if (specificSettings) {
-              config.addCAPOutboxEventSpecificAction(serviceNameOrSubType, actionName);
+              config.addCAPOutboxEventSpecificAction(srvName, actionName);
             }
           }
         } catch (err) {

@@ -22,8 +22,8 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   }
 
   async getQueueEntriesAndSetToInProgress() {
-    const [serviceName] = this.eventSubType.split(".");
-    this.__srv = await cds.connect.to(serviceName);
+    const { srvName } = config.normalizeSubType(this.eventType, this.eventSubType);
+    this.__srv = await cds.connect.to(srvName);
     this.__srvUnboxed = cds.unboxed(this.__srv);
     const { handlers, clusterRelevant, specificClusterRelevant } = this.__srvUnboxed.handlers.on.reduce(
       (result, handler) => {
@@ -309,8 +309,8 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   }
 
   async processPeriodicEvent(processContext, key, queueEntry) {
-    const [, action] = this.eventSubType.split(".");
-    const reg = new cds.Event({ event: action, eventQueue: { processor: this, key, queueEntries: [queueEntry] } });
+    const { actionName } = config.normalizeSubType(this.eventType, this.eventSubType);
+    const reg = new cds.Event({ event: actionName, eventQueue: { processor: this, key, queueEntries: [queueEntry] } });
     await this.#setContextUser(processContext, config.userId, reg);
     await this.__srvUnboxed.tx(processContext).emit(reg);
   }
