@@ -2,6 +2,9 @@
 # This workflow will publish any new release to the npmjs registry
 
 name: Publish
+permissions:
+  id-token: write
+  contents: read
 
 # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#release
 on:
@@ -12,12 +15,14 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
-          cache: "npm"
+          node-version: 24
+          cache: npm
           registry-url: https://registry.npmjs.org/
+      - name: Update npm
+        run: npm install -g npm@latest
       - run: npm ci --package-lock
       - name: deploy hana schema
         id: deploySchema
@@ -46,5 +51,3 @@ jobs:
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
           SCHEMA_GUIDS: ${{steps.deploySchema.outputs.schemaGuids}}
       - run: npm publish --access public --tag $TAG
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
