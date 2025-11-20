@@ -42,4 +42,17 @@ service EventQueueAdminService {
         @mandatory
         subType: String) returns Boolean;
     }
+
+      action publishEvent(
+          @mandatory
+          tenants: array of String,
+          @mandatory
+          type: String,
+          @mandatory
+          subType: String,
+          referenceEntity: String,
+          referenceEntityKey: String,
+          @open
+          payload: {},
+          startAfter: String);
 }
