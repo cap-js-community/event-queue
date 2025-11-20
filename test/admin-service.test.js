@@ -162,7 +162,7 @@ describe("admin-service-test", () => {
         subType: "Task",
         tenants: ["t1"],
         payload: { input: 123 },
-        startAfter: new Date().toISOString(),
+        startAfter: new Date(1763629752504).toISOString(),
       });
 
       const events = await testHelper.selectEventQueueAndReturn(tx, {

@@ -255,7 +255,7 @@ exports[`admin-service-test publish event fill payload and start after 1`] = `
   {
     "attempts": 0,
     "payload": "{"input":123}",
-    "startAfter": "2025-11-20T09:05:33.072Z",
+    "startAfter": "2025-11-20T09:09:12.504Z",
     "status": 0,
     "subType": "Task",
     "type": "Notifications",
@@ -276,25 +276,6 @@ exports[`admin-service-test publish event filter for one tenant 1`] = `
 `;
 
 exports[`admin-service-test publish event no matching tenant 1`] = `[]`;
-
-exports[`admin-service-test publish event single tenant 1`] = `
-[
-  {
-    "attempts": 0,
-    "startAfter": null,
-    "status": 0,
-    "subType": "Task",
-    "type": "Notifications",
-  },
-  {
-    "attempts": 0,
-    "startAfter": null,
-    "status": 0,
-    "subType": "Task",
-    "type": "Notifications",
-  },
-]
-`;
 
 exports[`admin-service-test read entities: Event 1`] = `
 {
