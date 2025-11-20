@@ -1,6 +1,9 @@
 "use strict";
 
+const path = require("path");
+
 jest.mock("@opentelemetry/api", () => require("./mocks/openTelemetry"));
+
 const { Logger: mockLogger } = require("./mocks/logger");
 
 const cds = require("@sap/cds");
@@ -10,7 +13,8 @@ const { GET, axios, POST } = cds.test(project);
 
 const eventQueue = require("../src");
 const testHelper = require("./helper");
-const path = require("path");
+const cdsHelper = require("../src/shared/cdsHelper");
+const distributedLock = require("../src/shared/distributedLock");
 
 let loggerMock;
 
@@ -18,6 +22,7 @@ describe("admin-service-test", () => {
   let context, tx;
 
   beforeAll(async () => {
+    jest.spyOn(distributedLock, "shutdownHandler").mockResolvedValue();
     const configFilePath = path.join(__dirname, "asset", "config.yml");
     await eventQueue.initialize({
       configFilePath,
@@ -42,6 +47,7 @@ describe("admin-service-test", () => {
   afterEach(async () => {
     await tx.rollback();
     jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   afterAll(() => cds.shutdown);
@@ -71,7 +77,6 @@ describe("admin-service-test", () => {
   });
 
   it("read events", async () => {
-    eventQueue.config.enableAdminService = true;
     await cds.tx({}, (tx) => testHelper.insertEventEntry(tx));
     const response = await GET("/odata/v4/event-queue/admin/Event");
     expect(response.data.value).toHaveLength(1);
@@ -85,7 +90,6 @@ describe("admin-service-test", () => {
   });
 
   it("read event and set status", async () => {
-    eventQueue.config.enableAdminService = true;
     await cds.tx({}, (tx) => testHelper.insertEventEntry(tx));
     const response = await GET("/odata/v4/event-queue/admin/Event");
     expect(response.data.value).toHaveLength(1);
@@ -102,6 +106,70 @@ describe("admin-service-test", () => {
       subType: "Task",
       status: 2,
       attempts: 1,
+    });
+  });
+
+  describe("publish event", () => {
+    it("all tenants", async () => {
+      jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValueOnce(["t1", "t2"]);
+      await POST("/odata/v4/event-queue/admin/publishEvent", {
+        type: "Notifications",
+        subType: "Task",
+        tenants: ["all"],
+      });
+
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 2,
+        additionalColumns: ["type", "subType"],
+      });
+      expect(events).toMatchSnapshot();
+    });
+
+    it("filter for one tenant", async () => {
+      jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValueOnce(["t1", "t2"]);
+      await POST("/odata/v4/event-queue/admin/publishEvent", {
+        type: "Notifications",
+        subType: "Task",
+        tenants: ["t1"],
+      });
+
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 1,
+        additionalColumns: ["type", "subType"],
+      });
+      expect(events).toMatchSnapshot();
+    });
+
+    it("no matching tenant", async () => {
+      jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValueOnce(["t1", "t2"]);
+      await POST("/odata/v4/event-queue/admin/publishEvent", {
+        type: "Notifications",
+        subType: "Task",
+        tenants: ["t3"],
+      });
+
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 0,
+        additionalColumns: ["type", "subType"],
+      });
+      expect(events).toMatchSnapshot();
+    });
+
+    it("fill payload and start after", async () => {
+      jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValueOnce(["t1", "t2"]);
+      await POST("/odata/v4/event-queue/admin/publishEvent", {
+        type: "Notifications",
+        subType: "Task",
+        tenants: ["t1"],
+        payload: { input: 123 },
+        startAfter: new Date(1763629752504).toISOString(),
+      });
+
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 1,
+        additionalColumns: ["type", "subType", "payload"],
+      });
+      expect(events).toMatchSnapshot();
     });
   });
 });
