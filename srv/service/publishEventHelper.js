@@ -37,7 +37,7 @@ const _resolveTenantInfos = async (context) => {
     if (tenant === "self") {
       return [context.tenant];
     }
-    if (tenant === "all") {
+    if (["all", "*"].includes(tenant)) {
       return await cdsHelper.getAllTenantIds();
     }
   }

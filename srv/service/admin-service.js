@@ -117,7 +117,7 @@ module.exports = class AdminService extends cds.ApplicationService {
           payload,
           startAfter,
         });
-        const publishInfo = { count: tenants.length, type, subType };
+        const publishInfo = { count: tenants.length, type, subType, tenants: req.data.tenants };
         logger.info("publishing event for tenant(s)", publishInfo);
         for (const tenant of tenants) {
           await cds.tx({ tenant }, async (tx) => {
