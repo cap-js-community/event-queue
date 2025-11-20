@@ -154,6 +154,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
       }
 
       let status = EventProcessingStatus.Done;
+      let error;
       await executeInNewTransaction(
         eventTypeInstance.context,
         `eventQueue-periodic-process-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
@@ -166,6 +167,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
               eventTypeInstance.startPerformanceTracerPeriodicEvents();
               await eventTypeInstance.processPeriodicEvent(tx.context, queueEntry.ID, queueEntry);
             } catch (err) {
+              error = err;
               status = EventProcessingStatus.Error;
               eventTypeInstance.handleErrorDuringPeriodicEventProcessing(err, queueEntry);
               await tx.rollback();
@@ -190,7 +192,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
         async (tx) => {
           await trace(eventTypeInstance.context, "periodic-event-set-status", async () => {
             eventTypeInstance.processEventContext = tx.context;
-            await eventTypeInstance.setPeriodicEventStatus(queueEntry.ID, status);
+            await eventTypeInstance.setPeriodicEventStatus(queueEntry.ID, status, error);
           });
         }
       );

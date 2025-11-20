@@ -17,10 +17,10 @@ nav_order: 2
 
 In the following chapter, the event queue will be compared and differentiated with other SAP products.
 
-## CAP persistent outbox
+## CAP persistent queue
 
-The event-queue package and the CAP persistent outbox share several features, but the event-queue package provides
-additional functionalities. A key distinction is that the CAP outbox is designed exclusively for outboxing HTTP requests
+The event-queue package and the CAP persistent queue share several features, but the event-queue package provides
+additional functionalities. A key distinction is that the CAP Queue is designed exclusively for queueing HTTP requests
 and should not be used for asynchronous processing of business data. Another important difference is that the
 event-queue includes load balancing and periodic event scheduling, offering greater flexibility and efficiency in event
 processing.

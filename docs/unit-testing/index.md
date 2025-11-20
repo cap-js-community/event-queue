@@ -16,7 +16,7 @@ nav_order: 10
 
 # Overview
 
-This topic provides an overview of how to write unit tests for event processors and outboxed CAP services.
+This topic provides an overview of how to write unit tests for event processors and queued CAP services.
 
 # Setup
 
@@ -116,10 +116,10 @@ it("should process an event", async () => {
 });
 ```
 
-# Testing CAP outboxed services
+# Testing CAP queued services
 
-The event-queue can be used as a CDS outbox. The following examples demonstrates how to test the publishing of events
-processing of outboxed CAP services as well as the processing of those events.
+The event-queue can be used as a CDS Queue. The following examples demonstrates how to test the publishing of events
+processing of queued CAP services as well as the processing of those events.
 
 ## Testing if an Event was Correctly Published
 
@@ -127,13 +127,13 @@ processing of outboxed CAP services as well as the processing of those events.
 const cds = require("@sap/cds");
 const { processEventQueue } = require("@cap-js-community/event-queue");
 
-it("should process an outboxed service", async () => {
-  // Arrange connect to service and outbox it
+it("should process an queued service", async () => {
+  // Arrange connect to service and queue it
   const service = await cds.connect.to("NotificationService");
-  const outboxedService = cds.outboxed(service);
+  const queuedService = cds.queued(service);
 
-  // Act - call the outboxed service
-  await outboxedService.send("sendFiori", {
+  // Act - call the queued service
+  await queuedService.send("sendFiori", {
     to: "to",
     subject: "subject",
     body: "body",
@@ -158,11 +158,11 @@ it("should process an outboxed service", async () => {
 const cds = require("@sap/cds");
 const { processEventQueue } = require("@cap-js-community/event-queue");
 
-it("should process an outboxed service", async () => {
-  // Arrange connect to service and outbox it
+it("should process an queued service", async () => {
+  // Arrange connect to service and queue it
   const service = await cds.connect.to("NotificationService");
-  const outboxedService = cds.outboxed(service);
-  await outboxedService.send("sendFiori", {
+  const queuedService = cds.queued(service);
+  await queuedService.send("sendFiori", {
     to: "to",
     subject: "subject",
     body: "body",

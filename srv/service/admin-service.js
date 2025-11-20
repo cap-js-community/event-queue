@@ -1,26 +1,35 @@
 "use strict";
 
 const cds = require("@sap/cds");
-const { EventProcessingStatus } = require("../../src");
-const config = require("../../src/config");
+
+const eventQueue = require("../../src");
 const distributedLock = require("../../src/shared/distributedLock");
 const redisPub = require("../../src/redis/redisPub");
+const publishEventHelper = require("./publishEventHelper");
+const commonHelper = require("../../src/shared/common");
+
+const COMPONENT_NAME = "/eventQueue/admin";
 
 module.exports = class AdminService extends cds.ApplicationService {
   async init() {
     const { Event: EventService, Lock: LockService } = this.entities;
     const { Event: EventDb } = cds.db.entities("sap.eventqueue");
+    const { publishEvent } = this.actions;
     const { landscape, space } = this.getLandscapeAndSpace();
 
     this.before("*", (req) => {
-      if (!config.enableAdminService) {
+      if (!eventQueue.config.enableAdminService) {
         req.reject(403, "Admin service is disabled by configuration");
+      }
+
+      if (req.event === publishEvent.name.split(".")[1]) {
+        return;
       }
 
       const headers = Object.assign({}, req.headers, req.req?.headers);
       const tenant = headers["z-id"] ?? req.data.tenant;
 
-      if (config.isMultiTenancy && tenant == null) {
+      if (eventQueue.config.isMultiTenancy && tenant == null) {
         req.reject(400, "Missing tenant ID in request header (z-id)");
       }
       req.headers ??= {};
@@ -46,7 +55,7 @@ module.exports = class AdminService extends cds.ApplicationService {
     });
 
     this.on("READ", LockService, async () => {
-      if (!config.redisEnabled) {
+      if (!eventQueue.config.redisEnabled) {
         return [];
       }
       const locks = await distributedLock.getAllLocksRedis();
@@ -59,14 +68,14 @@ module.exports = class AdminService extends cds.ApplicationService {
 
     this.on("setStatusAndAttempts", async (req) => {
       const tenant = req.headers["z-id"];
-      cds.log("eventQueue").info("Restarting processing for event queue");
+      cds.log(COMPONENT_NAME).info("Restarting processing for event queue");
       const updateData = {};
 
       if (Number.isInteger(req.data.attempts)) {
         updateData.attempts = req.data.attempts;
       }
 
-      if (Object.values(EventProcessingStatus).includes(req.data.status)) {
+      if (Object.values(eventQueue.EventProcessingStatus).includes(req.data.status)) {
         updateData.status = req.data.status;
       }
 
@@ -93,6 +102,32 @@ module.exports = class AdminService extends cds.ApplicationService {
       return await cds.tx({ tenant }, async (tx) => {
         return await distributedLock.releaseLock(tx.context, [type, subType].join("##"));
       });
+    });
+
+    this.on(publishEvent, async (req) => {
+      const logger = cds.log(COMPONENT_NAME);
+      try {
+        const { type, subType, referenceEntity, referenceEntityKey, payload, startAfter } = req.data;
+        const tenants = await publishEventHelper.resolveTenantInfos(req);
+        const eventOptions = commonHelper.cleanUndefined({
+          type,
+          subType,
+          referenceEntity,
+          referenceEntityKey,
+          payload,
+          startAfter,
+        });
+        const publishInfo = { count: tenants.length, type, subType, tenants: req.data.tenants };
+        logger.info("publishing event for tenant(s)", publishInfo);
+        for (const tenant of tenants) {
+          await cds.tx({ tenant }, async (tx) => {
+            await eventQueue.publishEvent(tx, { ...eventOptions });
+          });
+        }
+        logger.info("finished publishing event for tenant(s)", publishInfo);
+      } catch (err) {
+        logger.error("error publishing event", err);
+      }
     });
 
     await super.init();

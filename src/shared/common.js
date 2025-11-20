@@ -165,6 +165,14 @@ const isTenantIdValidCb = async (checkType, tenantId) => {
   }
 };
 
+const cleanUndefined = (input) =>
+  Object.entries(input).reduce((acc, [key, value]) => {
+    if (value !== undefined) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
+
 module.exports = {
   arrayToFlatMap,
   limiter,
@@ -174,6 +182,7 @@ module.exports = {
   getAuthContext,
   isTenantIdValidCb,
   promiseAllDone,
+  cleanUndefined,
   __: {
     clearAuthContextCache: () => getAuthContext._cache?.clear(),
   },
