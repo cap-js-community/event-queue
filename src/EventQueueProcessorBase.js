@@ -296,7 +296,7 @@ class EventQueueProcessorBase {
     const statusMap = this.commitOnEventLevel || returnMap ? {} : this.__statusMap;
     const errorHandler = (error) => {
       queueEntries.forEach((queueEntry) =>
-        this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error, statusMap)
+        this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error, { statusMap })
       );
       this.logger.error(
         "The supplied status tuple doesn't have the required structure. Setting all entries to error.",
@@ -317,7 +317,7 @@ class EventQueueProcessorBase {
 
     try {
       queueEntryProcessingStatusTuple.forEach(([id, processingStatus]) =>
-        this.#determineAndAddEventStatusToMap(id, processingStatus, statusMap)
+        this.#determineAndAddEventStatusToMap(id, processingStatus, { statusMap })
       );
     } catch (error) {
       errorHandler(error);
@@ -344,9 +344,13 @@ class EventQueueProcessorBase {
     }
   }
 
-  #determineAndAddEventStatusToMap(id, statusOrUpdateData, statusMap = this.__statusMap) {
+  #determineAndAddEventStatusToMap(id, statusOrUpdateData, { statusMap = this.__statusMap, error } = {}) {
     if (typeof statusOrUpdateData === "number") {
       statusOrUpdateData = { status: statusOrUpdateData };
+    }
+
+    if (error) {
+      statusOrUpdateData.error = error;
     }
 
     if (!statusMap[id]) {
@@ -376,9 +380,17 @@ class EventQueueProcessorBase {
       }
     );
     queueEntries.forEach((queueEntry) =>
-      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error)
+      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error, { error })
     );
-    return Object.fromEntries(queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Error]));
+    return Object.fromEntries(
+      queueEntries.map((queueEntry) => [
+        queueEntry.ID,
+        {
+          status: EventProcessingStatus.Error,
+          error,
+        },
+      ])
+    );
   }
 
   handleErrorDuringPeriodicEventProcessing(error, queueEntry) {
@@ -389,11 +401,12 @@ class EventQueueProcessorBase {
     });
   }
 
-  async setPeriodicEventStatus(queueEntryIds, status) {
+  async setPeriodicEventStatus(queueEntryIds, status, error) {
     await this.tx.run(
       UPDATE.entity(this.#config.tableNameEventQueue)
         .set({
           status: status,
+          ...(error && { error: this.#error2String(error) }),
         })
         .where({
           ID: queueEntryIds,

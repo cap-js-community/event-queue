@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v2.0.0 - 2025-11-20
+
+### Breaking Changes
+
+- **Removed `redisNamespace`**: The `redisNamespace` parameter has been replaced by the new `namespace` concept. Use the `namespace` parameter to achieve the same functionality.
+- **Legacy Event Processor behavior change**: Events without a returned status are now treated as successfully processed (instead of erroneous). This prevents multiple processing attempts for the same event.
+
+## Added
+
+- **Namespace support for multi-service setups**: Introduced namespaces to support scenarios where multiple microservices share the same database (HDI Container). See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces).
+- **Enhanced CAP outbox service return values**: CAP outbox services can now return more detailed information. In addition to the event status, you can now update the `startAfter` and `error` fields of an event. See [documentation](https://cap-js-community.github.io/event-queue/configure-event/#namespaces).
+- **Configurable reprocessing for 'Open' event status**: With the event configuration property `When an event status of` `Open` is returned, you can now configure when such events should be reprocessed. This allows you to mark event processing as invalid without increasing the attempt counter.
+- **CDS namespace support in service names**: Service names now support CDS namespaces, e.g., `cds.env.requires["cds.xt.DeploymentService"]`.
+- **Support for `cds.queued`**: Added support for the `cds.queued` property.
+- [Admin Service] allow to publish events via Admin Service to all or a defined list of tenants
+
 ## v1.11.1 - 2025-11-13
 
 ### Added

@@ -27,7 +27,7 @@ processing.
 
 - [Load balancing](/event-queue/load-balancing) and concurrency control for event processing across app instances,
   protecting the application from load spikes.
-- [Use as CAP outbox](/event-queue/use-as-cap-outbox) with full support for all event-queue features.
+- [Use as CAP Queue](/event-queue/use-as-cap-outbox) with full support for all event-queue features.
 - [Periodic events](/event-queue/configure-event/#periodic-events) using cron patterns with load management for optimal
   job execution.
 - [Managed transactions](/event-queue/transaction-handling) for reliable event processing.
