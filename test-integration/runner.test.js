@@ -397,22 +397,21 @@ describe("runner", () => {
       await Promise.allSettled([p1, p2]);
       await Promise.allSettled(WorkerQueue.instance.runningPromises);
 
-      // 3 calls of _multiTenancyDb * 1 update periodic events (but only for one calls because of tenant hash)
-      // 3 tenants * 2 calls of _multiTenancyDb * 1 open periodic event
-      expect(acquireLockSpy).toHaveBeenCalledTimes(9);
+      // calls for event acquire lock are inside process event
+      expect(acquireLockSpy).toHaveBeenCalledTimes(3);
       expect(
         acquireLockSpy.mock.calls.map((call) => [call[1], call[2]]).sort(([a], [b]) => a.localeCompare(b))
       ).toMatchSnapshot();
-      // 3 calls = 3 tenants * 1 open periodic event - because of locks only one call per tenant
-      expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
+      // 6 calls = locks are checked inside processEventQueue
+      expect(processEventQueueSpy).toHaveBeenCalledTimes(6);
 
       // another run within 5 minutes should do nothing
       await runner.__._multiTenancyDb();
       await Promise.allSettled(WorkerQueue.instance.runningPromises);
-      // 9 calls from before + there are still open events so: 3 tenants * 1 open event = 3 calls
-      expect(acquireLockSpy).toHaveBeenCalledTimes(12);
-      // still 3 calls
-      expect(processEventQueueSpy).toHaveBeenCalledTimes(3);
+      // locks are checked inside processEventQueue
+      expect(acquireLockSpy).toHaveBeenCalledTimes(3);
+      // 3 more as locks are checked inside now
+      expect(processEventQueueSpy).toHaveBeenCalledTimes(9);
     });
   });
 
@@ -461,15 +460,16 @@ describe("runner", () => {
       );
 
       expect(loggerMock.callsLengths().error).toEqual(0);
-      expect(processEventQueueSpy).toHaveBeenCalledTimes(1);
-      expect(acquireLockSpy).toHaveBeenCalledTimes(2);
+      expect(processEventQueueSpy).toHaveBeenCalledTimes(2);
+      // checked inside processEventQueue
+      expect(acquireLockSpy).toHaveBeenCalledTimes(0);
       expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
     });
 
     it("should pass increasePriorityOverTime to worker queue", async () => {
       await cds.tx({}, (tx) => testHelper.insertEventEntry(tx, { type: "SingleTenant", subType: "NoPrioIncrease" }));
       const workerQueue = jest.spyOn(WorkerQueue.instance, "addToQueue");
-      await runner.__._singleTenantDb().then((promises) => Promise.all(promises.flat()));
+      await runner.__._singleTenantDb();
       expect(loggerMock.callsLengths().error).toEqual(0);
       expect(workerQueue.mock.calls[0]).toEqual([
         1,
