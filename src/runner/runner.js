@@ -180,7 +180,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
   }
 };
 
-const _executeEventsAllTenants = async (tenantIds, runId) => {
+const _executeEventsAllTenants = async (tenantIds) => {
   const promises = [];
   for (const tenantId of tenantIds) {
     const id = cds.utils.uuid();
@@ -230,13 +230,6 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
                 label,
                 async () => {
                   try {
-                    const lockId = `${runId}_${label}`;
-                    const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
-                      expiryTime: eventQueueConfig.runInterval * 0.95,
-                    });
-                    if (!couldAcquireLock) {
-                      return;
-                    }
                     await runEventCombinationForTenant(
                       context,
                       eventConfig.type,
@@ -308,50 +301,40 @@ const _singleTenantDb = async () => {
     { newRootSpan: true }
   );
 
-  return await Promise.allSettled(
-    events.map(async (openEvent) => {
-      const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType, openEvent.namespace);
-      const label = [openEvent.namespace, eventConfig.type, eventConfig.subType].join("##");
-      return await WorkerQueue.instance.addToQueue(
-        eventConfig.load,
-        label,
-        eventConfig.priority,
-        eventConfig.increasePriorityOverTime,
-        async () => {
-          return await cds.tx({}, async ({ context }) => {
-            await trace(
-              context,
-              label,
-              async () => {
-                try {
-                  const couldAcquireLock = eventConfig.multiInstanceProcessing
-                    ? true
-                    : await distributedLock.acquireLock(context, label, {
-                        expiryTime: eventQueueConfig.runInterval * 0.95,
-                      });
-                  if (!couldAcquireLock) {
-                    return;
+  for (const openEvent of events) {
+    const eventConfig = config.getEventConfig(openEvent.type, openEvent.subType, openEvent.namespace);
+    const label = [openEvent.namespace, eventConfig.type, eventConfig.subType].join("##");
+    await WorkerQueue.instance.addToQueue(
+      eventConfig.load,
+      label,
+      eventConfig.priority,
+      eventConfig.increasePriorityOverTime,
+      async () => {
+        return await cds.tx({}, async ({ context }) => {
+          await trace(
+            context,
+            label,
+            async () => {
+              try {
+                await runEventCombinationForTenant(
+                  context,
+                  eventConfig.type,
+                  eventConfig.subType,
+                  openEvent.namespace,
+                  {
+                    skipWorkerPool: true,
                   }
-                  await runEventCombinationForTenant(
-                    context,
-                    eventConfig.type,
-                    eventConfig.subType,
-                    openEvent.namespace,
-                    {
-                      skipWorkerPool: true,
-                    }
-                  );
-                } catch (err) {
-                  cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed");
-                }
-              },
-              { newRootSpan: true }
-            );
-          });
-        }
-      );
-    })
-  );
+                );
+              } catch (err) {
+                cds.log(COMPONENT_NAME).error("executing event-queue run for tenant failed");
+              }
+            },
+            { newRootSpan: true }
+          );
+        });
+      }
+    );
+  }
 };
 
 const _singleTenantRedis = async () => {
@@ -467,7 +450,7 @@ const _multiTenancyDb = async () => {
     logger.info("executing event queue run for single instance and multi tenant");
     const tenantIds = await cdsHelper.getAllTenantIds();
     await _checkPeriodicEventUpdate(tenantIds);
-    return await _executeEventsAllTenants(tenantIds, EVENT_QUEUE_RUN_ID);
+    return await _executeEventsAllTenants(tenantIds);
   } catch (err) {
     logger.error("Couldn't fetch tenant ids for event queue processing! Next try after defined interval.", err);
   }

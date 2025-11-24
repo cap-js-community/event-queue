@@ -274,7 +274,9 @@ describe("integration-main", () => {
     const event = eventQueue.config.events[0];
     await cds.tx({}, async (tx2) => {
       await testHelper.insertEventEntry(tx2);
-      await distributedLock.acquireLock(tx2.context, ["default", event.type, event.subType].join("##"));
+      await distributedLock.acquireLock(tx2.context, ["default", event.type, event.subType].join("##"), {
+        skipNamespace: true,
+      });
     });
     dbCounts = {};
     await eventQueue.processEventQueue(context, event.type, event.subType);

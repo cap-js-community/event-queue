@@ -1031,7 +1031,7 @@ class EventQueueProcessorBase {
       const lockAcquired = await distributedLock.acquireLock(
         this.__context,
         [this.#namespace, this.#eventType, this.#eventSubType].join("##"),
-        { keepTrackOfLock: true, expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000 }
+        { keepTrackOfLock: true, expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000, skipNamespace: true }
       );
       if (!lockAcquired) {
         this.logger.debug("no lock available, exit processing", {
@@ -1074,7 +1074,8 @@ class EventQueueProcessorBase {
       await trace(this.baseContext, "release-lock", async () => {
         await distributedLock.releaseLock(
           this.context,
-          [this.#namespace, this.#eventType, this.#eventSubType].join("##")
+          [this.#namespace, this.#eventType, this.#eventSubType].join("##"),
+          { skipNamespace: true }
         );
       });
     } catch (err) {

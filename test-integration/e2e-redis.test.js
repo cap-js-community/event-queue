@@ -3,11 +3,12 @@
 const { promisify } = require("util");
 
 const cds = require("@sap/cds");
+const redisMock = require("../test/mocks/redisMock");
 
 const CHANNELS = {};
 
 const mockRedisClientInstance = {
-  createMainClientAndConnect: require("../test/mocks/redisMock").createMainClientAndConnect,
+  createMainClientAndConnect: redisMock.createMainClientAndConnect,
   subscribeChannel: jest.fn().mockImplementation((...args) => {
     const [, channel, cb] = args;
     CHANNELS[channel] = cb;
@@ -77,12 +78,16 @@ describe("end-to-end", () => {
     await DELETE.from("sap.eventqueue.Event");
     await DELETE.from("cds.outbox.Messages");
     jest.clearAllMocks();
+    redisMock.clearState();
+    redisMock.clearState();
   });
 
   it("insert entry: redis broadcast + process", async () => {
     const srv = await cds.connect.to("StandardService");
     await srv.emit("main");
     await waitAtLeastOneEntryIsDone();
+    expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
+    expect(Object.keys(redisMock.getState())).toMatchSnapshot();
     expect(loggerMock.callsLengths().error).toEqual(0);
   });
 
@@ -90,6 +95,8 @@ describe("end-to-end", () => {
     await cds.tx((tx) => checkAndInsertPeriodicEvents(tx.context));
     await runner.__._singleTenantRedis();
     await waitAtLeastOneEntryIsDone();
+    expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
+    expect(Object.keys(redisMock.getState())).toMatchSnapshot();
     expect(loggerMock.callsLengths().error).toEqual(0);
   });
 });
@@ -99,6 +106,7 @@ const waitAtLeastOneEntryIsDone = async () => {
   while (true) {
     const row = await cds.tx({}, (tx2) => tx2.run(SELECT.one.from("sap.eventqueue.Event").where({ status: 2 })));
     if (row?.status === EventProcessingStatus.Done) {
+      await promisify(setTimeout)(500); // NOTE: wait a bit longer for all locks to be released
       break;
     }
     if (Date.now() - startTime > 180 * 1000) {
