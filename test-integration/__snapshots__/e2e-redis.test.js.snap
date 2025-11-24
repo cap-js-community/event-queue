@@ -2,33 +2,26 @@
 
 exports[`end-to-end checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events 1`] = `
 [
-  "EVENT_QUEUE##default##RUN_TS",
-  "EVENT_QUEUE##default####efb1d191-f366-457d-b8c9-f6569a55415d",
-  "EVENT_QUEUE####default##CAP_OUTBOX##StandardService",
   "EVENT_QUEUE##default##RUN_REDIS_CHECK",
-  "EVENT_QUEUE##default####f7332cab-d584-4508-ace8-49e9cfd1b393",
-  "EVENT_QUEUE####default##CAP_OUTBOX_PERIODIC##StandardService.mainPeriodic",
+  "EVENT_QUEUE##default####TEST_STATIC",
 ]
 `;
 
 exports[`end-to-end checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events 2`] = `
 [
   "EVENT_QUEUE##default##RUN_REDIS_CHECK",
-  "EVENT_QUEUE##default####f7332cab-d584-4508-ace8-49e9cfd1b393",
+  "EVENT_QUEUE##default####TEST_STATIC",
 ]
 `;
 
 exports[`end-to-end insert entry: redis broadcast + process 1`] = `
 [
-  "EVENT_QUEUE##default##RUN_TS",
-  "EVENT_QUEUE##default####a379a6c1-d4f7-4437-9ec6-10c1a95ba81f",
-  "EVENT_QUEUE####default##CAP_OUTBOX##StandardService",
+  "EVENT_QUEUE##default####TEST_STATIC",
 ]
 `;
 
 exports[`end-to-end insert entry: redis broadcast + process 2`] = `
 [
-  "EVENT_QUEUE##default####a379a6c1-d4f7-4437-9ec6-10c1a95ba81f",
-  "EVENT_QUEUE####default##CAP_OUTBOX##StandardService",
+  "EVENT_QUEUE##default####TEST_STATIC",
 ]
 `;

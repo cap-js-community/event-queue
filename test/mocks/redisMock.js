@@ -29,12 +29,24 @@ module.exports = {
   clearTestState: () => (testState = {}),
   closeMainClient: () => {},
   registerShutdownHandler: () => {},
-  getTestState: () => testState,
+  getTestState: () =>
+    Object.fromEntries(
+      Object.entries(state).map(([key, value]) => {
+        return [_sanatizeKey(key), value];
+      })
+    ),
   getState: () =>
     Object.fromEntries(
       Object.entries(state).map(([key, value]) => {
         delete value.value;
-        return [key, value];
+        return [_sanatizeKey(key), value];
       })
     ),
+};
+
+const _sanatizeKey = (key) => {
+  const keyParts = key.split("##");
+  const last = keyParts.pop();
+  keyParts.push(last.length === 36 ? "TEST_STATIC" : last);
+  return keyParts.join("##");
 };
