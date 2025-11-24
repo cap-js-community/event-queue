@@ -106,7 +106,7 @@ const waitAtLeastOneEntryIsDone = async () => {
   while (true) {
     const row = await cds.tx({}, (tx2) => tx2.run(SELECT.one.from("sap.eventqueue.Event").where({ status: 2 })));
     if (row?.status === EventProcessingStatus.Done) {
-      await promisify(setTimeout)(100); // NOTE: wait a bit longer for all locks to be released
+      await promisify(setTimeout)(500); // NOTE: wait a bit longer for all locks to be released
       break;
     }
     if (Date.now() - startTime > 180 * 1000) {
