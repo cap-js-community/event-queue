@@ -131,6 +131,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
             return await distributedLock.acquireLock(dummyContext, EVENT_QUEUE_RUN_REDIS_CHECK, {
               expiryTime: eventQueueConfig.runInterval * 0.95,
               tenantScoped: false,
+              skipNamespace: true,
             });
           },
           { newRootSpan: true }
@@ -233,6 +234,7 @@ const _executeEventsAllTenants = async (tenantIds, runId) => {
                     const lockId = `${runId}_${label}`;
                     const couldAcquireLock = await distributedLock.acquireLock(context, lockId, {
                       expiryTime: eventQueueConfig.runInterval * 0.95,
+                      skipNamespace: true,
                     });
                     if (!couldAcquireLock) {
                       return;

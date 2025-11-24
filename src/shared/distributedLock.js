@@ -11,9 +11,9 @@ const COMPONENT_NAME = "/eventQueue/distributedLock";
 const acquireLock = async (
   context,
   key,
-  { tenantScoped = true, expiryTime = config.globalTxTimeout, keepTrackOfLock = false } = {}
+  { tenantScoped = true, expiryTime = config.globalTxTimeout, keepTrackOfLock = false, skipNamespace = false } = {}
 ) => {
-  const fullKey = _generateKey(context, tenantScoped, key);
+  const fullKey = _generateKey(context, tenantScoped, key, skipNamespace);
   if (config.redisEnabled) {
     return await _acquireLockRedis(context, fullKey, expiryTime, { keepTrackOfLock });
   } else {
@@ -51,8 +51,8 @@ const setValueWithExpire = async (
   }
 };
 
-const releaseLock = async (context, key, { tenantScoped = true } = {}) => {
-  const fullKey = _generateKey(context, tenantScoped, key);
+const releaseLock = async (context, key, { tenantScoped = true, skipNamespace = false } = {}) => {
+  const fullKey = _generateKey(context, tenantScoped, key, skipNamespace);
   if (config.redisEnabled) {
     return await _releaseLockRedis(context, fullKey);
   } else {
@@ -194,8 +194,8 @@ const _acquireLockDB = async (
   return result;
 };
 
-const _generateKey = (context, tenantScoped, key) => {
-  const keyParts = [config.redisNamespace()];
+const _generateKey = (context, tenantScoped, key, skipNamespace) => {
+  const keyParts = skipNamespace ? [] : [config.redisNamespace()];
   tenantScoped && keyParts.push(context.tenant);
   keyParts.push(key);
   return `${keyParts.join("##")}`;
