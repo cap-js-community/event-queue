@@ -9,8 +9,6 @@ service EventQueueAdminService {
   @cds.persistence.skip
   entity Event as projection on db.Event {
         null as tenant: String,
-        null as landscape: String,
-        null as space: String,
         *
   } actions {
       action setStatusAndAttempts(
@@ -25,11 +23,10 @@ service EventQueueAdminService {
   @cds.persistence.skip
   @readonly
   entity Lock {
+    key namespace: String;
     key tenant: String;
     key type: String;
     key subType: String;
-    landscape: String;
-    space: String;
     ttl: Integer;
     createdAt: Integer;
   } actions {
@@ -45,6 +42,8 @@ service EventQueueAdminService {
 
       action publishEvent(
           @mandatory
+          namespace: String,
+          @mandatory
           tenants: array of String,
           @mandatory
           type: String,
@@ -54,5 +53,6 @@ service EventQueueAdminService {
           referenceEntityKey: String,
           @open
           payload: {},
-          startAfter: String);
+          startAfter: String,
+             );
 }

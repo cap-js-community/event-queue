@@ -35,8 +35,6 @@ exports[`admin-service-test metadata snapshot 1`] = `
           <PropertyRef Name="ID"/>
         </Key>
         <Property Name="tenant" Type="Edm.String"/>
-        <Property Name="landscape" Type="Edm.String"/>
-        <Property Name="space" Type="Edm.String"/>
         <Property Name="ID" Type="Edm.Guid" Nullable="false"/>
         <Property Name="type" Type="Edm.String" Nullable="false"/>
         <Property Name="subType" Type="Edm.String" Nullable="false"/>
@@ -54,15 +52,15 @@ exports[`admin-service-test metadata snapshot 1`] = `
       </EntityType>
       <EntityType Name="Lock">
         <Key>
+          <PropertyRef Name="namespace"/>
           <PropertyRef Name="tenant"/>
           <PropertyRef Name="type"/>
           <PropertyRef Name="subType"/>
         </Key>
+        <Property Name="namespace" Type="Edm.String" Nullable="false"/>
         <Property Name="tenant" Type="Edm.String" Nullable="false"/>
         <Property Name="type" Type="Edm.String" Nullable="false"/>
         <Property Name="subType" Type="Edm.String" Nullable="false"/>
-        <Property Name="landscape" Type="Edm.String"/>
-        <Property Name="space" Type="Edm.String"/>
         <Property Name="ttl" Type="Edm.Int32"/>
         <Property Name="createdAt" Type="Edm.Int32"/>
       </EntityType>
@@ -82,6 +80,7 @@ exports[`admin-service-test metadata snapshot 1`] = `
         <ReturnType Type="Edm.Boolean"/>
       </Action>
       <Action Name="publishEvent" IsBound="false">
+        <Parameter Name="namespace" Type="Edm.String"/>
         <Parameter Name="tenants" Type="Collection(Edm.String)" Nullable="true"/>
         <Parameter Name="type" Type="Edm.String"/>
         <Parameter Name="subType" Type="Edm.String"/>
@@ -108,12 +107,6 @@ exports[`admin-service-test metadata snapshot 1`] = `
         </Annotation>
       </Annotations>
       <Annotations Target="EventQueueAdminService.Event/tenant">
-        <Annotation Term="Core.Computed" Bool="true"/>
-      </Annotations>
-      <Annotations Target="EventQueueAdminService.Event/landscape">
-        <Annotation Term="Core.Computed" Bool="true"/>
-      </Annotations>
-      <Annotations Target="EventQueueAdminService.Event/space">
         <Annotation Term="Core.Computed" Bool="true"/>
       </Annotations>
       <Annotations Target="EventQueueAdminService.Event/ID">
@@ -215,6 +208,9 @@ exports[`admin-service-test metadata snapshot 1`] = `
       <Annotations Target="EventQueueAdminService.releaseLock(EventQueueAdminService.Lock)/subType">
         <Annotation Term="Common.FieldControl" EnumMember="Common.FieldControlType/Mandatory"/>
       </Annotations>
+      <Annotations Target="EventQueueAdminService.publishEvent()/namespace">
+        <Annotation Term="Common.FieldControl" EnumMember="Common.FieldControlType/Mandatory"/>
+      </Annotations>
       <Annotations Target="EventQueueAdminService.publishEvent()/tenants">
         <Annotation Term="Common.FieldControl" EnumMember="Common.FieldControlType/Mandatory"/>
       </Annotations>
@@ -275,7 +271,22 @@ exports[`admin-service-test publish event filter for one tenant 1`] = `
 ]
 `;
 
+exports[`admin-service-test publish event namespace 1`] = `
+[
+  {
+    "attempts": 0,
+    "namespace": "ds",
+    "startAfter": null,
+    "status": 0,
+    "subType": "Namespace",
+    "type": "Different",
+  },
+]
+`;
+
 exports[`admin-service-test publish event no matching tenant 1`] = `[]`;
+
+exports[`admin-service-test publish event publish not known event 1`] = `[AxiosError: 400 - Error publishing event: UNKNOWN_EVENT_TYPE: The event type and subType configuration is not configured! Maintain the combination in the config file.]`;
 
 exports[`admin-service-test read entities: Event 1`] = `
 {
