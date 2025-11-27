@@ -25,3 +25,29 @@ exports[`end-to-end insert entry: redis broadcast + process 2`] = `
   "EVENT_QUEUE##default####TEST_STATIC",
 ]
 `;
+
+exports[`end-to-end redis broadcast checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events 1`] = `
+[
+  "EVENT_QUEUE##default##RUN_REDIS_CHECK",
+  "EVENT_QUEUE##default####TEST_STATIC",
+]
+`;
+
+exports[`end-to-end redis broadcast checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events 2`] = `
+[
+  "EVENT_QUEUE##default##RUN_REDIS_CHECK",
+  "EVENT_QUEUE##default####TEST_STATIC",
+]
+`;
+
+exports[`end-to-end redis broadcast insert entry: redis broadcast + process 1`] = `
+[
+  "EVENT_QUEUE##default####TEST_STATIC",
+]
+`;
+
+exports[`end-to-end redis broadcast insert entry: redis broadcast + process 2`] = `
+[
+  "EVENT_QUEUE##default####TEST_STATIC",
+]
+`;
