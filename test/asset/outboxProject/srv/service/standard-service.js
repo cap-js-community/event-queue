@@ -13,6 +13,14 @@ class StandardService extends cds.Service {
       });
     });
 
+    this.on("eventQueueUser", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        headers: req.headers,
+      });
+    });
+
     this.on("timeBucketAction", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,

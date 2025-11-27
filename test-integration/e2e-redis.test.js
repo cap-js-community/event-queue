@@ -41,6 +41,7 @@ const path = require("path");
 const { Logger: mockLogger } = require("../test/mocks/logger");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const runner = require("../src/runner/runner");
+const testHelper = require("../test/helper");
 
 cds.test(__dirname + "/_env");
 
@@ -52,6 +53,9 @@ cds.env.requires.StandardService = {
     events: {
       mainPeriodic: {
         interval: 20 * 60,
+      },
+      main: {
+        transactionMode: "alwaysRollback",
       },
     },
   },
@@ -82,22 +86,48 @@ describe("end-to-end", () => {
     redisMock.clearState();
   });
 
-  it("insert entry: redis broadcast + process", async () => {
-    const srv = await cds.connect.to("StandardService");
-    await srv.emit("main");
-    await waitAtLeastOneEntryIsDone();
-    expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
-    expect(Object.keys(redisMock.getState())).toMatchSnapshot();
-    expect(loggerMock.callsLengths().error).toEqual(0);
+  describe("redis broadcast", () => {
+    it("insert entry: redis broadcast + process", async () => {
+      const srv = await cds.connect.to("StandardService");
+      await srv.emit("main");
+      await waitAtLeastOneEntryIsDone();
+      expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
+      expect(Object.keys(redisMock.getState())).toMatchSnapshot();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events", async () => {
+      await cds.tx((tx) => checkAndInsertPeriodicEvents(tx.context));
+      await runner.__._singleTenantRedis();
+      await waitAtLeastOneEntryIsDone();
+      expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
+      expect(Object.keys(redisMock.getState())).toMatchSnapshot();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
   });
 
-  it("checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events", async () => {
-    await cds.tx((tx) => checkAndInsertPeriodicEvents(tx.context));
-    await runner.__._singleTenantRedis();
-    await waitAtLeastOneEntryIsDone();
-    expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
-    expect(Object.keys(redisMock.getState())).toMatchSnapshot();
-    expect(loggerMock.callsLengths().error).toEqual(0);
+  describe("runner", () => {
+    it("should select open events and process", async () => {
+      await cds.tx({}, async (tx) => {
+        await eventQueue.publishEvent(
+          tx,
+          {
+            type: "CAP_OUTBOX",
+            subType: "StandardService",
+            payload: { event: "main", data: {}, headers: {} },
+          },
+          { skipBroadcast: true }
+        );
+      });
+
+      await runner.__._singleTenantDb();
+      const events = await cds.tx({}, (tx) => testHelper.selectEventQueueAndReturn(tx, { expectedLength: 1 }));
+      debugger;
+    });
+
+    it("payload must be a string!!", () => {
+      throw new Error("missing test");
+    });
   });
 });
 

@@ -14,7 +14,7 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true accept event-queue specifi
 }
 `;
 
-exports[`event-queue outbox monkeyPatchCAPOutbox=true ad-hoc events overwrite settings via outbox.events should create specific config during select 1`] = `
+exports[`event-queue outbox monkeyPatchCAPOutbox=true ad-hoc events overwrite settings via outbox.events should !not! create specific config during select - as specific is only possible for known events via env 1`] = `
 [
   "No Implementation found in the provided configuration file.",
   {
@@ -76,6 +76,34 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true ad-hoc events overwrite se
   "selectMaxChunkSize": 10,
   "subType": "NotificationServicePeriodic.action",
   "transactionMode": "isolated",
+  "type": "CAP_OUTBOX",
+}
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true config is not overwritten anymore if the service exists 1`] = `
+{
+  "_appInstancesMap": null,
+  "_appNameContainsRegex": null,
+  "_appNameMap": null,
+  "checkForNextChunk": true,
+  "impl": "./outbox/EventQueueGenericOutboxHandler",
+  "increasePriorityOverTime": true,
+  "inheritTraceContext": true,
+  "internalEvent": true,
+  "keepAliveInterval": 60,
+  "keepAliveMaxInProgressTime": 210,
+  "kind": "persistent-outbox",
+  "load": 1,
+  "namespace": "default",
+  "parallelEventProcessing": 5,
+  "priority": "medium",
+  "propagateHeaders": [],
+  "retryAttempts": 20,
+  "retryFailedAfter": 300000,
+  "retryOpenAfter": 300000,
+  "selectMaxChunkSize": 10,
+  "subType": "NotificationServiceOutboxedByConfig",
+  "transactionMode": "alwaysRollback",
   "type": "CAP_OUTBOX",
 }
 `;
@@ -417,34 +445,6 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true should store correct user 
   "headers": {},
   "subType": "NotificationService",
   "user": "badman",
-}
-`;
-
-exports[`event-queue outbox monkeyPatchCAPOutbox=true should work for outboxed services by require with transactionMode config 1`] = `
-{
-  "_appInstancesMap": null,
-  "_appNameContainsRegex": null,
-  "_appNameMap": null,
-  "checkForNextChunk": true,
-  "impl": "./outbox/EventQueueGenericOutboxHandler",
-  "increasePriorityOverTime": true,
-  "inheritTraceContext": true,
-  "internalEvent": true,
-  "keepAliveInterval": 60,
-  "keepAliveMaxInProgressTime": 210,
-  "kind": "persistent-outbox",
-  "load": 1,
-  "namespace": "default",
-  "parallelEventProcessing": 5,
-  "priority": "medium",
-  "propagateHeaders": [],
-  "retryAttempts": 20,
-  "retryFailedAfter": 300000,
-  "retryOpenAfter": 300000,
-  "selectMaxChunkSize": 10,
-  "subType": "NotificationServiceOutboxedByConfig",
-  "transactionMode": "alwaysRollback",
-  "type": "CAP_OUTBOX",
 }
 `;
 

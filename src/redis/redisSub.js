@@ -48,17 +48,20 @@ const _messageHandlerProcessEvents = async (messageData) => {
       if (config.isCapOutboxEvent(type)) {
         try {
           const service = await cds.connect.to(srvName);
-          cds.outboxed(service);
-          if (actionName) {
-            const specificSettings = config.getCdsOutboxEventSpecificConfig(srvName, actionName);
-            if (specificSettings) {
-              config.addCAPOutboxEventSpecificAction(srvName, actionName);
-            }
+          if (!service || actionName) {
+            logger.warn("could not find CAP Service configuration to process event!", {
+              type,
+              subType,
+              namespace,
+            });
+            return;
           }
+          config.addCAPServiceWithoutEnvConfig(subType, service);
         } catch (err) {
           logger.warn("could not connect to outboxed service", err, {
             type,
             subType,
+            namespace,
           });
           return;
         }
