@@ -51,8 +51,7 @@ service EventQueueAdminService {
           subType: String,
           referenceEntity: String,
           referenceEntityKey: String,
-          @open
-          payload: {},
+          payload: String,
           startAfter: String,
              );
 }

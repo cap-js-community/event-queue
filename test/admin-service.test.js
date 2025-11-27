@@ -186,7 +186,7 @@ describe("admin-service-test", () => {
         type: "Notifications",
         subType: "Task",
         tenants: ["t1"],
-        payload: { input: 123 },
+        payload: JSON.stringify({ input: 123 }),
         startAfter: new Date(1763629752504).toISOString(),
         namespace: "default",
       });
@@ -205,7 +205,7 @@ describe("admin-service-test", () => {
           type: "Different",
           subType: "Namespace",
           tenants: ["t1"],
-          payload: { input: 123 },
+          payload: JSON.stringify({ input: 123 }),
           namespace: "default",
         })
       ).rejects.toMatchSnapshot();
