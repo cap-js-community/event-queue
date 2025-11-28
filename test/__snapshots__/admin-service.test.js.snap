@@ -286,3 +286,17 @@ exports[`admin-service-test publish event namespace 1`] = `
 exports[`admin-service-test publish event no matching tenant 1`] = `[]`;
 
 exports[`admin-service-test publish event publish not known event 1`] = `[AxiosError: 400 - Error publishing event: UNKNOWN_EVENT_TYPE: The event type and subType configuration is not configured! Maintain the combination in the config file.]`;
+
+exports[`admin-service-test read entities: Event 1`] = `
+{
+  "@odata.context": "$metadata#Event",
+  "value": [],
+}
+`;
+
+exports[`admin-service-test read entities: Lock 1`] = `
+{
+  "@odata.context": "$metadata#Lock",
+  "value": [],
+}
+`;
