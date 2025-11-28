@@ -756,7 +756,9 @@ class EventQueueProcessorBase {
       }
 
       if (!eventsForProcessing.length) {
-        this.__emptyChunkSelected = true;
+        if (!entries.length) {
+          this.__emptyChunkSelected = true;
+        }
         return;
       }
 

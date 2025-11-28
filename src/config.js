@@ -6,6 +6,7 @@ const { CronExpressionParser } = require("cron-parser");
 const { getEnvInstance } = require("./shared/env");
 const EventQueueError = require("./EventQueueError");
 const { Priorities } = require("./constants");
+const common = require("./shared/common");
 
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
@@ -261,18 +262,25 @@ class Config {
       subType: serviceName,
       impl: "./outbox/EventQueueGenericOutboxHandler",
       kind: config.kind ?? "persistent-queue",
-      selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
-      parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
-      retryAttempts: config.retryAttempts ?? config.maxAttempts ?? CAP_MAX_ATTEMPTS_DEFAULT,
+      ...this.#mixCAPPropertyNamesWithEventQueueNames(config),
       namespace,
       ...config,
     });
+    eventConfig.retryAttempts ??= CAP_MAX_ATTEMPTS_DEFAULT;
     eventConfig.internalEvent = true;
 
     this.#basicEventTransformation(eventConfig);
     this.#validateAdHocEvents(currentEvents, eventConfig, false);
     this.#basicEventTransformationAfterValidate(eventConfig);
     return [this.generateKey(namespace, CAP_EVENT_TYPE, serviceName), eventConfig];
+  }
+
+  #mixCAPPropertyNamesWithEventQueueNames(config) {
+    return common.cleanUndefined({
+      selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
+      parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
+      retryAttempts: config.retryAttempts ?? config.maxAttempts,
+    });
   }
 
   addCAPOutboxEventSpecificAction(baseServiceConfig, serviceName, actionName, currentEvents) {
@@ -398,7 +406,7 @@ class Config {
     const srv = cds.env.requires[serviceName];
     const config = srv?.outbox ?? srv?.queued;
     if (config?.events?.[action]) {
-      return config.events[action];
+      return this.#mixCAPPropertyNamesWithEventQueueNames(config.events[action]);
     } else {
       return null;
     }

@@ -132,6 +132,7 @@ cds.env.requires.QueueService = {
     events: {
       timeBucketAction: { timeBucket: "*/60 * * * * *" },
       main: { cron: "*/15 * * * * *" },
+      chunkSizeWithDelayed: { chunkSize: 3 },
     },
   },
 };
@@ -805,6 +806,20 @@ describe("event-queue outbox", () => {
       await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
       expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1]).toMatchSnapshot();
       expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("more delayed events than chunk size - should keep processing", async () => {
+      const service = await cds.connect.to("QueueService");
+      for (let i = 0; i < 5; i++) {
+        await service.emit(
+          "chunkSizeWithDelayed",
+          { id: 1 },
+          { "x-eventqueue-startafter": i < 3 ? new Date(Date.now() + 2 * 60 * 1000).toISOString() : new Date() }
+        );
+      }
+      await commitAndOpenNew();
+      await processEventQueue(context, "CAP_OUTBOX", `${service.name}.chunkSizeWithDelayed`);
+      debugger;
     });
 
     describe("trace context", () => {
