@@ -20,12 +20,6 @@ try {
   // Nothing to do
 }
 
-cds.env.requires.db = {
-  kind: "hana",
-  credentials,
-  pool: {
-    max: 10,
-  },
-};
+cds.env.requires.db.credentials = credentials;
 
 module.exports = cds.server;
