@@ -108,6 +108,32 @@ exports[`event-queue outbox monkeyPatchCAPOutbox=true config is not overwritten 
 }
 `;
 
+exports[`event-queue outbox monkeyPatchCAPOutbox=true custom hooks eventQueueCluster specific action calls actionClusterByPayloadWithCb empty data 1`] = `
+[
+  [
+    "Error during clustering of events - setting all queue entries to error.",
+    [INVALID_CLUSTER_HANDLER_RESULT: A cluster handler returned an invalid result. Cluster handlers must return the clustered payload data.],
+    {
+      "eventSubType": "OutboxCustomHooks",
+      "eventType": "CAP_OUTBOX",
+    },
+  ],
+]
+`;
+
+exports[`event-queue outbox monkeyPatchCAPOutbox=true custom hooks eventQueueCluster specific action calls actionClusterByPayloadWithCb missing cluster attribute 1`] = `
+[
+  [
+    "Error during clustering of events - setting all queue entries to error.",
+    [INVALID_CLUSTER_HANDLER_RESULT: A cluster handler returned an invalid result. Cluster handlers must return the clustered payload data.],
+    {
+      "eventSubType": "OutboxCustomHooks",
+      "eventType": "CAP_OUTBOX",
+    },
+  ],
+]
+`;
+
 exports[`event-queue outbox monkeyPatchCAPOutbox=true custom options should win over service options 1`] = `
 {
   "_appInstancesMap": null,

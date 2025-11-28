@@ -1217,6 +1217,41 @@ describe("event-queue outbox", () => {
             expect(loggerMock.callsLengths().error).toEqual(0);
           });
 
+          it("actionClusterByPayloadWithCb empty data", async () => {
+            const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+            const data = { emptyData: true, to: "me", guids: [cds.utils.uuid()], subject: "subject", body: "body" };
+            const data2 = { emptyData: true, to: "me", guids: [cds.utils.uuid()], subject: "subject", body: "body" };
+            await service.send("actionClusterByPayloadWithCb", data);
+            await service.send("actionClusterByPayloadWithCb", data2);
+            await commitAndOpenNew();
+            await testHelper.selectEventQueueAndExpectOpen(tx, {
+              expectedLength: 2,
+            });
+            await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+            await commitAndOpenNew();
+            expect(loggerMock).actionCalledTimes("eventQueueCluster.actionClusterByPayloadWithCb", 1);
+            expect(loggerMock).actionCalledTimes("actionClusterByPayloadWithCb", 0);
+            await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 2 });
+            expect(loggerMock.callsLengths().error).toEqual(1);
+            expect(loggerMock.calls().error).toMatchSnapshot();
+          });
+
+          it("actionClusterByPayloadWithCb not data in send", async () => {
+            const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+            await service.send("actionClusterByPayloadWithCb");
+            await service.send("actionClusterByPayloadWithCb");
+            await commitAndOpenNew();
+            await testHelper.selectEventQueueAndExpectOpen(tx, {
+              expectedLength: 2,
+            });
+            await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+            await commitAndOpenNew();
+            expect(loggerMock).actionCalledTimes("eventQueueCluster.actionClusterByPayloadWithCb", 0);
+            expect(loggerMock).actionCalledTimes("actionClusterByPayloadWithCb", 0);
+            await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+            expect(loggerMock.callsLengths().error).toEqual(0);
+          });
+
           it("should use correct cluster key", async () => {
             const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
             const data = { to: "me", guids: [cds.utils.uuid()], subject: "subject", body: "body" };
