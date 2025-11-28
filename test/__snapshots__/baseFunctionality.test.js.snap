@@ -45,8 +45,12 @@ exports[`baseFunctionality ad-hoc events error handling handle clusterQueueEntri
 exports[`baseFunctionality ad-hoc events error handling handle getQueueEntriesAndSetToInProgress fails 1`] = `
 [
   [
-    "business transaction commited but succeeded|done|failed threw a error!",
-    [ExecuteInNewTransactionError: Execution in new transaction failed: db error],
+    "Processing event queue failed with unexpected error.",
+    [Error: db error],
+    {
+      "eventSubType": "Task",
+      "eventType": "Notifications",
+    },
   ],
 ]
 `;
