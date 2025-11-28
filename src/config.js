@@ -6,7 +6,6 @@ const { CronExpressionParser } = require("cron-parser");
 const { getEnvInstance } = require("./shared/env");
 const EventQueueError = require("./EventQueueError");
 const { Priorities } = require("./constants");
-const common = require("./shared/common");
 
 const FOR_UPDATE_TIMEOUT = 10;
 const GLOBAL_TX_TIMEOUT = 30 * 60 * 1000;
@@ -276,7 +275,7 @@ class Config {
   }
 
   #mixCAPPropertyNamesWithEventQueueNames(config) {
-    return common.cleanUndefined({
+    return this.#cleanUndefined({
       selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.retryAttempts ?? config.maxAttempts,
@@ -913,6 +912,15 @@ class Config {
 
   set processingNamespaces(value) {
     this.#processingNamespaces = value;
+  }
+
+  #cleanUndefined(input) {
+    return Object.entries(input).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
   }
 
   /**
