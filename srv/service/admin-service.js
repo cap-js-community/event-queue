@@ -15,7 +15,6 @@ module.exports = class AdminService extends cds.ApplicationService {
     const { Event: EventService, Lock: LockService } = this.entities;
     const { Event: EventDb } = cds.db.entities("sap.eventqueue");
     const { publishEvent } = this.actions;
-    const { landscape, space } = this.getLandscapeAndSpace();
 
     this.before("*", (req) => {
       if (!eventQueue.config.enableAdminService) {
@@ -23,6 +22,10 @@ module.exports = class AdminService extends cds.ApplicationService {
       }
 
       if (req.event === publishEvent.name.split(".")[1]) {
+        return;
+      }
+
+      if (req.target === LockService) {
         return;
       }
 
@@ -46,8 +49,6 @@ module.exports = class AdminService extends cds.ApplicationService {
         }
         const events = await tx.run(req.query);
         return events?.map((event) => {
-          event.landscape = landscape;
-          event.space = space;
           event.tenant = tenant;
           return event;
         });
@@ -58,12 +59,7 @@ module.exports = class AdminService extends cds.ApplicationService {
       if (!eventQueue.config.redisEnabled) {
         return [];
       }
-      const locks = await distributedLock.getAllLocksRedis();
-      return locks.map((lock) => ({
-        ...lock,
-        landscape: landscape,
-        space: space,
-      }));
+      return await distributedLock.getAllLocksRedis();
     });
 
     this.on("setStatusAndAttempts", async (req) => {
@@ -98,16 +94,18 @@ module.exports = class AdminService extends cds.ApplicationService {
 
     this.on("releaseLock", async (req) => {
       cds.log("eventQueue").info("Releasing event-queue lock", req.data);
-      const { tenant, type, subType } = req.data;
+      const { tenant, type, subType, namespace } = req.data;
       return await cds.tx({ tenant }, async (tx) => {
-        return await distributedLock.releaseLock(tx.context, [type, subType].join("##"));
+        return await distributedLock.releaseLock(tx.context, [namespace, type, subType].join("##"), {
+          skipNamespace: true,
+        });
       });
     });
 
     this.on(publishEvent, async (req) => {
       const logger = cds.log(COMPONENT_NAME);
       try {
-        const { type, subType, referenceEntity, referenceEntityKey, payload, startAfter } = req.data;
+        const { type, subType, referenceEntity, referenceEntityKey, payload, startAfter, namespace } = req.data;
         const tenants = await publishEventHelper.resolveTenantInfos(req);
         const eventOptions = commonHelper.cleanUndefined({
           type,
@@ -116,8 +114,9 @@ module.exports = class AdminService extends cds.ApplicationService {
           referenceEntityKey,
           payload,
           startAfter,
+          namespace,
         });
-        const publishInfo = { count: tenants.length, type, subType, tenants: req.data.tenants };
+        const publishInfo = { count: tenants.length, type, subType, namespace, tenants: req.data.tenants };
         logger.info("publishing event for tenant(s)", publishInfo);
         for (const tenant of tenants) {
           await cds.tx({ tenant }, async (tx) => {
@@ -127,25 +126,10 @@ module.exports = class AdminService extends cds.ApplicationService {
         logger.info("finished publishing event for tenant(s)", publishInfo);
       } catch (err) {
         logger.error("error publishing event", err);
+        req.reject(400, "Error publishing event: " + err.toString());
       }
     });
 
     await super.init();
-  }
-
-  getLandscapeAndSpace() {
-    const url = cds.requires.db.credentials.url;
-    if (!url) {
-      return { landscape: "eu10-canary", space: "local-dev" };
-    }
-    const match = url.match(/https?:\/\/[^.]+\.authentication\.([^.]+)\.hana\.ondemand\.com/);
-    const landscape = (match?.[1] ?? "sap") === "sap" ? "eu10-canary" : match?.[1];
-    let space = "local-dev";
-    try {
-      space = JSON.parse(process.env.VCAP_APPLICATION)?.space_name;
-    } catch {
-      /* empty */
-    }
-    return { landscape, space };
   }
 };

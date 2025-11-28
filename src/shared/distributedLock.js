@@ -216,14 +216,15 @@ const getAllLocksRedis = async () => {
   // NOTE: use SCAN because KEYS is not supported for cluster clients
   for (const client of clients) {
     for await (const key of client.scanIterator({ MATCH: "EVENT*", COUNT: 1000 })) {
-      const [, tenant, guidOrType, subType] = key.split("##");
+      const [, namespace, tenant, guidOrType, subType] = key.split("##");
       if (!subType) {
         continue;
       }
 
       const pipeline = client.multi();
       output.push({
-        tenant: tenant,
+        namespace,
+        tenant,
         type: guidOrType,
         subType: subType,
       });
