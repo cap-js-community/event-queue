@@ -178,6 +178,28 @@ describe("baseFunctionality", () => {
         await cds.tx({}, (tx) => testHelper.selectEventQueueAndExpectOpen(tx));
       });
 
+      test("handle getQueueEntriesAndSetToInProgress fails - CAP select fails", async () => {
+        // use this type because select next chunk is needed
+        await cds.tx({}, (tx) =>
+          testHelper.insertEventEntry(tx, {
+            type: "TransactionMode",
+            subType: "isolatedForKeepAliveSingleSelect",
+          })
+        );
+        const db = await cds.connect.to("db");
+        let doItOnce = true;
+        db.before("READ", (req) => {
+          if (doItOnce) {
+            req.query = SELECT.from("sap.eventqueue.Event").where("ID123 = '123'");
+          }
+          doItOnce = false;
+        });
+        await eventQueue.processEventQueue(context, "TransactionMode", "isolatedForKeepAliveSingleSelect");
+        expect(loggerMock.callsLengths().error).toEqual(1);
+        expect(loggerMock.calls().error).toMatchSnapshot();
+        await cds.tx({}, (tx) => testHelper.selectEventQueueAndExpectOpen(tx));
+      });
+
       test("handle modifyQueueEntry fails", async () => {
         await cds.tx({}, (tx) => testHelper.insertEventEntry(tx));
         jest.spyOn(eventQueue.EventQueueProcessorBase.prototype, "modifyQueueEntry").mockImplementationOnce(() => {
