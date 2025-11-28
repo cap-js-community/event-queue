@@ -23,6 +23,9 @@ try {
 cds.env.requires.db = {
   kind: "hana",
   credentials,
+  pool: {
+    max: 10,
+  },
 };
 
 module.exports = cds.server;

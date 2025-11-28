@@ -89,6 +89,12 @@ describe("admin-service-test", () => {
     expect(loggerMock.callsLengths().error).toEqual(0);
   });
 
+  it("read locks", async () => {
+    const response = await GET("/odata/v4/event-queue/admin/Lock");
+    expect(response.data.value).toHaveLength(0);
+    expect(loggerMock.callsLengths().error).toEqual(0);
+  });
+
   it("read event and set status", async () => {
     await cds.tx({}, (tx) => testHelper.insertEventEntry(tx));
     const response = await GET("/odata/v4/event-queue/admin/Event");
@@ -116,6 +122,7 @@ describe("admin-service-test", () => {
         type: "Notifications",
         subType: "Task",
         tenants: ["all"],
+        namespace: "default",
       });
 
       const events = await testHelper.selectEventQueueAndReturn(tx, {
@@ -131,11 +138,28 @@ describe("admin-service-test", () => {
         type: "Notifications",
         subType: "Task",
         tenants: ["t1"],
+        namespace: "default",
       });
 
       const events = await testHelper.selectEventQueueAndReturn(tx, {
         expectedLength: 1,
         additionalColumns: ["type", "subType"],
+      });
+      expect(events).toMatchSnapshot();
+    });
+
+    it("namespace", async () => {
+      jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValueOnce(["t1", "t2"]);
+      await POST("/odata/v4/event-queue/admin/publishEvent", {
+        type: "Different",
+        subType: "Namespace",
+        tenants: ["t1"],
+        namespace: "ds",
+      });
+
+      const events = await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 1,
+        additionalColumns: ["type", "subType", "namespace"],
       });
       expect(events).toMatchSnapshot();
     });
@@ -146,6 +170,7 @@ describe("admin-service-test", () => {
         type: "Notifications",
         subType: "Task",
         tenants: ["t3"],
+        namespace: "default",
       });
 
       const events = await testHelper.selectEventQueueAndReturn(tx, {
@@ -161,8 +186,9 @@ describe("admin-service-test", () => {
         type: "Notifications",
         subType: "Task",
         tenants: ["t1"],
-        payload: { input: 123 },
+        payload: JSON.stringify({ input: 123 }),
         startAfter: new Date(1763629752504).toISOString(),
+        namespace: "default",
       });
 
       const events = await testHelper.selectEventQueueAndReturn(tx, {
@@ -170,6 +196,24 @@ describe("admin-service-test", () => {
         additionalColumns: ["type", "subType", "payload"],
       });
       expect(events).toMatchSnapshot();
+    });
+
+    it("publish not known event", async () => {
+      jest.spyOn(cdsHelper, "getAllTenantIds").mockResolvedValueOnce(["t1", "t2"]);
+      await expect(
+        POST("/odata/v4/event-queue/admin/publishEvent", {
+          type: "Different",
+          subType: "Namespace",
+          tenants: ["t1"],
+          payload: JSON.stringify({ input: 123 }),
+          namespace: "default",
+        })
+      ).rejects.toMatchSnapshot();
+
+      await testHelper.selectEventQueueAndReturn(tx, {
+        expectedLength: 0,
+        additionalColumns: ["type", "subType", "payload"],
+      });
     });
   });
 });

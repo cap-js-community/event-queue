@@ -128,6 +128,13 @@ events:
     selectMaxChunkSize: 1
     multiInstanceProcessing: true
 
+  - type: Different
+    subType: Namespace
+    impl: ./test/asset/EventQueueTest
+    load: 1
+    selectMaxChunkSize: 1
+    namespace: ds
+
 periodicEvents:
   - type: HealthCheck
     subType: DB
