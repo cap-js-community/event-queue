@@ -810,16 +810,22 @@ describe("event-queue outbox", () => {
 
     it("more delayed events than chunk size - should keep processing", async () => {
       const service = await cds.connect.to("QueueService");
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 8; i++) {
         await service.emit(
           "chunkSizeWithDelayed",
           { id: 1 },
-          { "x-eventqueue-startafter": i < 3 ? new Date(Date.now() + 2 * 60 * 1000).toISOString() : new Date() }
+          { "x-eventqueue-startafter": i < 6 ? new Date(Date.now() + 2 * 60 * 1000).toISOString() : new Date() }
         );
       }
       await commitAndOpenNew();
       await processEventQueue(context, "CAP_OUTBOX", `${service.name}.chunkSizeWithDelayed`);
-      debugger;
+      await commitAndOpenNew();
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 8 });
+      const doneEvents = events.filter((e) => e.status === EventProcessingStatus.Done);
+      expect(doneEvents).toHaveLength(2);
+      const openEvents = events.filter((e) => e.status === EventProcessingStatus.Open);
+      expect(openEvents).toHaveLength(6);
+      expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
     describe("trace context", () => {
