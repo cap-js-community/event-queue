@@ -35,6 +35,7 @@ jest.mock("@cap-js-community/common", () => ({
 }));
 
 const eventQueue = require("../src");
+const processor = require("../src/processEventQueue");
 const { EventProcessingStatus } = require("../src");
 const periodicEvents = require("../src/periodicEvents");
 const path = require("path");
@@ -74,6 +75,7 @@ describe("end-to-end", () => {
       isEventQueueActive: true,
     });
     eventQueue.config.redisEnabled = true;
+
     cds.emit("connect", await cds.connect.to("db"));
   });
 
@@ -83,7 +85,7 @@ describe("end-to-end", () => {
     await DELETE.from("cds.outbox.Messages");
     jest.clearAllMocks();
     redisMock.clearState();
-    redisMock.clearState();
+    redisMock.clearTestState();
   });
 
   describe("redis broadcast", () => {
@@ -107,13 +109,14 @@ describe("end-to-end", () => {
   });
 
   describe("runner", () => {
-    it("should select open events and process", async () => {
+    it("should select open events and process + validate skip broadcast", async () => {
+      const processSpy = jest.spyOn(processor, "processEventQueue");
       await cds.tx({}, async (tx) => {
         await eventQueue.publishEvent(
           tx,
           {
             type: "CAP_OUTBOX",
-            subType: "StandardService",
+            subType: "StandardService.main",
             payload: { event: "main", data: {}, headers: {} },
           },
           { skipBroadcast: true }
@@ -121,8 +124,11 @@ describe("end-to-end", () => {
       });
 
       await runner.__._singleTenantDb();
-      const events = await cds.tx({}, (tx) => testHelper.selectEventQueueAndReturn(tx, { expectedLength: 1 }));
-      debugger;
+      await cds.tx({}, (tx) => testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 }));
+      expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
+      expect(Object.keys(redisMock.getState())).toMatchSnapshot();
+      expect(processSpy).toHaveBeenCalledTimes(1);
+      expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
     it("payload must be a string!!", () => {

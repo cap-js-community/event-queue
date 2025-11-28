@@ -1131,14 +1131,14 @@ class EventQueueProcessorBase {
       });
     }
 
-    this.tx._skipEventQueueBroadcase = true;
+    this.tx._skipEventQueueBroadcast = true;
     await this.tx.run(
       INSERT.into(this.#config.tableNameEventQueue).entries({
         ...newEvent,
         startAfter: newEvent.startAfter.toISOString(),
       })
     );
-    this.tx._skipEventQueueBroadcase = false;
+    this.tx._skipEventQueueBroadcast = false;
     if (intervalInMs < this.#config.runInterval * 1.5) {
       this.#handleDelayedEvents([newEvent]);
       const { relative: relativeAfterSchedule } = this.#eventSchedulerInstance.calculateOffset(
