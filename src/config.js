@@ -280,6 +280,7 @@ class Config {
       selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
       parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
       retryAttempts: config.retryAttempts ?? config.maxAttempts,
+      ...config,
     });
   }
 
