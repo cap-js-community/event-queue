@@ -3,9 +3,12 @@
 name: Main PR
 
 on:
-  pull_request:
+  pull_request_target:
     branches:
       - main
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -16,34 +19,46 @@ jobs:
 
     name: test - node.js ${{ matrix.node-version }}
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout safe merge ref
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          persist-credentials: false
+
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
+
       - run: npm ci --package-lock
+
       - name: deploy hana schema
         id: deploySchema
         run: npm run test:deploySchema
         env:
-          HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
+          HANA_DB_CREDENTIALS: ${{ secrets.HANA_DB_CREDENTIALS }}
       - run: npm run test:prepare
       - run: npm run test:unit
       - run: npm run voter:test:integration
         env:
           GITHUB_ACTION_HANA: true
-          SCHEMA_GUIDS: ${{steps.deploySchema.outputs.schemaGuids}}
-          HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
+          SCHEMA_GUIDS: ${{ steps.deploySchema.outputs.schemaGuids }}
+          HANA_DB_CREDENTIALS: ${{ secrets.HANA_DB_CREDENTIALS }}
       - run: npm run test:cleanSchemas
         if: always()
         env:
-          HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
-          SCHEMA_GUIDS: ${{steps.deploySchema.outputs.schemaGuids}}
+          HANA_DB_CREDENTIALS: ${{ secrets.HANA_DB_CREDENTIALS }}
+          SCHEMA_GUIDS: ${{ steps.deploySchema.outputs.schemaGuids }}
 
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout safe merge ref
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          persist-credentials: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
