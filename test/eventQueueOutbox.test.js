@@ -34,15 +34,30 @@ cds.env.requires.NotificationServicePeriodic = {
     checkForNextChunk: true,
     transactionMode: "isolated",
     events: {
-      main: {
-        cron: "*/15 * * * * *",
+      main: { cron: "*/15 * * * * *" },
+      action: { checkForNextChunk: false },
+      randomOffset: { cron: "*/15 * * * * *", randomOffset: 60 },
+    },
+  },
+};
+
+cds.env.requires.OutboxCustomHooks = {
+  impl: path.join(basePath, "srv/service/serviceCustomHooks.js"),
+  outbox: {
+    kind: "persistent-outbox",
+    checkForNextChunk: false,
+    events: {
+      exceededAction: {
+        retryAttempts: 1,
+        retryFailedAfter: 0,
       },
-      action: {
-        checkForNextChunk: false,
+      connectSpecific: {
+        retryAttempts: 1,
+        retryFailedAfter: 0,
       },
-      randomOffset: {
-        cron: "*/15 * * * * *",
-        randomOffset: 60,
+      exceededActionSpecific: {
+        retryAttempts: 1,
+        retryFailedAfter: 0,
       },
     },
   },
@@ -95,15 +110,17 @@ cds.env.requires.AppNames = {
   },
 };
 
+cds.env.requires.NonOutbox = {
+  impl: path.join(basePath, "srv/service/serviceAppNames.js"),
+};
+
 cds.env.requires.StandardService = {
   impl: path.join(basePath, "srv/service/standard-service.js"),
   outbox: {
     kind: "persistent-outbox",
     propagateHeaders: ["authId", "customHeader"],
     events: {
-      timeBucketAction: {
-        timeBucket: "*/60 * * * * *",
-      },
+      timeBucketAction: { timeBucket: "*/60 * * * * *" },
     },
   },
 };
@@ -113,12 +130,9 @@ cds.env.requires.QueueService = {
   queued: {
     kind: "persistent-queue",
     events: {
-      timeBucketAction: {
-        timeBucket: "*/60 * * * * *",
-      },
-      main: {
-        cron: "*/15 * * * * *",
-      },
+      timeBucketAction: { timeBucket: "*/60 * * * * *" },
+      main: { cron: "*/15 * * * * *" },
+      chunkSizeWithDelayed: { chunkSize: 3 },
     },
   },
 };
@@ -433,7 +447,7 @@ describe("event-queue outbox", () => {
       expect(config).toMatchSnapshot();
     });
 
-    it("should work for outboxed services by require with transactionMode config", async () => {
+    it("config is not overwritten anymore if the service exists", async () => {
       const outboxedService = await cds.connect.to("NotificationServiceOutboxedByConfig", {
         impl: "./srv/service/service.js",
         outbox: {
@@ -774,50 +788,6 @@ describe("event-queue outbox", () => {
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
-    describe("not connected service should lazily connect and create configuration", () => {
-      beforeEach(() => {
-        eventQueue.config.removeEvent("CAP_OUTBOX", "NotificationService");
-      });
-
-      it("redisSub", async () => {
-        const type = "CAP_OUTBOX";
-        const subType = "NotificationServiceLazyInitTest";
-        let config = eventQueue.config.getEventConfig(type, subType);
-        expect(config).toBeUndefined();
-        const runEventCombinationForTenantSpy = jest
-          .spyOn(runnerHelper, "runEventCombinationForTenant")
-          .mockResolvedValueOnce();
-        await redisSub.__._messageHandlerProcessEvents(
-          JSON.stringify({
-            type,
-            subType,
-          })
-        );
-        config = eventQueue.config.getEventConfig(type, subType);
-        expect(config).toBeDefined();
-        expect(loggerMock.callsLengths().error).toEqual(0);
-        expect(runEventCombinationForTenantSpy).toHaveBeenCalledTimes(1);
-      });
-
-      it("should log an error for not CAP outboxed services", async () => {
-        const type = "NOT_CAP_OUTBOX";
-        const subType = "NotificationServiceLaizyInitTest";
-        let config = eventQueue.config.getEventConfig(type, subType);
-        expect(config).toBeUndefined();
-        const runEventCombinationForTenantSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant");
-        await redisSub.__._messageHandlerProcessEvents(
-          JSON.stringify({
-            type,
-            subType,
-          })
-        );
-        config = eventQueue.config.getEventConfig(type, subType);
-        expect(config).toBeUndefined();
-        expect(loggerMock.callsLengths().warn).toEqual(1);
-        expect(runEventCombinationForTenantSpy).toHaveBeenCalledTimes(0);
-      });
-    });
-
     it("option to use eventQueue.userId in outboxed services", async () => {
       const outboxedService = await cds.connect.to("NotificationServiceOutboxedByConfigUserId", {
         impl: "./srv/service/service.js",
@@ -835,6 +805,26 @@ describe("event-queue outbox", () => {
 
       await processEventQueue(tx.context, "CAP_OUTBOX", outboxedService.name);
       expect(loggerMock.calls().info.find((log) => log[0].includes("sendFiori action triggered"))[1]).toMatchSnapshot();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("more delayed events than chunk size - should keep processing", async () => {
+      const service = await cds.connect.to("QueueService");
+      for (let i = 0; i < 8; i++) {
+        await service.emit(
+          "chunkSizeWithDelayed",
+          { id: 1 },
+          { "x-eventqueue-startafter": i < 6 ? new Date(Date.now() + 2 * 60 * 1000).toISOString() : new Date() }
+        );
+      }
+      await commitAndOpenNew();
+      await processEventQueue(context, "CAP_OUTBOX", `${service.name}.chunkSizeWithDelayed`);
+      await commitAndOpenNew();
+      const events = await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 8 });
+      const doneEvents = events.filter((e) => e.status === EventProcessingStatus.Done);
+      expect(doneEvents).toHaveLength(2);
+      const openEvents = events.filter((e) => e.status === EventProcessingStatus.Open);
+      expect(openEvents).toHaveLength(6);
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
 
@@ -917,6 +907,33 @@ describe("event-queue outbox", () => {
     });
 
     describe("ad-hoc events overwrite settings via outbox.events", () => {
+      it("unchanged parameter from the generic config should remain the same for the specific event", async () => {
+        const service = (await cds.connect.to("NotificationServicePeriodic")).tx(context);
+        const getQueueEntries = jest.spyOn(
+          EventQueueGenericOutboxHandler.prototype,
+          "getQueueEntriesAndSetToInProgress"
+        );
+        await service.send("action", {});
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
+        await processEventQueue(tx.context, "CAP_OUTBOX", [service.name, "action"].join("."));
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        const specificEventConfig = { ...eventQueue.config.events.find(({ subType }) => subType.includes("action")) };
+        const genericEventConfig = {
+          ...eventQueue.config.events.find(({ subType }) => subType === "NotificationServicePeriodic"),
+        };
+        expect(specificEventConfig).toMatchSnapshot();
+        // NOTE: remove the expected changes to check that all other settings are still the same
+        ["checkForNextChunk", "subType"].forEach((element) => {
+          delete specificEventConfig[element];
+          delete genericEventConfig[element];
+        });
+        expect(specificEventConfig).toEqual(genericEventConfig);
+        expect(getQueueEntries).toHaveBeenCalledTimes(1);
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
       it("specific ad-hoc event should create own config", async () => {
         const service = (await cds.connect.to("NotificationServicePeriodic")).tx(context);
         const getQueueEntries = jest.spyOn(
@@ -934,7 +951,7 @@ describe("event-queue outbox", () => {
         expect(loggerMock.callsLengths().error).toEqual(0);
       });
 
-      it("should create specific config during select", async () => {
+      it("should !not! create specific config during select - as specific is only possible for known events via env", async () => {
         const service = (await cds.connect.to("NotificationServicePeriodic")).tx(context);
         await service.send("action", {});
         await commitAndOpenNew();
@@ -950,35 +967,8 @@ describe("event-queue outbox", () => {
         const openEvents = await getOpenQueueEntries(tx);
         await promisify(setTimeout)(1);
 
-        expect(openEvents).toHaveLength(1);
-        expect(eventQueue.config.events.find(({ subType }) => subType.includes("action"))).toBeDefined();
-      });
-
-      it("unchanged parameter from the generic config should remain the same for the specific event", async () => {
-        const service = (await cds.connect.to("NotificationServicePeriodic")).tx(context);
-        const getQueueEntries = jest.spyOn(
-          EventQueueGenericOutboxHandler.prototype,
-          "getQueueEntriesAndSetToInProgress"
-        );
-        await service.send("action", {});
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
-        await processEventQueue(tx.context, "CAP_OUTBOX", [service.name, "action"].join("."));
-        await commitAndOpenNew();
-        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
-        const specificEventConfig = eventQueue.config.events.find(({ subType }) => subType.includes("action"));
-        const genericEventConfig = eventQueue.config.events.find(
-          ({ subType }) => subType === "NotificationServicePeriodic"
-        );
-        expect(specificEventConfig).toMatchSnapshot();
-        // NOTE: remove the expected changes to check that all other settings are still the same
-        ["checkForNextChunk", "subType"].forEach((element) => {
-          delete specificEventConfig[element];
-          delete genericEventConfig[element];
-        });
-        expect(specificEventConfig).toEqual(genericEventConfig);
-        expect(getQueueEntries).toHaveBeenCalledTimes(1);
-        expect(loggerMock.callsLengths().error).toEqual(0);
+        expect(openEvents).toHaveLength(0);
+        expect(eventQueue.config.events.find(({ subType }) => subType.includes("action"))).toBeUndefined();
       });
     });
 
@@ -1223,6 +1213,41 @@ describe("event-queue outbox", () => {
             expect(loggerMock).actionCalled("actionClusterByPayloadWithCb", {
               data: { ...data, guids: expect.arrayContaining(data.guids.concat(data2.guids)) },
             });
+            await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
+            expect(loggerMock.callsLengths().error).toEqual(0);
+          });
+
+          it("actionClusterByPayloadWithCb empty data", async () => {
+            const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+            const data = { emptyData: true, to: "me", guids: [cds.utils.uuid()], subject: "subject", body: "body" };
+            const data2 = { emptyData: true, to: "me", guids: [cds.utils.uuid()], subject: "subject", body: "body" };
+            await service.send("actionClusterByPayloadWithCb", data);
+            await service.send("actionClusterByPayloadWithCb", data2);
+            await commitAndOpenNew();
+            await testHelper.selectEventQueueAndExpectOpen(tx, {
+              expectedLength: 2,
+            });
+            await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+            await commitAndOpenNew();
+            expect(loggerMock).actionCalledTimes("eventQueueCluster.actionClusterByPayloadWithCb", 1);
+            expect(loggerMock).actionCalledTimes("actionClusterByPayloadWithCb", 0);
+            await testHelper.selectEventQueueAndExpectError(tx, { expectedLength: 2 });
+            expect(loggerMock.callsLengths().error).toEqual(1);
+            expect(loggerMock.calls().error).toMatchSnapshot();
+          });
+
+          it("actionClusterByPayloadWithCb not data in send", async () => {
+            const service = (await cds.connect.to("OutboxCustomHooks")).tx(context);
+            await service.send("actionClusterByPayloadWithCb");
+            await service.send("actionClusterByPayloadWithCb");
+            await commitAndOpenNew();
+            await testHelper.selectEventQueueAndExpectOpen(tx, {
+              expectedLength: 2,
+            });
+            await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+            await commitAndOpenNew();
+            expect(loggerMock).actionCalledTimes("eventQueueCluster.actionClusterByPayloadWithCb", 0);
+            expect(loggerMock).actionCalledTimes("actionClusterByPayloadWithCb", 0);
             await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
             expect(loggerMock.callsLengths().error).toEqual(0);
           });
@@ -1733,17 +1758,6 @@ describe("event-queue outbox", () => {
     describe("redisPubSub", () => {
       beforeAll(async () => {
         config.isEventQueueActive = true;
-        for (const serviceName in cds.env.requires) {
-          const config = cds.env.requires[serviceName];
-          if (!config.outbox) {
-            continue;
-          }
-
-          delete cds.services[serviceName];
-        }
-        Object.keys(config._rawEventMap)
-          .filter((name) => !name.includes("PERIODIC"))
-          .forEach((key) => delete config._rawEventMap[key]);
       });
 
       afterAll(() => {
@@ -1759,7 +1773,7 @@ describe("event-queue outbox", () => {
         await redisSub.__._messageHandlerProcessEvents(
           JSON.stringify({
             type: "CAP_OUTBOX",
-            subType: "OutboxCustomHooks",
+            subType: "NonOutbox",
             namespace: config.namespace,
           })
         );
@@ -1770,7 +1784,7 @@ describe("event-queue outbox", () => {
         expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
       });
 
-      it("should connect to CAP service - specific configuration", async () => {
+      it("should NOT connect to CAP service - specific configuration - must be known by env", async () => {
         const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
         const connectSpy = jest.spyOn(cds.connect, "to");
         const configSpy = jest.spyOn(config, "getCdsOutboxEventSpecificConfig");
@@ -1779,36 +1793,16 @@ describe("event-queue outbox", () => {
         await redisSub.__._messageHandlerProcessEvents(
           JSON.stringify({
             type: "CAP_OUTBOX",
-            subType: "OutboxCustomHooks.connectSpecific",
+            subType: "NonOutbox.connectSpecific",
             namespace: config.namespace,
           })
         );
-        expect(runnerSpy).toHaveBeenCalledTimes(1);
+        expect(runnerSpy).toHaveBeenCalledTimes(0);
         expect(connectSpy).toHaveBeenCalledTimes(1);
-        expect(connectSpy).toHaveBeenCalledWith("OutboxCustomHooks");
-        expect(configSpy).toHaveBeenCalledTimes(4);
-        expect(configAddSpy).toHaveBeenCalledTimes(1);
-        expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
-      });
-
-      it("should connect to CAP service - specific configuration periodic event", async () => {
-        const runnerSpy = jest.spyOn(runnerHelper, "runEventCombinationForTenant").mockResolvedValueOnce();
-        const connectSpy = jest.spyOn(cds.connect, "to");
-        const configSpy = jest.spyOn(config, "getCdsOutboxEventSpecificConfig");
-        const configAddSpy = jest.spyOn(config, "addCAPOutboxEventSpecificAction");
-
-        await redisSub.__._messageHandlerProcessEvents(
-          JSON.stringify({
-            type: "CAP_OUTBOX_PERIODIC",
-            subType: "NotificationServicePeriodic.main",
-            namespace: config.namespace,
-          })
-        );
-        expect(runnerSpy).toHaveBeenCalledTimes(1);
-        expect(connectSpy).toHaveBeenCalledTimes(0);
-        expect(configSpy).toHaveBeenCalledTimes(2);
+        expect(connectSpy).toHaveBeenCalledWith("NonOutbox");
+        expect(configSpy).toHaveBeenCalledTimes(1);
         expect(configAddSpy).toHaveBeenCalledTimes(0);
-        expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 0 });
+        expect(loggerMock.callsLengths()).toMatchObject({ error: 0, warn: 1 });
       });
     });
 
@@ -1881,6 +1875,11 @@ describe("event-queue outbox", () => {
         config.namespace = "default";
       });
 
+      afterAll(() => {
+        config.processingNamespaces = ["default", "namespaceA"];
+        config.namespace = "default";
+      });
+
       it("should publish with namespace", async () => {
         const service = (await cds.connect.to("Namespace")).tx(context);
         await service.send("main", {
@@ -1944,26 +1943,6 @@ describe("event-queue outbox", () => {
         });
         expect(event.namespace).toEqual("namespaceA");
         await processEventQueue(tx.context, "CAP_OUTBOX", service.name, "namespaceA");
-        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
-        expect(loggerMock).actionCalled("main");
-        expect(loggerMock.callsLengths().error).toEqual(0);
-      });
-
-      it("should use app namespace if service has no configuration", async () => {
-        config.namespace = "namespaceB";
-        const service = (await cds.connect.to("StandardService")).tx(context);
-        await service.send("main", {
-          to: "to",
-          subject: "subject",
-          body: "body",
-        });
-        await commitAndOpenNew();
-        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
-          expectedLength: 1,
-          additionalColumns: ["subType", "createdAt", "namespace"],
-        });
-        expect(event.namespace).toEqual("namespaceB");
-        await processEventQueue(tx.context, "CAP_OUTBOX", service.name, "namespaceB");
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
         expect(loggerMock).actionCalled("main");
         expect(loggerMock.callsLengths().error).toEqual(0);

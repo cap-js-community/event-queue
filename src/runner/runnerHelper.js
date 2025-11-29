@@ -4,7 +4,7 @@ const { AsyncResource } = require("async_hooks");
 
 const cds = require("@sap/cds");
 
-const { processEventQueue } = require("../processEventQueue");
+const processor = require("../processEventQueue");
 const eventQueueConfig = require("../config");
 const WorkerQueue = require("../shared/WorkerQueue");
 const distributedLock = require("../shared/distributedLock");
@@ -21,7 +21,7 @@ const runEventCombinationForTenant = async (
 ) => {
   try {
     if (skipWorkerPool) {
-      return await processEventQueue(context, type, subType, namespace);
+      return await processor.processEventQueue(context, type, subType, namespace);
     } else {
       const eventConfig = eventQueueConfig.getEventConfig(type, subType, namespace);
       const label = `${type}_${subType}`;
@@ -39,7 +39,7 @@ const runEventCombinationForTenant = async (
               }
             }
 
-            await processEventQueue(context, type, subType, namespace);
+            await processor.processEventQueue(context, type, subType, namespace);
           };
           if (shouldTrace) {
             return await trace(context, label, _exec, { newRootSpan: true });

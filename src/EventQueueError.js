@@ -27,11 +27,15 @@ const ERROR_CODES = {
   APP_NAMES_FORMAT: "APP_NAMES_FORMAT",
   APP_INSTANCES_FORMAT: "APP_INSTANCES_FORMAT",
   MULTI_INSTANCE_PROCESSING_NOT_ALLOWED: "MULTI_INSTANCE_PROCESSING_NOT_ALLOWED",
+  INVALID_CLUSTER_HANDLER_RESULT: "INVALID_CLUSTER_HANDLER_RESULT",
 };
 
 const ERROR_CODES_META = {
   [ERROR_CODES.WRONG_TX_USAGE]: {
     message: "Usage of this.tx|this.context is not allowed if parallel event processing is enabled",
+  },
+  [ERROR_CODES.INVALID_CLUSTER_HANDLER_RESULT]: {
+    message: "A cluster handler returned an invalid result. Cluster handlers must return the clustered payload data.",
   },
   [ERROR_CODES.UNKNOWN_EVENT_TYPE]: {
     message: "The event type and subType configuration is not configured! Maintain the combination in the config file.",
@@ -366,6 +370,17 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.MULTI_INSTANCE_PROCESSING_NOT_ALLOWED,
         info: { type, subType },
+      },
+      message
+    );
+  }
+
+  static invalidClusterHandlerResult(clusterKey, propertyName) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.INVALID_CLUSTER_HANDLER_RESULT];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.INVALID_CLUSTER_HANDLER_RESULT,
+        info: { clusterKey, propertyName },
       },
       message
     );

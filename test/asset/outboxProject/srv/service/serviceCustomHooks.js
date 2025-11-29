@@ -82,6 +82,10 @@ class OutboxCustomHooks extends cds.Service {
         cds.log(this.name).info("clusterKey", {
           clusterKey,
         });
+        if (entries[0].emptyData) {
+          return null;
+        }
+
         return { ...entries[0], guids: entries.map((a) => a.guids).flat() };
       });
     });

@@ -19,7 +19,7 @@ const registerEventQueueDbHandler = (dbService) => {
   registeredHandlers.eventQueueDbHandler = true;
   const def = dbService.model.definitions[config.tableNameEventQueue];
   dbService.after("CREATE", def, (_, req) => {
-    if (req.tx._skipEventQueueBroadcase) {
+    if (req.tx._skipEventQueueBroadcast) {
       return;
     }
     req.tx._ = req.tx._ ?? {};

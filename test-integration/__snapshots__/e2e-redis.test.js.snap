@@ -1,27 +1,37 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`end-to-end checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events 1`] = `
+exports[`end-to-end redis broadcast checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events 1`] = `
+[
+  "EVENT_QUEUE##default##RUN_REDIS_CHECK",
+  "EVENT_QUEUE##default####TEST_STATIC",
+  "EVENT_QUEUE####default##CAP_OUTBOX_PERIODIC##StandardService.mainPeriodic",
+]
+`;
+
+exports[`end-to-end redis broadcast checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events 2`] = `
 [
   "EVENT_QUEUE##default##RUN_REDIS_CHECK",
   "EVENT_QUEUE##default####TEST_STATIC",
 ]
 `;
 
-exports[`end-to-end checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events 2`] = `
+exports[`end-to-end redis broadcast insert entry: redis broadcast + process 1`] = `
 [
-  "EVENT_QUEUE##default##RUN_REDIS_CHECK",
+  "EVENT_QUEUE##default####TEST_STATIC",
+  "EVENT_QUEUE####default##CAP_OUTBOX##StandardService.main",
+]
+`;
+
+exports[`end-to-end redis broadcast insert entry: redis broadcast + process 2`] = `
+[
   "EVENT_QUEUE##default####TEST_STATIC",
 ]
 `;
 
-exports[`end-to-end insert entry: redis broadcast + process 1`] = `
+exports[`end-to-end runner should select open events and process + validate skip broadcast 1`] = `
 [
-  "EVENT_QUEUE##default####TEST_STATIC",
+  "EVENT_QUEUE####default##CAP_OUTBOX##StandardService.main",
 ]
 `;
 
-exports[`end-to-end insert entry: redis broadcast + process 2`] = `
-[
-  "EVENT_QUEUE##default####TEST_STATIC",
-]
-`;
+exports[`end-to-end runner should select open events and process + validate skip broadcast 2`] = `[]`;

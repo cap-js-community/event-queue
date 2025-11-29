@@ -6,6 +6,7 @@ const EventQueueBaseClass = require("../EventQueueProcessorBase");
 const { EventProcessingStatus } = require("../constants");
 const common = require("../shared/common");
 const config = require("../config");
+const EventQueueError = require("../EventQueueError");
 
 const COMPONENT_NAME = "/eventQueue/outbox/generic";
 
@@ -164,7 +165,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
           clusterData.queueEntries.map((entry) => entry.payload.data)
         );
         if (!clusterResult) {
-          throw new Error("hmm??");
+          throw EventQueueError.invalidClusterHandlerResult(clustersKey, propertyName);
         }
         clusterData.payload.data = clusterResult;
       }

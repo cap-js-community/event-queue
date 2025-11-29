@@ -31,7 +31,7 @@ module.exports = {
   registerShutdownHandler: () => {},
   getTestState: () =>
     Object.fromEntries(
-      Object.entries(state).map(([key, value]) => {
+      Object.entries(testState).map(([key, value]) => {
         return [_sanatizeKey(key), value];
       })
     ),

@@ -7,10 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v2.0.2 - 2025-11-XX
 
+### Added
+
+- [CAP Queue] Configuration is initialized by CDS bootstrap instead of lazy initialization on first use.
+
 ### Fixed
 
 - [Admin Service] Correctly return open locks after adding namespace to locks
 - [Admin Service] Publish events improved error handling
+- [Event Processing] In some cases where more delayed events than the `selectMaxChunkSize` existed, the processing of open events was delayed.
 
 ## v2.0.1 - 2025-11-24
 

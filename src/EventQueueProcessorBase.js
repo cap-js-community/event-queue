@@ -62,6 +62,7 @@ class EventQueueProcessorBase {
     this.#eventType = eventType;
     this.#eventSubType = eventSubType;
     this.#eventConfig = config ?? {};
+    this.#eventConfig.selectedDelayedEventIds ??= [];
     this.__parallelEventProcessing = this.#eventConfig.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
@@ -664,45 +665,49 @@ class EventQueueProcessorBase {
     const baseDate = Date.now();
     const refDateStartAfter = new Date(baseDate + this.#config.runInterval * 1.2);
     await executeInNewTransaction(this.__baseContext, "eventQueue-getQueueEntriesAndSetToInProgress", async (tx) => {
-      const entries = await tx.run(
-        SELECT.from(this.#config.tableNameEventQueue)
-          .forUpdate({ wait: this.#config.forUpdateTimeout })
-          .limit(this.selectMaxChunkSize)
-          .where(
-            "type =",
-            this.#eventType,
-            "AND subType=",
-            this.#eventSubType,
-            "AND namespace =",
-            this.#namespace,
-            "AND ( startAfter IS NULL OR startAfter <=",
-            refDateStartAfter.toISOString(),
-            " ) AND ( status =",
-            EventProcessingStatus.Open,
-            "AND ( lastAttemptTimestamp <=",
-            this.startTime.toISOString(),
-            ...(this.isPeriodicEvent
-              ? [
-                  "OR lastAttemptTimestamp IS NULL ) OR ( status =",
-                  EventProcessingStatus.InProgress,
-                  "AND lastAttemptTimestamp <=",
-                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
-                  ") )",
-                ]
-              : [
-                  "OR lastAttemptTimestamp IS NULL ) OR ( status =",
-                  EventProcessingStatus.Error,
-                  "AND lastAttemptTimestamp <=",
-                  this.startTime.toISOString(),
-                  ") OR ( status =",
-                  EventProcessingStatus.InProgress,
-                  "AND lastAttemptTimestamp <=",
-                  new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
-                  ") )",
-                ])
-          )
-          .orderBy("createdAt", "ID")
-      );
+      const cqn = SELECT.from(this.#config.tableNameEventQueue)
+        .forUpdate({ wait: this.#config.forUpdateTimeout })
+        .limit(this.selectMaxChunkSize)
+        .where(
+          "type =",
+          this.#eventType,
+          "AND subType=",
+          this.#eventSubType,
+          "AND namespace =",
+          this.#namespace,
+          "AND ( startAfter IS NULL OR startAfter <=",
+          refDateStartAfter.toISOString(),
+          " ) AND ( status =",
+          EventProcessingStatus.Open,
+          "AND ( lastAttemptTimestamp <=",
+          this.startTime.toISOString(),
+          ...(this.isPeriodicEvent
+            ? [
+                "OR lastAttemptTimestamp IS NULL ) OR ( status =",
+                EventProcessingStatus.InProgress,
+                "AND lastAttemptTimestamp <=",
+                new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
+                ") ) ",
+              ]
+            : [
+                "OR lastAttemptTimestamp IS NULL ) OR ( status =",
+                EventProcessingStatus.Error,
+                "AND lastAttemptTimestamp <=",
+                this.startTime.toISOString(),
+                ") OR ( status =",
+                EventProcessingStatus.InProgress,
+                "AND lastAttemptTimestamp <=",
+                new Date(baseDate - this.#eventConfig.keepAliveMaxInProgressTime * 1000).toISOString(),
+                ") )",
+              ])
+        )
+        .orderBy("createdAt", "ID");
+
+      if (this.#eventConfig.selectedDelayedEventIds) {
+        cqn.where("ID NOT IN", this.#eventConfig.selectedDelayedEventIds);
+      }
+
+      const entries = await tx.run(cqn);
 
       if (!entries.length) {
         this.logger.debug("no entries available for processing", {
@@ -756,7 +761,9 @@ class EventQueueProcessorBase {
       }
 
       if (!eventsForProcessing.length) {
-        this.__emptyChunkSelected = true;
+        if (!entries.length) {
+          this.__emptyChunkSelected = true;
+        }
         return;
       }
 
@@ -806,8 +813,11 @@ class EventQueueProcessorBase {
     return entry.lastAttemptsTs;
   }
 
-  #handleDelayedEvents(delayedEvents) {
+  #handleDelayedEvents(delayedEvents, { skipExcludeDelayedEventIds = false } = {}) {
     for (const delayedEvent of delayedEvents) {
+      if (!skipExcludeDelayedEventIds) {
+        this.#eventConfig.selectedDelayedEventIds.push(delayedEvent.ID);
+      }
       this.#eventSchedulerInstance.scheduleEvent(
         this.__context.tenant,
         this.#eventType,
@@ -1107,6 +1117,7 @@ class EventQueueProcessorBase {
     }
 
     const newEvent = {
+      ID: cds.utils.uuid(),
       type: this.#eventType,
       subType: this.#eventSubType,
       namespace: this.#eventConfig.namespace,
@@ -1131,16 +1142,16 @@ class EventQueueProcessorBase {
       });
     }
 
-    this.tx._skipEventQueueBroadcase = true;
+    this.tx._skipEventQueueBroadcast = true;
     await this.tx.run(
       INSERT.into(this.#config.tableNameEventQueue).entries({
         ...newEvent,
         startAfter: newEvent.startAfter.toISOString(),
       })
     );
-    this.tx._skipEventQueueBroadcase = false;
+    this.tx._skipEventQueueBroadcast = false;
     if (intervalInMs < this.#config.runInterval * 1.5) {
-      this.#handleDelayedEvents([newEvent]);
+      this.#handleDelayedEvents([newEvent], { skipExcludeDelayedEventIds: true });
       const { relative: relativeAfterSchedule } = this.#eventSchedulerInstance.calculateOffset(
         this.#eventType,
         this.#eventSubType,

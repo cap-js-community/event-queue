@@ -26,7 +26,7 @@ const CONCURRENCY_AUTH_INFO = 3;
 async function executeInNewTransaction(context = {}, transactionTag, fn, args, { info = {} } = {}) {
   const parameters = Array.isArray(args) ? args : [args];
   const logger = cds.log(COMPONENT_NAME);
-  let transactionRollbackPromise = Promise.resolve(false);
+  let transactionRollbackPromise = Promise.resolve(true);
   try {
     const authInfo = await common.getAuthContext(context.tenant);
     const user = new cds.User.Privileged({ id: config.userId, authInfo, tokenInfo: authInfo?.token });
