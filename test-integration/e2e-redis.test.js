@@ -130,10 +130,6 @@ describe("end-to-end", () => {
       expect(processSpy).toHaveBeenCalledTimes(1);
       expect(loggerMock.callsLengths().error).toEqual(0);
     });
-
-    it.skip("payload must be a string!!", () => {
-      throw new Error("missing test");
-    });
   });
 });
 
