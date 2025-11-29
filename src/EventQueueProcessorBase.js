@@ -813,9 +813,11 @@ class EventQueueProcessorBase {
     return entry.lastAttemptsTs;
   }
 
-  #handleDelayedEvents(delayedEvents) {
+  #handleDelayedEvents(delayedEvents, { skipExcludeDelayedEventIds = false } = {}) {
     for (const delayedEvent of delayedEvents) {
-      this.#eventConfig.selectedDelayedEventIds.push(delayedEvent.ID);
+      if (!skipExcludeDelayedEventIds) {
+        this.#eventConfig.selectedDelayedEventIds.push(delayedEvent.ID);
+      }
       this.#eventSchedulerInstance.scheduleEvent(
         this.__context.tenant,
         this.#eventType,
@@ -1115,6 +1117,7 @@ class EventQueueProcessorBase {
     }
 
     const newEvent = {
+      ID: cds.utils.uuid(),
       type: this.#eventType,
       subType: this.#eventSubType,
       namespace: this.#eventConfig.namespace,
@@ -1148,7 +1151,7 @@ class EventQueueProcessorBase {
     );
     this.tx._skipEventQueueBroadcast = false;
     if (intervalInMs < this.#config.runInterval * 1.5) {
-      this.#handleDelayedEvents([newEvent]);
+      this.#handleDelayedEvents([newEvent], { skipExcludeDelayedEventIds: true });
       const { relative: relativeAfterSchedule } = this.#eventSchedulerInstance.calculateOffset(
         this.#eventType,
         this.#eventSubType,

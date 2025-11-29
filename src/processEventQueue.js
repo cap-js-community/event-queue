@@ -137,6 +137,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
             eventTypeInstance.processEventContext = tx.context;
             const queueEntries = await eventTypeInstance.getQueueEntriesAndSetToInProgress();
             if (!queueEntries.length) {
+              processNext = false;
               return;
             }
             if (queueEntries.length > 1) {
