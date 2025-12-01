@@ -252,9 +252,8 @@ class Config {
     this.#unsubscribeHandlers.push(cb);
   }
 
-  addCAPOutboxEventBase(serviceName, config) {
+  addCAPOutboxEventBase(serviceName, config, currentEvents) {
     const namespace = config.namespace ?? this.#namespace;
-    delete this.#eventMap[this.generateKey(namespace, CAP_EVENT_TYPE, serviceName)];
 
     // NOTE: CAP outbox defaults are injected by cds.requires.outbox // cds.requires.queue
     const eventConfig = this.#sanitizeParamsAdHocEvent({
@@ -262,44 +261,45 @@ class Config {
       subType: serviceName,
       impl: "./outbox/EventQueueGenericOutboxHandler",
       kind: config.kind ?? "persistent-queue",
-      selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
-      parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
-      retryAttempts: config.retryAttempts ?? config.maxAttempts ?? CAP_MAX_ATTEMPTS_DEFAULT,
+      ...this.#mixCAPPropertyNamesWithEventQueueNames(config),
       namespace,
       ...config,
     });
+    eventConfig.retryAttempts ??= CAP_MAX_ATTEMPTS_DEFAULT;
     eventConfig.internalEvent = true;
 
     this.#basicEventTransformation(eventConfig);
-    this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
+    this.#validateAdHocEvents(currentEvents, eventConfig, false);
     this.#basicEventTransformationAfterValidate(eventConfig);
-    this.#eventMap[this.generateKey(namespace, CAP_EVENT_TYPE, serviceName)] = eventConfig;
+    return [this.generateKey(namespace, CAP_EVENT_TYPE, serviceName), eventConfig];
   }
 
-  addCAPOutboxEventSpecificAction(serviceName, actionName) {
+  #mixCAPPropertyNamesWithEventQueueNames(config) {
+    return this.#cleanUndefined({
+      selectMaxChunkSize: config.selectMaxChunkSize ?? config.chunkSize,
+      parallelEventProcessing: config.parallelEventProcessing ?? (config.parallel && CAP_PARALLEL_DEFAULT),
+      retryAttempts: config.retryAttempts ?? config.maxAttempts,
+      ...config,
+    });
+  }
+
+  addCAPOutboxEventSpecificAction(baseServiceConfig, serviceName, actionName, currentEvents) {
     const subType = [serviceName, actionName].join(".");
 
-    const specific = this.#findBaseCAPServiceWithoutNamespace(subType);
-    if (specific) {
-      delete this.#eventMap[this.generateKey(specific.namespace, CAP_EVENT_TYPE, subType)];
-    }
-
-    const base = this.#findBaseCAPServiceWithoutNamespace(serviceName);
     const eventConfig = this.#sanitizeParamsAdHocEvent({
-      ...this.getEventConfig(CAP_EVENT_TYPE, serviceName, base.namespace),
+      ...baseServiceConfig,
       ...this.getCdsOutboxEventSpecificConfig(serviceName, actionName),
       subType,
     });
     eventConfig.internalEvent = true;
 
     this.#basicEventTransformation(eventConfig);
-    this.#validateAdHocEvents(this.#eventMap, eventConfig, false);
+    this.#validateAdHocEvents(currentEvents, eventConfig, false);
     this.#basicEventTransformationAfterValidate(eventConfig);
-    this.#eventMap[this.generateKey(eventConfig.namespace, CAP_EVENT_TYPE, subType)] = eventConfig;
-    return eventConfig;
+    return [this.generateKey(eventConfig.namespace, CAP_EVENT_TYPE, subType), eventConfig];
   }
 
-  #findBaseCAPServiceWithoutNamespace(serviceName) {
+  findBaseCAPServiceWithoutNamespace(serviceName) {
     return Object.values(this.#eventMap).find(
       (event) => event.type === CAP_EVENT_TYPE && event.subType === serviceName
     );
@@ -318,22 +318,39 @@ class Config {
     fileContent.periodicEvents ??= [];
     const events = this.#configEvents ?? {};
     const periodicEvents = this.#configPeriodicEvents ?? {};
-    const periodicCapServiceEvents = this.#cdsPeriodicOutboxServicesFromEnv();
-    fileContent.events = fileContent.events.concat(this.#mapEnvEvents(events));
+    const { adHoc: adHocCAP, periodicEvents: periodicEventsCAP } = this.#cdsQueueEventsFromEnv();
+    fileContent.events = fileContent.events.concat(this.#mapEnvEvents(events)).concat(Object.values(adHocCAP));
     fileContent.periodicEvents = fileContent.periodicEvents
       .concat(this.#mapEnvEvents(periodicEvents))
-      .concat(this.#mapCapOutboxPeriodicEvent(periodicCapServiceEvents));
+      .concat(Object.values(periodicEventsCAP));
     this.fileContent = fileContent;
   }
 
-  #mapCapOutboxPeriodicEvent(periodicEventMap) {
-    return Object.values(periodicEventMap);
+  #getBasicCapOutboxEventConfig(serviceName) {
+    return Object.assign(
+      {},
+      (typeof cds.requires.outbox === "object" && cds.requires.outbox) || {},
+      (typeof cds.requires.queue === "object" && cds.requires.queue) || {},
+      (typeof cds.env.requires[serviceName]?.outbox === "object" && cds.env.requires[serviceName].outbox) || {},
+      (typeof cds.env.requires[serviceName]?.queued === "object" && cds.env.requires[serviceName].queued) || {}
+    );
   }
 
-  #cdsPeriodicOutboxServicesFromEnv() {
-    return Object.entries(cds.env.requires).reduce((result, [name, value]) => {
-      const config = value.outbox ?? value.queued;
-      if (config?.events) {
+  #cdsQueueEventsFromEnv() {
+    return Object.entries(cds.env.requires).reduce(
+      (result, [name, value]) => {
+        const config = value.outbox ?? value.queued;
+
+        if (!config) {
+          return result;
+        }
+
+        // make sure service is known in general
+        // only if not known
+        const basicServiceConfig = this.#getBasicCapOutboxEventConfig(name);
+        const [key, srvConfig] = this.addCAPOutboxEventBase(name, basicServiceConfig, result.adHoc);
+        result.adHoc[key] = srvConfig;
+
         for (const fnName in config.events) {
           const base = { ...config };
           const fnConfig = config.events[fnName];
@@ -348,7 +365,7 @@ class Config {
             }
 
             const subType = `${name}.${fnName}`;
-            result[subType] = Object.assign(
+            result.periodicEvents[subType] = Object.assign(
               {
                 type: CAP_EVENT_TYPE,
                 subType,
@@ -358,18 +375,38 @@ class Config {
               base,
               fnConfig
             );
+          } else {
+            const [key, specificEventConfig] = this.addCAPOutboxEventSpecificAction(
+              srvConfig,
+              name,
+              fnName,
+              result.adHoc
+            );
+            result.adHoc[key] = specificEventConfig;
           }
         }
-      }
-      return result;
-    }, {});
+        return result;
+      },
+      { adHoc: {}, periodicEvents: {} }
+    );
+  }
+
+  addCAPServiceWithoutEnvConfig(serviceName, srv, customOpts = {}) {
+    const queueOptions = srv.options.queued ?? srv.options.outbox ?? {};
+    const basicServiceConfig = this.#getBasicCapOutboxEventConfig(serviceName);
+    const [key, srvConfig] = this.addCAPOutboxEventBase(
+      serviceName,
+      { ...basicServiceConfig, ...queueOptions, ...customOpts },
+      this.#eventMap
+    );
+    this.#eventMap[key] = srvConfig;
   }
 
   getCdsOutboxEventSpecificConfig(serviceName, action) {
     const srv = cds.env.requires[serviceName];
     const config = srv?.outbox ?? srv?.queued;
     if (config?.events?.[action]) {
-      return config.events[action];
+      return this.#mixCAPPropertyNamesWithEventQueueNames(config.events[action]);
     } else {
       return null;
     }
@@ -875,6 +912,15 @@ class Config {
 
   set processingNamespaces(value) {
     this.#processingNamespaces = value;
+  }
+
+  #cleanUndefined(input) {
+    return Object.entries(input).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
   }
 
   /**

@@ -1,8 +1,5 @@
 "use strict";
 
-const cds = require("@sap/cds");
-
-const eventConfig = require("../config");
 const { EventProcessingStatus } = require("../constants");
 const config = require("../config");
 
@@ -10,9 +7,9 @@ const MS_IN_DAYS = 24 * 60 * 60 * 1000;
 
 const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
   const startTime = new Date();
-  const refDateStartAfter = new Date(startTime.getTime() + eventConfig.runInterval * 1.2);
+  const refDateStartAfter = new Date(startTime.getTime() + config.runInterval * 1.2);
   const entries = await tx.run(
-    SELECT.from(eventConfig.tableNameEventQueue)
+    SELECT.from(config.tableNameEventQueue)
       .where(
         "namespace IN",
         config.processingNamespaces,
@@ -25,7 +22,7 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
         ") OR ( status =",
         EventProcessingStatus.InProgress,
         "AND lastAttemptTimestamp <=",
-        new Date(startTime.getTime() - eventConfig.globalTxTimeout).toISOString(),
+        new Date(startTime.getTime() - config.globalTxTimeout).toISOString(),
         ") ) AND (createdAt >=",
         new Date(startTime.getTime() - 30 * MS_IN_DAYS).toISOString(),
         " OR startAfter >=",
@@ -38,19 +35,19 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
 
   const result = [];
   for (const { type, subType, namespace } of entries) {
-    if (eventConfig.isCapOutboxEvent(type)) {
+    if (config.isCapOutboxEvent(type)) {
       const { srvName, actionName } = config.normalizeSubType(type, subType);
       try {
-        const service = await cds.connect.to(srvName);
         if (filterAppSpecificEvents) {
-          if (!service) {
-            continue;
+          const eventConfig = config.getEventConfig(type, subType, namespace);
+          if (!eventConfig) {
+            const service = await cds.connect.to(srvName);
+            if (!service || actionName) {
+              continue;
+            }
+            config.addCAPServiceWithoutEnvConfig(subType, service);
           }
-          cds.outboxed(service);
-          if (actionName) {
-            config.addCAPOutboxEventSpecificAction(srvName, actionName);
-          }
-          if (eventConfig.shouldBeProcessedInThisApplication(type, subType, namespace)) {
+          if (config.shouldBeProcessedInThisApplication(type, subType, namespace)) {
             result.push({ namespace, type, subType });
           }
         }
@@ -64,8 +61,8 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
     } else {
       if (filterAppSpecificEvents) {
         if (
-          eventConfig.getEventConfig(type, subType, namespace) &&
-          eventConfig.shouldBeProcessedInThisApplication(type, subType, namespace)
+          config.getEventConfig(type, subType, namespace) &&
+          config.shouldBeProcessedInThisApplication(type, subType, namespace)
         ) {
           result.push({ namespace, type, subType });
         }

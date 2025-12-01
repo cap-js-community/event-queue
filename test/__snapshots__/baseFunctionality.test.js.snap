@@ -42,11 +42,28 @@ exports[`baseFunctionality ad-hoc events error handling handle clusterQueueEntri
 ]
 `;
 
+exports[`baseFunctionality ad-hoc events error handling handle getQueueEntriesAndSetToInProgress fails - CAP select fails 1`] = `
+[
+  [
+    "Processing event queue failed with unexpected error.",
+    [Error: "ID123" not found in the elements of "sap.eventqueue.Event"],
+    {
+      "eventSubType": "isolatedForKeepAliveSingleSelect",
+      "eventType": "TransactionMode",
+    },
+  ],
+]
+`;
+
 exports[`baseFunctionality ad-hoc events error handling handle getQueueEntriesAndSetToInProgress fails 1`] = `
 [
   [
-    "business transaction commited but succeeded|done|failed threw a error!",
-    [ExecuteInNewTransactionError: Execution in new transaction failed: db error],
+    "Processing event queue failed with unexpected error.",
+    [Error: db error],
+    {
+      "eventSubType": "Task",
+      "eventType": "Notifications",
+    },
   ],
 ]
 `;

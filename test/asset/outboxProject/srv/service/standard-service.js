@@ -5,18 +5,14 @@ const cds = require("@sap/cds");
 class StandardService extends cds.Service {
   async init() {
     await super.init();
-    this.on("main", (req) => {
-      cds.log(this.name).info(req.event, {
-        data: req.data,
-        user: req.user.id,
-        headers: req.headers,
-      });
-    });
 
-    this.on("timeBucketAction", (req) => {
-      cds.log(this.name).info(req.event, {
-        data: req.data,
-        user: req.user.id,
+    ["main", "chunkSizeWithDelayed", "eventQueueUser", "timeBucketAction"].forEach((name) => {
+      this.on(name, (req) => {
+        cds.log(this.name).info(req.event, {
+          data: req.data,
+          user: req.user.id,
+          headers: req.headers,
+        });
       });
     });
 

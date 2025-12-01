@@ -35,12 +35,14 @@ jest.mock("@cap-js-community/common", () => ({
 }));
 
 const eventQueue = require("../src");
+const processor = require("../src/processEventQueue");
 const { EventProcessingStatus } = require("../src");
 const periodicEvents = require("../src/periodicEvents");
 const path = require("path");
 const { Logger: mockLogger } = require("../test/mocks/logger");
 const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const runner = require("../src/runner/runner");
+const testHelper = require("../test/helper");
 
 cds.test(__dirname + "/_env");
 
@@ -52,6 +54,9 @@ cds.env.requires.StandardService = {
     events: {
       mainPeriodic: {
         interval: 20 * 60,
+      },
+      main: {
+        transactionMode: "alwaysRollback",
       },
     },
   },
@@ -70,6 +75,7 @@ describe("end-to-end", () => {
       isEventQueueActive: true,
     });
     eventQueue.config.redisEnabled = true;
+
     cds.emit("connect", await cds.connect.to("db"));
   });
 
@@ -79,25 +85,51 @@ describe("end-to-end", () => {
     await DELETE.from("cds.outbox.Messages");
     jest.clearAllMocks();
     redisMock.clearState();
-    redisMock.clearState();
+    redisMock.clearTestState();
   });
 
-  it("insert entry: redis broadcast + process", async () => {
-    const srv = await cds.connect.to("StandardService");
-    await srv.emit("main");
-    await waitAtLeastOneEntryIsDone();
-    expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
-    expect(Object.keys(redisMock.getState())).toMatchSnapshot();
-    expect(loggerMock.callsLengths().error).toEqual(0);
+  describe("redis broadcast", () => {
+    it("insert entry: redis broadcast + process", async () => {
+      const srv = await cds.connect.to("StandardService");
+      await srv.emit("main");
+      await waitAtLeastOneEntryIsDone();
+      expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
+      expect(Object.keys(redisMock.getState())).toMatchSnapshot();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
+
+    it("checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events", async () => {
+      await cds.tx((tx) => checkAndInsertPeriodicEvents(tx.context));
+      await runner.__._singleTenantRedis();
+      await waitAtLeastOneEntryIsDone();
+      expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
+      expect(Object.keys(redisMock.getState())).toMatchSnapshot();
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
   });
 
-  it("checkAndInsertPeriodicEvents should insert new events and runner should broadcast + process events", async () => {
-    await cds.tx((tx) => checkAndInsertPeriodicEvents(tx.context));
-    await runner.__._singleTenantRedis();
-    await waitAtLeastOneEntryIsDone();
-    expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
-    expect(Object.keys(redisMock.getState())).toMatchSnapshot();
-    expect(loggerMock.callsLengths().error).toEqual(0);
+  describe("runner", () => {
+    it("should select open events and process + validate skip broadcast", async () => {
+      const processSpy = jest.spyOn(processor, "processEventQueue");
+      await cds.tx({}, async (tx) => {
+        await eventQueue.publishEvent(
+          tx,
+          {
+            type: "CAP_OUTBOX",
+            subType: "StandardService.main",
+            payload: { event: "main", data: {}, headers: {} },
+          },
+          { skipBroadcast: true }
+        );
+      });
+
+      await runner.__._singleTenantDb();
+      await cds.tx({}, (tx) => testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 }));
+      expect(Object.keys(redisMock.getTestState())).toMatchSnapshot();
+      expect(Object.keys(redisMock.getState())).toMatchSnapshot();
+      expect(processSpy).toHaveBeenCalledTimes(1);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+    });
   });
 });
 
@@ -106,7 +138,7 @@ const waitAtLeastOneEntryIsDone = async () => {
   while (true) {
     const row = await cds.tx({}, (tx2) => tx2.run(SELECT.one.from("sap.eventqueue.Event").where({ status: 2 })));
     if (row?.status === EventProcessingStatus.Done) {
-      await promisify(setTimeout)(500); // NOTE: wait a bit longer for all locks to be released
+      await promisify(setTimeout)(1000); // NOTE: wait a bit longer for all locks to be released
       break;
     }
     if (Date.now() - startTime > 180 * 1000) {

@@ -171,9 +171,9 @@ const _insertPeriodEvents = async (tx, events, now) => {
     counter++;
   });
 
-  tx._skipEventQueueBroadcase = true;
+  tx._skipEventQueueBroadcast = true;
   await tx.run(INSERT.into(eventConfig.tableNameEventQueue).entries(eventsToBeInserted));
-  tx._skipEventQueueBroadcase = false;
+  tx._skipEventQueueBroadcast = false;
 };
 
 const _generateKey = ({ type, subType, namespace }) => [namespace, type, subType].join("##");

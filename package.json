@@ -56,10 +56,11 @@
   "devDependencies": {
     "@actions/core": "^1.11.1",
     "@cap-js/cds-test": "^0.4.0",
+    "@cap-js/db-service": "^2.6.0",
     "@cap-js/hana": "^2.3.4",
-    "@cap-js/sqlite": "^2.0.4",
+    "@cap-js/sqlite": "^2.1.0",
     "@opentelemetry/api": "^1.9.0",
-    "@sap/cds": "^9.4.4",
+    "@sap/cds": "^9.4.5",
     "@sap/cds-dk": "^9.4.2",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",

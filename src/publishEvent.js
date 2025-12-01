@@ -77,17 +77,17 @@ const publishEvent = async (
     }
   }
   if (config.insertEventsBeforeCommit && !skipInsertEventsBeforeCommit) {
-    _registerHandlerAndAddEvents(tx, events);
+    _registerHandlerAndAddEvents(tx, events, skipBroadcast);
   } else {
     let result;
-    tx._skipEventQueueBroadcase = skipBroadcast;
+    tx._skipEventQueueBroadcast = skipBroadcast;
     result = await tx.run(INSERT.into(config.tableNameEventQueue).entries(events));
-    tx._skipEventQueueBroadcase = false;
+    tx._skipEventQueueBroadcast = false;
     return result;
   }
 };
 
-const _registerHandlerAndAddEvents = (tx, events) => {
+const _registerHandlerAndAddEvents = (tx, events, skipBroadcast) => {
   tx._eventQueue ??= { events: [], handlerRegistered: false };
   tx._eventQueue.events = tx._eventQueue.events.concat(events);
 
@@ -99,7 +99,9 @@ const _registerHandlerAndAddEvents = (tx, events) => {
     if (!tx._eventQueue.events?.length) {
       return;
     }
+    tx._skipEventQueueBroadcast = skipBroadcast;
     await tx.run(INSERT.into(config.tableNameEventQueue).entries(tx._eventQueue.events));
+    tx._skipEventQueueBroadcast = false;
     tx._eventQueue = null;
   });
 };

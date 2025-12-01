@@ -20,16 +20,6 @@ function outboxed(srv, customOpts) {
   }
 
   const logger = cds.log(COMPONENT_NAME);
-  let outboxOpts = Object.assign(
-    {},
-    (typeof cds.requires.outbox === "object" && cds.requires.outbox) || {},
-    (typeof cds.requires.queue === "object" && cds.requires.queue) || {},
-    (typeof srv.options?.outbox === "object" && srv.options.outbox) || {},
-    (typeof srv.options?.queued === "object" && srv.options.queued) || {},
-    customOpts || {}
-  );
-
-  config.addCAPOutboxEventBase(srv.name, outboxOpts);
 
   const originalSrv = srv[UNBOXED] || srv;
   const outboxedSrv = Object.create(originalSrv);
@@ -42,25 +32,19 @@ function outboxed(srv, customOpts) {
   }
   outboxedSrv.handle = async function (req) {
     const context = req.context || cds.context;
-    outboxOpts = Object.assign(
-      {},
-      (typeof cds.requires.outbox === "object" && cds.requires.outbox) || {},
-      (typeof cds.requires.queue === "object" && cds.requires.queue) || {},
-      (typeof srv.options?.outbox === "object" && srv.options.outbox) || {},
-      (typeof srv.options?.queued === "object" && srv.options.queued) || {},
-      customOpts || {}
-    );
-    config.addCAPOutboxEventBase(srv.name, outboxOpts);
     const hasSpecificSettings = !!config.getCdsOutboxEventSpecificConfig(srv.name, req.event);
-    if (hasSpecificSettings) {
-      outboxOpts = config.addCAPOutboxEventSpecificAction(srv.name, req.event);
-    }
     const subType = hasSpecificSettings ? [srv.name, req.event].join(".") : srv.name;
-    const namespace = outboxOpts.namespace ?? config.namespace;
-    outboxOpts = config.getEventConfig(CDS_EVENT_TYPE, subType, namespace);
+    let srvConfig = config.findBaseCAPServiceWithoutNamespace(subType);
+    // NOTE: service is outboxed without config in cds.env.requires[srv]
+    if (!srvConfig) {
+      config.addCAPServiceWithoutEnvConfig(subType, srv, customOpts);
+      srvConfig = config.findBaseCAPServiceWithoutNamespace(subType);
+    }
+
+    const outboxOpts = config.getEventConfig(CDS_EVENT_TYPE, subType, srvConfig.namespace);
     const eventHeaders = getPropagatedHeaders(outboxOpts, req);
     if (["persistent-outbox", "persistent-queue"].includes(outboxOpts.kind)) {
-      await _mapToEventAndPublish(context, subType, req, eventHeaders, namespace);
+      await _mapToEventAndPublish(context, subType, req, eventHeaders, srvConfig.namespace);
       return;
     }
     context.on("succeeded", async () => {

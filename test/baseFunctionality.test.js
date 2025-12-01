@@ -18,6 +18,19 @@ const { getEnvInstance } = require("../src/shared/env");
 const config = require("../src/config");
 
 const project = __dirname + "/asset/outboxProject"; // The project's root folder
+
+const basePath = path.join(__dirname, "asset", "outboxProject");
+cds.env.requires.NotificationService = {
+  impl: path.join(basePath, "srv/service/standard-service.js"),
+  queued: {
+    events: {
+      differentAppName: { appNames: ["app-b"] },
+      differentAppInstances: { appInstances: [0] },
+      differentAppInstanceOne: { appInstances: [1] },
+    },
+  },
+};
+
 cds.test(project);
 
 describe("baseFunctionality", () => {
@@ -160,6 +173,28 @@ describe("baseFunctionality", () => {
           .mockRejectedValueOnce(new Error("db error"));
         const event = eventQueue.config.events[0];
         await eventQueue.processEventQueue(context, event.type, event.subType);
+        expect(loggerMock.callsLengths().error).toEqual(1);
+        expect(loggerMock.calls().error).toMatchSnapshot();
+        await cds.tx({}, (tx) => testHelper.selectEventQueueAndExpectOpen(tx));
+      });
+
+      test("handle getQueueEntriesAndSetToInProgress fails - CAP select fails", async () => {
+        // use this type because select next chunk is needed
+        await cds.tx({}, (tx) =>
+          testHelper.insertEventEntry(tx, {
+            type: "TransactionMode",
+            subType: "isolatedForKeepAliveSingleSelect",
+          })
+        );
+        const db = await cds.connect.to("db");
+        let doItOnce = true;
+        db.before("READ", (req) => {
+          if (doItOnce) {
+            req.query = SELECT.from("sap.eventqueue.Event").where("ID123 = '123'");
+          }
+          doItOnce = false;
+        });
+        await eventQueue.processEventQueue(context, "TransactionMode", "isolatedForKeepAliveSingleSelect");
         expect(loggerMock.callsLengths().error).toEqual(1);
         expect(loggerMock.calls().error).toMatchSnapshot();
         await cds.tx({}, (tx) => testHelper.selectEventQueueAndExpectOpen(tx));
@@ -555,7 +590,7 @@ describe("baseFunctionality", () => {
     test("should work for CAP Service that is not connected yet", async () => {
       const connectToSpy = jest.spyOn(cds.connect, "to").mockImplementationOnce(async () => {
         await promisify(setTimeout)(10);
-        return { name: "NotificationService" };
+        return { name: "NotificationService", options: {} };
       });
       cds.requires.NotificationService = {};
       await cds.tx({}, async (tx) => {
@@ -569,7 +604,9 @@ describe("baseFunctionality", () => {
     });
 
     test("should work for CAP Service that is not connected yet use connect as fallback should work", async () => {
-      const connectToSpy = jest.spyOn(cds.connect, "to").mockResolvedValueOnce({ name: "NotificationService" });
+      const connectToSpy = jest
+        .spyOn(cds.connect, "to")
+        .mockResolvedValueOnce({ name: "NotificationService", options: {} });
       await cds.tx({}, async (tx) => {
         await testHelper.insertEventEntry(tx);
         await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" }));
@@ -636,12 +673,13 @@ describe("baseFunctionality", () => {
       });
 
       test("CAP service published event not relevant for app", async () => {
-        const service = await cds.connect.to("NotificationService");
-        cds.outboxed(service, { appNames: ["app-b"] });
         await cds.tx({}, async (tx) => {
           await testHelper.insertEventEntry(tx);
           await tx.run(
-            UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" })
+            UPDATE.entity("sap.eventqueue.Event").set({
+              type: "CAP_OUTBOX",
+              subType: "NotificationService.differentAppName",
+            })
           );
           const result = await getOpenQueueEntries(tx);
           expect(result.length).toMatchInlineSnapshot(`0`);
@@ -651,12 +689,13 @@ describe("baseFunctionality", () => {
       test("CAP service published event relevant for app", async () => {
         const env = getEnvInstance();
         env.vcapApplication = { application_name: "app-b" };
-        const service = await cds.connect.to("NotificationService");
-        cds.outboxed(service, { appNames: ["app-b"] });
         await cds.tx({}, async (tx) => {
           await testHelper.insertEventEntry(tx);
           await tx.run(
-            UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" })
+            UPDATE.entity("sap.eventqueue.Event").set({
+              type: "CAP_OUTBOX",
+              subType: "NotificationService.differentAppName",
+            })
           );
           const result = await getOpenQueueEntries(tx);
           expect(result.length).toMatchInlineSnapshot(`1`);
@@ -703,12 +742,13 @@ describe("baseFunctionality", () => {
       });
 
       test("CAP service published event not relevant for app", async () => {
-        const service = await cds.connect.to("NotificationService");
-        cds.outboxed(service, { appInstances: [0] });
         await cds.tx({}, async (tx) => {
           await testHelper.insertEventEntry(tx);
           await tx.run(
-            UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" })
+            UPDATE.entity("sap.eventqueue.Event").set({
+              type: "CAP_OUTBOX",
+              subType: "NotificationService.appInstances",
+            })
           );
           const result = await getOpenQueueEntries(tx);
           expect(result.length).toMatchInlineSnapshot(`0`);
@@ -718,12 +758,13 @@ describe("baseFunctionality", () => {
       test("CAP service published event relevant for app", async () => {
         const env = getEnvInstance();
         env.applicationInstance = 1;
-        const service = await cds.connect.to("NotificationService");
-        cds.outboxed(service, { appInstances: [1] });
         await cds.tx({}, async (tx) => {
           await testHelper.insertEventEntry(tx);
           await tx.run(
-            UPDATE.entity("sap.eventqueue.Event").set({ type: "CAP_OUTBOX", subType: "NotificationService" })
+            UPDATE.entity("sap.eventqueue.Event").set({
+              type: "CAP_OUTBOX",
+              subType: "NotificationService.differentAppInstanceOne",
+            })
           );
           const result = await getOpenQueueEntries(tx);
           expect(result.length).toMatchInlineSnapshot(`1`);
