@@ -66,14 +66,12 @@ exports[`admin-service-test metadata snapshot 1`] = `
       </EntityType>
       <Action Name="setStatusAndAttempts" IsBound="true" EntitySetPath="in">
         <Parameter Name="in" Type="EventQueueAdminService.Event"/>
-        <Parameter Name="tenant" Type="Edm.String"/>
         <Parameter Name="status" Type="Edm.Int32"/>
         <Parameter Name="attempts" Type="Edm.Int32"/>
         <ReturnType Type="EventQueueAdminService.Event"/>
       </Action>
       <Action Name="releaseLock" IsBound="true">
         <Parameter Name="in" Type="EventQueueAdminService.Lock"/>
-        <Parameter Name="tenant" Type="Edm.String"/>
         <Parameter Name="type" Type="Edm.String"/>
         <Parameter Name="subType" Type="Edm.String"/>
         <ReturnType Type="Edm.Boolean"/>
@@ -144,9 +142,6 @@ exports[`admin-service-test metadata snapshot 1`] = `
       <Annotations Target="EventQueueAdminService.Event/createdAt">
         <Annotation Term="Core.Computed" Bool="true"/>
       </Annotations>
-      <Annotations Target="EventQueueAdminService.setStatusAndAttempts(EventQueueAdminService.Event)/tenant">
-        <Annotation Term="Common.FieldControl" EnumMember="Common.FieldControlType/Mandatory"/>
-      </Annotations>
       <Annotations Target="EventQueueAdminService.setStatusAndAttempts(EventQueueAdminService.Event)/status">
         <Annotation Term="Validation.AllowedValues">
           <Collection>
@@ -197,9 +192,6 @@ exports[`admin-service-test metadata snapshot 1`] = `
             <PropertyValue Property="Updatable" Bool="false"/>
           </Record>
         </Annotation>
-      </Annotations>
-      <Annotations Target="EventQueueAdminService.releaseLock(EventQueueAdminService.Lock)/tenant">
-        <Annotation Term="Common.FieldControl" EnumMember="Common.FieldControlType/Mandatory"/>
       </Annotations>
       <Annotations Target="EventQueueAdminService.releaseLock(EventQueueAdminService.Lock)/type">
         <Annotation Term="Common.FieldControl" EnumMember="Common.FieldControlType/Mandatory"/>

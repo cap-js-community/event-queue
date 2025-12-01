@@ -102,7 +102,6 @@ describe("admin-service-test", () => {
     const { ID } = response.data.value[0];
 
     const responseSetStatus = await POST(`/odata/v4/event-queue/admin/Event/${ID}/setStatusAndAttempts`, {
-      tenant: "local-dummy",
       status: eventQueue.EventProcessingStatus.Done,
       attempts: 1,
     });

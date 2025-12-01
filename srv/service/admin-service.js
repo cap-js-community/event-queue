@@ -93,8 +93,9 @@ module.exports = class AdminService extends cds.ApplicationService {
     });
 
     this.on("releaseLock", async (req) => {
+      const tenant = req.headers["z-id"];
       cds.log("eventQueue").info("Releasing event-queue lock", req.data);
-      const { tenant, type, subType, namespace } = req.data;
+      const { type, subType, namespace } = req.data;
       return await cds.tx({ tenant }, async (tx) => {
         return await distributedLock.releaseLock(tx.context, [namespace, type, subType].join("##"), {
           skipNamespace: true,

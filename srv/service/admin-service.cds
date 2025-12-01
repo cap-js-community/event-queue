@@ -12,9 +12,6 @@ service EventQueueAdminService {
         *
   } actions {
       action setStatusAndAttempts(
-        // TODO: remove tenant as soon as CAP issue is fixed https://github.tools.sap/cap/issues/issues/18445
-        @mandatory
-        tenant: String,
         status: db.Status,
         @assert.range: [0,100]
         attempts: Integer) returns Event;
@@ -31,9 +28,6 @@ service EventQueueAdminService {
     createdAt: Integer;
   } actions {
       action releaseLock(
-        // TODO: remove tenant as soon as CAP issue is fixed https://github.tools.sap/cap/issues/issues/18445
-        @mandatory
-        tenant: String,
         @mandatory
         type: String,
         @mandatory
