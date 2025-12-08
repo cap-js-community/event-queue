@@ -79,6 +79,9 @@
   },
   "cds": {
     "eventQueue": {
+      "[development]": {
+        "cleanupLocksAndEventsForDev": true
+      },
       "[production]": {
         "disableRedis": false
       },
