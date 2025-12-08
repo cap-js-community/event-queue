@@ -63,7 +63,7 @@
         }
       },
       "mail-service": {
-        "impl": "./example-cap-server/srv/facade/mail-service.js",
+        "impl": "./srv/facade/mail-service.js",
         "queued": {
           "kind": "persistent-queue"
         }
