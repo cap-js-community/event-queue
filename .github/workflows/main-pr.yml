@@ -28,7 +28,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
-          cache: "npm"
 
       - run: npm ci --package-lock
 
@@ -62,7 +61,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: "npm"
       - run: npm ci --package-lock
       - run: npm run lint:ci
 
@@ -78,6 +76,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: "npm"
       - run: npm ci --package-lock
       - run: npm run test --prefix example-cap-server
