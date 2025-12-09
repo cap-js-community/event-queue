@@ -12,7 +12,7 @@ Authorization: Basic alice@wonderland.com alice
 %}
 
 ### Process Task - T1
-POST http://localhost:4004/odata/v4/process/C_ClosingTask({{t1TaskId}})/process
+POST http://localhost:4004/odata/v4/process/C_ClosingTask({{t1TaskId}})/trigger
 Content-Type: application/json
 Authorization: Basic alice@wonderland.com alice
 
@@ -39,7 +39,7 @@ Authorization: Basic bob@builder.com bob
 
 
 ### Process Task - T2
-POST http://localhost:4004/odata/v4/process/C_ClosingTask({{t2TaskId}})/process
+POST http://localhost:4004/odata/v4/process/C_ClosingTask({{t2TaskId}})/trigger
 Content-Type: application/json
 Authorization: Basic bob@builder.com bob
 

@@ -9,7 +9,7 @@
     "subscribeTenants": "cds subscribe t1 --to http://localhost:4004 -u yves: && cds subscribe t2 --to http://localhost:4004 -u yves: && cds subscribe t3 --to http://localhost:4004 -u yves:",
     "dev": "npm run copy-library && npm run subscribeTenants && npm start",
     "copy-library": "npx shx rm -rf node_modules/@cap-js-community/event-queue && npx shx mkdir -p node_modules/@cap-js-community/event-queue && npx shx cp -R ../package.json ../index.cds ../cds-plugin.js ../src ../srv ../db node_modules/@cap-js-community/event-queue",
-    "test": "CDS_ENV=test node --test"
+    "test": "jest"
   },
   "dependencies": {
     "@cap-js-community/event-queue": "file:..",
@@ -19,16 +19,16 @@
     "express": "^4.21.2"
   },
   "devDependencies": {
-    "@cap-js/sqlite": "2.1.0",
-    "eslint": "8.56.0",
-    "eslint-config-prettier": "9.0.0",
-    "prettier": "3.7.4",
-    "redis": "^4.7.0",
-    "@sap/xssec": "^4.11.2",
     "@cap-js-community/common": "^0.3.2",
     "@cap-js/cds-test": "^0",
-    "jest": "30.2.0",
+    "@cap-js/sqlite": "2.1.0",
+    "@sap/xssec": "^4.11.2",
     "cron-parser": "5.4.0",
+    "eslint": "8.56.0",
+    "eslint-config-prettier": "9.0.0",
+    "jest": "30.2.0",
+    "prettier": "3.7.4",
+    "redis": "^4.7.0",
     "yaml": "2.8.2"
   },
   "cds": {
@@ -58,6 +58,12 @@
             "syncJobs": {
               "load": 10,
               "cron": "*/15 * * * * *"
+            },
+            "processSpecial": {
+              "maxAttempts": 1,
+              "[test]": {
+                "retryFailedAfter": 0
+              }
             }
           }
         }
