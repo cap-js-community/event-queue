@@ -27,7 +27,7 @@
     "test:unit": "jest --selectProjects unit",
     "test:integration": "jest --selectProjects integration --runInBand",
     "voter:test:integration": "jest --selectProjects integration",
-    "test": "jest",
+    "test": "jest --runInBand",
     "test:all:coverage": "jest --runInBand --forceExit --collect-coverage",
     "test:prepare": "npm run build:ci --prefix=./test-integration/_env",
     "test:deploySchema": "node test-integration/_env/srv/hana/deploy.js",
