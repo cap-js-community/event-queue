@@ -39,7 +39,7 @@
       "outbox": false,
       "multitenancy": true,
       "[test]": {
-       "multitenancy": false,
+        "multitenancy": false,
         "cds.xt.ModelProviderService": false,
         "cds.xt.SaasProvisioningService": false,
         "cds.xt.DeploymentService": false,
