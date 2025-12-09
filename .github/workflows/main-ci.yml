@@ -1,6 +1,8 @@
 # This workflow will protect the main branch by testing and linting new PRs and commits
 
 name: Main CI
+permissions:
+  contents: read
 
 on:
   push:
