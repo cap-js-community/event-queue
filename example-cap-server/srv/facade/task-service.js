@@ -1,7 +1,5 @@
 "use strict";
 
-const { promisify } = require("util");
-
 const cds = require("@sap/cds");
 
 module.exports = class TaskService extends cds.Service {
@@ -13,7 +11,6 @@ module.exports = class TaskService extends cds.Service {
       logger.info("starting processing task...", {
         ID: req.data.ID,
       });
-      await promisify(setTimeout)(15 * 1000);
       const mailService = await cds.connect.to("mail-service");
       const task = await SELECT.one.from("sap.eventqueue.sample.Task").where({ ID: req.data.ID });
       await mailService.tx(req).emit("sendSingle", {

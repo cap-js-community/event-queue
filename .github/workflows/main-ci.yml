@@ -1,6 +1,8 @@
 # This workflow will protect the main branch by testing and linting new PRs and commits
 
 name: Main CI
+permissions:
+  contents: read
 
 on:
   push:
@@ -46,7 +48,23 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
           cache: "npm"
       - run: npm ci --package-lock
       - run: npm run lint:ci
+
+  example-cap-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout safe merge ref
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "npm"
+      - run: npm ci --package-lock
+      - run: npm run test --prefix example-cap-server

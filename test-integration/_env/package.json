@@ -11,7 +11,9 @@
     "build:ci": "rm -f -R ./db && mkdir ./db && cp ../../db/*.cds ./db",
     "deploy": "cd gen/db && npm i && npm start"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@cap-js/hana": "0.0.0"
+  },
   "devDependencies": {},
   "cds": {
     "requires": {

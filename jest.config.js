@@ -1,8 +1,33 @@
 "use strict";
 
 module.exports = {
-  // A list of paths to modules that run some code to configure or set up the testing framework before each test
-  setupFilesAfterEnv: ["./jest.setupAfterEnv.js"],
   testTimeout: 600000,
   globalSetup: "./jest.globalSetup.js",
+
+  modulePathIgnorePatterns: [
+    "<rootDir>/gen",
+    "<rootDir>/test-integration/_env/gen",
+    "<rootDir>/test-integration/_env/node_modules",
+  ],
+
+  watchPathIgnorePatterns: [
+    "<rootDir>/gen",
+    "<rootDir>/test-integration/_env/gen",
+    "<rootDir>/test-integration/_env/node_modules",
+  ],
+
+  projects: [
+    {
+      displayName: "unit",
+      testMatch: ["<rootDir>/test/**/*.test.js"],
+      testEnvironment: "node",
+      setupFilesAfterEnv: ["<rootDir>/jest.setupAfterEnv.js"],
+    },
+    {
+      displayName: "integration",
+      testMatch: ["<rootDir>/test-integration/**/*.test.js"],
+      testEnvironment: "node",
+      setupFilesAfterEnv: ["<rootDir>/jest.setupAfterEnv.js"],
+    },
+  ],
 };
