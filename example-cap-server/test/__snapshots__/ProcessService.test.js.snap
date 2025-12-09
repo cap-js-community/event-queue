@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`ProcessService OData APIs multiple tasks are clustered by 'to' property 1`] = `
+"[/eventQueue/outbox/generic/mail-service] - sending e-mail {
+  to: 'alice@wonderland.com',
+  subjects: [
+    "Processing of task: 'Demo Task for processing I' done.",
+    "Processing of task: 'Demo Task for processing II' done."
+  ]
+}
+"
+`;

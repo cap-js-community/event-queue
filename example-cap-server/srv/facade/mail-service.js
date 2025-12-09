@@ -7,7 +7,16 @@ module.exports = class MailService extends cds.Service {
     await super.init();
 
     this.on("sendSingle", async function (req) {
-      this.logger.info("sending e-mail", req.data);
+      req.eventQueue.processor.logger.info("sending e-mail", req.data);
+    });
+
+    this.on("eventQueueCluster", async function (req) {
+      return req.eventQueue.clusterByDataProperty("to", (clusterKey, entries) => {
+        return {
+          to: clusterKey,
+          subjects: entries.map((entry) => entry.subject),
+        };
+      });
     });
   }
 };
