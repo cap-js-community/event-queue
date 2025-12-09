@@ -1,6 +1,7 @@
 "use strict";
 
 const cds = require("@sap/cds");
+const eventQueue = require("@cap-js-community/event-queue");
 
 module.exports = class TaskService extends cds.Service {
   async init() {
@@ -21,6 +22,18 @@ module.exports = class TaskService extends cds.Service {
       logger.info("task processed", {
         ID: req.data.ID,
       });
+    });
+
+    this.on("processSpecial", async function () {
+      return {
+        status: eventQueue.EventProcessingStatus.Error,
+        error: new Error("Special tasks cannot be processed at the moment."),
+      };
+    });
+
+    this.on("eventQueueRetriesExceeded", async function (req) {
+      req.eventQueue.processor.logger.info("cleaning up after retries exceeded for task...");
+      await UPDATE.entity("sap.eventqueue.sample.Task").set({ status: "error" }).where({ ID: req.data.ID });
     });
 
     this.on("syncJobs", async function () {

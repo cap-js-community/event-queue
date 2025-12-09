@@ -22,7 +22,7 @@ describe("ProcessService OData APIs", () => {
     const { data } = await POST(`/odata/v4/process/C_ClosingTask`, {
       description: "Demo Task for processing",
     });
-    await POST(`/odata/v4/process/C_ClosingTask(${data.ID})/process`);
+    await POST(`/odata/v4/process/C_ClosingTask(${data.ID})/trigger`);
 
     let events = await SELECT.from("sap.eventqueue.Event");
     expect(events).toHaveLength(1);
@@ -56,8 +56,8 @@ describe("ProcessService OData APIs", () => {
     const { data: task2 } = await POST(`/odata/v4/process/C_ClosingTask`, {
       description: "Demo Task for processing II",
     });
-    await POST(`/odata/v4/process/C_ClosingTask(${task1.ID})/process`);
-    await POST(`/odata/v4/process/C_ClosingTask(${task2.ID})/process`);
+    await POST(`/odata/v4/process/C_ClosingTask(${task1.ID})/trigger`);
+    await POST(`/odata/v4/process/C_ClosingTask(${task2.ID})/trigger`);
 
     let events = await SELECT.from("sap.eventqueue.Event");
     expect(events).toHaveLength(2);
@@ -73,6 +73,43 @@ describe("ProcessService OData APIs", () => {
     const mailLogs = logs.filter((entry) => entry.includes("sending e-mail"));
     expect(mailLogs).toHaveLength(1);
     expect(mailLogs[0]).toMatchSnapshot();
+  });
+
+  it("trigger special task (own cds env configuration) with exceeded handling", async () => {
+    const { data } = await POST(`/odata/v4/process/C_ClosingTask`, {
+      description: "Demo Task for processing",
+    });
+    await POST(`/odata/v4/process/C_ClosingTask(${data.ID})/triggerSpecial`);
+
+    let events = await SELECT.from("sap.eventqueue.Event");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: "CAP_OUTBOX",
+      subType: "task-service.processSpecial",
+      status: 0,
+    });
+
+    await eventQueue.processEventQueue({}, "CAP_OUTBOX", "task-service.processSpecial");
+
+    events = await SELECT.from("sap.eventqueue.Event").orderBy("createdAt");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: "CAP_OUTBOX",
+      subType: "task-service.processSpecial",
+      status: 3,
+      error: expect.stringContaining("Special tasks cannot be processed at the moment."),
+    });
+
+    await eventQueue.processEventQueue({}, "CAP_OUTBOX", "task-service.processSpecial");
+
+    events = await SELECT.from("sap.eventqueue.Event").orderBy("createdAt");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: "CAP_OUTBOX",
+      subType: "task-service.processSpecial",
+      status: 4,
+      error: expect.stringContaining("Special tasks cannot be processed at the moment."),
+    });
   });
 });
 

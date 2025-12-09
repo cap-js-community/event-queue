@@ -5,7 +5,8 @@ using sap.eventqueue.sample.Task from '../../db/Task';
 service ProcessService {
     entity C_ClosingTask as projection on Task
     actions {
-        action process();
+        action trigger();
+        action triggerSpecial();
     };
 
 }

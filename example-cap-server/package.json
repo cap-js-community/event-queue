@@ -58,6 +58,12 @@
             "syncJobs": {
               "load": 10,
               "cron": "*/15 * * * * *"
+            },
+            "processSpecial": {
+              "maxAttempts": 1,
+              "[test]": {
+                "retryFailedAfter": 0
+              }
             }
           }
         }
