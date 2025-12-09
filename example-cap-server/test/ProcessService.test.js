@@ -3,15 +3,15 @@
 const cds = require("@sap/cds");
 const eventQueue = require("@cap-js-community/event-queue");
 
-const { GET, POST,  axios } = cds.test(__dirname + "/..");
+const { GET, POST, axios } = cds.test(__dirname + "/..");
 axios.defaults.auth = { username: "alice", password: "alice" };
 
 describe("ProcessService OData APIs", () => {
   let log = cds.test.log();
 
-  beforeEach(async() => {
-      await DELETE.from("sap.eventqueue.Event");
-  })
+  beforeEach(async () => {
+    await DELETE.from("sap.eventqueue.Event");
+  });
 
   it("serves ProcessService.C_ClosingTask", async () => {
     const { data } = await GET`/odata/v4/process/C_ClosingTask ${{ params: { $select: "ID,description" } }}`;
