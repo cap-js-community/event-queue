@@ -17,8 +17,8 @@ module.exports = class ProcessService extends cds.ApplicationService {
       }
 
       const srv = await cds.connect.to("task-service");
-      await srv.tx(req).emit("process", { ID: req.params[0] });
-      await UPDATE.entity("sap.eventqueue.sample.Task").set({ status: "in progress" }).where({ ID: req.params[0] });
+      await srv.tx(req).emit("process", req.params[0]);
+      await UPDATE.entity("sap.eventqueue.sample.Task").set({ status: "in progress" }).where(req.params[0]);
     });
   }
 };

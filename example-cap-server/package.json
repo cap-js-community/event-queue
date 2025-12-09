@@ -4,81 +4,56 @@
   "version": "1.0.0",
   "scripts": {
     "postinstall": "npm run copy-library",
-    "start": "cds-serve",
-    "watch": "cds watch",
-    "subscribeTenants": "node bin/subscribteTenants.js",
+    "start": "cds-serve --with-mtx",
+    "watch": "cds watch --with-mtx",
+    "subscribeTenants": "cds subscribe t1 --to http://localhost:4004 -u yves: && cds subscribe t2 --to http://localhost:4004 -u yves: && cds subscribe t3 --to http://localhost:4004 -u yves:",
     "dev": "npm run copy-library && npm run subscribeTenants && npm start",
-    "copy-library": "npx shx rm -rf node_modules/@cap-js-community/event-queue && npx shx mkdir -p node_modules/@cap-js-community/event-queue && npx shx cp -R ../package.json ../index.cds ../cds-plugin.js ../src ../db node_modules/@cap-js-community/event-queue"
+    "copy-library": "npx shx rm -rf node_modules/@cap-js-community/event-queue && npx shx mkdir -p node_modules/@cap-js-community/event-queue && npx shx cp -R ../package.json ../index.cds ../cds-plugin.js ../src ../srv ../db node_modules/@cap-js-community/event-queue",
+    "test": "CDS_ENV=test node --test"
   },
   "dependencies": {
     "@cap-js-community/event-queue": "file:..",
-    "@cap-js/audit-logging": "^0.8.2",
-    "@sap/cds": "^8.8.2",
-    "@sap/cds-mtxs": "^2.6.1",
-    "express": "^4.21.2",
-    "verror": "^1.10.1"
+    "@cap-js/audit-logging": "^1.1.1",
+    "@sap/cds": "^9.5.1",
+    "@sap/cds-mtxs": "^3.5.0",
+    "express": "^4.21.2"
   },
   "devDependencies": {
-    "@cap-js/sqlite": "1.9.0",
+    "@cap-js/sqlite": "2.1.0",
     "eslint": "8.56.0",
     "eslint-config-prettier": "9.0.0",
-    "prettier": "3.5.3",
-    "sqlite3": "5.1.7",
+    "prettier": "3.7.4",
     "redis": "^4.7.0",
-    "cron-parser": "^5.0.5",
-    "@sap/xssec": "^3.6.2"
+    "@sap/xssec": "^4.11.2",
+    "@cap-js-community/common": "^0.3.2",
+    "@cap-js/cds-test": "^0",
+    "jest": "30.2.0",
+    "cron-parser": "5.4.0",
+    "yaml": "2.8.2"
   },
   "cds": {
     "eventQueue": {
-      "plugin": true,
-      "runInterval": 300000,
-      "useAsCAPQueue": true,
-      "thresholdLoggingEventProcessing": 5000,
-      "cleanupLocksAndEventsForDev": true,
-      "events": {
-        "Mail/Single": {
-          "impl": "./srv/EventQueueMail",
-          "load": 10,
-          "parallelEventProcessing": 5
-        }
-      },
-      "periodicEvents": {
-        "HealthCheck/DB": {
-          "impl": "./srv/EventQueueHealthCheckDb",
-          "load": 10,
-          "transactionMode": "alwaysRollback",
-          "interval": 15
-        },
-        "HealthCheck/DB-as-cron": {
-          "impl": "./srv/EventQueueHealthCheckDb",
-          "load": 10,
-          "transactionMode": "alwaysRollback",
-          "cron": "*/15 * * * * *"
-        }
-      }
+      "useAsCAPQueue": true
     },
     "requires": {
-      "outbox": true,
+      "outbox": false,
       "multitenancy": true,
+      "[test]": {
+        "multitenancy": false,
+        "cds.xt.ModelProviderService": false,
+        "cds.xt.SaasProvisioningService": false,
+        "cds.xt.DeploymentService": false,
+        "cds.xt.ExtensibilityService": false
+      },
       "cds.xt.ModelProviderService": true,
       "cds.xt.SaasProvisioningService": true,
       "cds.xt.DeploymentService": true,
       "cds.xt.ExtensibilityService": false,
-      "db": {
-        "[development]": {
-          "kind": "sqlite",
-          "credentials": {
-            "database": "data/event-queue-demo.sqlite"
-          },
-          "schema_evolution": ""
-        }
-      },
       "task-service": {
-        "impl": "./example-cap-server/srv/facade/task-service.js",
-        "outbox": {
-          "kind": "persistent-outbox",
+        "impl": "./srv/facade/task-service.js",
+        "queued": {
+          "kind": "persistent-queue",
           "load": 60,
-          "transactionMode": "isolated",
           "events": {
             "syncJobs": {
               "load": 10,
@@ -88,8 +63,18 @@
         }
       },
       "mail-service": {
-        "impl": "./example-cap-server/srv/facade/mail-service.js"
+        "impl": "./srv/facade/mail-service.js",
+        "queued": {
+          "kind": "persistent-queue"
+        }
+      },
+      "[production]": {
+        "multitenancy": true
+      },
+      "[with-mtx]": {
+        "multitenancy": true
       }
-    }
+    },
+    "profile": "with-mtx-sidecar"
   }
 }
