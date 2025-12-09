@@ -76,5 +76,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: npm ci --package-lock --prefix example-cap-server
+      - run: npm i --prefix example-cap-server
       - run: npm run test --prefix example-cap-server
