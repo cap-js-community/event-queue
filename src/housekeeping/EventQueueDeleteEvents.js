@@ -37,6 +37,10 @@ class EventQueueDeleteEvents extends EventQueueBaseClass {
           { ref: ["lastAttemptTimestamp"] },
           "<=",
           { val: new Date(processContext.timestamp.getTime() - deleteAfter * DAY_IN_MS).toISOString() },
+          "AND",
+          { ref: ["namespace"] },
+          "IN",
+          { list: config.processingNamespaces.map((value) => ({ val: value })) },
         ])
       );
       this.logger.info("deleted eligible events", {

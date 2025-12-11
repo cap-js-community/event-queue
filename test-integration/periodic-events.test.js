@@ -742,6 +742,36 @@ describe("periodic events", () => {
                 type: eventQueue.config.events[0].type,
                 subType: eventQueue.config.events[0].subType,
                 lastAttemptTimestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+                namespace: eventQueue.config.processingNamespaces[0],
+              }))
+          )
+        );
+      });
+      const scheduleNextSpy = jest
+        .spyOn(EventQueueProcessorBase.prototype, "scheduleNextPeriodEvent")
+        .mockResolvedValueOnce();
+
+      await processEventQueue(context, event.type, event.subType);
+
+      expect(scheduleNextSpy).toHaveBeenCalledTimes(1);
+      expect(loggerMock.callsLengths().error).toEqual(0);
+      await testHelper.selectEventQueueAndReturn(tx, { expectedLength: 18 });
+    });
+
+    it("should only delete in right namespace", async () => {
+      const event = eventQueue.config.periodicEvents.find(({ subType }) => subType === "DELETE_EVENTS");
+      await cds.tx({}, async (tx2) => {
+        checkAndInsertPeriodicEventsMock.mockRestore();
+        await periodicEventsTest.checkAndInsertPeriodicEvents(tx2.context);
+        await tx2.run(
+          INSERT.into("sap.eventqueue.Event").entries(
+            Array(10)
+              .fill({})
+              .map(() => ({
+                type: eventQueue.config.events[1].type,
+                subType: eventQueue.config.events[1].subType,
+                lastAttemptTimestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+                namespace: "somethingElse",
               }))
           )
         );
@@ -770,6 +800,7 @@ describe("periodic events", () => {
                 type: eventQueue.config.events[1].type,
                 subType: eventQueue.config.events[1].subType,
                 lastAttemptTimestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+                namespace: eventQueue.config.processingNamespaces[0],
               }))
           )
         );
