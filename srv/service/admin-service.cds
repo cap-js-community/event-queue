@@ -1,7 +1,6 @@
 using sap.eventqueue as db from '../../db';
 
 @path: 'event-queue/admin'
-@impl: './admin-service.js'
 @requires: 'internal-user'
 service EventQueueAdminService {
 

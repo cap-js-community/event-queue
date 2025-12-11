@@ -703,7 +703,7 @@ class EventQueueProcessorBase {
         )
         .orderBy("createdAt", "ID");
 
-      if (this.#eventConfig.selectedDelayedEventIds) {
+      if (this.#eventConfig.selectedDelayedEventIds.length) {
         cqn.where("ID NOT IN", this.#eventConfig.selectedDelayedEventIds);
       }
 
