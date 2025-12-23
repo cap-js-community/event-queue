@@ -12,7 +12,7 @@ const COMPONENT_NAME = "/eventQueue/admin";
 
 module.exports = class AdminService extends cds.ApplicationService {
   async init() {
-    const { Event: EventService, Lock: LockService } = this.entities;
+    const { Event: EventService, Lock: LockService } = cds.entities("EventQueueAdminService");
     const { Event: EventDb } = cds.db.entities("sap.eventqueue");
     const { publishEvent } = this.actions;
 
