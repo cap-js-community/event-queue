@@ -46,7 +46,7 @@ they should be processed.
 | type                          | Specifies the type of the event.                                                                                                                                                                                                                                                                                                                                                                                                          | -               |
 | subType                       | Specifies the subtype of the event, further categorizing the event type.                                                                                                                                                                                                                                                                                                                                                                  | -               |
 | namespace                     | Default namespace in which event is published                                                                                                                                                                                                                                                                                                                                                                                             | default         |
-| load                          | Indicates the load of the event, affecting the processing concurrency.                                                                                                                                                                                                                                                                                                                                                                    | 1               |
+| load                          | Number between 1 and 100 indicating the [load](#load) of the event, affecting the processing concurrency.                                                                                                                                                                                                                                                                                                                                 | 1               |
 | retryAttempts                 | Number of retry attempts for failed events. Set to `-1` for infinite retries.                                                                                                                                                                                                                                                                                                                                                             | 3               |
 | processAfterCommit            | Indicates whether an event is processed immediately after the transaction, in which the event was written, has been committed.                                                                                                                                                                                                                                                                                                            | true            |
 | propagateHeaders              | Specifies which headers from the original CDS context should be forwarded to the queue call. Provide an array of header names to propagate.                                                                                                                                                                                                                                                                                               | []              |
@@ -426,6 +426,20 @@ To ensure that event types with low priorities are not left unprocessed during p
 adjustment is made for event types in the queue for more than three minutes. The pre-defined rule is: if an event type
 remains in the queue for more than three minutes, its priority is temporarily bumped up by one level (i.e., from Low to
 Medium).
+
+# Load
+
+The `load` parameter serves the function of regulating the number of concurrent processes permitted per app-instance. The maximum load for each app-instance is 100.
+
+Consider the following scenario:
+
+There are three events (irrespective of whether they are periodic or ad-hoc events).
+
+- Event A has a specified load of 40.
+- Event B has a specified load of 50.
+- Event C has a specified load of 20.
+
+At the start, when the server initiates the event queue, the load is 0. If Event A is triggered, the load becomes 40. The remaining load that the app-instance can handle is 60. Therefore, Event B can also be started, which brings the total load to 90. At this point, Event C must wait until either Event A or B is completed because the current load is already at 90. However, if your app is running on Cloud Foundry with more than one instance, another instance with available capacity would process Event C.
 
 # Keep Alive During Event Processing
 
