@@ -1,7 +1,5 @@
 "use strict";
 
-const { promisify } = require("util");
-
 const cds = require("@sap/cds");
 
 const redis = require("../shared/redis");
