@@ -236,7 +236,7 @@ class Config {
 
   executeUnsubscribeHandlers(tenantId) {
     this.#unsubscribedTenants[tenantId] = true;
-    setTimeout(() => delete this.#unsubscribedTenants[tenantId], DELETE_TENANT_BLOCK_AFTER_MS);
+    setTimeout(() => delete this.#unsubscribedTenants[tenantId], DELETE_TENANT_BLOCK_AFTER_MS).unref();
     for (const unsubscribeHandler of this.#unsubscribeHandlers) {
       try {
         unsubscribeHandler(tenantId);

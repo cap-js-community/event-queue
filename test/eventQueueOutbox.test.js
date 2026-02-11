@@ -1977,7 +1977,7 @@ describe("event-queue outbox", () => {
       let scheduleEventSpy;
       beforeAll(() => {
         const scheduler = eventScheduler.getInstance();
-        scheduleEventSpy = jest.spyOn(scheduler, "scheduleEvent");
+        scheduleEventSpy = jest.spyOn(scheduler, "scheduleEvent").mockResolvedValue(true);
       });
 
       describe("plain Status", () => {

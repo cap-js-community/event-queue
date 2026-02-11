@@ -123,6 +123,7 @@ const initialize = async (options = {}) => {
     multiTenancyEnabled: config.isMultiTenancy,
     redisEnabled: config.redisEnabled,
     runInterval: config.runInterval,
+    useAsCAPQueue: config.useAsCAPQueue,
   });
   resolveFn();
 };
