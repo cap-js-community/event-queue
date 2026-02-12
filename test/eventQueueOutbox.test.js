@@ -3,6 +3,11 @@
 const { promisify } = require("util");
 const otel = require("@opentelemetry/api");
 jest.mock("@opentelemetry/api", () => require("./mocks/openTelemetry"));
+jest.mock("@cap-js-community/common", () => {
+  return {
+    RedisClient: { create: () => ({}) },
+  };
+});
 const { Logger: mockLogger } = require("./mocks/logger");
 const loggerMock = mockLogger();
 
@@ -2536,20 +2541,6 @@ describe("event-queue outbox", () => {
           expect(loggerMock.callsLengths().error).toEqual(0);
           config.insertEventsBeforeCommit = true;
         });
-
-        // it.skip("how to deal with specific event configuration srv.actionName", async () => {
-        //   const service = await cds.connect.to("Saga");
-        //   await service.send("saga");
-        //   await commitAndOpenNew();
-        //   await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-        //   const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
-        //     expectedLength: 2,
-        //     additionalColumns: ["payload", "status"],
-        //   });
-        //   expect(JSON.parse(done.payload)).toMatchObject({});
-        //   expect(JSON.parse(done.payload)).toMatchObject({});
-        //   expect(loggerMock.callsLengths().error).toEqual(0);
-        // });
       });
 
       describe("provide next data", () => {
@@ -2631,6 +2622,42 @@ describe("event-queue outbox", () => {
           expect(done.status).toEqual(EventProcessingStatus.Error);
 
           expect(JSON.parse(next.payload)).toMatchObject({ event: "specific/#failed" });
+          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+      });
+
+      describe("general handlers", () => {
+        it("if succeeded handler exists and event is green, trigger next event", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("general", {});
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            additionalColumns: ["payload"],
+          });
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "general" });
+          expect(done.status).toEqual(EventProcessingStatus.Done);
+
+          expect(JSON.parse(next.payload)).toMatchObject({ event: "#succeeded" });
+          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("if failed handler exists and event is red, trigger next event", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("general", { status: EventProcessingStatus.Error });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            additionalColumns: ["payload", "lastAttemptTimestamp"],
+          });
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "general" });
+          expect(done.status).toEqual(EventProcessingStatus.Error);
+
+          expect(JSON.parse(next.payload)).toMatchObject({ event: "#failed" });
           expect(next.status).toEqual(EventProcessingStatus.Done);
           expect(loggerMock.callsLengths().error).toEqual(0);
         });

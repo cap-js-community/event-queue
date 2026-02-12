@@ -381,6 +381,10 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       return;
     }
 
+    if (req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_SUCCESS) || req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_FAILED)) {
+      return;
+    }
+
     // NOTE: required for #failed because tx is rolledback and new events would not be commmited!
     const tx = cds.tx(processContext);
     const nextEvents = tx._eventQueue?.events;

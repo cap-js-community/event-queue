@@ -19,6 +19,46 @@ class StandardService extends cds.Service {
       };
     });
 
+    this.on("general", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        error: req.data.error,
+      });
+
+      return {
+        status: req.data.status ?? 2,
+        ...(req.data.nextData && { nextData: req.data.nextData }),
+        ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
+      };
+    });
+
+    this.on("#succeeded", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        error: req.data.error,
+      });
+
+      return {
+        status: req.data.status ?? 2,
+        ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
+      };
+    });
+
+    this.on("#failed", (req) => {
+      cds.log(this.name).info(req.event, {
+        data: req.data,
+        user: req.user.id,
+        error: req.data.error,
+      });
+
+      return {
+        status: 2,
+        ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
+      };
+    });
+
     this.on("specific", (req) => {
       cds.log(this.name).info(req.event, {
         data: req.data,
