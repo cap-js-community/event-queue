@@ -12,6 +12,10 @@ class StandardService extends cds.Service {
         error: req.data.error,
       });
 
+      if (req.data.throw) {
+        throw new Error(req.data.throw);
+      }
+
       return {
         status: req.data.status ?? 2,
         ...(req.data.nextData && { nextData: req.data.nextData }),
@@ -94,7 +98,7 @@ class StandardService extends cds.Service {
       });
 
       return {
-        status: 2,
+        status: req.data.status ?? 2,
         ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
       };
     });
