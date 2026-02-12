@@ -2487,10 +2487,6 @@ describe("event-queue outbox", () => {
       });
     });
 
-    // TODO: open points
-    //  - triggered failed handler if succeeded handlers fails??
-    //  - exception
-
     describe("saga pattern", () => {
       describe("event specific handlers", () => {
         it("if succeeded handler exists and event is green, trigger next event", async () => {
