@@ -14,6 +14,8 @@ const EVENT_QUEUE_ACTIONS = {
   EXCEEDED: "eventQueueRetriesExceeded",
   CLUSTER: "eventQueueCluster",
   CHECK_AND_ADJUST: "eventQueueCheckAndAdjustPayload",
+  SAGA_SUCCESS: "#succeeded",
+  SAGA_FAILED: "#failed",
 };
 
 class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
@@ -260,7 +262,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   async checkEventAndGeneratePayload(queueEntry) {
     const payload = await super.checkEventAndGeneratePayload(queueEntry);
     const { event } = payload;
-    const handlerName = this.#checkHandlerExists(EVENT_QUEUE_ACTIONS.CHECK_AND_ADJUST, event);
+    const handlerName = this.#checkHandlerExists({ eventQueueFn: EVENT_QUEUE_ACTIONS.CHECK_AND_ADJUST, event });
     if (!handlerName) {
       return payload;
     }
@@ -281,7 +283,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
 
   async hookForExceededEvents(exceededEvent) {
     const { event } = exceededEvent.payload;
-    const handlerName = this.#checkHandlerExists(EVENT_QUEUE_ACTIONS.EXCEEDED, event);
+    const handlerName = this.#checkHandlerExists({ eventQueueFn: EVENT_QUEUE_ACTIONS.EXCEEDED, event });
     if (!handlerName) {
       return await super.hookForExceededEvents(exceededEvent);
     }
@@ -299,14 +301,23 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     return await super.beforeProcessingEvents();
   }
 
-  #checkHandlerExists(eventQueueFn, event) {
-    const specificHandler = this.__onHandlers[[eventQueueFn, event].join(".")];
+  #checkHandlerExists({ eventQueueFn, event, saga } = {}) {
+    if (eventQueueFn) {
+      const specificHandler = this.__onHandlers[[eventQueueFn, event].join(".")];
+      if (specificHandler) {
+        return specificHandler;
+      }
+
+      const genericHandler = this.__onHandlers[eventQueueFn];
+      return genericHandler ?? null;
+    }
+
+    const specificHandler = this.__onHandlers[[event, saga].join("/")];
     if (specificHandler) {
       return specificHandler;
     }
 
-    const genericHandler = this.__onHandlers[eventQueueFn];
-    return genericHandler ?? null;
+    return this.__onHandlers[saga];
   }
 
   async processPeriodicEvent(processContext, key, queueEntry) {
@@ -319,7 +330,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   #buildDispatchData(context, payload, { key, queueEntries } = {}) {
     const { useEventQueueUser } = this.eventConfig;
     const userId = useEventQueueUser ? config.userId : payload.contextUser;
-    const reg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
+    const reg = payload.das_fromSend ? new cds.Request(payload) : new cds.Event(payload);
     const invocationFn = payload._fromSend ? "send" : "emit";
     delete reg._fromSend;
     delete reg.contextUser;
@@ -344,7 +355,9 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       const { userId, invocationFn, reg } = this.#buildDispatchData(processContext, payload, { key, queueEntries });
       await this.#setContextUser(processContext, userId, reg);
       const result = await this.__srvUnboxed.tx(processContext)[invocationFn](reg);
-      return this.#determineResultStatus(result, queueEntries);
+      const statusTuple = this.#determineResultStatus(result, queueEntries);
+      await this.#publishFollowupEvents(processContext, reg, statusTuple);
+      return statusTuple;
     } catch (err) {
       this.logger.error("error processing outboxed service call", err, {
         serviceName: this.eventSubType,
@@ -359,11 +372,41 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     }
   }
 
+  async #publishFollowupEvents(processContext, req, statusTuple) {
+    const succeeded = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_SUCCESS });
+    const failed = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_FAILED });
+
+    if (!succeeded && !failed) {
+      return;
+    }
+
+    // NOTE: required for #failed because tx is rolledback and new events would not be commmited!
+    const tx = cds.tx(processContext);
+    const nextEvents = tx._eventQueue?.events;
+
+    if (nextEvents?.length) {
+      tx._eventQueue.events = [];
+    }
+
+    for (const [id, result] of statusTuple) {
+      if (succeeded && result.status === EventProcessingStatus.Done) {
+        (await this.__srv.tx(processContext)).send(succeeded, result.nextData ?? req.data);
+      }
+
+      if (failed && result.status === EventProcessingStatus.Error) {
+        (await this.__srv.tx(processContext)).send(failed, result.nextData ?? req.data);
+      }
+    }
+
+    this.nextSagaEvents = tx._eventQueue.events;
+    tx._eventQueue.events = nextEvents ?? [];
+  }
+
   #determineResultStatus(result, queueEntries) {
     const validStatusValues = Object.values(EventProcessingStatus);
     const validStatus = validStatusValues.includes(result);
     if (validStatus) {
-      return queueEntries.map((queueEntry) => [queueEntry.ID, result]);
+      return queueEntries.map((queueEntry) => [queueEntry.ID, { status: result }]);
     }
 
     if (result instanceof Object && !Array.isArray(result)) {

@@ -162,6 +162,13 @@ cds.env.requires.Namespace = {
   },
 };
 
+cds.env.requires.Saga = {
+  impl: path.join(basePath, "srv/service/saga-service.js"),
+  queued: {
+    kind: "persistent-queue",
+  },
+};
+
 cds.env.requires["sapafcsdk.scheduling.ProviderService"] = {
   impl: path.join(basePath, "srv/service/standard-service.js"),
   outbox: {
@@ -2468,6 +2475,77 @@ describe("event-queue outbox", () => {
         await commitAndOpenNew();
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
         expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+    });
+
+    describe("saga pattern", () => {
+      describe("event specific handlers", () => {
+        it("if succeeded handler exists and event is green, trigger next event", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("saga", {});
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            additionalColumns: ["payload"],
+          });
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga" });
+          expect(done.status).toEqual(EventProcessingStatus.Done);
+
+          expect(JSON.parse(next.payload)).toMatchObject({ event: "saga/#succeeded" });
+          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("if failed handler exists and event is red, trigger next event", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("saga", { status: EventProcessingStatus.Error });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            additionalColumns: ["payload", "lastAttemptTimestamp"],
+          });
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga" });
+          expect(done.status).toEqual(EventProcessingStatus.Error);
+
+          expect(JSON.parse(next.payload)).toMatchObject({ event: "saga/#failed" });
+          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it.skip("how to deal with specific event configuration srv.actionName", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("saga");
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            additionalColumns: ["payload", "status"],
+          });
+          expect(JSON.parse(done.payload)).toMatchObject({});
+          expect(JSON.parse(done.payload)).toMatchObject({});
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+      });
+
+      describe("provide next data", () => {
+        it("failed handler with next data", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("saga", { status: EventProcessingStatus.Error, nextData: { newData: "dummyData" } });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            additionalColumns: ["payload"],
+          });
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga" });
+          expect(done.status).toEqual(EventProcessingStatus.Error);
+
+          expect(JSON.parse(next.payload)).toMatchObject({ event: "saga/#failed", data: { newData: "dummyData" } });
+          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
       });
     });
   });

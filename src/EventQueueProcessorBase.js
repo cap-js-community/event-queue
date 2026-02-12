@@ -43,6 +43,7 @@ class EventQueueProcessorBase {
   #currentKeepAlivePromise = Promise.resolve();
   #etagMap;
   #namespace;
+  #nextSagaEvents;
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -468,6 +469,10 @@ class EventQueueProcessorBase {
         return result;
       }, {});
 
+      if (!Object.values(updateData).length) {
+        return;
+      }
+
       for (const { ids, data } of Object.values(updateData)) {
         if (!("status" in data)) {
           // TODO: Can this still happen?
@@ -521,6 +526,11 @@ class EventQueueProcessorBase {
             })
             .where("ID IN", ids)
         );
+      }
+
+      if (this.#nextSagaEvents?.length) {
+        await tx.run(INSERT.into(this.#config.tableNameEventQueue).entries(this.#nextSagaEvents));
+        this.#nextSagaEvents = [];
       }
     });
   }
@@ -1389,6 +1399,10 @@ class EventQueueProcessorBase {
 
   get allowedFieldsEventHandler() {
     return ALLOWED_FIELDS_FOR_UPDATE;
+  }
+
+  set nextSagaEvents(value) {
+    this.#nextSagaEvents = value;
   }
 }
 
