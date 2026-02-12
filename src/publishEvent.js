@@ -76,8 +76,9 @@ const publishEvent = async (
       event.namespace = config.namespace;
     }
   }
+  _addEventsToContext(tx, events);
   if (config.insertEventsBeforeCommit && !skipInsertEventsBeforeCommit) {
-    _registerHandlerAndAddEvents(tx, events, skipBroadcast);
+    _registerHandler(tx, skipBroadcast);
   } else {
     let result;
     tx._skipEventQueueBroadcast = skipBroadcast;
@@ -87,10 +88,7 @@ const publishEvent = async (
   }
 };
 
-const _registerHandlerAndAddEvents = (tx, events, skipBroadcast) => {
-  tx._eventQueue ??= { events: [], handlerRegistered: false };
-  tx._eventQueue.events = tx._eventQueue.events.concat(events);
-
+const _registerHandler = (tx, skipBroadcast) => {
   if (tx._eventQueue.handlerRegistered) {
     return;
   }
@@ -104,6 +102,11 @@ const _registerHandlerAndAddEvents = (tx, events, skipBroadcast) => {
     tx._skipEventQueueBroadcast = false;
     tx._eventQueue = null;
   });
+};
+
+const _addEventsToContext = (tx, events) => {
+  tx._eventQueue ??= { events: [], handlerRegistered: false };
+  tx._eventQueue.events = tx._eventQueue.events.concat(events);
 };
 
 module.exports = {

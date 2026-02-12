@@ -28,6 +28,8 @@ const DEFAULT_RETRY_AFTER = 5 * 60 * 1000;
 const PRIORITIES = Object.values(Priorities);
 const UTC_DEFAULT = false;
 const USE_CRON_TZ_DEFAULT = true;
+const SAGA_SUCCESS = "#succeeded";
+const SAGA_FAILED = "#failed";
 
 const BASE_TABLES = {
   EVENT: "sap.eventqueue.Event",
@@ -384,6 +386,20 @@ class Config {
               result.adHoc
             );
             result.adHoc[key] = specificEventConfig;
+            const sagaSuccessKey = [fnName, SAGA_SUCCESS].join("/");
+            if (config.events[sagaSuccessKey]) {
+              const [sagaKey, sagaSpecificEventConfig] = this.addCAPOutboxEventSpecificAction(
+                srvConfig,
+                name,
+                fnName,
+                result.adHoc
+              );
+              result.adHoc[sagaKey] = sagaSpecificEventConfig;
+            } else {
+              const sagaConfig = { ...specificEventConfig };
+              sagaConfig.subType = [sagaConfig.subType, SAGA_SUCCESS].join("/");
+              result.adHoc[[key, SAGA_SUCCESS].join("/")] = sagaConfig;
+            }
           }
         }
         return result;
@@ -406,11 +422,24 @@ class Config {
   getCdsOutboxEventSpecificConfig(serviceName, action) {
     const srv = cds.env.requires[serviceName];
     const config = srv?.outbox ?? srv?.queued;
-    if (config?.events?.[action]) {
+    const specificConfig = config?.events?.[action];
+
+    if (specificConfig) {
       return this.#mixCAPPropertyNamesWithEventQueueNames(config.events[action]);
-    } else {
+    }
+
+    if (!action) {
       return null;
     }
+
+    const [withoutSaga, sagaSuffix] = action.split("/");
+    if ([SAGA_FAILED, SAGA_SUCCESS].includes(sagaSuffix)) {
+      if (config?.events?.[withoutSaga]) {
+        return this.#mixCAPPropertyNamesWithEventQueueNames(config.events[withoutSaga]);
+      }
+    }
+
+    return null;
   }
 
   #mapEnvEvents(events) {
