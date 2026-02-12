@@ -330,7 +330,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   #buildDispatchData(context, payload, { key, queueEntries } = {}) {
     const { useEventQueueUser } = this.eventConfig;
     const userId = useEventQueueUser ? config.userId : payload.contextUser;
-    const reg = payload.das_fromSend ? new cds.Request(payload) : new cds.Event(payload);
+    const reg = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
     const invocationFn = payload._fromSend ? "send" : "emit";
     delete reg._fromSend;
     delete reg.contextUser;
