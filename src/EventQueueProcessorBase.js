@@ -408,7 +408,7 @@ class EventQueueProcessorBase {
       UPDATE.entity(this.#config.tableNameEventQueue)
         .set({
           status: status,
-          ...(error && { error: this.#error2String(error) }),
+          ...(error && { error: this._error2String(error) }),
         })
         .where({
           ID: queueEntryIds,
@@ -498,7 +498,7 @@ class EventQueueProcessorBase {
         }
 
         if (data.error) {
-          data.error = this.#error2String(data.error);
+          data.error = this._error2String(data.error);
         }
 
         if (!data.startAfter && [EventProcessingStatus.Error, EventProcessingStatus.Open].includes(data.status)) {
@@ -535,7 +535,7 @@ class EventQueueProcessorBase {
     });
   }
 
-  #error2String(error) {
+  _error2String(error) {
     return JSON.stringify(error, (_, value) => this.#errorReplacer(value));
   }
 

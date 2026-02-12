@@ -1,6 +1,6 @@
 {
   "name": "@cap-js-community/event-queue",
-  "version": "2.1.0-beta.0",
+  "version": "2.1.0-beta.1",
   "description": "An event queue that enables secure transactional processing of asynchronous and periodic events, featuring instant event processing with Redis Pub/Sub and load distribution across all application instances.",
   "main": "src/index.js",
   "types": "src/index.d.ts",
@@ -22,8 +22,6 @@
     "multi-tenancy"
   ],
   "scripts": {
-    "start": "PORT=4005 cds-serve",
-    "watch": "PORT=4005 cds watch",
     "test:unit": "jest --selectProjects unit",
     "test:integration": "jest --selectProjects integration --runInBand",
     "voter:test:integration": "jest --selectProjects integration",
@@ -38,13 +36,12 @@
     "eslint:ci": "eslint .",
     "prettier": "prettier --write --loglevel error .",
     "prettier:ci": "prettier --check .",
-    "prepareRelease": "npm prune --production",
     "docs": "cd docs && bundle exec jekyll serve",
     "docs:install": "cd docs && npx shx rm -rf vendor Gemfile.lock && bundle install",
     "upgrade-lock": "npx shx rm -rf package-lock.json node_modules && npm i --package-lock"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
     "@cap-js-community/common": "^0.3.4",
