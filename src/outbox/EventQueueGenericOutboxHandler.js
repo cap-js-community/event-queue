@@ -372,6 +372,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     }
   }
 
+  //TODO: exit if saga event
   async #publishFollowupEvents(processContext, req, statusTuple) {
     const succeeded = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_SUCCESS });
     const failed = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_FAILED });
@@ -390,15 +391,21 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
 
     for (const [, result] of statusTuple) {
       if (succeeded && result.status === EventProcessingStatus.Done) {
-        (await this.__srv.tx(processContext)).send(succeeded, result.nextData ?? req.data);
+        await this.__srv.tx(processContext).send(succeeded, result.nextData ?? req.data);
       }
 
       if (failed && result.status === EventProcessingStatus.Error) {
-        (await this.__srv.tx(processContext)).send(failed, result.nextData ?? req.data);
+        await this.__srv.tx(processContext).send(failed, result.nextData ?? req.data);
       }
+
+      delete result.nextData;
     }
 
-    this.nextSagaEvents = tx._eventQueue.events;
+    if (config.insertEventsBeforeCommit) {
+      this.nextSagaEvents = tx._eventQueue.events;
+    } else {
+      this.nextSagaEvents = tx._eventQueue.events.filter((event) => JSON.parse(event.payload).event === failed);
+    }
     tx._eventQueue.events = nextEvents ?? [];
   }
 
@@ -418,7 +425,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     }
 
     if (!Array.isArray(result)) {
-      return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+      return queueEntries.map((queueEntry) => [queueEntry.ID, { status: EventProcessingStatus.Done }]);
     }
 
     const [firstEntry] = result;
@@ -473,7 +480,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     if (valid) {
       return result;
     } else {
-      return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
+      return queueEntries.map((queueEntry) => [queueEntry.ID, { status: EventProcessingStatus.Done }]);
     }
   }
 }

@@ -25,7 +25,7 @@ const TRIES_FOR_EXCEEDED_EVENTS = 3;
 const EVENT_START_AFTER_HEADROOM = 3 * 1000;
 const SUFFIX_PERIODIC = "_PERIODIC";
 
-const ALLOWED_FIELDS_FOR_UPDATE = ["status", "startAfter", "error"];
+const ALLOWED_FIELDS_FOR_UPDATE = ["status", "startAfter", "error", "nextData"];
 
 class EventQueueProcessorBase {
   #eventsWithExceededTries = [];

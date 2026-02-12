@@ -166,6 +166,7 @@ cds.env.requires.Saga = {
   impl: path.join(basePath, "srv/service/saga-service.js"),
   queued: {
     kind: "persistent-queue",
+    events: { specific: { propagateHeaders: ["dummy"] } },
   },
 };
 
@@ -537,6 +538,7 @@ describe("event-queue outbox", () => {
         registerAsEventProcessor: false,
         isEventQueueActive: true,
         useAsCAPOutbox: true,
+        insertEventsBeforeCommit: true,
         userId: "dummyTestUser",
       });
 
@@ -974,6 +976,8 @@ describe("event-queue outbox", () => {
         await service.send("action", {});
         await commitAndOpenNew();
         delete eventQueue.config._rawEventMap["default##CAP_OUTBOX##NotificationServicePeriodic.action"];
+        delete eventQueue.config._rawEventMap["default##CAP_OUTBOX##NotificationServicePeriodic.action/#succeeded"];
+        delete eventQueue.config._rawEventMap["default##CAP_OUTBOX##NotificationServicePeriodic.action/#failed"];
 
         // NOTE: after deleting the config make sure config is not available
         await processEventQueue(tx.context, "CAP_OUTBOX", [service.name, "action"].join("."));
@@ -2514,6 +2518,25 @@ describe("event-queue outbox", () => {
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
 
+        it("must also work with insertEventsBeforeCommit=false", async () => {
+          config.insertEventsBeforeCommit = false;
+          const service = await cds.connect.to("Saga");
+          await service.send("saga", {});
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            additionalColumns: ["payload", "error"],
+          });
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga" });
+          expect(done.status).toEqual(EventProcessingStatus.Done);
+
+          expect(JSON.parse(next.payload)).toMatchObject({ event: "saga/#succeeded" });
+          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+          config.insertEventsBeforeCommit = true;
+        });
+
         // it.skip("how to deal with specific event configuration srv.actionName", async () => {
         //   const service = await cds.connect.to("Saga");
         //   await service.send("saga");
@@ -2543,6 +2566,38 @@ describe("event-queue outbox", () => {
           expect(done.status).toEqual(EventProcessingStatus.Error);
 
           expect(JSON.parse(next.payload)).toMatchObject({ event: "saga/#failed", data: { newData: "dummyData" } });
+          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+      });
+
+      describe("specific event configuration", () => {
+        it("succeeded", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("specific", { status: EventProcessingStatus.Done });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.specific`);
+          let [next, done] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            additionalColumns: ["payload"],
+          });
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "specific" });
+          expect(done.status).toEqual(EventProcessingStatus.Done);
+
+          expect(JSON.parse(next.payload)).toMatchObject({ event: "specific/#succeeded" });
+          expect(next.status).toEqual(EventProcessingStatus.Open);
+
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.specific/#succeeded`);
+
+          [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            additionalColumns: ["payload"],
+          });
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "specific" });
+          expect(done.status).toEqual(EventProcessingStatus.Done);
+
+          expect(JSON.parse(next.payload)).toMatchObject({ event: "specific/#succeeded" });
           expect(next.status).toEqual(EventProcessingStatus.Done);
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
