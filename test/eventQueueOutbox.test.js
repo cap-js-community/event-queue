@@ -2514,19 +2514,19 @@ describe("event-queue outbox", () => {
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
 
-        it.skip("how to deal with specific event configuration srv.actionName", async () => {
-          const service = await cds.connect.to("Saga");
-          await service.send("saga");
-          await commitAndOpenNew();
-          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
-            expectedLength: 2,
-            additionalColumns: ["payload", "status"],
-          });
-          expect(JSON.parse(done.payload)).toMatchObject({});
-          expect(JSON.parse(done.payload)).toMatchObject({});
-          expect(loggerMock.callsLengths().error).toEqual(0);
-        });
+        // it.skip("how to deal with specific event configuration srv.actionName", async () => {
+        //   const service = await cds.connect.to("Saga");
+        //   await service.send("saga");
+        //   await commitAndOpenNew();
+        //   await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        //   const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
+        //     expectedLength: 2,
+        //     additionalColumns: ["payload", "status"],
+        //   });
+        //   expect(JSON.parse(done.payload)).toMatchObject({});
+        //   expect(JSON.parse(done.payload)).toMatchObject({});
+        //   expect(loggerMock.callsLengths().error).toEqual(0);
+        // });
       });
 
       describe("provide next data", () => {

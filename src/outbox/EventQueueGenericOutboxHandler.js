@@ -388,7 +388,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       tx._eventQueue.events = [];
     }
 
-    for (const [id, result] of statusTuple) {
+    for (const [, result] of statusTuple) {
       if (succeeded && result.status === EventProcessingStatus.Done) {
         (await this.__srv.tx(processContext)).send(succeeded, result.nextData ?? req.data);
       }
