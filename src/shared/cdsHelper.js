@@ -130,7 +130,7 @@ const _getAllTenantBase = async () => {
     if (cds.services["cds.xt.SaasProvisioningService"] || cds.services["saas-registry"]) {
       break;
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000).unref());
   }
 
   const ssp = await cds.connect.to("cds.xt.SaasProvisioningService");

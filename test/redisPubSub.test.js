@@ -4,7 +4,9 @@ const path = require("path");
 
 const setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation((first, second) => {
   setImmediate(() => (first instanceof Function ? first : second)());
-  return "";
+  return {
+    unref: () => {},
+  };
 });
 
 const distributedLock = require("../src/shared/distributedLock");
@@ -122,7 +124,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       await redisPub.broadcastEvent(123, { type: event.type, subType: event.subType });
       expect(loggerMock.calls().error).toHaveLength(0);
       expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
-      expect(setTimeoutSpy.mock.lastCall[0]).toMatchInlineSnapshot(`30000`);
+      expect(setTimeoutSpy.mock.lastCall[1]).toMatchInlineSnapshot(`30000`);
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [
@@ -141,7 +143,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
       await redisPub.broadcastEvent(123, { type: event.type, subType: event.subType }, true);
       expect(loggerMock.calls().error).toHaveLength(0);
       expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
-      expect(setTimeoutSpy.mock.lastCall[0]).toMatchInlineSnapshot(`30000`);
+      expect(setTimeoutSpy.mock.lastCall[1]).toMatchInlineSnapshot(`30000`);
       expect(mockRedisPublishCalls).toHaveLength(1);
       expect(mockRedisPublishCalls[0]).toMatchInlineSnapshot(`
         [

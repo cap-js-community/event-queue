@@ -62,6 +62,7 @@ const ALLOWED_EVENT_OPTIONS_AD_HOC = [
   "checkForNextChunk",
   "retryFailedAfter",
   "propagateHeaders",
+  "propagatedContextProperties",
   "retryOpenAfter",
   "multiInstanceProcessing",
   "kind",
@@ -236,7 +237,7 @@ class Config {
 
   executeUnsubscribeHandlers(tenantId) {
     this.#unsubscribedTenants[tenantId] = true;
-    setTimeout(() => delete this.#unsubscribedTenants[tenantId], DELETE_TENANT_BLOCK_AFTER_MS);
+    setTimeout(() => delete this.#unsubscribedTenants[tenantId], DELETE_TENANT_BLOCK_AFTER_MS).unref();
     for (const unsubscribeHandler of this.#unsubscribeHandlers) {
       try {
         unsubscribeHandler(tenantId);
@@ -488,6 +489,7 @@ class Config {
       ? Object.fromEntries(new Map(event.appInstances.map((a) => [a, true])))
       : null;
     event.propagateHeaders = event.propagateHeaders ?? [];
+    event.propagatedContextProperties = event.propagatedContextProperties ?? [];
     event.retryFailedAfter = event.retryFailedAfter ?? DEFAULT_RETRY_AFTER;
     event.retryOpenAfter = event.retryOpenAfter ?? DEFAULT_RETRY_AFTER;
   }

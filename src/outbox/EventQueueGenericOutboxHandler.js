@@ -25,7 +25,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   async getQueueEntriesAndSetToInProgress() {
     const { srvName } = config.normalizeSubType(this.eventType, this.eventSubType);
     this.__srv = await cds.connect.to(srvName);
-    this.__srvUnboxed = cds.unboxed(this.__srv);
+    this.__srvUnboxed = cds.unqueued(this.__srv);
     const { handlers, clusterRelevant, specificClusterRelevant } = this.__srvUnboxed.handlers.on.reduce(
       (result, handler) => {
         if (handler.on.startsWith(EVENT_QUEUE_ACTIONS.CLUSTER)) {

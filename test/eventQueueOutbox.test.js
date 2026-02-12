@@ -137,6 +137,17 @@ cds.env.requires.QueueService = {
   },
 };
 
+cds.env.requires.ContextProperties = {
+  impl: path.join(basePath, "srv/service/standard-service.js"),
+  queued: {
+    kind: "persistent-queue",
+    propagatedContextProperties: ["notExisting"],
+    events: {
+      main2: { propagatedContextProperties: ["features"] },
+    },
+  },
+};
+
 cds.env.requires.Namespace = {
   impl: path.join(basePath, "srv/service/standard-service.js"),
   outbox: {
@@ -1977,7 +1988,7 @@ describe("event-queue outbox", () => {
       let scheduleEventSpy;
       beforeAll(() => {
         const scheduler = eventScheduler.getInstance();
-        scheduleEventSpy = jest.spyOn(scheduler, "scheduleEvent");
+        scheduleEventSpy = jest.spyOn(scheduler, "scheduleEvent").mockResolvedValue(true);
       });
 
       describe("plain Status", () => {
@@ -2402,6 +2413,58 @@ describe("event-queue outbox", () => {
         await commitAndOpenNew();
         await testHelper.selectEventQueueAndExpectOpen(tx, { expectedLength: 1 });
         await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.main`);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+    });
+
+    describe("propagate cds properties", () => {
+      it("if property not present; nothing should change", async () => {
+        const service = await cds.connect.to("ContextProperties");
+        await service.send("main");
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["payload"],
+        });
+        const payload = JSON.parse(event.payload);
+        expect(payload.notExisting).toBeUndefined();
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("propagate feaatures without values", async () => {
+        const service = await cds.connect.to("ContextProperties");
+        await service.send("main2");
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["payload"],
+        });
+        const payload = JSON.parse(event.payload);
+        expect(payload.features).toEqual({});
+        await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.main2`);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("propagate feaatures values", async () => {
+        context.features = { a: true, b: true };
+        const service = (await cds.connect.to("ContextProperties")).tx(context);
+        await service.send("main2");
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["payload"],
+        });
+        const payload = JSON.parse(event.payload);
+        expect(payload.features).toEqual({ a: true, b: true });
+        await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.main2`);
+        expect(loggerMock).actionCalled("main2", { features: { a: true, b: true } });
         await commitAndOpenNew();
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
         expect(loggerMock.callsLengths().error).toEqual(0);

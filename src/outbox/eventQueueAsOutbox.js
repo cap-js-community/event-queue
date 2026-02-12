@@ -43,8 +43,9 @@ function outboxed(srv, customOpts) {
 
     const outboxOpts = config.getEventConfig(CDS_EVENT_TYPE, subType, srvConfig.namespace);
     const eventHeaders = getPropagatedHeaders(outboxOpts, req);
+    const contextProperties = getPropagatedContextProperties(outboxOpts, req);
     if (["persistent-outbox", "persistent-queue"].includes(outboxOpts.kind)) {
-      await _mapToEventAndPublish(context, subType, req, eventHeaders, srvConfig.namespace);
+      await _mapToEventAndPublish(req, srvConfig.namespace, subType, eventHeaders, contextProperties);
       return;
     }
     context.on("succeeded", async () => {
@@ -80,7 +81,17 @@ const getPropagatedHeaders = (config, req) => {
   return Object.assign(propagateHeaders, req.headers);
 };
 
-const _mapToEventAndPublish = async (context, subType, req, eventHeaders, namespace) => {
+const getPropagatedContextProperties = (config, req) => {
+  return config.propagatedContextProperties.reduce((properties, name) => {
+    if (name in req.tx.context) {
+      properties[name] = req.tx.context[name];
+    }
+    return properties;
+  }, {});
+};
+
+const _mapToEventAndPublish = async (req, namespace, subType, eventHeaders, contextProperties) => {
+  const context = req.context || cds.context;
   const eventQueueSpecificValues = {};
   for (const header in req.headers ?? {}) {
     for (const field of EVENT_QUEUE_SPECIFIC_FIELDS) {
@@ -100,6 +111,7 @@ const _mapToEventAndPublish = async (context, subType, req, eventHeaders, namesp
     ...(req.data && { data: req.data }),
     ...(eventHeaders && { headers: eventHeaders }),
     ...(req.query && { query: req.query }),
+    ...(Object.keys(contextProperties).length && { ...contextProperties }),
   };
 
   await publishEvent(

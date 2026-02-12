@@ -1,0 +1,21 @@
+"use strict";
+
+module.exports = {
+  requires: {
+    auth: {
+      kind: "mocked-auth",
+      users: {
+        alice: {
+          tenant: "t1",
+          password: "alice",
+          id: "alice@wonderland.com",
+        },
+        bob: {
+          tenant: "t2",
+          password: "bob",
+          id: "bob@builder.com",
+        },
+      },
+    },
+  },
+};

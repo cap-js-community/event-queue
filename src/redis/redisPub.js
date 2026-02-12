@@ -1,7 +1,5 @@
 "use strict";
 
-const { promisify } = require("util");
-
 const cds = require("@sap/cds");
 
 const redis = require("../shared/redis");
@@ -17,7 +15,11 @@ const COMPONENT_NAME = "/eventQueue/redisPub";
 const TRIES_FOR_PUBLISH_PERIODIC_EVENT = 10;
 const SLEEP_TIME_FOR_PUBLISH_PERIODIC_EVENT = 30 * 1000;
 
-const wait = promisify(setTimeout);
+const wait = async (ms) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms).unref();
+  });
+};
 
 /**
  * Broadcasts events to the event queue, either locally or through Redis.
