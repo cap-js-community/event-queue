@@ -372,7 +372,6 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     }
   }
 
-  //TODO: exit if saga event
   async #publishFollowupEvents(processContext, req, statusTuple) {
     const succeeded = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_SUCCESS });
     const failed = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_FAILED });
