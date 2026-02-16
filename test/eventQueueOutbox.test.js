@@ -126,6 +126,8 @@ cds.env.requires.StandardService = {
     propagateHeaders: ["authId", "customHeader"],
     events: {
       timeBucketAction: { timeBucket: "*/60 * * * * *" },
+      retryFailedAfter: { retryFailedAfter: 120 * 1000 },
+      retryOpenAfter: { retryOpenAfter: 140 * 1000 },
     },
   },
 };
@@ -2710,6 +2712,42 @@ describe("event-queue outbox", () => {
           expect(next.status).toEqual(EventProcessingStatus.Done);
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
+      });
+    });
+
+    describe("retry open and failed after", () => {
+      it("retry failed after", async () => {
+        const service = await cds.connect.to("StandardService");
+        await service.send("retryFailedAfter", {});
+        await commitAndOpenNew();
+        await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.retryFailedAfter`);
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["lastAttemptTimestamp"],
+        });
+        expect(event).toMatchObject({
+          status: EventProcessingStatus.Error,
+          attempts: 1,
+          startAfter: new Date(new Date(event.lastAttemptTimestamp).getTime() + 120 * 1000).toISOString(),
+        });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      it("retry open after", async () => {
+        const service = await cds.connect.to("StandardService");
+        await service.send("retryOpenAfter", {});
+        await commitAndOpenNew();
+        await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.retryOpenAfter`);
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["lastAttemptTimestamp"],
+        });
+        expect(event).toMatchObject({
+          status: EventProcessingStatus.Open,
+          attempts: 0,
+          startAfter: new Date(new Date(event.lastAttemptTimestamp).getTime() + 140 * 1000).toISOString(),
+        });
+        expect(loggerMock.callsLengths().error).toEqual(0);
       });
     });
   });
