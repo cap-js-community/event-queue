@@ -504,8 +504,14 @@ class EventQueueProcessorBase {
         if (!data.startAfter && [EventProcessingStatus.Error, EventProcessingStatus.Open].includes(data.status)) {
           data.startAfter = new Date(
             Date.now() +
-              (EventProcessingStatus.Error ? this.#eventConfig.retryFailedAfter : this.#eventConfig.retryOpenAfter)
+              (data.status === EventProcessingStatus.Error
+                ? this.#eventConfig.retryFailedAfter
+                : this.#eventConfig.retryOpenAfter)
           );
+        }
+
+        if (data.status === EventProcessingStatus.Open && !("attempts" in data)) {
+          data.attempts = { "-=": 1 };
         }
 
         if (data.startAfter) {
