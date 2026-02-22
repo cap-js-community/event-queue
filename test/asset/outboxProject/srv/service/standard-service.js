@@ -12,7 +12,7 @@ class StandardService extends cds.Service {
           data: req.data,
           user: req.user.id,
           headers: req.headers,
-          features: req.features,
+          features: cds.context?.features,
         });
       });
     });
