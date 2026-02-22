@@ -119,6 +119,14 @@ class StandardService extends cds.Service {
             }),
       }));
     });
+
+    this.on("retryOpenAfter", () => {
+      return { status: 0 };
+    });
+
+    this.on("retryFailedAfter", () => {
+      return { status: 3 };
+    });
   }
 }
 
