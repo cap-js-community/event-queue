@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - [CAP Queue] Add support for defining successor and failed events of event handlers. See documentation for how to use it.
-- [CAP Queue] Allow to propagate cds.context properties (e.g. features). This can be configured per event (`cds.env.requires[<SERVICE>].queued.propagatedContextProperties = ["features"]`)
+- [CAP Queue] Allow to propagate cds.context properties (e.g. features). This can be configured per event (`cds.env.requires[<SERVICE>].queued.propagateContextProperties = ["features"]`)
 
 ### Fixed
 

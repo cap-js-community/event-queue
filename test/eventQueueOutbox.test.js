@@ -148,9 +148,9 @@ cds.env.requires.ContextProperties = {
   impl: path.join(basePath, "srv/service/standard-service.js"),
   queued: {
     kind: "persistent-queue",
-    propagatedContextProperties: ["notExisting"],
+    propagateContextProperties: ["notExisting"],
     events: {
-      main2: { propagatedContextProperties: ["features"] },
+      main2: { propagateContextProperties: ["features"] },
     },
   },
 };
@@ -2481,6 +2481,7 @@ describe("event-queue outbox", () => {
         });
         const payload = JSON.parse(event.payload);
         expect(payload.features).toEqual({ a: true, b: true });
+        await commitAndOpenNew();
         await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.main2`);
         expect(loggerMock).actionCalled("main2", { features: { a: true, b: true } });
         await commitAndOpenNew();
