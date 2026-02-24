@@ -24,6 +24,6 @@ entity Event: cuid {
     createdAt: Timestamp @cds.on.insert : $now;
     startAfter: Timestamp;
     context: LargeString;
-    error: String;
+    error: LargeString;
     namespace: String default 'default';
 }

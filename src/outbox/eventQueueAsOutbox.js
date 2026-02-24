@@ -11,6 +11,8 @@ const CDS_EVENT_TYPE = "CAP_OUTBOX";
 const COMPONENT_NAME = "/eventQueue/eventQueueAsOutbox";
 const EVENT_QUEUE_SPECIFIC_FIELDS = ["startAfter", "referenceEntity", "referenceEntityKey", "namespace"];
 
+const TO_COPY = ["inbound", "event", "data", "queue", "results", "method", "path", "params", "entity", "service"];
+
 function outboxed(srv, customOpts) {
   if (!(new.target || customOpts)) {
     const former = srv[OUTBOXED];
@@ -102,17 +104,26 @@ const _mapToEventAndPublish = async (req, namespace, subType, eventHeaders, cont
       }
     }
   }
-
   const event = {
     contextUser: context.user.id,
     ...(req._fromSend || (req.reply && { _fromSend: true })), // send or emit
-    ...(req.inbound && { inbound: req.inbound }),
-    ...(req.event && { event: req.event }),
-    ...(req.data && { data: req.data }),
     ...(eventHeaders && { headers: eventHeaders }),
-    ...(req.query && { query: req.query }),
     ...(Object.keys(contextProperties).length && { ...contextProperties }),
   };
+
+  for (const prop of TO_COPY) {
+    if (req[prop]) {
+      event[prop] = req[prop];
+    }
+  }
+
+  if (req.query) {
+    event.query = typeof req.query.flat === "function" ? req.query.flat() : req.query;
+    delete event.query._target;
+    delete event.query.__target;
+    delete event.query.target;
+    delete event.data; // `req.data` should be a getter to whatever is in `req.query`
+  }
 
   await publishEvent(
     cds.tx(context),
