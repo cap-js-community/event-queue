@@ -11,19 +11,7 @@ const CDS_EVENT_TYPE = "CAP_OUTBOX";
 const COMPONENT_NAME = "/eventQueue/eventQueueAsOutbox";
 const EVENT_QUEUE_SPECIFIC_FIELDS = ["startAfter", "referenceEntity", "referenceEntityKey", "namespace"];
 
-const TO_COPY = [
-  "inbound",
-  "event",
-  "data",
-  "headers",
-  "queue",
-  "results",
-  "method",
-  "path",
-  "params",
-  "entity",
-  "service",
-];
+const TO_COPY = ["inbound", "event", "data", "queue", "results", "method", "path", "params", "entity", "service"];
 
 function outboxed(srv, customOpts) {
   if (!(new.target || customOpts)) {
