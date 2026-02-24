@@ -2751,6 +2751,25 @@ describe("event-queue outbox", () => {
         expect(loggerMock.callsLengths().error).toEqual(0);
       });
     });
+
+    describe("outbox queries", () => {
+      it("SELECT", async () => {
+        const service = await cds.connect.to("NotificationService");
+        const srvQueued = cds.queued(service);
+        await srvQueued.read("Event");
+        await commitAndOpenNew();
+        const [event] = await testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          additionalColumns: ["payload"],
+        });
+        const payload = JSON.parse(event.payload);
+        expect(payload.notExisting).toBeUndefined();
+        await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+        await commitAndOpenNew();
+        await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 1 });
+        expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+    });
   });
 
   const commitAndOpenNew = async () => {
