@@ -100,8 +100,7 @@
     "requires": {
       "xsuaa-eventQueue": {
         "vcap": {
-          "label": "xsuaa",
-          "plan": "application"
+          "label": "xsuaa"
         }
       },
       "redis-eventQueue": {
