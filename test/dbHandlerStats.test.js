@@ -66,8 +66,6 @@ describe("dbHandler - stats tracking via CAP outbox", () => {
     await cds.shutdown;
   });
 
-  // ── CREATE handler tests ────────────────────────────────────────────────────
-
   it("increments pending counter by 1 after single send and commit", async () => {
     const service = (await cds.connect.to("StandardService")).tx(context);
     await service.send("main", {});
@@ -153,8 +151,6 @@ describe("dbHandler - stats tracking via CAP outbox", () => {
 
     expect(loggerMock.callsLengths().error).toBe(0);
   });
-
-  // ── UPDATE handler tests — direct status transitions ────────────────────────
 
   describe("UPDATE handler — direct status transitions", () => {
     it("Open → InProgress: decrements pending, increments inProgress", async () => {
