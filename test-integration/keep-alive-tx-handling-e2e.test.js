@@ -20,6 +20,7 @@ const distributedLock = require("../src/shared/distributedLock");
 const periodicEvents = require("../src/periodicEvents");
 const { publishEvent } = require("../src/publishEvent");
 const redisPub = require("../src/redis/redisPub");
+const eventQueueStats = require("../src/shared/eventQueueStats");
 
 const configFilePath = path.join(__dirname, "..", "./test", "asset", "config.yml");
 
@@ -48,6 +49,7 @@ describe("keep-alive-tx-handling-e2e", () => {
       registerAsEventProcessor: false,
       isEventQueueActive: false,
     });
+    jest.spyOn(eventQueueStats, "incrementCounters").mockResolvedValue();
     loggerMock = mockLogger();
     const db = await cds.connect.to("db");
 
