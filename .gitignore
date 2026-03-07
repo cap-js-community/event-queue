@@ -7,6 +7,7 @@
 **/.project
 **/.settings
 *.code-workspace
+CLAUDE.md
 
 # package managers
 bower_components/
