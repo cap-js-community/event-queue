@@ -304,8 +304,6 @@ describe("dbHandler - stats tracking via CAP outbox", () => {
     });
   });
 
-  // ── processEventQueue integration tests ─────────────────────────────────────
-
   describe("processEventQueue integration — stats via real processing", () => {
     it("successful processing transitions pending → inProgress → Done (counters reach zero)", async () => {
       const service = (await cds.connect.to("StandardService")).tx(context);
