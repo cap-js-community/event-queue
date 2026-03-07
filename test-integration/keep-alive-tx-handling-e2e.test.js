@@ -105,13 +105,17 @@ describe("keep-alive-tx-handling-e2e", () => {
 
     describe("commitOnEventLevel", () => {
       it("straight forward", async () => {
-        await cds.tx({}, (tx2) =>
-          testHelper.insertEventEntry(tx2, {
-            numberOfEntries: 2,
-            type: isolatedNoParallel.type,
-            subType: isolatedNoParallel.subType,
-          })
-        );
+        try {
+          await cds.tx({}, (tx2) =>
+            testHelper.insertEventEntry(tx2, {
+              numberOfEntries: 2,
+              type: isolatedNoParallel.type,
+              subType: isolatedNoParallel.subType,
+            })
+          );
+        } catch (err) {
+          debugger;
+        }
         const { db } = cds.services;
         const { Event } = cds.entities("sap.eventqueue");
         let forUpdateCounter = 0;

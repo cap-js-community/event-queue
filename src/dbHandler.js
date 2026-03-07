@@ -127,7 +127,9 @@ const registerEventQueueDbHandler = (dbService) => {
               if (result.status === "rejected") {
                 cds
                   .log(COMPONENT_NAME)
-                  .error("db handler failure during updating event stats on update", result.reason, { tenant: req.tenant });
+                  .error("db handler failure during updating event stats on update", result.reason, {
+                    tenant: req.tenant,
+                  });
               }
             }
           });
