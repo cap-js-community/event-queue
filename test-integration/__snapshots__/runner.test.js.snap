@@ -86,6 +86,16 @@ exports[`runner redis multi tenant no open events 2`] = `
       "PX": 60000,
     },
   },
+  "EVENT_QUEUE##default##stats##global": {
+    "hash": {
+      "pending": "0",
+    },
+  },
+  "EVENT_QUEUE##default##stats##tenant##TEST_STATIC": {
+    "hash": {
+      "pending": "0",
+    },
+  },
 }
 `;
 

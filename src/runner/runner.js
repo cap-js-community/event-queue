@@ -189,9 +189,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
       logger.error("broadcasting events for tenant failed", { tenantId }, err);
     }
   }
-  const globalPendingByNamespace = Object.fromEntries(
-    tenantIds.map((tenant) => [tenant, config.processingNamespaces.map((namespace) => ({ namespace, count: 0 }))])
-  );
+  const globalPendingByNamespace = Object.fromEntries(config.processingNamespaces.map((namespace) => [namespace, 0]));
   for (const tenantEntries of Object.values(tenantCounts)) {
     for (const entry of tenantEntries) {
       globalPendingByNamespace[entry.namespace] = (globalPendingByNamespace[entry.namespace] ?? 0) + entry.count;
