@@ -292,5 +292,10 @@ exports[`runner redis single tenant with open events - broadcast should be calle
       "PX": 1425000,
     },
   },
+  "EVENT_QUEUE##default##stats##global": {
+    "hash": {
+      "pending": "1",
+    },
+  },
 }
 `;

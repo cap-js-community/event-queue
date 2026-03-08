@@ -389,6 +389,15 @@ const _singleTenantRedis = async () => {
           logger.info("broadcasting events for run", {
             entries: entries.length,
           });
+          const pendingByNamespace = {};
+          for (const entry of entries) {
+            pendingByNamespace[entry.namespace] = (pendingByNamespace[entry.namespace] ?? 0) + entry.count;
+          }
+          for (const [namespace, count] of Object.entries(pendingByNamespace)) {
+            eventQueueStats
+              .setGlobalCounter(namespace, eventQueueStats.StatusField.Pending, count)
+              .catch((err) => logger.error("updating global stats failed", err, { namespace }));
+          }
           if (!entries.length) {
             return;
           }
