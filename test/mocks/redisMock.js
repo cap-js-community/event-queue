@@ -81,6 +81,7 @@ const _createMainClientAndConnect = async () => _buildClient();
 module.exports = {
   attachRedisUnsubscribeHandler: () => {},
   subscribeRedisChannel: () => {},
+  publishMessage: async () => {},
   createClientAndConnect: _createMainClientAndConnect,
   createMainClientAndConnect: _createMainClientAndConnect,
   closeSubscribeClient: () => {},

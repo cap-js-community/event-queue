@@ -162,7 +162,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
               entries: entries.length,
             });
             tenantCounts[tenantId] = entries;
-            const pendingByNamespace = {};
+            const pendingByNamespace = Object.fromEntries(config.processingNamespaces.map((name) => [name, 0]));
             for (const entry of entries) {
               pendingByNamespace[entry.namespace] = (pendingByNamespace[entry.namespace] ?? 0) + entry.count;
             }
@@ -189,7 +189,9 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
       logger.error("broadcasting events for tenant failed", { tenantId }, err);
     }
   }
-  const globalPendingByNamespace = {};
+  const globalPendingByNamespace = Object.fromEntries(
+    tenantIds.map((tenant) => [tenant, config.processingNamespaces.map((namespace) => ({ namespace, count: 0 }))])
+  );
   for (const tenantEntries of Object.values(tenantCounts)) {
     for (const entry of tenantEntries) {
       globalPendingByNamespace[entry.namespace] = (globalPendingByNamespace[entry.namespace] ?? 0) + entry.count;
@@ -389,7 +391,7 @@ const _singleTenantRedis = async () => {
           logger.info("broadcasting events for run", {
             entries: entries.length,
           });
-          const pendingByNamespace = {};
+          const pendingByNamespace = Object.fromEntries(config.processingNamespaces.map((name) => [name, 0]));
           for (const entry of entries) {
             pendingByNamespace[entry.namespace] = (pendingByNamespace[entry.namespace] ?? 0) + entry.count;
           }
