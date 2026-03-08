@@ -73,13 +73,11 @@ const registerEventQueueDbHandler = (dbService) => {
 
   if (!registeredHandlers.updateDbHandler) {
     registeredHandlers.updateDbHandler = true;
-    dbService.after("UPDATE", def, (affectedRows, req) => {
+    dbService.after("UPDATE", def, (count, req) => {
       const newStatus = req.query.UPDATE?.data?.status;
       if (newStatus == null) {
         return;
       }
-
-      const count = typeof affectedRows === "number" && affectedRows > 0 ? affectedRows : 1;
 
       req.tx._ = req.tx._ ?? {};
       req.tx._.eventQueueStatsPendingDelta = req.tx._.eventQueueStatsPendingDelta ?? 0;
