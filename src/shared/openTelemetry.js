@@ -134,6 +134,10 @@ const initMetrics = () => {
 
   _metricsInitialized = true;
 
+  eventQueueStats
+    .resetInProgressCounters()
+    .catch((err) => cds.log(COMPONENT_NAME).error("failed to reset inProgress counters", err));
+
   const meter = otel.metrics.getMeter("@cap-js-community/event-queue");
 
   const pendingGauge = meter.createObservableGauge("cap.event_queue.jobs.pending", {
@@ -148,6 +152,14 @@ const initMetrics = () => {
     description: "Age of the most recent queue statistics snapshot.",
     unit: "s",
   });
+
+  _statsSnapshot = {
+    lastRefreshedAt: Date.now(),
+    namespaces: Object.fromEntries(
+      config.processingNamespaces.map((namespace) => [namespace, { pending: 0, inProgress: 0 }])
+    ),
+  };
+  _refreshStats();
 
   meter.addBatchObservableCallback(
     (observableResult) => {
@@ -164,7 +176,6 @@ const initMetrics = () => {
     [pendingGauge, inProgressGauge, refreshAgeGauge]
   );
 
-  _refreshStats();
   setInterval(_refreshStats, 30_000).unref();
 };
 

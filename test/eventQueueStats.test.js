@@ -17,6 +17,7 @@ const {
   getTenantStats,
   getGlobalStats,
   deleteTenantStats,
+  resetInProgressCounters,
 } = require("../src/shared/eventQueueStats");
 
 const project = __dirname + "/..";
@@ -129,6 +130,56 @@ describe("eventQueueStats", () => {
 
     it("does not throw when tenant does not exist", async () => {
       await expect(deleteTenantStats("nonexistent")).resolves.toBeUndefined();
+    });
+  });
+
+  describe("resetInProgressCounters", () => {
+    it("resets global inProgress to 0 for all configured namespaces", async () => {
+      await incrementCounters("t1", StatusField.InProgress, 5);
+
+      await resetInProgressCounters();
+
+      const global = await getGlobalStats();
+      expect(global.inProgress).toBe(0);
+    });
+
+    it("does not touch the pending counter", async () => {
+      await incrementCounters("t1", StatusField.Pending, 3);
+      await incrementCounters("t1", StatusField.InProgress, 2);
+
+      await resetInProgressCounters();
+
+      const global = await getGlobalStats();
+      expect(global.pending).toBe(3);
+      expect(global.inProgress).toBe(0);
+    });
+
+    it("resets inProgress in tenant hash keys found via scan", async () => {
+      await incrementCounters("t1", StatusField.InProgress, 4);
+      await incrementCounters("t2", StatusField.InProgress, 2);
+
+      await resetInProgressCounters();
+
+      const t1 = await getTenantStats("t1");
+      expect(t1.inProgress).toBe(0);
+
+      const t2 = await getTenantStats("t2");
+      expect(t2.inProgress).toBe(0);
+    });
+
+    it("preserves tenant pending counter after reset", async () => {
+      await incrementCounters("t1", StatusField.Pending, 7);
+      await incrementCounters("t1", StatusField.InProgress, 3);
+
+      await resetInProgressCounters();
+
+      const t1 = await getTenantStats("t1");
+      expect(t1.pending).toBe(7);
+      expect(t1.inProgress).toBe(0);
+    });
+
+    it("resolves without error when no keys exist", async () => {
+      await expect(resetInProgressCounters()).resolves.toBeUndefined();
     });
   });
 });

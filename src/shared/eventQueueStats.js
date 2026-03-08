@@ -158,6 +158,33 @@ const deleteTenantStats = async (tenantId) => {
   }
 };
 
+/**
+ * Resets the inProgress counter to 0 for all processing namespaces (global + all tenants).
+ * Called on instance startup to clean up stale counts left by a previous crash.
+ */
+const resetInProgressCounters = async () => {
+  try {
+    const clientOrCluster = await redis.createMainClientAndConnect();
+    const clients = redis.isClusterMode()
+      ? clientOrCluster.masters.map((master) => master.client)
+      : [clientOrCluster];
+
+    const globalOps = config.processingNamespaces.map((namespace) =>
+      clientOrCluster.hSet(`${_keyPrefix(namespace)}##stats##global`, StatusField.InProgress, 0)
+    );
+    await Promise.allSettled(globalOps);
+
+    // NOTE: use SCAN because KEYS is not supported for cluster clients
+    for (const client of clients) {
+      for await (const key of client.scanIterator({ MATCH: "*##stats##tenant##*", COUNT: 1000 })) {
+        await client.hSet(key, StatusField.InProgress, 0);
+      }
+    }
+  } catch (err) {
+    cds.log(COMPONENT_NAME).error("failed to reset inProgress counters on startup", err);
+  }
+};
+
 const _parseCounterHash = (raw) => ({
   [StatusField.Pending]: raw[StatusField.Pending] != null ? parseInt(raw[StatusField.Pending]) : 0,
   [StatusField.InProgress]: raw[StatusField.InProgress] != null ? parseInt(raw[StatusField.InProgress]) : 0,
@@ -180,4 +207,5 @@ module.exports = {
   getTenantStats,
   getGlobalStats,
   deleteTenantStats,
+  resetInProgressCounters,
 };

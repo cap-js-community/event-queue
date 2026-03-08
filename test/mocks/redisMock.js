@@ -38,6 +38,19 @@ const _buildClient = () => ({
   hGetAll: async (key) => {
     return state[key]?.hash ?? {};
   },
+  scanIterator: ({ MATCH } = {}) => {
+    const regex = MATCH
+      ? new RegExp(
+          "^" + MATCH.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".") + "$"
+        )
+      : null;
+    const matchingKeys = Object.keys(state).filter((k) => !regex || regex.test(k));
+    return (async function* () {
+      for (const key of matchingKeys) {
+        yield key;
+      }
+    })();
+  },
   multi: () => {
     const ops = [];
     const pipeline = {
@@ -82,6 +95,7 @@ module.exports = {
   attachRedisUnsubscribeHandler: () => {},
   subscribeRedisChannel: () => {},
   publishMessage: async () => {},
+  isClusterMode: () => false,
   createClientAndConnect: _createMainClientAndConnect,
   createMainClientAndConnect: _createMainClientAndConnect,
   closeSubscribeClient: () => {},
