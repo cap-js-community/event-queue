@@ -82,7 +82,6 @@ describe("end-to-end", () => {
   beforeEach(async () => {
     await DELETE.from("sap.eventqueue.Lock");
     await DELETE.from("sap.eventqueue.Event");
-    await DELETE.from("cds.outbox.Messages");
     jest.clearAllMocks();
     redisMock.clearState();
     redisMock.clearTestState();

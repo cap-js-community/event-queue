@@ -7,6 +7,7 @@
 **/.project
 **/.settings
 *.code-workspace
+CLAUDE.md
 
 # package managers
 bower_components/
@@ -30,6 +31,7 @@ data/afc.sqlite-wal
 data/test.sqlite
 coverage
 Claude.md
+.claude/
 
 # temp
 temp/

@@ -17,6 +17,7 @@ const { getAllTenantIds } = require("./shared/cdsHelper");
 const { EventProcessingStatus } = require("./constants");
 const distributedLock = require("./shared/distributedLock");
 const EventQueueError = require("./EventQueueError");
+const { initMetrics } = require("./shared/openTelemetry");
 
 const readFileAsync = promisify(fs.readFile);
 
@@ -125,6 +126,7 @@ const initialize = async (options = {}) => {
     runInterval: config.runInterval,
     useAsCAPQueue: config.useAsCAPQueue,
   });
+  initMetrics();
   resolveFn();
 };
 
