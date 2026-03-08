@@ -29,12 +29,12 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
         new Date(startTime.getTime() - 30 * MS_IN_DAYS).toISOString(),
         ")"
       )
-      .columns("type", "subType", "namespace")
+      .columns("count(ID) as count", "type", "subType", "namespace")
       .groupBy("type", "subType", "namespace")
   );
 
   const result = [];
-  for (const { type, subType, namespace } of entries) {
+  for (const { type, subType, namespace, count } of entries) {
     if (config.isCapOutboxEvent(type)) {
       const { srvName, actionName } = config.normalizeSubType(type, subType);
       try {
@@ -48,14 +48,14 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
             config.addCAPServiceWithoutEnvConfig(subType, service);
           }
           if (config.shouldBeProcessedInThisApplication(type, subType, namespace)) {
-            result.push({ namespace, type, subType });
+            result.push({ namespace, type, subType, count });
           }
         }
       } catch {
         /* ignore catch */
       } finally {
         if (!filterAppSpecificEvents) {
-          result.push({ namespace, type, subType });
+          result.push({ namespace, type, subType, count });
         }
       }
     } else {
@@ -64,10 +64,10 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
           config.getEventConfig(type, subType, namespace) &&
           config.shouldBeProcessedInThisApplication(type, subType, namespace)
         ) {
-          result.push({ namespace, type, subType });
+          result.push({ namespace, type, subType, count });
         }
       } else {
-        result.push({ namespace, type, subType });
+        result.push({ namespace, type, subType, count });
       }
     }
   }
