@@ -129,6 +129,26 @@ const setGlobalCounter = async (namespace, field, value) => {
   }
 };
 
+const getAllNamespaceStats = async () => {
+  const namespaces = config.processingNamespaces;
+  const client = await redis.createMainClientAndConnect();
+  const results = await Promise.allSettled(
+    namespaces.map(async (namespace) => {
+      const raw = await client.hGetAll(`${_keyPrefix(namespace)}##stats##global`);
+      return { namespace, stats: _parseCounterHash(raw) };
+    })
+  );
+  const out = {};
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      out[result.value.namespace] = result.value.stats;
+    } else {
+      cds.log(COMPONENT_NAME).error("failed to read namespace stats", result.reason);
+    }
+  }
+  return out;
+};
+
 const deleteTenantStats = async (tenantId) => {
   try {
     const client = await redis.createMainClientAndConnect();
@@ -156,6 +176,7 @@ module.exports = {
   adjustGlobalCounter,
   setTenantCounter,
   setGlobalCounter,
+  getAllNamespaceStats,
   getTenantStats,
   getGlobalStats,
   deleteTenantStats,
