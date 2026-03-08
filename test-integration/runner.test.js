@@ -7,6 +7,7 @@ cds.test(__dirname + "/_env");
 
 const mockRedis = require("../test/mocks/redisMock");
 jest.mock("../src/shared/redis", () => mockRedis);
+const { getTenantStats, getGlobalStats, StatusField } = require("../src/shared/eventQueueStats");
 const WorkerQueue = require("../src/shared/WorkerQueue");
 const processEventQueue = require("../src/processEventQueue");
 const openEvents = require("../src/runner/openEvents");
@@ -174,6 +175,49 @@ describe("runner", () => {
         expect(acquireLockSpy).toHaveBeenCalledTimes(4);
         expect(WorkerQueue.instance.runningPromises).toHaveLength(0);
         expect(loggerMock.callsLengths().error).toEqual(0);
+      });
+
+      describe("stats tracking", () => {
+        it("sets pending counter per tenant and globally after runner with open events", async () => {
+          await cds.tx({}, async (tx2) => {
+            await periodicEvents.checkAndInsertPeriodicEvents(tx2.context);
+          });
+          mockTenantIds(tenantIds);
+          jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+          jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
+
+          await Promise.allSettled([runner.__._multiTenancyRedis(), runner.__._multiTenancyRedis()]);
+          await Promise.allSettled(WorkerQueue.instance.runningPromises);
+          await new Promise(setImmediate);
+
+          for (const tenantId of tenantIds) {
+            const stats = await getTenantStats(tenantId);
+            expect(stats[StatusField.Pending]).toBe(1);
+          }
+          const globalStats = await getGlobalStats();
+          expect(globalStats[StatusField.Pending]).toBe(tenantIds.length);
+
+          expect(loggerMock.callsLengths().error).toBe(0);
+        });
+
+        it("does not update stats when there are no open events", async () => {
+          mockTenantIds(tenantIds);
+          jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+          jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
+
+          await Promise.allSettled([runner.__._multiTenancyRedis()]);
+          await Promise.allSettled(WorkerQueue.instance.runningPromises);
+          await new Promise(setImmediate);
+
+          for (const tenantId of tenantIds) {
+            const stats = await getTenantStats(tenantId);
+            expect(stats[StatusField.Pending]).toBe(0);
+          }
+          const globalStats = await getGlobalStats();
+          expect(globalStats[StatusField.Pending]).toBe(0);
+
+          expect(loggerMock.callsLengths().error).toBe(0);
+        });
       });
 
       describe("tenant id filter should not acquire lock - only process tenants based on tenant filter", () => {

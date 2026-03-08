@@ -14,6 +14,7 @@ const StatusField = {
 
 const _tenantKey = (tenantId) => `${config.redisNamespace(true)}##stats##tenant##${tenantId}`;
 const _globalKey = () => `${config.redisNamespace(true)}##stats##global`;
+const _keyPrefix = (namespace) => `${config.redisNamespace(false)}##${namespace}`;
 
 /**
  * Atomically adjusts a tenant's event counter for the given status field.
@@ -23,12 +24,11 @@ const _globalKey = () => `${config.redisNamespace(true)}##stats##global`;
  * @param {number} increment - positive to increment, negative to decrement
  */
 const adjustTenantCounter = async (tenantId, field, increment) => {
-  const logger = cds.log(COMPONENT_NAME);
   try {
     const client = await redis.createMainClientAndConnect();
     await client.hIncrBy(_tenantKey(tenantId), field, increment);
   } catch (err) {
-    logger.error("failed to adjust tenant stats counter", err, { tenantId, field, increment });
+    cds.log(COMPONENT_NAME).error("failed to adjust tenant stats counter", err, { tenantId, field, increment });
   }
 };
 
@@ -40,12 +40,11 @@ const adjustTenantCounter = async (tenantId, field, increment) => {
  * @param {number} increment - positive to increment, negative to decrement
  */
 const adjustGlobalCounter = async (field, increment) => {
-  const logger = cds.log(COMPONENT_NAME);
   try {
     const client = await redis.createMainClientAndConnect();
     await client.hIncrBy(_globalKey(), field, increment);
   } catch (err) {
-    logger.error("failed to adjust global stats counter", err, { field, increment });
+    cds.log(COMPONENT_NAME).error("failed to adjust global stats counter", err, { field, increment });
   }
 };
 
@@ -57,7 +56,7 @@ const adjustGlobalCounter = async (field, increment) => {
  * @param {number} [increment=1]
  */
 const incrementCounters = async (tenantId, field, increment = 1) => {
-  await Promise.all([adjustTenantCounter(tenantId, field, increment), adjustGlobalCounter(field, increment)]);
+  await Promise.allSettled([adjustTenantCounter(tenantId, field, increment), adjustGlobalCounter(field, increment)]);
 };
 
 /**
@@ -68,7 +67,7 @@ const incrementCounters = async (tenantId, field, increment = 1) => {
  * @param {number} [decrement=1]
  */
 const decrementCounters = async (tenantId, field, decrement = 1) => {
-  await Promise.all([adjustTenantCounter(tenantId, field, -decrement), adjustGlobalCounter(field, -decrement)]);
+  await Promise.allSettled([adjustTenantCounter(tenantId, field, -decrement), adjustGlobalCounter(field, -decrement)]);
 };
 
 /**
@@ -76,16 +75,15 @@ const decrementCounters = async (tenantId, field, decrement = 1) => {
  * All counter values are returned as integers; missing fields default to 0.
  *
  * @param {string} tenantId
- * @returns {Promise<{open: number, inProgress: number, error: number}>}
+ * @returns {Promise<{pending: number, inProgress: number}>}
  */
 const getTenantStats = async (tenantId) => {
-  const logger = cds.log(COMPONENT_NAME);
   try {
     const client = await redis.createMainClientAndConnect();
     const raw = await client.hGetAll(_tenantKey(tenantId));
     return _parseCounterHash(raw);
   } catch (err) {
-    logger.error("failed to read tenant stats", err, { tenantId });
+    cds.log(COMPONENT_NAME).error("failed to read tenant stats", err, { tenantId });
     return _emptyCounters();
   }
 };
@@ -94,16 +92,15 @@ const getTenantStats = async (tenantId) => {
  * Returns the current global stats hash.
  * All counter values are returned as integers; missing fields default to 0.
  *
- * @returns {Promise<{open: number, inProgress: number, error: number}>}
+ * @returns {Promise<{pending: number, inProgress: number}>}
  */
 const getGlobalStats = async () => {
-  const logger = cds.log(COMPONENT_NAME);
   try {
     const client = await redis.createMainClientAndConnect();
     const raw = await client.hGetAll(_globalKey());
     return _parseCounterHash(raw);
   } catch (err) {
-    logger.error("failed to read global stats", err);
+    cds.log(COMPONENT_NAME).error("failed to read global stats", err);
     return _emptyCounters();
   }
 };
@@ -114,13 +111,30 @@ const getGlobalStats = async () => {
  *
  * @param {string} tenantId
  */
+const setTenantCounter = async (tenantId, namespace, field, value) => {
+  try {
+    const client = await redis.createMainClientAndConnect();
+    await client.hSet(`${_keyPrefix(namespace)}##stats##tenant##${tenantId}`, field, value);
+  } catch (err) {
+    cds.log(COMPONENT_NAME).error("failed to set tenant stats counter", err, { tenantId, namespace, field, value });
+  }
+};
+
+const setGlobalCounter = async (namespace, field, value) => {
+  try {
+    const client = await redis.createMainClientAndConnect();
+    await client.hSet(`${_keyPrefix(namespace)}##stats##global`, field, value);
+  } catch (err) {
+    cds.log(COMPONENT_NAME).error("failed to set global stats counter", err, { namespace, field, value });
+  }
+};
+
 const deleteTenantStats = async (tenantId) => {
-  const logger = cds.log(COMPONENT_NAME);
   try {
     const client = await redis.createMainClientAndConnect();
     await client.del(_tenantKey(tenantId));
   } catch (err) {
-    logger.error("failed to delete tenant stats", err, { tenantId });
+    cds.log(COMPONENT_NAME).error("failed to delete tenant stats", err, { tenantId });
   }
 };
 
@@ -140,6 +154,8 @@ module.exports = {
   decrementCounters,
   adjustTenantCounter,
   adjustGlobalCounter,
+  setTenantCounter,
+  setGlobalCounter,
   getTenantStats,
   getGlobalStats,
   deleteTenantStats,
