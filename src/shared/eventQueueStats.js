@@ -165,9 +165,7 @@ const deleteTenantStats = async (tenantId) => {
 const resetInProgressCounters = async () => {
   try {
     const clientOrCluster = await redis.createMainClientAndConnect();
-    const clients = redis.isClusterMode()
-      ? clientOrCluster.masters.map((master) => master.client)
-      : [clientOrCluster];
+    const clients = redis.isClusterMode() ? clientOrCluster.masters.map((master) => master.client) : [clientOrCluster];
 
     const globalOps = config.processingNamespaces.map((namespace) =>
       clientOrCluster.hSet(`${_keyPrefix(namespace)}##stats##global`, StatusField.InProgress, 0)

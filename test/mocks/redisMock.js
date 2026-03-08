@@ -41,7 +41,11 @@ const _buildClient = () => ({
   scanIterator: ({ MATCH } = {}) => {
     const regex = MATCH
       ? new RegExp(
-          "^" + MATCH.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".") + "$"
+          "^" +
+            MATCH.replace(/[.+^${}()|[\]\\]/g, "\\$&")
+              .replace(/\*/g, ".*")
+              .replace(/\?/g, ".") +
+            "$"
         )
       : null;
     const matchingKeys = Object.keys(state).filter((k) => !regex || regex.test(k));
