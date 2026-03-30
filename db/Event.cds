@@ -16,7 +16,7 @@ entity Event: cuid {
     type: String not null;
     subType: String not null;
     referenceEntity: String;
-    referenceEntityKey: UUID;
+    referenceEntityKey: String;
     status: Status default 0 not null;
     payload: LargeString;
     attempts: Integer default 0 not null;

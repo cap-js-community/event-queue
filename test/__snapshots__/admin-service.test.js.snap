@@ -39,7 +39,7 @@ exports[`admin-service-test metadata snapshot 1`] = `
         <Property Name="type" Type="Edm.String" Nullable="false"/>
         <Property Name="subType" Type="Edm.String" Nullable="false"/>
         <Property Name="referenceEntity" Type="Edm.String"/>
-        <Property Name="referenceEntityKey" Type="Edm.Guid"/>
+        <Property Name="referenceEntityKey" Type="Edm.String"/>
         <Property Name="status" Type="Edm.Int32" Nullable="false" DefaultValue="0"/>
         <Property Name="payload" Type="Edm.String"/>
         <Property Name="attempts" Type="Edm.Int32" Nullable="false" DefaultValue="0"/>
