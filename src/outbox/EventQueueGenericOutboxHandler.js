@@ -18,6 +18,15 @@ const EVENT_QUEUE_ACTIONS = {
   SAGA_FAILED: "#failed",
 };
 
+const PROPAGATE_EVENT_QUEUE_ENTRIES = [
+  "ID",
+  "lastAttempTimestamp",
+  "payload",
+  "referenceEntity",
+  "referenceEntityKey",
+  "status",
+];
+
 class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   constructor(context, eventType, eventSubType, config) {
     super(context, eventType, eventSubType, config);
@@ -334,11 +343,23 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   #buildDispatchData(payload, { key, queueEntries } = {}) {
     const { useEventQueueUser } = this.eventConfig;
     const userId = useEventQueueUser ? config.userId : payload.contextUser;
+    let triggerEvent;
+
+    if (payload.data.triggerEvent) {
+      try {
+        triggerEvent = JSON.parse(payload.data.triggerEvent);
+      } catch (err) {
+        this.logger.error("[saga] error parsing triggering event data", err);
+      } finally {
+        delete payload.data.triggerEvent;
+      }
+    }
+
     const req = payload._fromSend ? new cds.Request(payload) : new cds.Event(payload);
     const invocationFn = payload._fromSend ? "send" : "emit";
     delete req._fromSend;
     delete req.contextUser;
-    req.eventQueue = { processor: this, key, queueEntries, payload };
+    req.eventQueue = { processor: this, key, queueEntries, payload, triggerEvent };
 
     if (this.eventConfig.propagateContextProperties?.length && this.transactionMode === "isolated" && cds.context) {
       for (const prop of this.eventConfig.propagateContextProperties) {
@@ -362,11 +383,11 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   }
 
   async processEvent(processContext, key, queueEntries, payload) {
-    let statusTuple;
+    let statusTuple, result;
     const { userId, invocationFn, req } = this.#buildDispatchData(payload, { key, queueEntries });
     try {
       await this.#setContextUser(processContext, userId, req);
-      const result = await this.__srvUnboxed.tx(processContext)[invocationFn](req);
+      result = await this.__srvUnboxed.tx(processContext)[invocationFn](req);
       statusTuple = this.#determineResultStatus(result, queueEntries);
     } catch (err) {
       this.logger.error("error processing outboxed service call", err, {
@@ -381,11 +402,11 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       ]);
     }
 
-    await this.#publishFollowupEvents(processContext, req, statusTuple);
+    await this.#publishFollowupEvents(processContext, req, statusTuple, result);
     return statusTuple;
   }
 
-  async #publishFollowupEvents(processContext, req, statusTuple) {
+  async #publishFollowupEvents(processContext, req, statusTuple, triggerEventResult) {
     const succeeded = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_SUCCESS });
     const failed = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_FAILED });
 
@@ -412,11 +433,28 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
         result.status === EventProcessingStatus.Done &&
         !req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_SUCCESS)
       ) {
+        if (statusTuple.length === 1 && req.eventQueue.queueEntries.length === 1) {
+          const triggerEventPropagate = { triggerEventResult };
+          const [triggerEvent] = req.eventQueue.queueEntries;
+          for (const propertyName of PROPAGATE_EVENT_QUEUE_ENTRIES) {
+            triggerEventPropagate[propertyName] = triggerEvent[propertyName];
+          }
+          data.triggerEvent = JSON.stringify(triggerEventPropagate);
+        }
+
         await this.__srv.tx(processContext).send(succeeded, data);
       }
 
       if (failed && result.status === EventProcessingStatus.Error) {
         result.error && (data.error = this._error2String(result.error));
+        if (statusTuple.length === 1 && req.eventQueue.queueEntries.length === 1) {
+          const triggerEventPropagate = { triggerEventResult };
+          const [triggerEvent] = req.eventQueue.queueEntries;
+          for (const propertyName of PROPAGATE_EVENT_QUEUE_ENTRIES) {
+            triggerEventPropagate[propertyName] = triggerEvent[propertyName];
+          }
+          data.triggerEvent = JSON.stringify(triggerEventPropagate);
+        }
         await this.__srv.tx(processContext).send(failed, data);
       }
 

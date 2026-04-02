@@ -30,6 +30,7 @@ const eventScheduler = require("../src/shared/eventScheduler");
 
 const CUSTOM_HOOKS_SRV = "OutboxCustomHooks";
 const basePath = path.join(__dirname, "asset", "outboxProject");
+const SagaService = require(path.join(basePath, "srv/service/saga-service.js"));
 
 cds.env.requires.NotificationServicePeriodic = {
   impl: path.join(basePath, "srv/service/servicePeriodic.js"),
@@ -2712,6 +2713,116 @@ describe("event-queue outbox", () => {
           expect(JSON.parse(next.payload)).toMatchObject({ event: "#failed" });
           expect(next.status).toEqual(EventProcessingStatus.Done);
           expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+      });
+
+      describe("triggerEvent propagation", () => {
+        beforeEach(() => {
+          Object.keys(SagaService.capturedTriggerEvents).forEach(
+            (key) => delete SagaService.capturedTriggerEvents[key]
+          );
+        });
+
+        it("triggerEventResult reflects the return value of the parent handler", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("saga", {});
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+
+          const triggerEvent = SagaService.capturedTriggerEvents["saga/#succeeded"];
+          expect(triggerEvent).toBeDefined();
+          expect(triggerEvent.triggerEventResult).toEqual({ status: EventProcessingStatus.Done });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("triggerEventResult contains the full handler return value including nextData", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("saga", { nextData: { extra: "payload" } });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+
+          const triggerEvent = SagaService.capturedTriggerEvents["saga/#succeeded"];
+          expect(triggerEvent).toBeDefined();
+          expect(triggerEvent.triggerEventResult).toEqual({
+            status: EventProcessingStatus.Done,
+            nextData: { extra: "payload" },
+          });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("triggerEvent contains the parent queue entry ID, status, and payload", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("saga", {});
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+
+          const events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 2,
+            additionalColumns: ["payload", "ID"],
+          });
+          const sagaEntry = events.find((e) => JSON.parse(e.payload).event === "saga");
+
+          const triggerEvent = SagaService.capturedTriggerEvents["saga/#succeeded"];
+          expect(triggerEvent).toBeDefined();
+          expect(triggerEvent.ID).toEqual(sagaEntry.ID);
+          expect(triggerEvent.payload).toBeDefined();
+          expect(triggerEvent.status).toEqual(expect.any(Number));
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("triggerEvent is undefined for the originating event (not a successor)", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("saga", {});
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+
+          expect(SagaService.capturedTriggerEvents["saga"]).toBeUndefined();
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("triggerEvent is propagated to the failed handler with triggerEventResult", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("saga", {
+            status: EventProcessingStatus.Error,
+            nextData: { status: EventProcessingStatus.Done },
+          });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+
+          const triggerEvent = SagaService.capturedTriggerEvents["saga/#failed"];
+          expect(triggerEvent).toBeDefined();
+          expect(triggerEvent.triggerEventResult).toEqual({
+            status: EventProcessingStatus.Error,
+            nextData: { status: EventProcessingStatus.Done },
+          });
+          expect(triggerEvent.ID).toEqual(expect.any(String));
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("generic #succeeded handler also receives triggerEvent", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("general", {});
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+
+          const triggerEvent = SagaService.capturedTriggerEvents["#succeeded"];
+          expect(triggerEvent).toBeDefined();
+          expect(triggerEvent.triggerEventResult).toEqual({ status: EventProcessingStatus.Done });
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("triggerEventResult is undefined when the handler threw an exception but other fields are still set", async () => {
+          const service = await cds.connect.to("Saga");
+          await service.send("saga", { throw: "simulated error", nextData: { status: EventProcessingStatus.Done } });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+
+          const triggerEvent = SagaService.capturedTriggerEvents["saga/#failed"];
+          expect(triggerEvent).toBeDefined();
+          expect(triggerEvent.triggerEventResult).toBeUndefined();
+          expect(triggerEvent.ID).toEqual(expect.any(String));
+          expect(SagaService.capturedTriggerEvents["saga/#succeeded"]).toBeUndefined();
+          expect(loggerMock.callsLengths().error).toEqual(1);
         });
       });
     });

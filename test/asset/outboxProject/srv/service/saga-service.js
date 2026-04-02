@@ -2,10 +2,13 @@
 
 const cds = require("@sap/cds");
 
+const capturedTriggerEvents = {};
+
 class StandardService extends cds.Service {
   async init() {
     await super.init();
     this.on("saga", (req) => {
+      capturedTriggerEvents[req.event] = req.eventQueue?.triggerEvent;
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -38,6 +41,7 @@ class StandardService extends cds.Service {
     });
 
     this.on("#succeeded", (req) => {
+      capturedTriggerEvents[req.event] = req.eventQueue?.triggerEvent;
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -51,6 +55,7 @@ class StandardService extends cds.Service {
     });
 
     this.on("#failed", (req) => {
+      capturedTriggerEvents[req.event] = req.eventQueue?.triggerEvent;
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -78,6 +83,7 @@ class StandardService extends cds.Service {
     });
 
     this.on("saga/#succeeded", (req) => {
+      capturedTriggerEvents[req.event] = req.eventQueue?.triggerEvent;
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -91,6 +97,7 @@ class StandardService extends cds.Service {
     });
 
     this.on("saga/#failed", (req) => {
+      capturedTriggerEvents[req.event] = req.eventQueue?.triggerEvent;
       cds.log(this.name).info(req.event, {
         data: req.data,
         user: req.user.id,
@@ -131,4 +138,5 @@ class StandardService extends cds.Service {
   }
 }
 
+StandardService.capturedTriggerEvents = capturedTriggerEvents;
 module.exports = StandardService;
