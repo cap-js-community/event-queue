@@ -42,6 +42,7 @@ describe("dbHandler - stats tracking on HANA", () => {
     const db = await cds.connect.to("db");
     cds.emit("connect", db);
     config.redisEnabled = true;
+    config.collectEventQueueMetrics = true;
     eventQueue.registerEventQueueDbHandler(db);
     loggerMock = mockLogger();
   });
@@ -64,6 +65,7 @@ describe("dbHandler - stats tracking on HANA", () => {
 
   afterAll(async () => {
     config.redisEnabled = false;
+    config.collectEventQueueMetrics = false;
     await cds.disconnect();
     await cds.shutdown();
   });

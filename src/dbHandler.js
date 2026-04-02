@@ -103,6 +103,9 @@ const registerEventQueueDbHandler = (dbService) => {
       if (!req.tx._.eventQueueUpdateSucceededHandlerRegistered) {
         req.tx._.eventQueueUpdateSucceededHandlerRegistered = true;
         req.on("succeeded", () => {
+          if (!config.redisEnabled) {
+            return;
+          }
           const pendingDelta = req.tx._.eventQueueStatsPendingDelta;
           const inProgressDelta = req.tx._.eventQueueStatsInProgressDelta;
           const ops = [];

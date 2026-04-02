@@ -59,6 +59,7 @@ describe("runner", () => {
     });
     configInstance = eventQueue.config;
     configInstance.redisEnabled = true;
+    configInstance.collectEventQueueMetrics = true;
     loggerMock = mockLogger();
     jest.clearAllMocks();
   });

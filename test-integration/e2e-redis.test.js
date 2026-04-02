@@ -75,6 +75,7 @@ describe("end-to-end", () => {
       isEventQueueActive: true,
     });
     eventQueue.config.redisEnabled = true;
+    eventQueue.config.collectEventQueueMetrics = true;
 
     cds.emit("connect", await cds.connect.to("db"));
   });
