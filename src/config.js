@@ -107,6 +107,7 @@ class Config {
   #redisOptions;
   #insertEventsBeforeCommit;
   #enableTelemetry;
+  #collectEventQueueMetrics;
   #unsubscribeHandlers = [];
   #unsubscribedTenants = {};
   #cronTimezone;
@@ -899,6 +900,14 @@ class Config {
 
   get enableTelemetry() {
     return this.#enableTelemetry;
+  }
+
+  set collectEventQueueMetrics(value) {
+    this.#collectEventQueueMetrics = value;
+  }
+
+  get collectEventQueueMetrics() {
+    return this.#collectEventQueueMetrics;
   }
 
   get isMultiTenancy() {

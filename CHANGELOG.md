@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - [CAP Queue] Allow to propagate cds.context properties (e.g. features). This can be configured per event (`cds.env.requires[<SERVICE>].queued.propagateContextProperties = ["features"]`)
+- [Telemetry] Add opt-in event queue metrics (`collectEventQueueMetrics`). When enabled together with Redis and an OpenTelemetry MeterProvider, the module publishes `cap.event_queue.jobs.pending`, `cap.event_queue.jobs.in_progress`, and `cap.event_queue.stats.refresh_age` as Observable Gauges, broken down by namespace. See [documentation](https://cap-js-community.github.io/event-queue/telemetry/).
 
 ### Fixed
 

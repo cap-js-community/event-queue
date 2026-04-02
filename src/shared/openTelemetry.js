@@ -12,8 +12,12 @@ const cds = require("@sap/cds");
 const otel = _resilientRequire("@opentelemetry/api");
 
 const config = require("../config");
+const eventQueueStats = require("./eventQueueStats");
 
 const COMPONENT_NAME = "/shared/openTelemetry";
+
+let _statsSnapshot = null;
+let _metricsInitialized = false;
 
 const trace = async (context, label, fn, { attributes = {}, newRootSpan = false, traceContext } = {}) => {
   if (!config.enableTelemetry || !otel) {
@@ -110,4 +114,75 @@ const getCurrentTraceContext = () => {
   return carrier;
 };
 
-module.exports = { trace, getCurrentTraceContext };
+const _refreshStats = async () => {
+  try {
+    const namespaces = await eventQueueStats.getAllNamespaceStats();
+    _statsSnapshot = { namespaces, lastRefreshedAt: Date.now() };
+  } catch (err) {
+    cds.log(COMPONENT_NAME).error("failed to refresh queue stats for metrics", err);
+  }
+};
+
+const initMetrics = () => {
+  if (
+    _metricsInitialized ||
+    !config.collectEventQueueMetrics ||
+    !config.enableTelemetry ||
+    !config.redisEnabled ||
+    !otel?.metrics
+  ) {
+    return;
+  }
+  const meterProvider = otel.metrics.getMeterProvider?.();
+  if (!meterProvider) {
+    return;
+  }
+
+  _metricsInitialized = true;
+
+  eventQueueStats
+    .resetInProgressCounters()
+    .catch((err) => cds.log(COMPONENT_NAME).error("failed to reset inProgress counters", err));
+
+  const meter = otel.metrics.getMeter("@cap-js-community/event-queue");
+
+  const pendingGauge = meter.createObservableGauge("cap.event_queue.jobs.pending", {
+    description: "Current number of jobs waiting to be processed.",
+    unit: "1",
+  });
+  const inProgressGauge = meter.createObservableGauge("cap.event_queue.jobs.in_progress", {
+    description: "Current number of jobs actively being processed by workers.",
+    unit: "1",
+  });
+  const refreshAgeGauge = meter.createObservableGauge("cap.event_queue.stats.refresh_age", {
+    description: "Age of the most recent queue statistics snapshot.",
+    unit: "s",
+  });
+
+  _statsSnapshot = {
+    lastRefreshedAt: Date.now(),
+    namespaces: Object.fromEntries(
+      config.processingNamespaces.map((namespace) => [namespace, { pending: 0, inProgress: 0 }])
+    ),
+  };
+  _refreshStats();
+
+  meter.addBatchObservableCallback(
+    (observableResult) => {
+      if (!_statsSnapshot) {
+        return;
+      }
+      observableResult.observe(refreshAgeGauge, (Date.now() - _statsSnapshot.lastRefreshedAt) / 1000);
+      for (const [namespace, stats] of Object.entries(_statsSnapshot.namespaces)) {
+        const attrs = { "queue.namespace": namespace };
+        observableResult.observe(pendingGauge, stats.pending, attrs);
+        observableResult.observe(inProgressGauge, stats.inProgress, attrs);
+      }
+    },
+    [pendingGauge, inProgressGauge, refreshAgeGauge]
+  );
+
+  setInterval(_refreshStats, 30_000).unref();
+};
+
+module.exports = { trace, getCurrentTraceContext, initMetrics };

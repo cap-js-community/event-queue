@@ -10,6 +10,7 @@ const setTimeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation((first
 });
 
 const distributedLock = require("../src/shared/distributedLock");
+const eventQueueStats = require("../src/shared/eventQueueStats");
 const checkLockExistsSpy = jest.spyOn(distributedLock, "checkLockExists");
 const config = require("../src/config");
 const redisPub = require("../src/redis/redisPub");
@@ -67,6 +68,7 @@ describe("eventQueue Redis Events and DB Handlers", () => {
     eventQueue.registerEventQueueDbHandler(cds.db);
     loggerMock = mockLogger();
     jest.spyOn(cds.utils, "uuid").mockReturnValue("6e31047a-d2b5-4e3c-83d8-deab20165956");
+    jest.spyOn(eventQueueStats, "incrementCounters").mockResolvedValue();
   });
 
   beforeEach(async () => {

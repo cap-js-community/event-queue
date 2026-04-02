@@ -32,8 +32,9 @@ processing.
   job execution.
 - [Managed transactions](/event-queue/transaction-handling) for reliable event processing.
 - [Plug and play](setup) integration via `cds-plugin`.
-- [Telemetry support and trace propagation](/event-queue/telemetry), including event-queue-specific telemetry data and
-  tracing information.
+- [Telemetry support and trace propagation](/event-queue/telemetry), including distributed tracing, trace context
+  propagation, and opt-in OpenTelemetry metrics for real-time queue depth monitoring (`cap.event_queue.jobs.pending`,
+  `cap.event_queue.jobs.in_progress`).
 - Full support for local testing with SQLite, enabling feature development and testing in a local environment to boost
   productivity.
 - Asynchronous processing of resource-intensive tasks to improve UI responsiveness.
@@ -70,13 +71,13 @@ processing.
     manages the load, distributing it across all available app instances.+
 - OpenTelemetry and Trace Propagation
   - The event-queue integrates with OpenTelemetry, providing detailed telemetry data for monitoring and
-    troubleshooting.
-    OpenTelemetry captures traces, spans, and metrics that help diagnose performance bottlenecks, detect failures, and
-    understand the lifecycle of events.
+    troubleshooting. OpenTelemetry captures traces, spans, and metrics that help diagnose performance bottlenecks,
+    detect failures, and understand the lifecycle of events.
   - **Trace Propagation** ensures that tracing context is maintained across distributed services, allowing end-to-end
-    visibility
-    into event processing. This is especially beneficial in microservice architectures, where events traverse multiple
-    services and instances. With trace propagation, developers can track event execution paths, measure processing
-    times,
-    and correlate related events across different services, leading to improved observability and debugging
-    efficiency.
+    visibility into event processing. This is especially beneficial in microservice architectures, where events
+    traverse multiple services and instances. With trace propagation, developers can track event execution paths,
+    measure processing times, and correlate related events across different services, leading to improved observability
+    and debugging efficiency.
+  - **Queue Depth Metrics** – When enabled via `collectEventQueueMetrics`, the event-queue exposes real-time
+    Observable Gauges (`cap.event_queue.jobs.pending`, `cap.event_queue.jobs.in_progress`) per namespace, backed by
+    Redis and surfaced to any OpenTelemetry-compatible monitoring tool.

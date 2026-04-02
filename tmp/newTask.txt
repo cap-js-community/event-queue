@@ -1,0 +1,2 @@
+initialize only if instance number is zero. 
+initzialize only if is eventprocessor make sure app only reports for its processing namespace

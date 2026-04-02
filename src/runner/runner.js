@@ -14,6 +14,7 @@ const common = require("../shared/common");
 const config = require("../config");
 const redisPub = require("../redis/redisPub");
 const openEvents = require("./openEvents");
+const eventQueueStats = require("../shared/eventQueueStats");
 const { runEventCombinationForTenant } = require("./runnerHelper");
 const { trace } = require("../shared/openTelemetry");
 
@@ -141,7 +142,7 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
   } catch (err) {
     logger.error("executing event queue run for multi instance and tenant failed", err);
   }
-
+  const tenantCounts = {};
   for (const tenantId of tenantIds) {
     try {
       await cds.tx({ tenant: tenantId }, async (tx) => {
@@ -160,6 +161,18 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
               tenantId,
               entries: entries.length,
             });
+            tenantCounts[tenantId] = entries;
+            const pendingByNamespace = Object.fromEntries(config.processingNamespaces.map((name) => [name, 0]));
+            for (const entry of entries) {
+              pendingByNamespace[entry.namespace] = (pendingByNamespace[entry.namespace] ?? 0) + entry.count;
+            }
+            if (config.collectEventQueueMetrics) {
+              for (const [namespace, count] of Object.entries(pendingByNamespace)) {
+                eventQueueStats
+                  .setTenantCounter(tenantId, namespace, eventQueueStats.StatusField.Pending, count)
+                  .catch((err) => logger.error("updating tenant stats failed", err, { tenantId, namespace }));
+              }
+            }
             if (!entries.length) {
               return;
             }
@@ -176,6 +189,19 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
       });
     } catch (err) {
       logger.error("broadcasting events for tenant failed", { tenantId }, err);
+    }
+  }
+  const globalPendingByNamespace = Object.fromEntries(config.processingNamespaces.map((namespace) => [namespace, 0]));
+  for (const tenantEntries of Object.values(tenantCounts)) {
+    for (const entry of tenantEntries) {
+      globalPendingByNamespace[entry.namespace] = (globalPendingByNamespace[entry.namespace] ?? 0) + entry.count;
+    }
+  }
+  if (config.collectEventQueueMetrics) {
+    for (const [namespace, count] of Object.entries(globalPendingByNamespace)) {
+      eventQueueStats
+        .setGlobalCounter(namespace, eventQueueStats.StatusField.Pending, count)
+        .catch((err) => logger.error("updating global stats failed", err, { namespace }));
     }
   }
 };
@@ -367,6 +393,17 @@ const _singleTenantRedis = async () => {
           logger.info("broadcasting events for run", {
             entries: entries.length,
           });
+          const pendingByNamespace = Object.fromEntries(config.processingNamespaces.map((name) => [name, 0]));
+          for (const entry of entries) {
+            pendingByNamespace[entry.namespace] = (pendingByNamespace[entry.namespace] ?? 0) + entry.count;
+          }
+          if (config.collectEventQueueMetrics) {
+            for (const [namespace, count] of Object.entries(pendingByNamespace)) {
+              eventQueueStats
+                .setGlobalCounter(namespace, eventQueueStats.StatusField.Pending, count)
+                .catch((err) => logger.error("updating global stats failed", err, { namespace }));
+            }
+          }
           if (!entries.length) {
             return;
           }

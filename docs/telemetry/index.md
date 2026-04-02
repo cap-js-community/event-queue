@@ -95,3 +95,68 @@ when a Dynatrace trace context is missing.
 ## Example Trace
 
 ![Example Trace](img_1.png)
+
+## Event Queue Metrics
+
+In addition to distributed tracing, the event-queue can expose real-time queue depth metrics via OpenTelemetry. When
+enabled, it tracks how many events are **pending** (waiting to be processed) and **in progress** (actively being
+processed) per namespace, stored in Redis and exposed as OpenTelemetry Observable Gauges.
+
+### Metrics Published
+
+| Metric name                         | Unit | Description                                               |
+| ----------------------------------- | ---- | --------------------------------------------------------- |
+| `cap.event_queue.jobs.pending`      | 1    | Current number of events waiting to be processed          |
+| `cap.event_queue.jobs.in_progress`  | 1    | Current number of events actively being processed         |
+| `cap.event_queue.stats.refresh_age` | s    | Age of the most recent stats snapshot (staleness monitor) |
+
+All metrics carry a `queue.namespace` attribute so you can filter by namespace in your monitoring tool.
+
+### How It Works
+
+- **On INSERT**: when events are published and the transaction commits, the pending counter is incremented.
+- **On UPDATE**: as events transition between statuses (Open → InProgress → Done/Error/Exceeded/Suspended), the
+  pending and inProgress counters are adjusted accordingly.
+- **On each runner cycle**: the runner refreshes the absolute pending count per namespace from the database, so
+  counters stay accurate even after restarts or direct DB modifications.
+- Gauges are polled by the OpenTelemetry metrics SDK on demand; the event-queue additionally refreshes its
+  internal stats snapshot every 30 seconds as a background task.
+
+### Enabling Metrics
+
+Metrics collection requires Redis and is **opt-in**. Enable it via the initialization parameter
+`collectEventQueueMetrics`:
+
+```js
+await eventQueue.initialize({
+  // ...
+  collectEventQueueMetrics: true,
+});
+```
+
+Or via `cds.env` (e.g. in `package.json`):
+
+```json
+{
+  "cds": {
+    "eventQueue": {
+      "collectEventQueueMetrics": true
+    }
+  }
+}
+```
+
+The full set of conditions required for metrics to be active:
+
+| Condition                  | Required value | Notes                                                |
+| -------------------------- | -------------- | ---------------------------------------------------- |
+| `collectEventQueueMetrics` | `true`         | Master switch; default `false`                       |
+| `enableTelemetry`          | `true`         | Default `true`; global telemetry kill-switch         |
+| Redis enabled              | yes            | Stats are stored in Redis hashes                     |
+| OpenTelemetry metrics SDK  | present        | `@opentelemetry/api` with a configured MeterProvider |
+
+If any condition is not met, `initMetrics()` returns immediately and no gauges are registered.
+
+### Example Dashboard
+
+![Event Queue Metrics Dashboard](img_2.png)
