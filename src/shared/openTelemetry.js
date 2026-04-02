@@ -124,7 +124,7 @@ const _refreshStats = async () => {
 };
 
 const initMetrics = () => {
-  if (_metricsInitialized || !config.enableTelemetry || !config.redisEnabled || !otel?.metrics) {
+  if (_metricsInitialized || !config.collectEventQueueMetrics || !config.enableTelemetry || !config.redisEnabled || !otel?.metrics) {
     return;
   }
   const meterProvider = otel.metrics.getMeterProvider?.();

@@ -166,10 +166,12 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
             for (const entry of entries) {
               pendingByNamespace[entry.namespace] = (pendingByNamespace[entry.namespace] ?? 0) + entry.count;
             }
-            for (const [namespace, count] of Object.entries(pendingByNamespace)) {
-              eventQueueStats
-                .setTenantCounter(tenantId, namespace, eventQueueStats.StatusField.Pending, count)
-                .catch((err) => logger.error("updating tenant stats failed", err, { tenantId, namespace }));
+            if (config.collectEventQueueMetrics) {
+              for (const [namespace, count] of Object.entries(pendingByNamespace)) {
+                eventQueueStats
+                  .setTenantCounter(tenantId, namespace, eventQueueStats.StatusField.Pending, count)
+                  .catch((err) => logger.error("updating tenant stats failed", err, { tenantId, namespace }));
+              }
             }
             if (!entries.length) {
               return;
@@ -195,10 +197,12 @@ const _executeEventsAllTenantsRedis = async (tenantIds) => {
       globalPendingByNamespace[entry.namespace] = (globalPendingByNamespace[entry.namespace] ?? 0) + entry.count;
     }
   }
-  for (const [namespace, count] of Object.entries(globalPendingByNamespace)) {
-    eventQueueStats
-      .setGlobalCounter(namespace, eventQueueStats.StatusField.Pending, count)
-      .catch((err) => logger.error("updating global stats failed", err, { namespace }));
+  if (config.collectEventQueueMetrics) {
+    for (const [namespace, count] of Object.entries(globalPendingByNamespace)) {
+      eventQueueStats
+        .setGlobalCounter(namespace, eventQueueStats.StatusField.Pending, count)
+        .catch((err) => logger.error("updating global stats failed", err, { namespace }));
+    }
   }
 };
 
@@ -393,10 +397,12 @@ const _singleTenantRedis = async () => {
           for (const entry of entries) {
             pendingByNamespace[entry.namespace] = (pendingByNamespace[entry.namespace] ?? 0) + entry.count;
           }
-          for (const [namespace, count] of Object.entries(pendingByNamespace)) {
-            eventQueueStats
-              .setGlobalCounter(namespace, eventQueueStats.StatusField.Pending, count)
-              .catch((err) => logger.error("updating global stats failed", err, { namespace }));
+          if (config.collectEventQueueMetrics) {
+            for (const [namespace, count] of Object.entries(pendingByNamespace)) {
+              eventQueueStats
+                .setGlobalCounter(namespace, eventQueueStats.StatusField.Pending, count)
+                .catch((err) => logger.error("updating global stats failed", err, { namespace }));
+            }
           }
           if (!entries.length) {
             return;

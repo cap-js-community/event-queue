@@ -45,7 +45,7 @@ const registerEventQueueDbHandler = (dbService) => {
     if (!req.tx._.eventQueueSucceededHandlerRegistered) {
       req.tx._.eventQueueSucceededHandlerRegistered = true;
       req.on("succeeded", () => {
-        if (config.redisEnabled && req.tx._.eventQueueStatsOpenCount) {
+        if (config.collectEventQueueMetrics && config.redisEnabled && req.tx._.eventQueueStatsOpenCount) {
           eventQueueStats
             .incrementCounters(req.tenant, eventQueueStats.StatusField.Pending, req.tx._.eventQueueStatsOpenCount)
             .catch((err) => {
@@ -72,6 +72,9 @@ const registerEventQueueDbHandler = (dbService) => {
   });
 
   if (!registeredHandlers.updateDbHandler) {
+    if (!config.collectEventQueueMetrics || !config.redisEnabled) {
+      return;
+    }
     registeredHandlers.updateDbHandler = true;
     dbService.after("UPDATE", def, (count, req) => {
       const newStatus = req.query.UPDATE?.data?.status;
@@ -100,10 +103,6 @@ const registerEventQueueDbHandler = (dbService) => {
       if (!req.tx._.eventQueueUpdateSucceededHandlerRegistered) {
         req.tx._.eventQueueUpdateSucceededHandlerRegistered = true;
         req.on("succeeded", () => {
-          if (!config.redisEnabled) {
-            return;
-          }
-
           const pendingDelta = req.tx._.eventQueueStatsPendingDelta;
           const inProgressDelta = req.tx._.eventQueueStatsInProgressDelta;
           const ops = [];

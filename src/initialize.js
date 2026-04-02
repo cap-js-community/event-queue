@@ -50,6 +50,7 @@ const CONFIG_VARS = [
   ["disableProcessingOfSuspendedTenants", true],
   ["namespace", "default"],
   ["processingNamespaces", ["default"]],
+  ["collectEventQueueMetrics", false],
 ];
 
 /**
@@ -79,6 +80,7 @@ const CONFIG_VARS = [
  * @param {string} [options.crashOnRedisUnavailable=true] - If enabled an error is thrown if the redis connection check is not successful
  * @param {string} [options.namespace=default] - Default namespace in which events are published
  * @param {string} [options.processingNamespaces=[default]] - Namespaces which the application processes
+ * @param {boolean} [options.collectEventQueueMetrics=false] - Enable collection of event queue metrics (pending/inProgress counters) stored in Redis and exposed via OpenTelemetry gauges.
  */
 const initialize = async (options = {}) => {
   if (config.initialized) {

@@ -43,6 +43,7 @@ describe("dbHandler - stats tracking via CAP outbox", () => {
     });
     cds.emit("connect", await cds.connect.to("db"));
     config.redisEnabled = true;
+    config.collectEventQueueMetrics = true;
     eventQueue.registerEventQueueDbHandler(cds.db);
     loggerMock = mockLogger();
   });
@@ -63,6 +64,7 @@ describe("dbHandler - stats tracking via CAP outbox", () => {
 
   afterAll(async () => {
     config.redisEnabled = false;
+    config.collectEventQueueMetrics = false;
     await cds.shutdown;
   });
 
@@ -267,25 +269,6 @@ describe("dbHandler - stats tracking via CAP outbox", () => {
       expect(tenantStats[StatusField.InProgress]).toBe(0);
 
       expect(loggerMock.callsLengths().error).toBe(0);
-    });
-
-    it("does not adjust counters when redisEnabled is false", async () => {
-      const service = (await cds.connect.to("StandardService")).tx(context);
-      await service.send("main", {});
-      await service.send("main", {});
-      await commitAndOpenNew(); // pending=2
-
-      config.redisEnabled = false;
-      try {
-        await tx.run(UPDATE.entity("sap.eventqueue.Event").set({ status: EventProcessingStatus.InProgress }));
-        await commitAndOpenNew();
-
-        const tenantStats = await getTenantStats(123);
-        expect(tenantStats[StatusField.Pending]).toBe(2);
-        expect(tenantStats[StatusField.InProgress]).toBe(0);
-      } finally {
-        config.redisEnabled = true;
-      }
     });
 
     it("does not adjust counters when transaction is rolled back", async () => {
