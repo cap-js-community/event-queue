@@ -1,13 +1,14 @@
 source "https://rubygems.org"
 
-# https://pages.github.com/versions/
-
 # https://github.com/ruby/ruby
-ruby "~> 3.4.7"
+ruby ">= 3.4.7"
 
-# NOTE: this fixes the relevant jekyll version
-# https://github.com/github/pages-gem/releases
-gem "github-pages", "~> 232", group: :jekyll_plugins
+# https://jekyllrb.com/docs/installation/
+gem "jekyll", "~> 4.3"
+
+# Ruby 4.0 removed these from default gems
+gem "logger"
+gem "csv"
 
 # https://github.com/just-the-docs/just-the-docs/releases
 gem "just-the-docs", "~> 0.10.1"
