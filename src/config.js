@@ -30,6 +30,7 @@ const UTC_DEFAULT = false;
 const USE_CRON_TZ_DEFAULT = true;
 const SAGA_SUCCESS = "#succeeded";
 const SAGA_FAILED = "#failed";
+const SAGA_DONE = "#done";
 
 const BASE_TABLES = {
   EVENT: "sap.eventqueue.Event",
@@ -387,19 +388,21 @@ class Config {
               result.adHoc
             );
             result.adHoc[key] = specificEventConfig;
-            const sagaSuccessKey = [fnName, SAGA_SUCCESS].join("/");
-            if (config.events[sagaSuccessKey]) {
-              const [sagaKey, sagaSpecificEventConfig] = this.addCAPOutboxEventSpecificAction(
-                srvConfig,
-                name,
-                fnName,
-                result.adHoc
-              );
-              result.adHoc[sagaKey] = sagaSpecificEventConfig;
-            } else {
-              const sagaConfig = { ...specificEventConfig };
-              sagaConfig.subType = [sagaConfig.subType, SAGA_SUCCESS].join("/");
-              result.adHoc[[key, SAGA_SUCCESS].join("/")] = sagaConfig;
+            for (const sagaSuffix of [SAGA_SUCCESS, SAGA_DONE, SAGA_FAILED]) {
+              const sagaKey = [fnName, sagaSuffix].join("/");
+              if (config.events[sagaKey]) {
+                const [adHocKey, sagaSpecificEventConfig] = this.addCAPOutboxEventSpecificAction(
+                  srvConfig,
+                  name,
+                  fnName,
+                  result.adHoc
+                );
+                result.adHoc[adHocKey] = sagaSpecificEventConfig;
+              } else {
+                const sagaConfig = { ...specificEventConfig };
+                sagaConfig.subType = [sagaConfig.subType, sagaSuffix].join("/");
+                result.adHoc[[key, sagaSuffix].join("/")] = sagaConfig;
+              }
             }
           }
         }
@@ -434,7 +437,7 @@ class Config {
     }
 
     const [withoutSaga, sagaSuffix] = action.split("/");
-    if ([SAGA_FAILED, SAGA_SUCCESS].includes(sagaSuffix)) {
+    if ([SAGA_FAILED, SAGA_SUCCESS, SAGA_DONE].includes(sagaSuffix)) {
       if (config?.events?.[withoutSaga]) {
         return this.#mixCAPPropertyNamesWithEventQueueNames(config.events[withoutSaga]);
       }

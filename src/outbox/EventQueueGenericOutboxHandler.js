@@ -16,6 +16,7 @@ const EVENT_QUEUE_ACTIONS = {
   CHECK_AND_ADJUST: "eventQueueCheckAndAdjustPayload",
   SAGA_SUCCESS: "#succeeded",
   SAGA_FAILED: "#failed",
+  SAGA_DONE: "#done",
 };
 
 const PROPAGATE_EVENT_QUEUE_ENTRIES = [
@@ -321,7 +322,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       return genericHandler ?? null;
     }
 
-    if (event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_SUCCESS)) {
+    if (event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_SUCCESS) || event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_DONE)) {
       [event] = event.split("/");
     }
 
@@ -345,7 +346,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     const userId = useEventQueueUser ? config.userId : payload.contextUser;
     let triggerEvent;
 
-    if (payload.data.triggerEvent) {
+    if (payload.data?.triggerEvent) {
       try {
         triggerEvent = JSON.parse(payload.data.triggerEvent);
       } catch (err) {
@@ -409,12 +410,13 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
   async #publishFollowupEvents(processContext, req, statusTuple, triggerEventResult) {
     const succeeded = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_SUCCESS });
     const failed = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_FAILED });
+    const done = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_DONE });
 
-    if (!succeeded && !failed) {
+    if (!succeeded && !failed && !done) {
       return;
     }
 
-    if (req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_FAILED)) {
+    if (req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_FAILED) || req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_DONE)) {
       return;
     }
 
@@ -426,6 +428,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       tx._eventQueue.events = [];
     }
 
+    const queued = cds.queued(this.__srv);
     for (const [, result] of statusTuple) {
       const data = result.nextData ?? req.data;
       if (
@@ -442,7 +445,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
           data.triggerEvent = JSON.stringify(triggerEventPropagate);
         }
 
-        await this.__srv.tx(processContext).send(succeeded, data);
+        await queued.tx(processContext).send(succeeded, data);
       }
 
       if (failed && result.status === EventProcessingStatus.Error) {
@@ -455,7 +458,19 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
           }
           data.triggerEvent = JSON.stringify(triggerEventPropagate);
         }
-        await this.__srv.tx(processContext).send(failed, data);
+        await queued.tx(processContext).send(failed, data);
+      }
+
+      if (done && !req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_SUCCESS)) {
+        if (statusTuple.length === 1 && req.eventQueue.queueEntries.length === 1) {
+          const triggerEventPropagate = { triggerEventResult };
+          const [triggerEvent] = req.eventQueue.queueEntries;
+          for (const propertyName of PROPAGATE_EVENT_QUEUE_ENTRIES) {
+            triggerEventPropagate[propertyName] = triggerEvent[propertyName];
+          }
+          data.triggerEvent = JSON.stringify(triggerEventPropagate);
+        }
+        await queued.tx(processContext).send(done, data);
       }
 
       delete result.nextData;
@@ -464,7 +479,11 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     if (config.insertEventsBeforeCommit) {
       this.nextSagaEvents = tx._eventQueue?.events;
     } else {
-      this.nextSagaEvents = tx._eventQueue?.events.filter((event) => JSON.parse(event.payload).event === failed);
+      const hasError = statusTuple.some(([, result]) => result.status === EventProcessingStatus.Error);
+      this.nextSagaEvents = tx._eventQueue?.events.filter((event) => {
+        const eventName = JSON.parse(event.payload).event;
+        return eventName === failed || (hasError && eventName === done);
+      });
     }
 
     if (tx._eventQueue) {
