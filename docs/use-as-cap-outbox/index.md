@@ -448,8 +448,12 @@ class MyService extends cds.Service {
     });
 
     // Generic fallback — runs for any event without a dedicated handler
-    this.on("#succeeded", async (req) => { /* ... */ });
-    this.on("#failed",    async (req) => { /* ... */ });
+    this.on("#succeeded", async (req) => {
+      /* ... */
+    });
+    this.on("#failed", async (req) => {
+      /* ... */
+    });
   }
 }
 ```
@@ -463,7 +467,7 @@ this.on("orderCreated", async (req) => {
   const orderId = await createOrder(req.data);
   return {
     status: EventProcessingStatus.Done,
-    nextData: { orderId },   // available as req.data.orderId in the successor
+    nextData: { orderId }, // available as req.data.orderId in the successor
   };
 });
 ```
@@ -473,15 +477,15 @@ this.on("orderCreated", async (req) => {
 When a successor handler is invoked, `req.eventQueue.triggerEvent` is populated with context from the parent event.
 This gives the successor full visibility into what happened in the previous step.
 
-| Field                | Type     | Description                                                                                 |
-| -------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| `triggerEventResult` | any      | The raw return value of the parent handler (e.g. `{ status: 2, nextData: {...} }`)          |
-| `ID`                 | string   | UUID of the parent queue entry                                                               |
-| `status`             | number   | Status of the parent queue entry at processing time                                          |
-| `payload`            | any      | Payload of the parent queue entry                                                            |
-| `referenceEntity`    | string   | Reference entity of the parent event (if set)                                                |
-| `referenceEntityKey` | string   | Reference entity key of the parent event (if set)                                            |
-| `lastAttempTimestamp`| string   | Timestamp of the last processing attempt of the parent event                                 |
+| Field                 | Type   | Description                                                                        |
+| --------------------- | ------ | ---------------------------------------------------------------------------------- |
+| `triggerEventResult`  | any    | The raw return value of the parent handler (e.g. `{ status: 2, nextData: {...} }`) |
+| `ID`                  | string | UUID of the parent queue entry                                                     |
+| `status`              | number | Status of the parent queue entry at processing time                                |
+| `payload`             | any    | Payload of the parent queue entry                                                  |
+| `referenceEntity`     | string | Reference entity of the parent event (if set)                                      |
+| `referenceEntityKey`  | string | Reference entity key of the parent event (if set)                                  |
+| `lastAttempTimestamp` | string | Timestamp of the last processing attempt of the parent event                       |
 
 `req.eventQueue.triggerEvent` is set in both **`#succeeded`** and **`#failed`** handlers, but only when the event
 was processed as a single entry (no clustering). When the parent handler **threw an exception**, `triggerEventResult`
@@ -520,10 +524,10 @@ one is registered. This prevents infinite failure chains.
 
 ### Service-Specific vs. Generic Handlers
 
-| Pattern              | Applies to                    |
-| -------------------- | ----------------------------- |
-| `<event>/#succeeded` | Only `<event>`                |
-| `<event>/#failed`    | Only `<event>`                |
+| Pattern              | Applies to                            |
+| -------------------- | ------------------------------------- |
+| `<event>/#succeeded` | Only `<event>`                        |
+| `<event>/#failed`    | Only `<event>`                        |
 | `#succeeded`         | All events without a specific handler |
 | `#failed`            | All events without a specific handler |
 

@@ -3022,11 +3022,12 @@ describe("event-queue outbox", () => {
 
     describe("outbox queries", () => {
       it("SELECT", async () => {
+        // FIXME: read still returns undefined
         const service = await cds.connect.to("NotificationService");
         const srvQueued = cds.queued(service);
-        await cds.tx({}, async (tx) => {
+        await cds.tx({}, async () => {
           await srvQueued.read(service.entities().Event);
-          const test = await service.read(service.entities().Event);
+          await service.read(service.entities().Event);
           await commitAndOpenNew();
         });
         const [event] = await testHelper.selectEventQueueAndReturn(tx, {
