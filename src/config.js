@@ -389,8 +389,7 @@ class Config {
             );
             result.adHoc[key] = specificEventConfig;
             for (const sagaSuffix of [SAGA_SUCCESS, SAGA_DONE, SAGA_FAILED]) {
-              const sagaKey = [fnName, sagaSuffix].join("/");
-              if (config.events[sagaKey]) {
+              if (config.events[sagaSuffix]) {
                 const [adHocKey, sagaSpecificEventConfig] = this.addCAPOutboxEventSpecificAction(
                   srvConfig,
                   name,
