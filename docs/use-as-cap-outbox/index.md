@@ -559,3 +559,51 @@ them, even if one is registered. This prevents infinite failure or cleanup chain
 | `#done`              | All events without a specific handler |
 
 Event-specific handlers take priority over generic ones.
+
+### Configuring Successor Handlers
+
+Successor handlers (`#succeeded`, `#failed`, `#done`) can be configured independently in the `events` section of the
+service's `queued` configuration, using the same keys as the handler names.
+
+**Generic successor config** — applies to all handlers of that type across the service:
+
+```json
+{
+  "cds": {
+    "requires": {
+      "my-service": {
+        "queued": {
+          "kind": "persistent-queue",
+          "events": {
+            "#succeeded": { "propagateHeaders": ["x-correlation-id"] },
+            "#failed": { "retryAttempts": 0 },
+            "#done": { "propagateHeaders": ["x-correlation-id"] }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Event-specific successor config** — applies only to the successor of a particular action:
+
+```json
+{
+  "cds": {
+    "requires": {
+      "my-service": {
+        "queued": {
+          "kind": "persistent-queue",
+          "events": {
+            "orderCreated/#succeeded": { "propagateHeaders": ["x-correlation-id"] }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+When both a generic and an event-specific config exist for the same successor type, the event-specific config takes
+precedence. If neither is set, the successor inherits the configuration of its parent action.
