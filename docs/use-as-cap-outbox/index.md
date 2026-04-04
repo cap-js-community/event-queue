@@ -410,21 +410,22 @@ this.on("myBatchEvent", (req) => {
 });
 ```
 
-## Saga Pattern
+## Event Chaining
 
-The event-queue supports a saga-style pattern for chaining event handlers. When a handler completes, the
-event-queue automatically triggers a designated **successor event** — either a success or a failure follow-up —
-allowing you to model multi-step asynchronous workflows with clear separation of concerns.
+The event-queue supports chaining event handlers based on outcome. When a handler completes, the event-queue
+automatically publishes designated **successor events** — allowing you to model multi-step asynchronous workflows
+with clear separation of concerns.
 
 ### How It Works
 
-Register successor handlers with the special `#succeeded` or `#failed` suffix:
+Register successor handlers using the special suffixes `#succeeded`, `#failed`, and `#done`:
 
 - **`<event>/#succeeded`** — triggered when the handler for `<event>` returns `EventProcessingStatus.Done`
 - **`<event>/#failed`** — triggered when the handler returns `EventProcessingStatus.Error` or throws
+- **`<event>/#done`** — triggered unconditionally after `<event>` completes, regardless of outcome (analogous to `finally`)
 
-You can also register **generic** successor handlers (`#succeeded` / `#failed`) that apply to every event in the
-service that does not have a dedicated successor.
+You can also register **generic** successor handlers (`#succeeded` / `#failed` / `#done`) that apply to every event
+in the service that does not have a dedicated successor.
 
 ```javascript
 class MyService extends cds.Service {
@@ -447,11 +448,19 @@ class MyService extends cds.Service {
       // req.data.error contains the serialised error message
     });
 
-    // Generic fallback — runs for any event without a dedicated handler
+    // Runs unconditionally — event-specific
+    this.on("orderCreated/#done", async (req) => {
+      // always runs; req.data.error is set when the parent failed
+    });
+
+    // Generic fallbacks — run for any event without a dedicated handler
     this.on("#succeeded", async (req) => {
       /* ... */
     });
     this.on("#failed", async (req) => {
+      /* ... */
+    });
+    this.on("#done", async (req) => {
       /* ... */
     });
   }
@@ -487,9 +496,9 @@ This gives the successor full visibility into what happened in the previous step
 | `referenceEntityKey`  | string | Reference entity key of the parent event (if set)                                  |
 | `lastAttempTimestamp` | string | Timestamp of the last processing attempt of the parent event                       |
 
-`req.eventQueue.triggerEvent` is set in both **`#succeeded`** and **`#failed`** handlers, but only when the event
-was processed as a single entry (no clustering). When the parent handler **threw an exception**, `triggerEventResult`
-will be `undefined` — the queue entry fields (`ID`, `status`, `payload`, etc.) are still present.
+`req.eventQueue.triggerEvent` is set in **`#succeeded`**, **`#failed`**, and **`#done`** handlers, but only when the
+event was processed as a single entry (no clustering). When the parent handler **threw an exception**,
+`triggerEventResult` will be `undefined` — the queue entry fields (`ID`, `status`, `payload`, etc.) are still present.
 
 ```javascript
 this.on("orderCreated/#succeeded", async (req) => {
@@ -506,8 +515,8 @@ this.on("orderCreated/#succeeded", async (req) => {
 
 ### Failure Handling and Error Propagation
 
-When a primary handler throws or returns `EventProcessingStatus.Error`, the `#failed` successor receives the
-serialised error message in `req.data.error`:
+When a primary handler throws or returns `EventProcessingStatus.Error`, the `#failed` and `#done` successors both
+receive the serialised error message in `req.data.error`:
 
 ```javascript
 this.on("orderCreated/#failed", async (req) => {
@@ -517,10 +526,26 @@ this.on("orderCreated/#failed", async (req) => {
 });
 ```
 
+### Unconditional Follow-up (`#done`)
+
+The `#done` handler fires after every event, regardless of whether the primary handler succeeded, failed, or threw.
+It is the equivalent of a `finally` block and is intended for cleanup that must always run:
+
+- Releasing locks or counters
+- Emitting audit events
+- Notifying monitoring systems
+
+`req.data.error` is populated when the parent failed (identical to `#failed`). `req.eventQueue.triggerEvent` is
+available under the same rules as `#succeeded` and `#failed` — use `triggerEventResult.status` to distinguish
+outcomes, or check `triggerEventResult === undefined` to detect an unhandled exception.
+
+Both a specific handler (`<event>/#done`) and a generic handler (`#done`) are supported. The specific handler takes
+priority over the generic one.
+
 ### Stopping the Chain
 
-A `#failed` handler is a terminal step — the event-queue will **not** trigger another successor after it, even if
-one is registered. This prevents infinite failure chains.
+`#failed` and `#done` handlers are terminal steps — the event-queue will **not** trigger another successor after
+them, even if one is registered. This prevents infinite failure or cleanup chains.
 
 ### Service-Specific vs. Generic Handlers
 
@@ -528,7 +553,9 @@ one is registered. This prevents infinite failure chains.
 | -------------------- | ------------------------------------- |
 | `<event>/#succeeded` | Only `<event>`                        |
 | `<event>/#failed`    | Only `<event>`                        |
+| `<event>/#done`      | Only `<event>`                        |
 | `#succeeded`         | All events without a specific handler |
 | `#failed`            | All events without a specific handler |
+| `#done`              | All events without a specific handler |
 
 Event-specific handlers take priority over generic ones.
