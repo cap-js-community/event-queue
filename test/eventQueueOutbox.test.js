@@ -187,8 +187,10 @@ cds.env.requires.SagaSpecificConfig = {
     events: {
       "specific/#succeeded": { propagateHeaders: ["dummy"] },
       "specific/#done": { propagateHeaders: ["dummy"] },
+      "specific/#failed": { propagateHeaders: ["dummy"] },
       "#succeeded": { propagateHeaders: ["dummy"] },
       "#done": { propagateHeaders: ["dummy"] },
+      "#failed": { propagateHeaders: ["dummy"] },
     },
   },
 };
@@ -2785,6 +2787,63 @@ describe("event-queue outbox", () => {
           expect(specific.status).toEqual(EventProcessingStatus.Done);
           expect(succeeded.status).toEqual(EventProcessingStatus.Open);
           expect(done.status).toEqual(EventProcessingStatus.Open);
+          expect(succeeded.subType).toEqual(`${service.name}.#succeeded`);
+          expect(done.subType).toEqual(`${service.name}.#done`);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("failed specific", async () => {
+          const service = await cds.connect.to("SagaSpecificConfig");
+          await service.send("specific", { status: EventProcessingStatus.Error });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}`);
+          let events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 3,
+            additionalColumns: ["payload", "type", "subType"],
+          });
+          let specific = events.find((e) => JSON.parse(e.payload).event === "specific");
+          let failed = events.find((e) => JSON.parse(e.payload).event === "specific/#failed");
+          let done = events.find((e) => JSON.parse(e.payload).event === "specific/#done");
+          expect(specific.status).toEqual(EventProcessingStatus.Error);
+          expect(failed.status).toEqual(EventProcessingStatus.Open);
+          expect(done.status).toEqual(EventProcessingStatus.Open);
+          expect(failed.subType).toEqual(`${service.name}.specific/#failed`);
+          expect(done.subType).toEqual(`${service.name}.specific/#done`);
+
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}.specific/#failed`);
+
+          events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 3,
+            additionalColumns: ["payload", "type", "subType", "error"],
+          });
+          specific = events.find((e) => JSON.parse(e.payload).event === "specific");
+          failed = events.find((e) => JSON.parse(e.payload).event === "specific/#failed");
+          done = events.find((e) => JSON.parse(e.payload).event === "specific/#done");
+          expect(specific.status).toEqual(EventProcessingStatus.Error);
+          // NOTE: because status is propagated from the inital event
+          expect(failed.status).toEqual(EventProcessingStatus.Error);
+          expect(done.status).toEqual(EventProcessingStatus.Open);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("failed generic", async () => {
+          const service = await cds.connect.to("SagaSpecificConfig");
+          await service.send("general", { status: EventProcessingStatus.Error });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", `${service.name}`);
+          const events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 3,
+            additionalColumns: ["payload", "type", "subType"],
+          });
+          const general = events.find((e) => JSON.parse(e.payload).event === "general");
+          const failed = events.find((e) => JSON.parse(e.payload).event === "#failed");
+          const done = events.find((e) => JSON.parse(e.payload).event === "#done");
+          expect(general.status).toEqual(EventProcessingStatus.Error);
+          expect(failed.status).toEqual(EventProcessingStatus.Open);
+          expect(done.status).toEqual(EventProcessingStatus.Open);
+          expect(failed.subType).toEqual(`${service.name}.#failed`);
+          expect(done.subType).toEqual(`${service.name}.#done`);
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
       });

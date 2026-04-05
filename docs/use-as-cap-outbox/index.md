@@ -481,6 +481,8 @@ this.on("orderCreated", async (req) => {
 });
 ```
 
+`nextData` is forwarded to all active successors (`#succeeded`, `#failed`, `#done`). For `#done` this is useful when cleanup logic needs to act on data produced by the primary handler.
+
 ### Accessing the Trigger Event Context (`req.eventQueue.triggerEvent`)
 
 When a successor handler is invoked, `req.eventQueue.triggerEvent` is populated with context from the parent event.
@@ -544,8 +546,12 @@ priority over the generic one.
 
 ### Stopping the Chain
 
-`#failed` and `#done` handlers are terminal steps — the event-queue will **not** trigger another successor after
-them, even if one is registered. This prevents infinite failure or cleanup chains.
+`#failed` and `#done` are always terminal — the event-queue will **not** trigger any further successors after them,
+even if handlers are registered.
+
+`#succeeded` is not fully terminal: if a `#succeeded` handler returns `EventProcessingStatus.Error`, the
+event-queue will trigger `#failed` for that event (the chain continues on the failure path). However, `#succeeded`
+never triggers `#done` a second time.
 
 ### Service-Specific vs. Generic Handlers
 

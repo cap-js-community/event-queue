@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- [CAP Queue] Add support for defining successor and failed events of event handlers. See documentation for how to use it.
+- [CAP Queue] Add support for event chaining: register `#succeeded` and `#failed` successor handlers that are automatically triggered based on the outcome of an event handler. See [documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#event-chaining).
+- [CAP Queue] Add `#done` unconditional successor — fires after every event regardless of success or failure, analogous to a `finally` block. Useful for cleanup that must always run (releasing locks, audit events, etc.).
+- [CAP Queue] Successor handlers (`#succeeded`, `#failed`, `#done`) can be configured independently in the `events` section of the service's `queued` configuration, including event-specific variants (e.g. `orderCreated/#succeeded`).
 
 ## v2.0.5 - 2025-03-10
 
