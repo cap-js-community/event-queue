@@ -9,6 +9,10 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 on:
   release:
     types: [released, prereleased]
@@ -19,7 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-ruby@v1
+      - uses: actions/configure-pages@v5
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.7"
           bundler-cache: true
@@ -38,4 +43,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
