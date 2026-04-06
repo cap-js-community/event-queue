@@ -2541,15 +2541,20 @@ describe("event-queue outbox", () => {
           });
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
-            expectedLength: 3,
-            additionalColumns: ["payload", "lastAttemptTimestamp"],
-          });
-          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga" });
-          expect(done.status).toEqual(EventProcessingStatus.Error);
+          let [finished, done, failed] = (
+            await testHelper.selectEventQueueAndReturn(tx, {
+              expectedLength: 3,
+              additionalColumns: ["payload"],
+            })
+          ).sort((a, b) => JSON.parse(a.payload).event.localeCompare(JSON.parse(b.payload).event));
+          expect(JSON.parse(finished.payload)).toMatchObject({ event: "saga" });
+          expect(finished.status).toEqual(EventProcessingStatus.Error);
 
-          expect(JSON.parse(next.payload)).toMatchObject({ event: "saga/#failed" });
-          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(JSON.parse(failed.payload)).toMatchObject({ event: "saga/#failed" });
+          expect(failed.status).toEqual(EventProcessingStatus.Done);
+
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga/#done" });
+          expect(done.status).toEqual(EventProcessingStatus.Done);
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
 
@@ -2559,15 +2564,20 @@ describe("event-queue outbox", () => {
           await service.send("saga", {});
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
-            expectedLength: 3,
-            additionalColumns: ["payload", "error"],
-          });
-          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga" });
-          expect(done.status).toEqual(EventProcessingStatus.Done);
+          let [finished, done, succeeded] = (
+            await testHelper.selectEventQueueAndReturn(tx, {
+              expectedLength: 3,
+              additionalColumns: ["payload"],
+            })
+          ).sort((a, b) => JSON.parse(a.payload).event.localeCompare(JSON.parse(b.payload).event));
+          expect(JSON.parse(finished.payload)).toMatchObject({ event: "saga" });
+          expect(finished.status).toEqual(EventProcessingStatus.Done);
 
-          expect(JSON.parse(next.payload)).toMatchObject({ event: "saga/#succeeded" });
-          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(JSON.parse(succeeded.payload)).toMatchObject({ event: "saga/#succeeded" });
+          expect(succeeded.status).toEqual(EventProcessingStatus.Done);
+
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga/#done" });
+          expect(done.status).toEqual(EventProcessingStatus.Done);
           expect(loggerMock.callsLengths().error).toEqual(0);
           config.insertEventsBeforeCommit = true;
         });
@@ -2577,18 +2587,25 @@ describe("event-queue outbox", () => {
           await service.send("saga", { throw: "error", nextData: { status: EventProcessingStatus.Done } });
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
-            expectedLength: 3,
-            additionalColumns: ["payload", "lastAttemptTimestamp"],
-          });
-          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga" });
-          expect(done.status).toEqual(EventProcessingStatus.Error);
+          let [finished, done, failed] = (
+            await testHelper.selectEventQueueAndReturn(tx, {
+              expectedLength: 3,
+              additionalColumns: ["payload"],
+            })
+          ).sort((a, b) => JSON.parse(a.payload).event.localeCompare(JSON.parse(b.payload).event));
+          expect(JSON.parse(finished.payload)).toMatchObject({ event: "saga" });
+          expect(finished.status).toEqual(EventProcessingStatus.Error);
 
-          expect(JSON.parse(next.payload)).toMatchObject({
+          expect(JSON.parse(failed.payload)).toMatchObject({
             event: "saga/#failed",
             data: { error: expect.stringContaining("error") },
           });
-          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(failed.status).toEqual(EventProcessingStatus.Done);
+
+          expect(JSON.parse(done.payload)).toMatchObject({
+            event: "saga/#done",
+          });
+          expect(failed.status).toEqual(EventProcessingStatus.Done);
           expect(loggerMock.callsLengths().error).toEqual(1);
         });
 

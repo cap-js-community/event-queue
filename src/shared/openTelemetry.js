@@ -13,6 +13,7 @@ const otel = _resilientRequire("@opentelemetry/api");
 
 const config = require("../config");
 const eventQueueStats = require("./eventQueueStats");
+const { getEnvInstance } = require("./env");
 
 const COMPONENT_NAME = "/shared/openTelemetry";
 
@@ -129,6 +130,8 @@ const initMetrics = () => {
     !config.collectEventQueueMetrics ||
     !config.enableTelemetry ||
     !config.redisEnabled ||
+    !config.registerAsEventProcessor ||
+    (getEnvInstance().applicationInstance !== undefined && getEnvInstance().applicationInstance !== 0) ||
     !otel?.metrics
   ) {
     return;
