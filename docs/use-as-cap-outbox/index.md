@@ -409,3 +409,207 @@ this.on("myBatchEvent", (req) => {
   }));
 });
 ```
+
+## Event Chaining
+
+The event-queue supports chaining event handlers based on outcome. When a handler completes, the event-queue
+automatically publishes designated **successor events** — allowing you to model multi-step asynchronous workflows
+with clear separation of concerns.
+
+### How It Works
+
+Register successor handlers using the special suffixes `#succeeded`, `#failed`, and `#done`:
+
+- **`<event>/#succeeded`** — triggered when the handler for `<event>` returns `EventProcessingStatus.Done`
+- **`<event>/#failed`** — triggered when the handler returns `EventProcessingStatus.Error` or throws
+- **`<event>/#done`** — triggered unconditionally after `<event>` completes, regardless of outcome (analogous to `finally`)
+
+You can also register **generic** successor handlers (`#succeeded` / `#failed` / `#done`) that apply to every event
+in the service that does not have a dedicated successor.
+
+```javascript
+class MyService extends cds.Service {
+  async init() {
+    await super.init();
+
+    // Primary handler
+    this.on("orderCreated", async (req) => {
+      // ... business logic
+      return EventProcessingStatus.Done;
+    });
+
+    // Runs on success — event-specific
+    this.on("orderCreated/#succeeded", async (req) => {
+      // req.eventQueue.triggerEvent is available here (see below)
+    });
+
+    // Runs on failure — event-specific
+    this.on("orderCreated/#failed", async (req) => {
+      // req.data.error contains the serialised error message
+    });
+
+    // Runs unconditionally — event-specific
+    this.on("orderCreated/#done", async (req) => {
+      // always runs; req.data.error is set when the parent failed
+    });
+
+    // Generic fallbacks — run for any event without a dedicated handler
+    this.on("#succeeded", async (req) => {
+      /* ... */
+    });
+    this.on("#failed", async (req) => {
+      /* ... */
+    });
+    this.on("#done", async (req) => {
+      /* ... */
+    });
+  }
+}
+```
+
+### Passing Data to the Successor
+
+Return a `nextData` property from the primary handler to forward arbitrary data to the successor's `req.data`:
+
+```javascript
+this.on("orderCreated", async (req) => {
+  const orderId = await createOrder(req.data);
+  return {
+    status: EventProcessingStatus.Done,
+    nextData: { orderId }, // available as req.data.orderId in the successor
+  };
+});
+```
+
+`nextData` is forwarded to all active successors (`#succeeded`, `#failed`, `#done`). For `#done` this is useful when cleanup logic needs to act on data produced by the primary handler.
+
+### Accessing the Trigger Event Context (`req.eventQueue.triggerEvent`)
+
+When a successor handler is invoked, `req.eventQueue.triggerEvent` is populated with context from the parent event.
+This gives the successor full visibility into what happened in the previous step.
+
+| Field                 | Type   | Description                                                                        |
+| --------------------- | ------ | ---------------------------------------------------------------------------------- |
+| `triggerEventResult`  | any    | The raw return value of the parent handler (e.g. `{ status: 2, nextData: {...} }`) |
+| `ID`                  | string | UUID of the parent queue entry                                                     |
+| `status`              | number | Status of the parent queue entry at processing time                                |
+| `payload`             | any    | Payload of the parent queue entry                                                  |
+| `referenceEntity`     | string | Reference entity of the parent event (if set)                                      |
+| `referenceEntityKey`  | string | Reference entity key of the parent event (if set)                                  |
+| `lastAttempTimestamp` | string | Timestamp of the last processing attempt of the parent event                       |
+
+`req.eventQueue.triggerEvent` is set in **`#succeeded`**, **`#failed`**, and **`#done`** handlers, but only when the
+event was processed as a single entry (no clustering). When the parent handler **threw an exception**,
+`triggerEventResult` will be `undefined` — the queue entry fields (`ID`, `status`, `payload`, etc.) are still present.
+
+```javascript
+this.on("orderCreated/#succeeded", async (req) => {
+  const { triggerEventResult, ID } = req.eventQueue.triggerEvent;
+
+  // triggerEventResult is exactly what the parent handler returned
+  console.log(triggerEventResult);
+  // → { status: 2, nextData: { orderId: "..." } }
+
+  // ID is the UUID of the parent queue entry
+  console.log(ID); // → "3f2e1a..."
+});
+```
+
+### Failure Handling and Error Propagation
+
+When a primary handler throws or returns `EventProcessingStatus.Error`, the `#failed` and `#done` successors both
+receive the serialised error message in `req.data.error`:
+
+```javascript
+this.on("orderCreated/#failed", async (req) => {
+  console.log(req.data.error); // → "Error: Payment gateway timeout"
+  // compensate, notify, etc.
+  return EventProcessingStatus.Done;
+});
+```
+
+### Unconditional Follow-up (`#done`)
+
+The `#done` handler fires after every event, regardless of whether the primary handler succeeded, failed, or threw.
+It is the equivalent of a `finally` block and is intended for cleanup that must always run:
+
+- Releasing locks or counters
+- Emitting audit events
+- Notifying monitoring systems
+
+`req.data.error` is populated when the parent failed (identical to `#failed`). `req.eventQueue.triggerEvent` is
+available under the same rules as `#succeeded` and `#failed` — use `triggerEventResult.status` to distinguish
+outcomes, or check `triggerEventResult === undefined` to detect an unhandled exception.
+
+Both a specific handler (`<event>/#done`) and a generic handler (`#done`) are supported. The specific handler takes
+priority over the generic one.
+
+### Stopping the Chain
+
+`#failed` and `#done` are always terminal — the event-queue will **not** trigger any further successors after them,
+even if handlers are registered.
+
+`#succeeded` is not fully terminal: if a `#succeeded` handler returns `EventProcessingStatus.Error`, the
+event-queue will trigger `#failed` for that event (the chain continues on the failure path). However, `#succeeded`
+never triggers `#done` a second time.
+
+### Service-Specific vs. Generic Handlers
+
+| Pattern              | Applies to                            |
+| -------------------- | ------------------------------------- |
+| `<event>/#succeeded` | Only `<event>`                        |
+| `<event>/#failed`    | Only `<event>`                        |
+| `<event>/#done`      | Only `<event>`                        |
+| `#succeeded`         | All events without a specific handler |
+| `#failed`            | All events without a specific handler |
+| `#done`              | All events without a specific handler |
+
+Event-specific handlers take priority over generic ones.
+
+### Configuring Successor Handlers
+
+Successor handlers (`#succeeded`, `#failed`, `#done`) can be configured independently in the `events` section of the
+service's `queued` configuration, using the same keys as the handler names.
+
+**Generic successor config** — applies to all handlers of that type across the service:
+
+```json
+{
+  "cds": {
+    "requires": {
+      "my-service": {
+        "queued": {
+          "kind": "persistent-queue",
+          "events": {
+            "#succeeded": { "propagateHeaders": ["x-correlation-id"] },
+            "#failed": { "retryAttempts": 0 },
+            "#done": { "propagateHeaders": ["x-correlation-id"] }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Event-specific successor config** — applies only to the successor of a particular action:
+
+```json
+{
+  "cds": {
+    "requires": {
+      "my-service": {
+        "queued": {
+          "kind": "persistent-queue",
+          "events": {
+            "orderCreated/#succeeded": { "propagateHeaders": ["x-correlation-id"] }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+When both a generic and an event-specific config exist for the same successor type, the event-specific config takes
+precedence. If neither is set, the successor inherits the configuration of its parent action.

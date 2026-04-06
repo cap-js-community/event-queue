@@ -5,18 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v2.1.0 - 2025-03-XX
+## v2.1.0 - 2025-04-06
 
 ### Added
 
-- [CAP Queue] Add support for defining successor and failed events of event handlers. See documentation for how to use it.
+- [CAP Queue] Add support for event chaining: register `#succeeded` and `#failed` successor handlers that are automatically triggered based on the outcome of an event handler. See [documentation](https://cap-js-community.github.io/event-queue/use-as-cap-outbox/#event-chaining).
+- [CAP Queue] Add `#done` unconditional successor — fires after every event regardless of success or failure, analogous to a `finally` block. Useful for cleanup that must always run (releasing locks, audit events, etc.).
+- [CAP Queue] Successor handlers (`#succeeded`, `#failed`, `#done`) can be configured independently in the `events` section of the service's `queued` configuration, including event-specific variants (e.g. `orderCreated/#succeeded`).
+- [Telemetry] Add opt-in event queue metrics (`collectEventQueueMetrics`). When enabled together with Redis and an OpenTelemetry MeterProvider, the module publishes `cap.event_queue.jobs.pending`, `cap.event_queue.jobs.in_progress`, and `cap.event_queue.stats.refresh_age` as Observable Gauges, broken down by namespace. See [documentation](https://cap-js-community.github.io/event-queue/telemetry/).
 
 ## v2.0.5 - 2025-03-10
 
 ### Added
 
 - [CAP Queue] Allow to propagate cds.context properties (e.g. features). This can be configured per event (`cds.env.requires[<SERVICE>].queued.propagateContextProperties = ["features"]`)
-- [Telemetry] Add opt-in event queue metrics (`collectEventQueueMetrics`). When enabled together with Redis and an OpenTelemetry MeterProvider, the module publishes `cap.event_queue.jobs.pending`, `cap.event_queue.jobs.in_progress`, and `cap.event_queue.stats.refresh_age` as Observable Gauges, broken down by namespace. See [documentation](https://cap-js-community.github.io/event-queue/telemetry/).
 
 ### Fixed
 

@@ -148,12 +148,14 @@ Or via `cds.env` (e.g. in `package.json`):
 
 The full set of conditions required for metrics to be active:
 
-| Condition                  | Required value | Notes                                                |
-| -------------------------- | -------------- | ---------------------------------------------------- |
-| `collectEventQueueMetrics` | `true`         | Master switch; default `false`                       |
-| `enableTelemetry`          | `true`         | Default `true`; global telemetry kill-switch         |
-| Redis enabled              | yes            | Stats are stored in Redis hashes                     |
-| OpenTelemetry metrics SDK  | present        | `@opentelemetry/api` with a configured MeterProvider |
+| Condition                  | Required value | Notes                                                                                        |
+| -------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
+| `collectEventQueueMetrics` | `true`         | Master switch; default `false`                                                               |
+| `enableTelemetry`          | `true`         | Default `true`; global telemetry kill-switch                                                 |
+| Redis enabled              | yes            | Stats are stored in Redis hashes                                                             |
+| `registerAsEventProcessor` | `true`         | Metrics are only initialised on instances that process events                                |
+| CF instance index          | `0`            | Only the first application instance registers gauges to avoid duplicate metric registrations |
+| OpenTelemetry metrics SDK  | present        | `@opentelemetry/api` with a configured MeterProvider                                         |
 
 If any condition is not met, `initMetrics()` returns immediately and no gauges are registered.
 
