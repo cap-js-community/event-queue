@@ -2623,15 +2623,21 @@ describe("event-queue outbox", () => {
           });
           await commitAndOpenNew();
           await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
-          const [done, next] = await testHelper.selectEventQueueAndReturn(tx, {
-            expectedLength: 3,
-            additionalColumns: ["payload"],
-          });
-          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga" });
-          expect(done.status).toEqual(EventProcessingStatus.Error);
+          const [finished, done, failed] = (
+            await testHelper.selectEventQueueAndReturn(tx, {
+              expectedLength: 3,
+              additionalColumns: ["payload"],
+            })
+          ).sort((a, b) => JSON.parse(a.payload).event.localeCompare(JSON.parse(b.payload).event));
 
-          expect(JSON.parse(next.payload)).toMatchObject({ event: "saga/#failed", data: { newData: "dummyData" } });
-          expect(next.status).toEqual(EventProcessingStatus.Done);
+          expect(JSON.parse(finished.payload)).toMatchObject({ event: "saga" });
+          expect(finished.status).toEqual(EventProcessingStatus.Error);
+
+          expect(JSON.parse(failed.payload)).toMatchObject({ event: "saga/#failed", data: { newData: "dummyData" } });
+          expect(failed.status).toEqual(EventProcessingStatus.Done);
+
+          expect(JSON.parse(done.payload)).toMatchObject({ event: "saga/#done", data: { newData: "dummyData" } });
+          expect(done.status).toEqual(EventProcessingStatus.Done);
           expect(loggerMock.callsLengths().error).toEqual(0);
         });
       });
