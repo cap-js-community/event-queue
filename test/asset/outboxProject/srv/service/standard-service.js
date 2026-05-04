@@ -95,7 +95,7 @@ class StandardService extends cds.Service {
           ? req.data
           : {
               startAfter: req.data.startAfter,
-              status: 3 ?? req.data.status,
+              status: req.data.status ?? 3,
               ...(req.data.errorMessage && { error: new Error(req.data.errorMessage) }),
             },
       ]);

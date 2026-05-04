@@ -12,6 +12,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    environment: hana-integration
     strategy:
       matrix:
         node-version: [20, 22, 24]

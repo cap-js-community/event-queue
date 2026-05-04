@@ -954,7 +954,7 @@ class EventQueueProcessorBase {
    * the function 'addEventWithPayloadForProcessing'. This function is called after the clustering and before the
    * process-events-steps. The event data is available with this.eventProcessingMap.
    */
-  // eslint-disable-next-line no-unused-vars
+
   async beforeProcessingEvents() {}
 
   async isOutdatedAndKeepAlive() {
