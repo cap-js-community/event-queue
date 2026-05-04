@@ -90,8 +90,6 @@ class Config {
   #redisEnabled;
   #initialized;
   #instanceLoadLimit;
-  #tableNameEventQueue;
-  #tableNameEventLock;
   #isEventQueueActive;
   #configFilePath;
   #processEventsAfterPublish;
@@ -132,8 +130,6 @@ class Config {
     this.#redisEnabled = null;
     this.#initialized = false;
     this.#instanceLoadLimit = 100;
-    this.#tableNameEventQueue = null;
-    this.#tableNameEventLock = null;
     this.#isEventQueueActive = true;
     this.#configFilePath = null;
     this.#processEventsAfterPublish = null;

@@ -3,7 +3,7 @@
 name: Main PR
 
 on:
-  pull_request_target:
+  pull_request:
     branches:
       - main
 
@@ -14,16 +14,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
     if: github.event.pull_request.head.repo.full_name == github.repository
+    environment: hana-integration
     strategy:
       matrix:
         node-version: [20, 22, 24]
 
     name: test - node.js ${{ matrix.node-version }}
     steps:
-      - name: Checkout safe merge ref
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
           persist-credentials: false
 
       - uses: actions/setup-node@v6
@@ -53,10 +52,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout safe merge ref
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
           persist-credentials: false
 
       - uses: actions/setup-node@v4
@@ -68,10 +65,8 @@ jobs:
   example-cap-server:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout safe merge ref
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
           persist-credentials: false
 
       - uses: actions/setup-node@v4

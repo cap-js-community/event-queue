@@ -1,20 +1,15 @@
 "use strict";
 
-const COMPONENT = "eventQueue/SetIntervalDriftSafe";
-
 class SetIntervalDriftSafe {
   #adjustedInterval;
   #interval;
   #expectedCycleTime = 0;
-  #nextTickScheduledFor;
-  #logger;
   #shouldRun = true;
   #lastTimeoutId;
 
   constructor(interval) {
     this.#interval = interval;
     this.#adjustedInterval = interval;
-    this.#logger = cds.log(COMPONENT);
   }
 
   start(fn) {
@@ -34,7 +29,6 @@ class SetIntervalDriftSafe {
       this.#adjustedInterval = this.#interval - (now - this.#expectedCycleTime);
       this.#expectedCycleTime += this.#interval;
     }
-    this.#nextTickScheduledFor = now + this.#adjustedInterval;
     const timeoutId = setTimeout(() => {
       if (!this.#shouldRun) {
         return;
