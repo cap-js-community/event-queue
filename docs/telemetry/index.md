@@ -33,7 +33,6 @@ full visibility into your system’s event flow.
 ## How It Works
 
 1. **Publishing an Event**
-
    - When an event is published, the current OpenTelemetry trace context is extracted.
    - If no trace context is present, a new one is automatically created.
    - The trace context is then attached to the event metadata.

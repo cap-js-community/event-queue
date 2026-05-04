@@ -69,7 +69,7 @@ class EventQueueProcessorBase {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
     }
     this.__concurrentEventProcessing = this.#eventConfig.multiInstanceProcessing;
-    this.__retryAttempts = this.#isPeriodic ? 1 : this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
+    this.__retryAttempts = this.#isPeriodic ? 1 : (this.#eventConfig.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS);
     this.__selectMaxChunkSize = this.#eventConfig.selectMaxChunkSize ?? SELECT_LIMIT_EVENTS_PER_TICK;
     this.__selectNextChunk = !!this.#eventConfig.checkForNextChunk;
     this.__transactionMode = this.#eventConfig.transactionMode ?? TransactionMode.isolated;
