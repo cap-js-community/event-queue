@@ -457,7 +457,8 @@ class EventQueueProcessorBase {
         eventSubType: this.#eventSubType,
         statusMap,
       });
-      const ts = new Date().toISOString();
+      const tsMs = Date.now();
+      const ts = new Date(tsMs).toISOString();
       const updateData = Object.entries(statusMap).reduce((result, [id, data]) => {
         const key = this.allowedFieldsEventHandler
           .map((name) => [name, data[name]])
@@ -503,7 +504,7 @@ class EventQueueProcessorBase {
 
         if (!data.startAfter && [EventProcessingStatus.Error, EventProcessingStatus.Open].includes(data.status)) {
           data.startAfter = new Date(
-            Date.now() +
+            tsMs +
               (data.status === EventProcessingStatus.Error
                 ? this.#eventConfig.retryFailedAfter
                 : this.#eventConfig.retryOpenAfter)

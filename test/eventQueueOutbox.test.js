@@ -3176,10 +3176,8 @@ describe("event-queue outbox", () => {
         expect(event).toMatchObject({
           status: EventProcessingStatus.Error,
           attempts: 1,
+          startAfter: new Date(new Date(event.lastAttemptTimestamp).getTime() + 120 * 1000).toISOString(),
         });
-        const startAfterDelay = new Date(event.startAfter).getTime() - new Date(event.lastAttemptTimestamp).getTime();
-        expect(startAfterDelay).toBeGreaterThanOrEqual(120 * 1000 - 1000);
-        expect(startAfterDelay).toBeLessThanOrEqual(120 * 1000 + 1000);
         expect(loggerMock.callsLengths().error).toEqual(0);
       });
 
@@ -3195,10 +3193,8 @@ describe("event-queue outbox", () => {
         expect(event).toMatchObject({
           status: EventProcessingStatus.Open,
           attempts: 0,
+          startAfter: new Date(new Date(event.lastAttemptTimestamp).getTime() + 140 * 1000).toISOString(),
         });
-        const startAfterDelay = new Date(event.startAfter).getTime() - new Date(event.lastAttemptTimestamp).getTime();
-        expect(startAfterDelay).toBeGreaterThanOrEqual(140 * 1000 - 1000);
-        expect(startAfterDelay).toBeLessThanOrEqual(140 * 1000 + 1000);
         expect(loggerMock.callsLengths().error).toEqual(0);
       });
     });
