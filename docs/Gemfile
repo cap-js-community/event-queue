@@ -11,4 +11,4 @@ gem "logger"
 gem "csv"
 
 # https://github.com/just-the-docs/just-the-docs/releases
-gem "just-the-docs", "~> 0.10.1"
+gem "just-the-docs", "~> 0.12.0"
