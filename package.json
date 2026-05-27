@@ -51,7 +51,7 @@
     "yaml": "^2.8.4"
   },
   "devDependencies": {
-    "@actions/core": "^2.0.3",
+    "@actions/core": "^3.0.0",
     "@cap-js/cds-test": "^1.0.1",
     "@cap-js/db-service": "^2.11.0",
     "@cap-js/hana": "^2.8.0",
