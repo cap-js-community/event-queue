@@ -12,7 +12,7 @@
     "deploy": "cd gen/db && npm i && npm start"
   },
   "dependencies": {
-    "@cap-js/hana": "0.0.0"
+    "@cap-js/hana": "0.4.0"
   },
   "devDependencies": {},
   "cds": {
