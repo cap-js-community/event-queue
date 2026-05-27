@@ -32,7 +32,7 @@ jobs:
       - name: Build Jekyll site
         run: bundle exec jekyll build --source . --destination ./_site
         working-directory: docs
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/_site
 
