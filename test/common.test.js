@@ -164,6 +164,21 @@ describe("getAuthContext", () => {
       expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(1);
     });
 
+    it("rejects values outside [0, 80] with EventQueueError", () => {
+      expect(() => (config.authCacheExpiryReductionMaxPercent = -1)).toThrow(
+        /authCacheExpiryReductionMaxPercent must be a number between 0 and 80/
+      );
+      expect(() => (config.authCacheExpiryReductionMaxPercent = 81)).toThrow(
+        /authCacheExpiryReductionMaxPercent must be a number between 0 and 80/
+      );
+      expect(() => (config.authCacheExpiryReductionMaxPercent = "10")).toThrow(
+        /authCacheExpiryReductionMaxPercent must be a number between 0 and 80/
+      );
+      // boundaries are allowed
+      expect(() => (config.authCacheExpiryReductionMaxPercent = 0)).not.toThrow();
+      expect(() => (config.authCacheExpiryReductionMaxPercent = 80)).not.toThrow();
+    });
+
     it("draws a fresh random reduction per token fetch (jitter across tenants)", async () => {
       jest
         .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")

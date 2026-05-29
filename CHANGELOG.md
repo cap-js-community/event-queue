@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - [CAP Queue] Support `cds.env.requires[<SERVICE>].outboxed` as an additional configuration alias alongside `outbox` and `queued`. Properties from `outboxed` override `outbox` (and are themselves overridden by `queued`), enabling per-service configuration when a service is registered via the `outboxed` key.
-- New initialize option `authCacheExpiryReductionMaxPercent` (also configurable via `cds.env.eventQueue.authCacheExpiryReductionMaxPercent`). Shortens the cached XSUAA token TTL by a random percentage in `[0, value]` per token fetch, providing a safety margin against using nearly-expired tokens and avoiding synchronized expiry across tenants that would otherwise stampede the XSUAA token endpoint. Default `10`.
+- New initialize option `authCacheExpiryReductionMaxPercent` (also configurable via `cds.env.eventQueue.authCacheExpiryReductionMaxPercent`). Shortens the cached XSUAA token TTL by a random percentage in `[0, value]` per token fetch, providing a safety margin against using nearly-expired tokens and avoiding synchronized expiry across tenants that would otherwise stampede the XSUAA token endpoint. Default `10`; allowed range `[0, 80]` (values outside this range throw on initialization).
 
 ## v2.1.0 - 2025-04-06
 

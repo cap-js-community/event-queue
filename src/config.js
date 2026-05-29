@@ -799,6 +799,9 @@ class Config {
   }
 
   set authCacheExpiryReductionMaxPercent(value) {
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 80) {
+      throw EventQueueError.invalidAuthCacheExpiryReductionMaxPercent(value);
+    }
     this.#authCacheExpiryReductionMaxPercent = value;
   }
 

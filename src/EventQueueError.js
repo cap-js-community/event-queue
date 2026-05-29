@@ -28,6 +28,7 @@ const ERROR_CODES = {
   APP_INSTANCES_FORMAT: "APP_INSTANCES_FORMAT",
   MULTI_INSTANCE_PROCESSING_NOT_ALLOWED: "MULTI_INSTANCE_PROCESSING_NOT_ALLOWED",
   INVALID_CLUSTER_HANDLER_RESULT: "INVALID_CLUSTER_HANDLER_RESULT",
+  INVALID_AUTH_CACHE_EXPIRY_REDUCTION_MAX_PERCENT: "INVALID_AUTH_CACHE_EXPIRY_REDUCTION_MAX_PERCENT",
 };
 
 const ERROR_CODES_META = {
@@ -106,6 +107,9 @@ const ERROR_CODES_META = {
   },
   [ERROR_CODES.MULTI_INSTANCE_PROCESSING_NOT_ALLOWED]: {
     message: "The config multiInstanceProcessing is currently only allowed for ad-hoc events and single-tenant-apps.",
+  },
+  [ERROR_CODES.INVALID_AUTH_CACHE_EXPIRY_REDUCTION_MAX_PERCENT]: {
+    message: "authCacheExpiryReductionMaxPercent must be a number between 0 and 80.",
   },
 };
 
@@ -370,6 +374,17 @@ class EventQueueError extends VError {
       {
         name: ERROR_CODES.MULTI_INSTANCE_PROCESSING_NOT_ALLOWED,
         info: { type, subType },
+      },
+      message
+    );
+  }
+
+  static invalidAuthCacheExpiryReductionMaxPercent(value) {
+    const { message } = ERROR_CODES_META[ERROR_CODES.INVALID_AUTH_CACHE_EXPIRY_REDUCTION_MAX_PERCENT];
+    return new EventQueueError(
+      {
+        name: ERROR_CODES.INVALID_AUTH_CACHE_EXPIRY_REDUCTION_MAX_PERCENT,
+        info: { value },
       },
       message
     );
