@@ -12,6 +12,7 @@ const {
   isTenantIdValidCb,
   __: { clearAuthContextCache },
 } = require("../src/shared/common");
+const config = require("../src/config");
 const xssec = require("@sap/xssec");
 const cds = require("@sap/cds");
 
@@ -68,7 +69,7 @@ describe("getAuthContext", () => {
       .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
       .mockResolvedValueOnce({ access_token: "token" });
     jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockReturnValueOnce({
-      getExpirationDate: () => new Date(Date.now() + 61 * 1000),
+      getExpirationDate: () => new Date(Date.now() + 120 * 1000),
     });
 
     const result = await getAuthContext(tenantId1);
@@ -87,7 +88,7 @@ describe("getAuthContext", () => {
       return new Promise((resolve) => setTimeout(() => resolve({ access_token: "token" }), 5));
     });
     jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockReturnValueOnce({
-      getExpirationDate: () => new Date(Date.now() + 65 * 1000),
+      getExpirationDate: () => new Date(Date.now() + 120 * 1000),
     });
 
     const resultPromise = getAuthContext(tenantId1);
@@ -117,6 +118,87 @@ describe("getAuthContext", () => {
     expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(2);
     expect(xssec.XsuaaToken.prototype.constructor).toHaveBeenCalledTimes(2);
     expect(cds.log().warn.mock.calls).toHaveLength(0);
+  });
+
+  describe("authCacheExpiryReductionMaxPercent", () => {
+    const original = config.authCacheExpiryReductionMaxPercent;
+    afterEach(() => {
+      config.authCacheExpiryReductionMaxPercent = original;
+    });
+
+    it("shortens the cached TTL by a random percentage in [0, max] so a previously-cached token can fall below the margin", async () => {
+      jest
+        .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
+        .mockResolvedValue({ access_token: "token" });
+      jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockImplementation(() => ({
+        getExpirationDate: () => new Date(Date.now() + 100 * 1000),
+      }));
+
+      // max 50% × Math.random()=1 → 50% reduction → 100s × 0.5 = 50s effective TTL, below the 60s margin → refetch.
+      config.authCacheExpiryReductionMaxPercent = 50;
+      const randomSpy = jest.spyOn(Math, "random").mockReturnValue(1);
+
+      try {
+        await getAuthContext(tenantId1);
+        await getAuthContext(tenantId1);
+      } finally {
+        randomSpy.mockRestore();
+      }
+
+      expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(2);
+    });
+
+    it("with 0% reduction the cache behaves as before (cached when TTL above margin)", async () => {
+      jest
+        .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
+        .mockResolvedValue({ access_token: "token" });
+      jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockImplementation(() => ({
+        getExpirationDate: () => new Date(Date.now() + 100 * 1000),
+      }));
+
+      config.authCacheExpiryReductionMaxPercent = 0;
+
+      await getAuthContext(tenantId1);
+      await getAuthContext(tenantId1);
+
+      expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects values outside [0, 80] with EventQueueError", () => {
+      expect(() => (config.authCacheExpiryReductionMaxPercent = -1)).toThrow(
+        /authCacheExpiryReductionMaxPercent must be a number between 0 and 80/
+      );
+      expect(() => (config.authCacheExpiryReductionMaxPercent = 81)).toThrow(
+        /authCacheExpiryReductionMaxPercent must be a number between 0 and 80/
+      );
+      expect(() => (config.authCacheExpiryReductionMaxPercent = "10")).toThrow(
+        /authCacheExpiryReductionMaxPercent must be a number between 0 and 80/
+      );
+      // boundaries are allowed
+      expect(() => (config.authCacheExpiryReductionMaxPercent = 0)).not.toThrow();
+      expect(() => (config.authCacheExpiryReductionMaxPercent = 80)).not.toThrow();
+    });
+
+    it("draws a fresh random reduction per token fetch (jitter across tenants)", async () => {
+      jest
+        .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
+        .mockResolvedValue({ access_token: "token" });
+      jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockImplementation(() => ({
+        getExpirationDate: () => new Date(Date.now() + 100 * 1000),
+      }));
+
+      config.authCacheExpiryReductionMaxPercent = 50;
+      const randomSpy = jest.spyOn(Math, "random");
+
+      try {
+        await getAuthContext(tenantId1);
+        await getAuthContext(tenantId2);
+      } finally {
+        // Two distinct tenant fetches → Math.random consulted at least once per fetch.
+        expect(randomSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+        randomSpy.mockRestore();
+      }
+    });
   });
 
   it("should not use cache for different tenants", async () => {

@@ -99,7 +99,10 @@ const _getNewAuthContext = async (tenantId) => {
     const token = await authService.fetchClientCredentialsToken({ zid: tenantId });
     const tokenInfo = new xssec.XsuaaToken(token.access_token);
     const authInfo = new xssec.XsuaaSecurityContext(authService, tokenInfo);
-    return [tokenInfo.getExpirationDate().getTime() - Date.now(), [null, authInfo]];
+    const ttl = tokenInfo.getExpirationDate().getTime() - Date.now();
+    // Randomized to avoid synchronized cache expiry across tenants stampeding XSUAA on token refresh.
+    const reductionPercent = Math.random() * config.authCacheExpiryReductionMaxPercent;
+    return [ttl * (1 - reductionPercent / 100), [null, authInfo]];
   } catch (err) {
     cds.log(COMPONENT_NAME).warn("failed to request authContext", {
       err: err.message,

@@ -120,6 +120,7 @@ class Config {
   #disableProcessingOfSuspendedTenants;
   #namespace;
   #processingNamespaces;
+  #authCacheExpiryReductionMaxPercent;
   static #instance;
   constructor() {
     this.#logger = cds.log(COMPONENT_NAME);
@@ -134,6 +135,7 @@ class Config {
     this.#configFilePath = null;
     this.#processEventsAfterPublish = null;
     this.#disableRedis = null;
+    this.#authCacheExpiryReductionMaxPercent = 10;
     this.#env = getEnvInstance();
   }
 
@@ -794,6 +796,17 @@ class Config {
 
   get configFilePath() {
     return this.#configFilePath;
+  }
+
+  set authCacheExpiryReductionMaxPercent(value) {
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 80) {
+      throw EventQueueError.invalidAuthCacheExpiryReductionMaxPercent(value);
+    }
+    this.#authCacheExpiryReductionMaxPercent = value;
+  }
+
+  get authCacheExpiryReductionMaxPercent() {
+    return this.#authCacheExpiryReductionMaxPercent;
   }
 
   set processEventsAfterPublish(value) {
