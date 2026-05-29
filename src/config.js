@@ -333,6 +333,7 @@ class Config {
       (typeof cds.requires.outbox === "object" && cds.requires.outbox) || {},
       (typeof cds.requires.queue === "object" && cds.requires.queue) || {},
       (typeof cds.env.requires[serviceName]?.outbox === "object" && cds.env.requires[serviceName].outbox) || {},
+      (typeof cds.env.requires[serviceName]?.outboxed === "object" && cds.env.requires[serviceName].outboxed) || {},
       (typeof cds.env.requires[serviceName]?.queued === "object" && cds.env.requires[serviceName].queued) || {}
     );
   }

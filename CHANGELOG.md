@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v2.1.1 - 2026-05-29
+
+### Added
+
+- [CAP Queue] Support `cds.env.requires[<SERVICE>].outboxed` as an additional configuration alias alongside `outbox` and `queued`. Properties from `outboxed` override `outbox` (and are themselves overridden by `queued`), enabling per-service configuration when a service is registered via the `outboxed` key.
+
 ## v2.1.0 - 2025-04-06
 
 ### Added
