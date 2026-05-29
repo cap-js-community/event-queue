@@ -126,8 +126,7 @@ describe("getAuthContext", () => {
       config.authCacheExpiryReductionPercent = original;
     });
 
-    it("shortens the cached TTL by the configured percentage so a previously-cached token falls below the margin", async () => {
-      // 100s token TTL: would normally be cached (above 60s margin).
+    it("shortens the cached TTL by a random percentage in [0, max] so a previously-cached token can fall below the margin", async () => {
       jest
         .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
         .mockResolvedValue({ access_token: "token" });
@@ -135,11 +134,16 @@ describe("getAuthContext", () => {
         getExpirationDate: () => new Date(Date.now() + 100 * 1000),
       }));
 
-      // 50% reduction: effective TTL drops to 50s, below the 60s margin → second call must refetch.
+      // max 50% × Math.random()=1 → 50% reduction → 100s × 0.5 = 50s effective TTL, below the 60s margin → refetch.
       config.authCacheExpiryReductionPercent = 50;
+      const randomSpy = jest.spyOn(Math, "random").mockReturnValue(1);
 
-      await getAuthContext(tenantId1);
-      await getAuthContext(tenantId1);
+      try {
+        await getAuthContext(tenantId1);
+        await getAuthContext(tenantId1);
+      } finally {
+        randomSpy.mockRestore();
+      }
 
       expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(2);
     });
@@ -158,6 +162,27 @@ describe("getAuthContext", () => {
       await getAuthContext(tenantId1);
 
       expect(xssec.XsuaaService.prototype.fetchClientCredentialsToken).toHaveBeenCalledTimes(1);
+    });
+
+    it("draws a fresh random reduction per token fetch (jitter across tenants)", async () => {
+      jest
+        .spyOn(xssec.XsuaaService.prototype, "fetchClientCredentialsToken")
+        .mockResolvedValue({ access_token: "token" });
+      jest.spyOn(xssec.XsuaaToken.prototype, "constructor").mockImplementation(() => ({
+        getExpirationDate: () => new Date(Date.now() + 100 * 1000),
+      }));
+
+      config.authCacheExpiryReductionPercent = 50;
+      const randomSpy = jest.spyOn(Math, "random");
+
+      try {
+        await getAuthContext(tenantId1);
+        await getAuthContext(tenantId2);
+      } finally {
+        // Two distinct tenant fetches → Math.random consulted at least once per fetch.
+        expect(randomSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+        randomSpy.mockRestore();
+      }
     });
   });
 
