@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v2.1.2 - 2026-05-29
+
+### Added
+
+- New initialize option `authCacheExpiryReductionPercent` (also configurable via `cds.env.eventQueue.authCacheExpiryReductionPercent`). Shortens the cached XSUAA token TTL by the given percentage to provide a safety margin against using nearly-expired tokens. Default `10`.
+
 ## v2.1.1 - 2026-05-29
 
 ### Added

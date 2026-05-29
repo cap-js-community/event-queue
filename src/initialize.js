@@ -51,6 +51,7 @@ const CONFIG_VARS = [
   ["namespace", "default"],
   ["processingNamespaces", ["default"]],
   ["collectEventQueueMetrics", false],
+  ["authCacheExpiryReductionPercent", 10],
 ];
 
 /**
@@ -81,6 +82,7 @@ const CONFIG_VARS = [
  * @param {string} [options.namespace=default] - Default namespace in which events are published
  * @param {string} [options.processingNamespaces=[default]] - Namespaces which the application processes
  * @param {boolean} [options.collectEventQueueMetrics=false] - Enable collection of event queue metrics (pending/inProgress counters) stored in Redis and exposed via OpenTelemetry gauges.
+ * @param {number} [options.authCacheExpiryReductionPercent=10] - Percentage (0-100) by which the XSUAA token TTL is shortened when stored in the authContext cache, to provide a safety margin against using nearly-expired tokens.
  */
 const initialize = async (options = {}) => {
   if (config.initialized) {
