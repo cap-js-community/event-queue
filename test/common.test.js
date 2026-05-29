@@ -120,10 +120,10 @@ describe("getAuthContext", () => {
     expect(cds.log().warn.mock.calls).toHaveLength(0);
   });
 
-  describe("authCacheExpiryReductionPercent", () => {
-    const original = config.authCacheExpiryReductionPercent;
+  describe("authCacheExpiryReductionMaxPercent", () => {
+    const original = config.authCacheExpiryReductionMaxPercent;
     afterEach(() => {
-      config.authCacheExpiryReductionPercent = original;
+      config.authCacheExpiryReductionMaxPercent = original;
     });
 
     it("shortens the cached TTL by a random percentage in [0, max] so a previously-cached token can fall below the margin", async () => {
@@ -135,7 +135,7 @@ describe("getAuthContext", () => {
       }));
 
       // max 50% × Math.random()=1 → 50% reduction → 100s × 0.5 = 50s effective TTL, below the 60s margin → refetch.
-      config.authCacheExpiryReductionPercent = 50;
+      config.authCacheExpiryReductionMaxPercent = 50;
       const randomSpy = jest.spyOn(Math, "random").mockReturnValue(1);
 
       try {
@@ -156,7 +156,7 @@ describe("getAuthContext", () => {
         getExpirationDate: () => new Date(Date.now() + 100 * 1000),
       }));
 
-      config.authCacheExpiryReductionPercent = 0;
+      config.authCacheExpiryReductionMaxPercent = 0;
 
       await getAuthContext(tenantId1);
       await getAuthContext(tenantId1);
@@ -172,7 +172,7 @@ describe("getAuthContext", () => {
         getExpirationDate: () => new Date(Date.now() + 100 * 1000),
       }));
 
-      config.authCacheExpiryReductionPercent = 50;
+      config.authCacheExpiryReductionMaxPercent = 50;
       const randomSpy = jest.spyOn(Math, "random");
 
       try {

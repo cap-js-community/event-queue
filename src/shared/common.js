@@ -100,7 +100,7 @@ const _getNewAuthContext = async (tenantId) => {
     const tokenInfo = new xssec.XsuaaToken(token.access_token);
     const authInfo = new xssec.XsuaaSecurityContext(authService, tokenInfo);
     const ttl = tokenInfo.getExpirationDate().getTime() - Date.now();
-    const maxReductionPercent = Math.min(Math.max(config.authCacheExpiryReductionPercent ?? 0, 0), 100);
+    const maxReductionPercent = Math.min(Math.max(config.authCacheExpiryReductionMaxPercent ?? 0, 0), 100);
     // Randomized to avoid synchronized cache expiry across tenants stampeding XSUAA on token refresh.
     const reductionPercent = Math.random() * maxReductionPercent;
     return [ttl * (1 - reductionPercent / 100), [null, authInfo]];
