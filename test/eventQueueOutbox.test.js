@@ -195,6 +195,12 @@ cds.env.requires.SagaSpecificConfig = {
   },
 };
 
+cds.env.requires.OutboxedAliasService = {
+  impl: path.join(basePath, "srv/service/standard-service.js"),
+  outbox: { kind: "persistent-outbox", propagateHeaders: ["fromOutbox"] },
+  outboxed: { propagateHeaders: ["fromOutboxed"], retryAttempts: 7 },
+};
+
 cds.env.requires["sapafcsdk.scheduling.ProviderService"] = {
   impl: path.join(basePath, "srv/service/standard-service.js"),
   outbox: {
@@ -286,6 +292,16 @@ describe("event-queue outbox", () => {
         userId: "dummyTestUser",
       });
       cds.emit("connect", await cds.connect.to("db"));
+    });
+
+    describe("outboxed config alias", () => {
+      it("merges cds.env.requires[service].outboxed into the basic outbox event config", () => {
+        const eventConfig = config.getEventConfig("CAP_OUTBOX", "OutboxedAliasService");
+        expect(eventConfig).toBeDefined();
+        expect(eventConfig.propagateHeaders).toEqual(["fromOutboxed"]);
+        expect(eventConfig.retryAttempts).toEqual(7);
+        expect(eventConfig.kind).toEqual("persistent-outbox");
+      });
     });
 
     it("return open event types", async () => {
