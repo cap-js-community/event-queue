@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v2.1.2 - 2026-06-12
+
+### Fixed
+
+- Periodic cron events could be executed twice if a processing run picked up the event slightly early (within the 3-second start headroom). The next occurrence was calculated based on the current time, which was still before the occurrence that had just been processed, so the same occurrence was scheduled and executed again. The calculation is now based on the planned start time of the processed event if it was picked up early.
+- The in-memory scheduling of the next cron occurrence is now based on the actual time until the next occurrence instead of always being armed. This avoids redundant long-running timers for infrequent cron events and prevents a `setTimeout` overflow (which triggered a spurious immediate processing run) for cron cadences greater than ~24.8 days.
+
 ## v2.1.1 - 2026-05-29
 
 ### Added
