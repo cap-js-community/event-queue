@@ -1110,13 +1110,15 @@ class EventQueueProcessorBase {
     }
   }
 
-  #calculateCronDates() {
+  #calculateCronDates(queueEntry) {
     if (!this.#eventConfig.cron) {
       return null;
     }
 
-    // NOTE: do not pass current date as we always want to calc. a future date
+    // NOTE: base the calculation on the planned startAfter if the event was picked up early; otherwise on now to always calc. a future date
+    const currentDate = new Date(Math.max(Date.now(), new Date(queueEntry.startAfter).getTime()));
     const cronExpression = CronExpressionParser.parse(this.#eventConfig.cron, {
+      currentDate,
       tz: this.#eventConfig.tz,
     });
     return cronExpression.next();
@@ -1124,7 +1126,7 @@ class EventQueueProcessorBase {
 
   async scheduleNextPeriodEvent(queueEntry) {
     const intervalInMs = this.#eventConfig.cron ? null : this.#eventConfig.interval * 1000;
-    const next = this.#calculateCronDates();
+    const next = this.#calculateCronDates(queueEntry);
     let newStartAfter;
 
     if (this.#eventConfig.cron) {
@@ -1167,7 +1169,8 @@ class EventQueueProcessorBase {
       })
     );
     this.tx._skipEventQueueBroadcast = false;
-    if (intervalInMs < this.#config.runInterval * 1.5) {
+    const msUntilNextOccurrence = intervalInMs ?? newEvent.startAfter.getTime() - Date.now();
+    if (msUntilNextOccurrence < this.#config.runInterval * 1.5) {
       this.#handleDelayedEvents([newEvent], { skipExcludeDelayedEventIds: true });
       const { relative: relativeAfterSchedule } = this.#eventSchedulerInstance.calculateOffset(
         this.#eventType,
