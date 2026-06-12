@@ -12,6 +12,8 @@ const { checkAndInsertPeriodicEvents } = require("../src/periodicEvents");
 const config = require("../src/config");
 const { selectEventQueueAndReturn } = require("./helper");
 const { EventProcessingStatus } = require("../src/constants");
+const eventScheduler = require("../src/shared/eventScheduler");
+const redisPub = require("../src/redis/redisPub");
 const project = __dirname + "/.."; // The project's root folder
 cds.test(project);
 
@@ -300,6 +302,198 @@ describe("baseFunctionality", () => {
         events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
         expect(events[0].startAfter).toMatchInlineSnapshot(`"2023-11-14T02:00:00.000Z"`);
         expect(events[1].startAfter).toMatchInlineSnapshot(`"2023-11-15T02:00:00.000Z"`);
+      });
+
+      it("should not schedule the same cron occurrence again if the event is picked up early", async () => {
+        const periodicEventsCron = fileContent.periodicEvents
+          .filter((e) => e.cron)
+          .map((e) => {
+            e.cron = "0 3 * * *"; // Runs at 03:00 AM every day.
+            return e;
+          });
+        const [periodicEvent] = periodicEventsCron;
+        config.mixFileContentWithEnv({
+          events: fileContent.events,
+          periodicEvents: [periodicEvent],
+        });
+        await checkAndInsertPeriodicEvents(context);
+        const [event] = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 1,
+          additionalColumns: ["type", "subType"],
+        });
+        expect(event.startAfter).toEqual("2023-11-14T03:00:00.000Z");
+
+        // tick lands within the startAfter headroom --> event is picked up 2 seconds early
+        jest.setSystemTime(new Date("2023-11-14T02:59:58.000Z"));
+
+        await eventQueue.processEventQueue(tx.context, event.type, event.subType);
+        const events = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 2,
+          additionalColumns: ["type", "subType"],
+        });
+        events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
+        expect(events[0].status).toEqual(EventProcessingStatus.Done);
+        expect(events[0].startAfter).toEqual("2023-11-14T03:00:00.000Z");
+        expect(events[1].startAfter).toEqual("2023-11-15T03:00:00.000Z");
+      });
+
+      it("should schedule the next cron occurrence if the event is processed exactly on time", async () => {
+        const periodicEventsCron = fileContent.periodicEvents
+          .filter((e) => e.cron)
+          .map((e) => {
+            e.cron = "0 3 * * *"; // Runs at 03:00 AM every day.
+            return e;
+          });
+        const [periodicEvent] = periodicEventsCron;
+        config.mixFileContentWithEnv({
+          events: fileContent.events,
+          periodicEvents: [periodicEvent],
+        });
+        await checkAndInsertPeriodicEvents(context);
+        const [event] = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 1,
+          additionalColumns: ["type", "subType"],
+        });
+
+        jest.setSystemTime(new Date("2023-11-14T03:00:00.000Z"));
+
+        await eventQueue.processEventQueue(tx.context, event.type, event.subType);
+        const events = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 2,
+          additionalColumns: ["type", "subType"],
+        });
+        events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
+        expect(events[0].status).toEqual(EventProcessingStatus.Done);
+        expect(events[0].startAfter).toEqual("2023-11-14T03:00:00.000Z");
+        expect(events[1].startAfter).toEqual("2023-11-15T03:00:00.000Z");
+      });
+
+      it("should skip missed cron occurrences if the event is processed late", async () => {
+        const periodicEventsCron = fileContent.periodicEvents
+          .filter((e) => e.cron)
+          .map((e) => {
+            e.cron = "0 3 * * *"; // Runs at 03:00 AM every day.
+            return e;
+          });
+        const [periodicEvent] = periodicEventsCron;
+        config.mixFileContentWithEnv({
+          events: fileContent.events,
+          periodicEvents: [periodicEvent],
+        });
+        await checkAndInsertPeriodicEvents(context);
+        const [event] = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 1,
+          additionalColumns: ["type", "subType"],
+        });
+
+        // two occurrences missed --> the next occurrence should be in the future
+        jest.setSystemTime(new Date("2023-11-16T10:00:00.000Z"));
+
+        await eventQueue.processEventQueue(tx.context, event.type, event.subType);
+        const events = await selectEventQueueAndReturn(tx, {
+          type: "TimeSpecificEveryMin_PERIODIC",
+          expectedLength: 2,
+          additionalColumns: ["type", "subType"],
+        });
+        events.sort((a, b) => new Date(a.startAfter) - new Date(b.startAfter));
+        expect(events[0].status).toEqual(EventProcessingStatus.Done);
+        expect(events[0].startAfter).toEqual("2023-11-14T03:00:00.000Z");
+        expect(events[1].startAfter).toEqual("2023-11-17T03:00:00.000Z");
+      });
+
+      describe("scheduling of the next cron occurrence", () => {
+        it("should not schedule an in-memory timer if the next occurrence is beyond the run interval", async () => {
+          const periodicEventsCron = fileContent.periodicEvents
+            .filter((e) => e.cron)
+            .map((e) => {
+              e.cron = "0 3 * * *"; // Runs at 03:00 AM every day.
+              return e;
+            });
+          const [periodicEvent] = periodicEventsCron;
+          config.mixFileContentWithEnv({
+            events: fileContent.events,
+            periodicEvents: [periodicEvent],
+          });
+          await checkAndInsertPeriodicEvents(context);
+          const [event] = await selectEventQueueAndReturn(tx, {
+            type: "TimeSpecificEveryMin_PERIODIC",
+            expectedLength: 1,
+            additionalColumns: ["type", "subType"],
+          });
+          jest.setSystemTime(new Date(event.startAfter));
+          const scheduleEventSpy = jest.spyOn(eventScheduler.getInstance(), "scheduleEvent");
+
+          await eventQueue.processEventQueue(tx.context, event.type, event.subType);
+
+          await selectEventQueueAndReturn(tx, {
+            type: "TimeSpecificEveryMin_PERIODIC",
+            expectedLength: 2,
+          });
+          expect(scheduleEventSpy).not.toHaveBeenCalled();
+          scheduleEventSpy.mockRestore();
+        });
+
+        it("should schedule an in-memory timer if the next occurrence is within the run interval", async () => {
+          const periodicEventsCron = fileContent.periodicEvents
+            .filter((e) => e.cron)
+            .map((e) => {
+              e.cron = "*/5 * * * *"; // Runs every 5 minutes.
+              return e;
+            });
+          const [periodicEvent] = periodicEventsCron;
+          config.mixFileContentWithEnv({
+            events: fileContent.events,
+            periodicEvents: [periodicEvent],
+          });
+          await checkAndInsertPeriodicEvents(context);
+          const [event] = await selectEventQueueAndReturn(tx, {
+            type: "TimeSpecificEveryMin_PERIODIC",
+            expectedLength: 1,
+            additionalColumns: ["type", "subType"],
+          });
+          jest.setSystemTime(new Date(event.startAfter));
+          const scheduleEventSpy = jest.spyOn(eventScheduler.getInstance(), "scheduleEvent");
+
+          await eventQueue.processEventQueue(tx.context, event.type, event.subType);
+
+          expect(scheduleEventSpy).toHaveBeenCalledTimes(1);
+          expect(scheduleEventSpy.mock.calls[0][4]).toEqual(new Date("2023-11-13T11:10:00.000Z"));
+          scheduleEventSpy.mockRestore();
+        });
+
+        it("should not trigger an immediate broadcast if the delay of the next occurrence exceeds the setTimeout limit", async () => {
+          const periodicEventsCron = fileContent.periodicEvents
+            .filter((e) => e.cron)
+            .map((e) => {
+              e.cron = "0 5 1 1 *"; // Runs at 05:00 AM on January 1st each year.
+              return e;
+            });
+          const [periodicEvent] = periodicEventsCron;
+          config.mixFileContentWithEnv({
+            events: fileContent.events,
+            periodicEvents: [periodicEvent],
+          });
+          await checkAndInsertPeriodicEvents(context);
+          const [event] = await selectEventQueueAndReturn(tx, {
+            type: "TimeSpecificEveryMin_PERIODIC",
+            expectedLength: 1,
+            additionalColumns: ["type", "subType"],
+          });
+          jest.setSystemTime(new Date(event.startAfter));
+          const broadcastEventSpy = jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+
+          await eventQueue.processEventQueue(tx.context, event.type, event.subType);
+
+          // delays greater than max int32 are clamped to 1ms by node.js
+          jest.advanceTimersByTime(10);
+          expect(broadcastEventSpy).not.toHaveBeenCalled();
+          broadcastEventSpy.mockRestore();
+        });
       });
 
       it("random offset should not lead to invalidation of periodic event - defined on event", async () => {
