@@ -220,6 +220,8 @@ declare class Config {
   get tenantIdFilterAuthContext(): any;
   set tenantIdFilterEventProcessing(value: any);
   get tenantIdFilterEventProcessing(): any;
+  set tenantIdFilterEventProcessingGlobal(value: any);
+  get tenantIdFilterEventProcessingGlobal(): any;
   set runInterval(value: any);
   get runInterval(): any;
   set redisEnabled(value: any);

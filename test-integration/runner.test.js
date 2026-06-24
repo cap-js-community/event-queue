@@ -78,6 +78,7 @@ describe("runner", () => {
     mockRedis.clearState();
     jest.spyOn(cds.connect, "to").mockRestore();
     eventQueue.config.tenantIdFilterEventProcessing = null;
+    eventQueue.config.tenantIdFilterEventProcessingGlobal = null;
   });
 
   afterEach(async () => {
@@ -301,6 +302,70 @@ describe("runner", () => {
           // remove context from arguments for snapshot
           expect(acquireLockSpy.mock.calls.map((call) => [call[1], call[2]])).toMatchSnapshot();
           expect(mockRedis.getState()).toMatchSnapshot();
+        });
+      });
+
+      describe("global tenant id filter keeps the lock and excludes tenants", () => {
+        it("filter returning true keeps the master-runner lock", async () => {
+          eventQueue.config.tenantIdFilterEventProcessingGlobal = () => true;
+          mockTenantIds(tenantIds);
+          const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+          jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+          const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
+          jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
+          const p1 = runner.__._multiTenancyRedis();
+          const p2 = runner.__._multiTenancyRedis();
+
+          await Promise.allSettled([p1, p2]);
+          await Promise.allSettled(WorkerQueue.instance.runningPromises);
+
+          // global filter keeps the lock so a single master runner is elected
+          expect(acquireLockSpy).toHaveBeenCalled();
+          // only the instance that wins the lock checks each tenant once
+          expect(getOpenQueueEntriesSpy).toHaveBeenCalledTimes(tenantIds.length);
+          expect(loggerMock.callsLengths().error).toBe(0);
+        });
+
+        it("filter returning false excludes the tenant while keeping the lock", async () => {
+          const excludedTenant = tenantIds[1];
+          eventQueue.config.tenantIdFilterEventProcessingGlobal = (tenantId) => tenantId !== excludedTenant;
+          mockTenantIds(tenantIds);
+          const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+          jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+          const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
+          jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
+          const p1 = runner.__._multiTenancyRedis();
+          const p2 = runner.__._multiTenancyRedis();
+
+          await Promise.allSettled([p1, p2]);
+          await Promise.allSettled(WorkerQueue.instance.runningPromises);
+
+          expect(acquireLockSpy).toHaveBeenCalled();
+          const checkedTenants = getOpenQueueEntriesSpy.mock.calls.map((call) => call[0].context.tenant);
+          expect(checkedTenants).not.toContain(excludedTenant);
+          expect(new Set(checkedTenants)).toEqual(new Set([tenantIds[0], tenantIds[2]]));
+          expect(loggerMock.callsLengths().error).toBe(0);
+        });
+
+        it("combined with the instance filter still excludes the globally filtered tenant", async () => {
+          const globallyExcluded = tenantIds[0];
+          eventQueue.config.tenantIdFilterEventProcessingGlobal = (tenantId) => tenantId !== globallyExcluded;
+          eventQueue.config.tenantIdFilterEventProcessing = () => true;
+          mockTenantIds(tenantIds);
+          jest.spyOn(redisPub, "broadcastEvent").mockResolvedValue();
+          const getOpenQueueEntriesSpy = jest.spyOn(openEvents, "getOpenQueueEntries");
+          jest.spyOn(periodicEvents, "checkAndInsertPeriodicEvents").mockResolvedValue();
+          const p1 = runner.__._multiTenancyRedis();
+          const p2 = runner.__._multiTenancyRedis();
+
+          await Promise.allSettled([p1, p2]);
+          await Promise.allSettled(WorkerQueue.instance.runningPromises);
+
+          const checkedTenants = getOpenQueueEntriesSpy.mock.calls.map((call) => call[0].context.tenant);
+          expect(checkedTenants).not.toContain(globallyExcluded);
+          expect(checkedTenants).toContain(tenantIds[1]);
+          expect(checkedTenants).toContain(tenantIds[2]);
+          expect(loggerMock.callsLengths().error).toBe(0);
         });
       });
     });
