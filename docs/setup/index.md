@@ -233,3 +233,38 @@ config.tenantIdFilterEventProcessing = async (tenantId) => {
 
 This configuration is especially useful in multi-tenant environments where some tenants require dedicated processing
 based on specific criteria, such as resource usage, geographical location, or subscription level.
+
+## Instance-Specific vs. Global Tenant Filtering
+
+There are two distinct tenant filter callbacks, and choosing the right one matters for database load:
+
+- `tenantIdFilterEventProcessing` is **instance-specific**. It is intended for sticky-tenant setups where a tenant is
+  owned by exactly one application instance, and the callback returns a different answer depending on the instance it
+  runs on. Because every instance must run the master-runner pass (each filtered to its own subset of tenants), this
+  callback **deliberately skips the global master-runner lock**.
+
+- `tenantIdFilterEventProcessingGlobal` is **global**. It is intended for excluding tenants from processing entirely,
+  and the callback returns the **same answer on every instance**. This callback **keeps the master-runner lock**, so a
+  single instance scans the (filtered) tenant list and distributes the work — keeping the number of open database
+  connections low.
+
+> [!IMPORTANT]
+> If you only want to exclude certain tenants from processing (the same exclusion on every instance), use
+> `tenantIdFilterEventProcessingGlobal`. Using `tenantIdFilterEventProcessing` for a global exclusion causes every
+> instance to act as a master runner, which increases the number of open database connections.
+
+Both callbacks can be combined: a tenant is processed only if **both** return `true`.
+
+### Example
+
+```js
+const { config } = require("@cap-js-community/event-queue");
+
+// Exclude specific tenants from event processing on all instances
+config.tenantIdFilterEventProcessingGlobal = async (tenantId) => {
+  return !(await isTenantExcluded(tenantId));
+};
+```
+
+The return value follows the same convention as `tenantIdFilterEventProcessing`: `true` means the tenant's events are
+processed, `false` excludes the tenant from processing.

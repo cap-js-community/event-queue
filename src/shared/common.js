@@ -147,24 +147,26 @@ const getAuthContext = async (tenantId, { returnError = false } = {}) => {
   }
 };
 
-const isTenantIdValidCb = async (checkType, tenantId) => {
-  let cb;
-  switch (checkType) {
-    case TenantIdCheckTypes.getAuthContext:
-      cb = config.tenantIdFilterAuthContext;
-      break;
-    case TenantIdCheckTypes.eventProcessing:
-      cb = config.tenantIdFilterEventProcessing;
-      break;
-    default:
-      cb = async () => true;
-  }
-
+const _runTenantIdFilterCb = async (cb, tenantId) => {
   try {
     return cb ? await cb(tenantId) : true;
   } catch (err) {
     cds.log(COMPONENT_NAME).error("failed in custom tenant id filter callback. Returning true.", err);
     return true;
+  }
+};
+
+const isTenantIdValidCb = async (checkType, tenantId) => {
+  switch (checkType) {
+    case TenantIdCheckTypes.getAuthContext:
+      return _runTenantIdFilterCb(config.tenantIdFilterAuthContext, tenantId);
+    case TenantIdCheckTypes.eventProcessing: {
+      const globalOk = await _runTenantIdFilterCb(config.tenantIdFilterEventProcessingGlobal, tenantId);
+      const instanceOk = await _runTenantIdFilterCb(config.tenantIdFilterEventProcessing, tenantId);
+      return globalOk && instanceOk;
+    }
+    default:
+      return true;
   }
 };
 

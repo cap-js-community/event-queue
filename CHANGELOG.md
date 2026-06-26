@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v2.2.0 - 2026-06-24
+
+### Added
+
+- New tenant filter callback `tenantIdFilterEventProcessingGlobal` for globally excluding tenants from event processing. Unlike the instance-specific `tenantIdFilterEventProcessing` (which intentionally skips the master-runner lock for sticky-tenant setups, causing every instance to act as a master runner), the global filter returns the same answer on every instance and therefore keeps the master-runner lock. This lets you exclude tenants from processing entirely without increasing the number of open database connections. Both callbacks can be combined; a tenant is processed only if both return `true`. See [documentation](https://cap-js-community.github.io/event-queue/setup/#instance-specific-vs-global-tenant-filtering).
+
 ## v2.1.2 - 2026-06-12
 
 ### Fixed

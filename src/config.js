@@ -114,6 +114,7 @@ class Config {
   #crashOnRedisUnavailable;
   #tenantIdFilterAuthContextCb;
   #tenantIdFilterEventProcessingCb;
+  #tenantIdFilterEventProcessingGlobalCb;
   #configEvents;
   #configPeriodicEvents;
   #enableAdminService;
@@ -717,6 +718,14 @@ class Config {
 
   set tenantIdFilterEventProcessing(value) {
     this.#tenantIdFilterEventProcessingCb = value;
+  }
+
+  get tenantIdFilterEventProcessingGlobal() {
+    return this.#tenantIdFilterEventProcessingGlobalCb;
+  }
+
+  set tenantIdFilterEventProcessingGlobal(value) {
+    this.#tenantIdFilterEventProcessingGlobalCb = value;
   }
 
   set globalTxTimeout(value) {
