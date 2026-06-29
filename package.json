@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@cap-js/cds-test": "^1.0.1",
-    "@cap-js/db-service": "^2.11.0",
+    "@cap-js/db-service": "^3.0.0",
     "@cap-js/hana": "^2.8.0",
     "@cap-js/sqlite": "^2.4.0",
     "@eslint/js": "^10.0.1",
