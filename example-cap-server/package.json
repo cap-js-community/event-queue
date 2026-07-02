@@ -14,7 +14,7 @@
   "dependencies": {
     "@cap-js-community/event-queue": "file:..",
     "@cap-js/audit-logging": "^1.1.1",
-    "@sap/cds": "^9.7.1",
+    "@sap/cds": "^10.0.0",
     "@sap/cds-mtxs": "^3.7.0"
   },
   "devDependencies": {
