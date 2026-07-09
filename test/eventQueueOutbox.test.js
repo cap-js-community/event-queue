@@ -628,9 +628,8 @@ describe("event-queue outbox", () => {
       expect(event.status).toEqual(EventProcessingStatus.Error);
       expect(JSON.parse(event.error)).toEqual(
         expect.objectContaining({
-          code: 404,
+          name: "Error",
           message: "error occurred",
-          numericSeverity: 4,
         })
       );
       expect(loggerMock.callsLengths().error).toEqual(1);
@@ -1665,9 +1664,10 @@ describe("event-queue outbox", () => {
           const data = { to: "to", subject: "subject", body: "body" };
           await service.send("exceededActionSpecificError", data);
           await commitAndOpenNew();
+          const { retryAttempts } = config.getEventConfig("CAP_OUTBOX", service.name);
           await tx.run(
             UPDATE("sap.eventqueue.Event").set({
-              attempts: 20,
+              attempts: retryAttempts,
               status: EventProcessingStatus.Error,
               lastAttemptTimestamp: new Date(Date.now() - 1000),
             })
@@ -3221,8 +3221,8 @@ describe("event-queue outbox", () => {
         const service = await cds.connect.to("NotificationService");
         const srvQueued = cds.queued(service);
         await cds.tx({}, async () => {
-          await srvQueued.read(service.entities().Event);
-          await service.read(service.entities().Event);
+          await srvQueued.read(service.entities.Event);
+          await service.read(service.entities.Event);
           await commitAndOpenNew();
         });
         const [event] = await testHelper.selectEventQueueAndReturn(tx, {

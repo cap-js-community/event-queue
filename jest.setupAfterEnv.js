@@ -1,9 +1,13 @@
 "use strict";
 
+const cds = require("@sap/cds");
+cds.setMaxListeners(0);
+
 const parsedCdsOptions = JSON.parse(process.env.CDS_CONFIG ?? "{}");
 
 parsedCdsOptions.requires ??= {};
 parsedCdsOptions.requires.outbox = "persistent-outbox";
+parsedCdsOptions.requires["event-queue"] = false;
 
 process.env.CDS_CONFIG = JSON.stringify(parsedCdsOptions);
 
