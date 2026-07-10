@@ -54,5 +54,5 @@ example-cap-server/package-lock.json
 *.sqlite
 
 # default env
-test-integration/_env/default-env.json
+default-env.json
 
