@@ -10,7 +10,7 @@ parsedCdsOptions.requires.outbox = "persistent-outbox";
 
 // Prevent loading own module in test as already served via srv
 parsedCdsOptions.requires["event-queue"] = {
-  model: null
+  model: null,
 };
 
 process.env.CDS_CONFIG = JSON.stringify(parsedCdsOptions);
