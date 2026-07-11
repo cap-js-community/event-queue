@@ -471,6 +471,44 @@ describe("baseFunctionality", () => {
         startAfter: new Date(done2.startAfter).toISOString(),
       });
     });
+
+    test("app down longer than 30 days - stale event is refreshed on restart", async () => {
+      const event = eventQueue.config.periodicEvents[0];
+      await cds.tx({}, (tx) => checkAndInsertPeriodicEvents(tx.context));
+
+      // simulate a 30+ day downtime: the pending occurrence's createdAt and startAfter both leave the 30 day window
+      const thirtyOneDaysAgo = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
+      await cds.tx({}, (tx) =>
+        tx.run(
+          UPDATE.entity("sap.eventqueue.Event")
+            .set({ createdAt: thirtyOneDaysAgo, startAfter: thirtyOneDaysAgo })
+            .where({ type: event.type })
+        )
+      );
+
+      // the stale row would no longer be selected by the runner
+      const openEntriesBefore = await cds.tx({}, (tx) => getOpenQueueEntries(tx));
+      expect(openEntriesBefore.find((entry) => entry.type === event.type)).toBeUndefined();
+
+      // a restart refreshes the stale event with a fresh occurrence within the window
+      await cds.tx({}, (tx) => checkAndInsertPeriodicEvents(tx.context));
+      const events = await cds.tx({}, (tx) =>
+        testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          type: event.type,
+        })
+      );
+      expect(events[0]).toEqual({
+        status: EventProcessingStatus.Open,
+        attempts: 0,
+        startAfter: expect.any(String),
+      });
+      expect(new Date(events[0].startAfter).getTime()).toBeGreaterThan(new Date(thirtyOneDaysAgo).getTime());
+
+      // and the refreshed event is selected by the runner again
+      const openEntriesAfter = await cds.tx({}, (tx) => getOpenQueueEntries(tx));
+      expect(openEntriesAfter.find((entry) => entry.type === event.type)).toBeDefined();
+    });
   });
 
   describe("getOpenQueueEntries", () => {

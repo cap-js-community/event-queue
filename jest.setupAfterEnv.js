@@ -1,9 +1,17 @@
 "use strict";
 
+const cds = require("@sap/cds");
+cds.setMaxListeners(0);
+
 const parsedCdsOptions = JSON.parse(process.env.CDS_CONFIG ?? "{}");
 
 parsedCdsOptions.requires ??= {};
 parsedCdsOptions.requires.outbox = "persistent-outbox";
+
+// Prevent loading own module in test as already served via srv
+parsedCdsOptions.requires["event-queue"] = {
+  model: null,
+};
 
 process.env.CDS_CONFIG = JSON.stringify(parsedCdsOptions);
 

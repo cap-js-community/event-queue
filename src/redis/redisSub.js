@@ -74,12 +74,10 @@ const _messageHandlerProcessEvents = async (messageData) => {
       }
     }
 
-    if (
-      !(
-        config.getEventConfig(type, subType, namespace) &&
-        config.shouldBeProcessedInThisApplication(type, subType, namespace)
-      )
-    ) {
+    if (!(
+      config.getEventConfig(type, subType, namespace) &&
+      config.shouldBeProcessedInThisApplication(type, subType, namespace)
+    )) {
       logger.debug("event is not configured to be processed on this app-name", {
         tenantId,
         type,

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v2.3.0 - 2026-07-11
+
+### Changed
+
+- Adjustments for CDS 10: upgraded to `@sap/cds` 10 and `@cap-js/db-service`, `@cap-js/hana`, and `@cap-js/sqlite` 3, and disabled the CDS `scheduling` service (`cds.requires.scheduling: false`) as the event-queue provides its own periodic event scheduling. Remaining runtime and dev dependencies were refreshed to their latest versions.
+
+### Fixed
+
+- Periodic events could get permanently stuck after a long downtime (~30 days or more). The runner only selects events whose `createdAt` or `startAfter` is within the last 30 days, but `checkAndInsertPeriodicEvents` still treated the stale `Open` occurrence as valid and never re-inserted it, so the event was neither processed nor rescheduled. Stale periodic events that fall outside this window are now refreshed with a new occurrence on startup so they resume processing.
+
 ## v2.2.0 - 2026-06-24
 
 ### Added
