@@ -1,9 +1,7 @@
 "use strict";
 
-const { EventProcessingStatus } = require("../constants");
+const { EventProcessingStatus, EVENT_PROCESSING_WINDOW_MS } = require("../constants");
 const config = require("../config");
-
-const MS_IN_DAYS = 24 * 60 * 60 * 1000;
 
 const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
   const startTime = new Date();
@@ -24,9 +22,9 @@ const getOpenQueueEntries = async (tx, filterAppSpecificEvents = true) => {
         "AND lastAttemptTimestamp <=",
         new Date(startTime.getTime() - config.globalTxTimeout).toISOString(),
         ") ) AND (createdAt >=",
-        new Date(startTime.getTime() - 30 * MS_IN_DAYS).toISOString(),
+        new Date(startTime.getTime() - EVENT_PROCESSING_WINDOW_MS).toISOString(),
         " OR startAfter >=",
-        new Date(startTime.getTime() - 30 * MS_IN_DAYS).toISOString(),
+        new Date(startTime.getTime() - EVENT_PROCESSING_WINDOW_MS).toISOString(),
         ")"
       )
       .columns("count(ID) as count", "type", "subType", "namespace")

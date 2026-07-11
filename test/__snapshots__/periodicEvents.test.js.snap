@@ -9,7 +9,7 @@ exports[`baseFunctionality cron events Cron expression tests changed intervals c
     },
   ],
   [
-    "deleting periodic events because they have changed",
+    "deleting periodic events because they have changed or are outside the runner window",
     {
       "changedEvents": [
         {
@@ -1487,7 +1487,7 @@ exports[`baseFunctionality interval events interval change if too far in future 
     },
   ],
   [
-    "deleting periodic events because they have changed",
+    "deleting periodic events because they have changed or are outside the runner window",
     {
       "changedEvents": [
         {

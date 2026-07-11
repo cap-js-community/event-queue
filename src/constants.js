@@ -24,4 +24,6 @@ module.exports = {
     eventProcessing: "eventProcessing",
     getAuthContext: "getAuthContext",
   },
+  // events whose createdAt and startAfter are both older than this are no longer selected for processing
+  EVENT_PROCESSING_WINDOW_MS: 30 * 24 * 60 * 60 * 1000,
 };

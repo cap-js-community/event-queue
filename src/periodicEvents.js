@@ -3,7 +3,7 @@
 const cds = require("@sap/cds");
 const { CronExpressionParser } = require("cron-parser");
 
-const { EventProcessingStatus } = require("./constants");
+const { EventProcessingStatus, EVENT_PROCESSING_WINDOW_MS } = require("./constants");
 const { processChunkedSync } = require("./shared/common");
 const eventConfig = require("./config");
 
@@ -70,14 +70,21 @@ const checkAndInsertPeriodicEvents = async (context) => {
     { newEvents: [], existingEventsCron: [], existingEventsInterval: [] }
   );
 
-  const exitingWithNotMatchingInterval = []
+  const changedEvents = []
     .concat(_determineChangedInterval(existingEventsInterval, now))
     .concat(_determineChangedCron(existingEventsCron, now));
+  // stale events (e.g. after a long downtime) are no longer selected by the runner - refresh them so they resume
+  const staleEvents = _determineStaleEvents(existingEventsInterval.concat(existingEventsCron), now).filter(
+    (event) => !changedEvents.includes(event)
+  );
+  const exitingWithNotMatchingInterval = changedEvents.concat(staleEvents);
 
   exitingWithNotMatchingInterval.length &&
-    cds.log(COMPONENT_NAME).info("deleting periodic events because they have changed", {
-      changedEvents: exitingWithNotMatchingInterval.map(({ type, subType }) => ({ type, subType })),
-    });
+    cds
+      .log(COMPONENT_NAME)
+      .info("deleting periodic events because they have changed or are outside the runner window", {
+        changedEvents: exitingWithNotMatchingInterval.map(({ type, subType }) => ({ type, subType })),
+      });
 
   if (exitingWithNotMatchingInterval.length) {
     const cqnBase = DELETE.from(eventConfig.tableNameEventQueue);
@@ -134,6 +141,14 @@ const _determineChangedCron = (existingEventsCron) => {
       (ALLOWED_PERIODIC_SEC_DIFF + randomOffset) * 1000
     );
   });
+};
+
+const _determineStaleEvents = (existingEvents, currentDate) => {
+  const windowStart = currentDate.getTime() - EVENT_PROCESSING_WINDOW_MS;
+  // mirrors the runner selection window - if both dates are outside it, the event is never picked up again
+  return existingEvents.filter(
+    (event) => new Date(event.createdAt).getTime() < windowStart && new Date(event.startAfter).getTime() < windowStart
+  );
 };
 
 const _insertPeriodEvents = async (tx, events, now) => {

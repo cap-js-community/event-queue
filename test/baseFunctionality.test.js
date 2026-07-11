@@ -472,7 +472,7 @@ describe("baseFunctionality", () => {
       });
     });
 
-    test("app down longer than 30 days - event is neither selected nor re-inserted", async () => {
+    test("app down longer than 30 days - stale event is refreshed on restart", async () => {
       const event = eventQueue.config.periodicEvents[0];
       await cds.tx({}, (tx) => checkAndInsertPeriodicEvents(tx.context));
 
@@ -486,11 +486,11 @@ describe("baseFunctionality", () => {
         )
       );
 
-      // the runner no longer selects the event type for processing
-      const openEntries = await cds.tx({}, (tx) => getOpenQueueEntries(tx));
-      expect(openEntries.find((entry) => entry.type === event.type)).toBeUndefined();
+      // the stale row would no longer be selected by the runner
+      const openEntriesBefore = await cds.tx({}, (tx) => getOpenQueueEntries(tx));
+      expect(openEntriesBefore.find((entry) => entry.type === event.type)).toBeUndefined();
 
-      // and a restart does not re-insert it either - the stale Open row remains the only one
+      // a restart refreshes the stale event with a fresh occurrence within the window
       await cds.tx({}, (tx) => checkAndInsertPeriodicEvents(tx.context));
       const events = await cds.tx({}, (tx) =>
         testHelper.selectEventQueueAndReturn(tx, {
@@ -501,8 +501,13 @@ describe("baseFunctionality", () => {
       expect(events[0]).toEqual({
         status: EventProcessingStatus.Open,
         attempts: 0,
-        startAfter: thirtyOneDaysAgo,
+        startAfter: expect.any(String),
       });
+      expect(new Date(events[0].startAfter).getTime()).toBeGreaterThan(new Date(thirtyOneDaysAgo).getTime());
+
+      // and the refreshed event is selected by the runner again
+      const openEntriesAfter = await cds.tx({}, (tx) => getOpenQueueEntries(tx));
+      expect(openEntriesAfter.find((entry) => entry.type === event.type)).toBeDefined();
     });
   });
 
