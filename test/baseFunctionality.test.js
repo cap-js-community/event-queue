@@ -471,6 +471,39 @@ describe("baseFunctionality", () => {
         startAfter: new Date(done2.startAfter).toISOString(),
       });
     });
+
+    test("app down longer than 30 days - event is neither selected nor re-inserted", async () => {
+      const event = eventQueue.config.periodicEvents[0];
+      await cds.tx({}, (tx) => checkAndInsertPeriodicEvents(tx.context));
+
+      // simulate a 30+ day downtime: the pending occurrence's createdAt and startAfter both leave the 30 day window
+      const thirtyOneDaysAgo = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
+      await cds.tx({}, (tx) =>
+        tx.run(
+          UPDATE.entity("sap.eventqueue.Event")
+            .set({ createdAt: thirtyOneDaysAgo, startAfter: thirtyOneDaysAgo })
+            .where({ type: event.type })
+        )
+      );
+
+      // the runner no longer selects the event type for processing
+      const openEntries = await cds.tx({}, (tx) => getOpenQueueEntries(tx));
+      expect(openEntries.find((entry) => entry.type === event.type)).toBeUndefined();
+
+      // and a restart does not re-insert it either - the stale Open row remains the only one
+      await cds.tx({}, (tx) => checkAndInsertPeriodicEvents(tx.context));
+      const events = await cds.tx({}, (tx) =>
+        testHelper.selectEventQueueAndReturn(tx, {
+          expectedLength: 1,
+          type: event.type,
+        })
+      );
+      expect(events[0]).toEqual({
+        status: EventProcessingStatus.Open,
+        attempts: 0,
+        startAfter: thirtyOneDaysAgo,
+      });
+    });
   });
 
   describe("getOpenQueueEntries", () => {
