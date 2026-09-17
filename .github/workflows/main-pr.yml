@@ -58,7 +58,7 @@ jobs:
     name: postgres test - node.js ${{ matrix.node-version }}
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: eventqueue
