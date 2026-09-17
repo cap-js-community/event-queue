@@ -3,19 +3,43 @@
 let state = {};
 let testState = {};
 
+const _isExpired = (key) => {
+  const expiresAt = state[key]?.expiresAt;
+  if (expiresAt === undefined || expiresAt > Date.now()) {
+    return false;
+  }
+  delete state[key];
+  return true;
+};
+
+const _exists = (key) => !_isExpired(key) && Object.prototype.hasOwnProperty.call(state, key);
+
+const _get = (key) => (_exists(key) ? (state[key].value ?? null) : null);
+
+const _ttl = (key) => {
+  if (!_exists(key)) {
+    return -2;
+  }
+  const expiresAt = state[key].expiresAt;
+  return expiresAt === undefined ? -1 : Math.ceil((expiresAt - Date.now()) / 1000);
+};
+
 const _buildClient = () => ({
-  get: async (key) => state[key]?.value ?? null,
-  exists: async (key) => Object.prototype.hasOwnProperty.call(state, key),
-  set: async (key, value, options) => {
-    if (state[key]) {
+  get: async (key) => _get(key),
+  exists: async (key) => _exists(key),
+  ttl: async (key) => _ttl(key),
+  set: async (key, value, options = {}) => {
+    const exists = _exists(key);
+    if ((options.NX && exists) || (options.XX && !exists)) {
       return null;
     }
-    state[key] = { value, options };
+    const expiresAt = options.PX ? Date.now() + options.PX : undefined;
+    state[key] = { value, options, expiresAt };
     testState[key] = { value, options };
     return "OK";
   },
   del: async (key) => {
-    const existed = Object.prototype.hasOwnProperty.call(state, key);
+    const existed = _exists(key);
     delete state[key];
     return existed ? 1 : 0;
   },
@@ -48,7 +72,7 @@ const _buildClient = () => ({
             "$"
         )
       : null;
-    const matchingKeys = Object.keys(state).filter((k) => !regex || regex.test(k));
+    const matchingKeys = Object.keys(state).filter((k) => _exists(k) && (!regex || regex.test(k)));
     return (async function* () {
       for (const key of matchingKeys) {
         yield key;
@@ -58,6 +82,14 @@ const _buildClient = () => ({
   multi: () => {
     const ops = [];
     const pipeline = {
+      ttl: (key) => {
+        ops.push(async () => _ttl(key));
+        return pipeline;
+      },
+      get: (key) => {
+        ops.push(async () => _get(key));
+        return pipeline;
+      },
       hIncrBy: (key, field, increment) => {
         ops.push(async () => {
           if (!state[key]) {
@@ -117,6 +149,7 @@ module.exports = {
     Object.fromEntries(
       Object.entries(state).map(([key, value]) => {
         delete value.value;
+        delete value.expiresAt;
         return [_sanatizeKey(key), value];
       })
     ),

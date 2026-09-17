@@ -79,7 +79,11 @@ const broadcastEvent = async (tenantId, events, forceBroadcast = false) => {
           for (let i = 0; i < TRIES_FOR_PUBLISH_PERIODIC_EVENT; i++) {
             const result = eventConfig.multiInstanceProcessing
               ? false
-              : await distributedLock.checkLockExists(context, [namespace, type, subType].join("##"));
+              : await distributedLock.checkLockExists(
+                  context,
+                  distributedLock.generateEventLockKey(namespace, type, subType),
+                  { skipNamespace: true }
+                );
             if (result) {
               logger.debug("skip publish redis event as no lock is available", {
                 type,
