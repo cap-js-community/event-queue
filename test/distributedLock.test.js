@@ -97,6 +97,113 @@ describe("distributedLock", () => {
     expect(lockAcquiredSecond).toEqual(true);
   });
 
+  describe("event processing lock", () => {
+    const NAMESPACE = "default";
+    const TYPE = "Notifications";
+    const SUB_TYPE = "Task";
+    const lockKey = () => distributedLock.generateEventLockKey(NAMESPACE, TYPE, SUB_TYPE);
+    const acquireOptions = (token) => ({ skipNamespace: true, value: token });
+
+    const allLocks = async () => (await tx.run(SELECT.from("sap.eventqueue.Lock").orderBy("code"))).map((l) => l.code);
+
+    it("renew must refresh the lock which has been acquired and must not create a second one", async () => {
+      const token = distributedLock.generateLockToken();
+      expect(await distributedLock.acquireLock(context, lockKey(), acquireOptions(token))).toEqual(true);
+      const [acquired] = await tx.run(SELECT.from("sap.eventqueue.Lock"));
+
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(await distributedLock.renewLock(context, lockKey(), { skipNamespace: true, token })).toEqual(true);
+
+      expect(await allLocks()).toEqual([acquired.code]);
+      const [renewed] = await tx.run(SELECT.from("sap.eventqueue.Lock"));
+      expect(new Date(renewed.createdAt).getTime()).toBeGreaterThan(new Date(acquired.createdAt).getTime());
+
+      await distributedLock.releaseLock(context, lockKey(), { skipNamespace: true, token });
+      expect(await allLocks()).toEqual([]);
+    });
+
+    it("renew must fail if the lock is owned by another instance", async () => {
+      const token = distributedLock.generateLockToken();
+      await distributedLock.acquireLock(context, lockKey(), acquireOptions(token));
+
+      const otherToken = distributedLock.generateLockToken();
+      expect(await distributedLock.renewLock(context, lockKey(), { skipNamespace: true, token: otherToken })).toEqual(
+        false
+      );
+    });
+
+    it("release must not delete a lock which is owned by another instance", async () => {
+      const token = distributedLock.generateLockToken();
+      await distributedLock.acquireLock(context, lockKey(), acquireOptions(token));
+
+      await distributedLock.releaseLock(context, lockKey(), {
+        skipNamespace: true,
+        token: distributedLock.generateLockToken(),
+      });
+
+      expect(await allLocks()).toHaveLength(1);
+    });
+
+    it("renew must take the lock again if it expired and nobody else acquired it", async () => {
+      const token = distributedLock.generateLockToken();
+      await distributedLock.acquireLock(context, lockKey(), acquireOptions(token));
+      await tx.run(DELETE.from("sap.eventqueue.Lock"));
+
+      expect(await distributedLock.renewLock(context, lockKey(), { skipNamespace: true, token })).toEqual(true);
+      expect(await allLocks()).toHaveLength(1);
+    });
+
+    describe("redis", () => {
+      beforeEach(() => {
+        config.redisEnabled = true;
+        mockRedis.clearState();
+      });
+
+      it("renew must refresh the lock which has been acquired and must not create a second one", async () => {
+        const token = distributedLock.generateLockToken();
+        expect(await distributedLock.acquireLock(context, lockKey(), acquireOptions(token))).toEqual(true);
+
+        expect(await distributedLock.renewLock(context, lockKey(), { skipNamespace: true, token })).toEqual(true);
+        expect(Object.keys(mockRedis.getState())).toHaveLength(1);
+
+        await distributedLock.releaseLock(context, lockKey(), { skipNamespace: true, token });
+        expect(Object.keys(mockRedis.getState())).toHaveLength(0);
+      });
+
+      it("renew must fail if the lock is owned by another instance", async () => {
+        await distributedLock.acquireLock(context, lockKey(), acquireOptions(distributedLock.generateLockToken()));
+
+        const otherToken = distributedLock.generateLockToken();
+        expect(await distributedLock.renewLock(context, lockKey(), { skipNamespace: true, token: otherToken })).toEqual(
+          false
+        );
+      });
+
+      it("renew must take the lock again if it expired and nobody else acquired it", async () => {
+        const token = distributedLock.generateLockToken();
+        await distributedLock.acquireLock(context, lockKey(), { ...acquireOptions(token), expiryTime: 10 });
+
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        expect(await distributedLock.renewLock(context, lockKey(), { skipNamespace: true, token })).toEqual(true);
+      });
+
+      it("getAllLocksRedis must report namespace and tenant of the acquired lock", async () => {
+        const token = distributedLock.generateLockToken();
+        await distributedLock.acquireLock(context, lockKey(), acquireOptions(token));
+
+        const locks = await distributedLock.getAllLocksRedis();
+
+        expect(locks).toHaveLength(1);
+        expect(locks[0]).toMatchObject({
+          namespace: NAMESPACE,
+          tenant: String(context.tenant),
+          type: TYPE,
+          subType: SUB_TYPE,
+        });
+      });
+    });
+  });
+
   describe("keep track of locks", () => {
     it("should keep track of lock and delete during shutdown", async () => {
       const lockAcquired = await distributedLock.acquireLock(context, "key", { keepTrackOfLock: true });

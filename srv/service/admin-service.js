@@ -97,9 +97,11 @@ module.exports = class AdminService extends cds.ApplicationService {
       cds.log("eventQueue").info("Releasing event-queue lock", req.data);
       const { type, subType, namespace } = req.data;
       return await cds.tx({ tenant }, async (tx) => {
-        return await distributedLock.releaseLock(tx.context, [namespace, type, subType].join("##"), {
-          skipNamespace: true,
-        });
+        return await distributedLock.releaseLock(
+          tx.context,
+          distributedLock.generateEventLockKey(namespace, type, subType),
+          { skipNamespace: true }
+        );
       });
     });
 
