@@ -219,10 +219,11 @@ exports[`integration-main returning exceeded status should be allowed 2`] = `
 
 exports[`integration-main should do nothing if lock for event combination cannot be acquired 1`] = `
 {
-  "BEGIN": 2,
+  "BEGIN": 3,
   "COMMIT": 1,
   "CREATE": 1,
   "READ": 2,
+  "ROLLBACK": 1,
 }
 `;
 
