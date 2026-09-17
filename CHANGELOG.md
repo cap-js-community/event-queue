@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- Without Redis the scheduled runner (single tenant) run was not guarded against errors. A failing database call — a pool acquire timeout for example — rejected a promise which nobody awaited, so Node reported an unhandled rejection and CAP shut the server down. The run is now guarded like all other runner modes, and the scheduler logs a failing run instead of discarding its promise.
 - The keep-alive renewed a different lock key than the one acquired for processing, so the lock of an event type was never extended and expired after `keepAliveMaxInProgressTime`. Another instance could then process the same type and subtype in parallel, and every renew left an orphan row in `sap.eventqueue.Lock`. Present since v2.0.0.
 - Broadcasting an event via Redis built the lock key with the namespace twice and therefore never detected a running processing run, so the broadcast was not skipped while the event type was already being processed.
 - The lock list of the admin service reported `namespace` and `tenant` swapped, which made releasing a lock from that list address a key which does not exist.

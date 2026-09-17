@@ -315,6 +315,14 @@ const _executePeriodicEventsAllTenants = async (tenantIds) => {
 };
 
 const _singleTenantDb = async () => {
+  try {
+    await _singleTenantDbRun();
+  } catch (err) {
+    cds.log(COMPONENT_NAME).error("executing event queue run for single tenant failed", err);
+  }
+};
+
+const _singleTenantDbRun = async () => {
   const id = cds.utils.uuid();
   const events = await trace(
     { id },
