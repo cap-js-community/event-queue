@@ -494,6 +494,19 @@ describe("runner", () => {
       expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
     });
 
+    it("a failing open event selection must be logged and must not reject", async () => {
+      configInstance.redisEnabled = false;
+      jest
+        .spyOn(openEvents, "getOpenQueueEntries")
+        .mockRejectedValueOnce(new Error("Pool resource could not be acquired"));
+
+      await expect(runner.__._singleTenantDb()).resolves.not.toThrow();
+
+      expect(loggerMock.callsLengths().error).toEqual(1);
+      expect(loggerMock.calls().error[0][0]).toEqual("executing event queue run for single tenant failed");
+      expect(processEventQueueSpy).toHaveBeenCalledTimes(0);
+    });
+
     it("open periodic events", async () => {
       configInstance.redisEnabled = false;
       await cds.tx({}, async (tx2) => {

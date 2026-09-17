@@ -1,5 +1,11 @@
 "use strict";
 
+const cds = require("@sap/cds");
+
+const COMPONENT_NAME = "/eventQueue/SetIntervalDriftSafe";
+
+const _logFailedRun = (err) => cds.log(COMPONENT_NAME).error("scheduled function failed", err);
+
 class SetIntervalDriftSafe {
   #adjustedInterval;
   #interval;
@@ -34,7 +40,7 @@ class SetIntervalDriftSafe {
         return;
       }
       this.run(fn);
-      fn();
+      (async () => fn())().catch(_logFailedRun);
     }, this.#adjustedInterval).unref();
     this.#lastTimeoutId = Number(timeoutId);
   }
