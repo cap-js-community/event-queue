@@ -110,6 +110,9 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = c
 };
 
 const reevaluateShouldContinue = (eventTypeInstance, iterationCounter, startTime) => {
+  if (eventTypeInstance.lockLost) {
+    return false; // the lock has been taken over by another instance
+  }
   if (!eventTypeInstance.selectNextChunk) {
     return false; // no select next chunk configured for this event
   }
@@ -128,7 +131,7 @@ const processPeriodicEvent = async (context, eventTypeInstance) => {
   try {
     let queueEntry;
     let processNext = true;
-    while (processNext) {
+    while (processNext && !eventTypeInstance.lockLost) {
       await executeInNewTransaction(
         eventTypeInstance.context,
         `eventQueue-periodic-scheduleNext-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,

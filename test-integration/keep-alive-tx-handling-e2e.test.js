@@ -151,6 +151,8 @@ describe("keep-alive-tx-handling-e2e", () => {
             forUpdateCounter++;
           }
         });
+        const acquireLockSpy = jest.spyOn(distributedLock, "acquireLock");
+        const releaseLockSpy = jest.spyOn(distributedLock, "releaseLock");
         const renewLockSpy = jest.spyOn(distributedLock, "renewLock");
         jest
           .spyOn(EventQueueTest.prototype, "processEvent")
@@ -166,6 +168,23 @@ describe("keep-alive-tx-handling-e2e", () => {
         expect(forUpdateCounter).toBeGreaterThanOrEqual(1);
         expect(renewLockSpy.mock.calls.length).toBeGreaterThanOrEqual(1);
         expect(loggerMock.callsLengths().error).toEqual(0);
+
+        const [, acquiredKey, acquireOptions] = acquireLockSpy.mock.calls[0];
+        for (const [, renewedKey, renewOptions] of renewLockSpy.mock.calls) {
+          expect(renewedKey).toEqual(acquiredKey);
+          expect(renewOptions.skipNamespace).toEqual(acquireOptions.skipNamespace);
+          expect(renewOptions.token).toEqual(acquireOptions.value);
+        }
+        const [, releasedKey, releaseOptions] = releaseLockSpy.mock.calls[0];
+        expect(releasedKey).toEqual(acquiredKey);
+        expect(releaseOptions.skipNamespace).toEqual(acquireOptions.skipNamespace);
+        expect(releaseOptions.token).toEqual(acquireOptions.value);
+
+        const remainingLocks = await cds.tx({ tenant: context.tenant }, (tx2) =>
+          tx2.run(SELECT.from("sap.eventqueue.Lock"))
+        );
+        expect(remainingLocks).toHaveLength(0);
+
         await testHelper.selectEventQueueAndExpectDone(tx, { expectedLength: 2 });
       });
 

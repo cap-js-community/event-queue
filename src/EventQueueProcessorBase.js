@@ -43,6 +43,7 @@ class EventQueueProcessorBase {
   #currentKeepAlivePromise = Promise.resolve();
   #etagMap;
   #namespace;
+  #lockKey;
   #nextSagaEvents;
 
   constructor(context, eventType, eventSubType, config) {
@@ -64,6 +65,7 @@ class EventQueueProcessorBase {
     this.#eventSubType = eventSubType;
     this.#eventConfig = config ?? {};
     this.#eventConfig.selectedDelayedEventIds ??= [];
+    this.#lockKey = distributedLock.generateEventLockKey(this.#namespace, eventType, eventSubType);
     this.__parallelEventProcessing = this.#eventConfig.parallelEventProcessing ?? DEFAULT_PARALLEL_EVENT_PROCESSING;
     if (this.__parallelEventProcessing > LIMIT_PARALLEL_EVENT_PROCESSING) {
       this.__parallelEventProcessing = LIMIT_PARALLEL_EVENT_PROCESSING;
@@ -965,11 +967,9 @@ class EventQueueProcessorBase {
   }
 
   continuesKeepAlive() {
-    if (Date.now() - this.lockAcquiredTime.getTime() >= this.#eventConfig.keepAliveInterval * 1000) {
-      trace(this.baseContext, "keepAlive-between-iterations", async () => {
-        await this.#renewDistributedLock();
-      }).catch((err) => this.logger.error("renewing lock between intervals failed!", err));
-    }
+    this.#currentKeepAlivePromise = this.#renewLockIfDue().catch((err) =>
+      this.logger.error("renewing lock between intervals failed!", err)
+    );
     this.#keepAliveRunner.start(async () => {
       await this.#currentKeepAlivePromise;
       this.#currentKeepAlivePromise = executeInNewTransaction(this.__baseContext, "keepAlive", async (tx) => {
@@ -1055,11 +1055,13 @@ class EventQueueProcessorBase {
     }
 
     return await trace(this.baseContext, "acquire-lock", async () => {
-      const lockAcquired = await distributedLock.acquireLock(
-        this.__context,
-        [this.#namespace, this.#eventType, this.#eventSubType].join("##"),
-        { keepTrackOfLock: true, expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000, skipNamespace: true }
-      );
+      const token = distributedLock.generateLockToken();
+      const lockAcquired = await distributedLock.acquireLock(this.__context, this.#lockKey, {
+        keepTrackOfLock: true,
+        expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000,
+        skipNamespace: true,
+        value: token,
+      });
       if (!lockAcquired) {
         this.logger.debug("no lock available, exit processing", {
           type: this.#eventType,
@@ -1067,23 +1069,25 @@ class EventQueueProcessorBase {
         });
         return false;
       }
+      this.#eventConfig.lockToken = token;
       this.__lockAcquired = true;
       return true;
     });
   }
 
   async #renewDistributedLock() {
-    if (this.concurrentEventProcessing) {
+    if (this.concurrentEventProcessing || this.lockLost || this.#eventConfig.lockReleased) {
       return true;
     }
 
-    const lockAcquired = await distributedLock.renewLock(
-      this.__context,
-      [this.#eventType, this.#eventSubType].join("##"),
-      { expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000 }
-    );
-    if (!lockAcquired) {
-      this.logger.error("renewing distributed lock failed!", {
+    const lockRenewed = await distributedLock.renewLock(this.__context, this.#lockKey, {
+      expiryTime: this.#eventConfig.keepAliveMaxInProgressTime * 1000,
+      skipNamespace: true,
+      token: this.#eventConfig.lockToken,
+    });
+    if (!lockRenewed) {
+      this.#eventConfig.lockLost = true;
+      this.logger.error("renewing distributed lock failed - the lock is owned by another instance!", {
         type: this.#eventType,
         subType: this.#eventSubType,
       });
@@ -1093,17 +1097,33 @@ class EventQueueProcessorBase {
     return true;
   }
 
+  async #renewLockIfDue() {
+    if (Date.now() - this.lockAcquiredTime.getTime() < this.#eventConfig.keepAliveInterval * 1000) {
+      return;
+    }
+    await trace(this.baseContext, "keepAlive-between-iterations", async () => {
+      await this.#renewDistributedLock();
+    });
+  }
+
   async handleReleaseLock() {
     if (!this.__lockAcquired) {
       return;
     }
+    this.#eventConfig.lockReleased = true;
+    if (this.lockLost) {
+      this.logger.info("skip releasing distributed lock because it is owned by another instance", {
+        type: this.#eventType,
+        subType: this.#eventSubType,
+      });
+      return;
+    }
     try {
       await trace(this.baseContext, "release-lock", async () => {
-        await distributedLock.releaseLock(
-          this.context,
-          [this.#namespace, this.#eventType, this.#eventSubType].join("##"),
-          { skipNamespace: true }
-        );
+        await distributedLock.releaseLock(this.context, this.#lockKey, {
+          skipNamespace: true,
+          token: this.#eventConfig.lockToken,
+        });
       });
     } catch (err) {
       this.logger.error("Releasing distributed lock failed.", err);
@@ -1269,6 +1289,10 @@ class EventQueueProcessorBase {
 
   get keepAlivePromise() {
     return this.#currentKeepAlivePromise;
+  }
+
+  get lockLost() {
+    return !!this.#eventConfig.lockLost;
   }
 
   get logger() {
