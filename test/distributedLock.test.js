@@ -97,6 +97,23 @@ describe("distributedLock", () => {
     expect(lockAcquiredSecond).toEqual(true);
   });
 
+  it("takeover of an existing lock must not run in the transaction of the failed insert", async () => {
+    await distributedLock.acquireLock(context, "key");
+    await tx.run(
+      UPDATE.entity("sap.eventqueue.Lock")
+        .set({ createdAt: new Date(Date.now() - 31 * 60 * 1000).toISOString() })
+        .where("code LIKE '%key%'")
+    );
+    executeInNewTransactionSpy.mockClear();
+
+    expect(await distributedLock.acquireLock(context, "key")).toEqual(true);
+
+    expect(executeInNewTransactionSpy.mock.calls.map(([, tag]) => tag)).toEqual([
+      "distributedLock-acquire",
+      "distributedLock-acquire-takeover",
+    ]);
+  });
+
   describe("event processing lock", () => {
     const NAMESPACE = "default";
     const TYPE = "Notifications";

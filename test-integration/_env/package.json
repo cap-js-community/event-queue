@@ -18,7 +18,11 @@
   "cds": {
     "requires": {
       "db": {
-        "kind": "hana"
+        "kind": "hana",
+        "[postgres]": {
+          "kind": "postgres",
+          "impl": "@cap-js/postgres"
+        }
       }
     },
     "hana": {

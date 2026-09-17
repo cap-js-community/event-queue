@@ -157,7 +157,7 @@ describe("keep-alive-tx-handling-e2e", () => {
         jest
           .spyOn(EventQueueTest.prototype, "processEvent")
           .mockImplementationOnce(async function (processContext, key, queueEntries) {
-            await promisify(setTimeout)(950);
+            await promisify(setTimeout)(1500);
             return queueEntries.map((queueEntry) => [queueEntry.ID, EventProcessingStatus.Done]);
           });
         await eventQueue.processEventQueue(

@@ -205,8 +205,8 @@ const _acquireLockDB = async (
   { value = "true", overrideValue = false, keepTrackOfLock } = {}
 ) => {
   let result;
-  await cdsHelper.executeInNewTransaction(context, "distributedLock-acquire", async (tx) => {
-    try {
+  try {
+    await cdsHelper.executeInNewTransaction(context, "distributedLock-acquire", async (tx) => {
       await tx.run(
         INSERT.into(config.tableNameEventLock).entries({
           code: fullKey,
@@ -214,7 +214,9 @@ const _acquireLockDB = async (
         })
       );
       result = true;
-    } catch (err) {
+    });
+  } catch {
+    await cdsHelper.executeInNewTransaction(context, "distributedLock-acquire-takeover", async (tx) => {
       let currentEntry;
 
       if (!overrideValue) {
@@ -241,8 +243,8 @@ const _acquireLockDB = async (
       } else {
         result = false;
       }
-    }
-  });
+    });
+  }
   if (result && keepTrackOfLock) {
     existingLocks[fullKey] = { tenant: context.tenant, token: value };
   }

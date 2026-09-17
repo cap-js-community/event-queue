@@ -30,7 +30,7 @@ async function executeInNewTransaction(context = {}, transactionTag, fn, args, {
   try {
     const authInfo = await common.getAuthContext(context.tenant);
     const user = new cds.User.Privileged({ id: config.userId, authInfo, tokenInfo: authInfo?.token });
-    if (cds.db.kind === "hana") {
+    if (cds.db.kind !== "sqlite") {
       await cds.tx(
         {
           id: context.id,

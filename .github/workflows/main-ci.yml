@@ -43,6 +43,48 @@ jobs:
           HANA_DB_CREDENTIALS: ${{secrets.HANA_DB_CREDENTIALS}}
           SCHEMA_GUIDS: ${{steps.deploySchema.outputs.schemaGuids}}
 
+  test-postgres:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22, 24]
+
+    name: postgres test - node.js ${{ matrix.node-version }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: eventqueue
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CDS_ENV: postgres
+      CDS_REQUIRES_DB_CREDENTIALS_HOST: localhost
+      CDS_REQUIRES_DB_CREDENTIALS_PORT: 5432
+      CDS_REQUIRES_DB_CREDENTIALS_USER: postgres
+      CDS_REQUIRES_DB_CREDENTIALS_PASSWORD: postgres
+      CDS_REQUIRES_DB_CREDENTIALS_DATABASE: eventqueue
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+      - run: npm ci --package-lock
+      - name: deploy postgres schemas
+        id: deploySchema
+        run: npm run test:deploySchema:postgres
+      - run: npm run test:prepare
+      - run: npm run voter:test:integration
+        env:
+          POSTGRES_SCHEMAS: ${{ steps.deploySchema.outputs.schemas }}
+
   lint:
     runs-on: ubuntu-latest
     steps:
