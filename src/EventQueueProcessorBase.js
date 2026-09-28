@@ -44,7 +44,7 @@ class EventQueueProcessorBase {
   #etagMap;
   #namespace;
   #lockKey;
-  #nextSagaEvents;
+  #nextSagaEvents = new Map();
 
   constructor(context, eventType, eventSubType, config) {
     this.__context = context;
@@ -100,6 +100,11 @@ class EventQueueProcessorBase {
   // eslint-disable-next-line no-unused-vars
   async processEvent(processContext, key, queueEntries, payload) {
     throw new Error(IMPLEMENT_ERROR_MESSAGE);
+  }
+
+  // NOTE: internal - status for events whose transaction failed after processing, committed with follow-ups in processContext
+  async handleEventTransactionError(processContext, key, queueEntries, payload, error) {
+    return queueEntries.map((queueEntry) => [queueEntry.ID, { status: EventProcessingStatus.Error, error }]);
   }
 
   /**
@@ -442,7 +447,7 @@ class EventQueueProcessorBase {
    * selected events a status has been submitted. Persisting the status of events is done in a dedicated database tx.
    * The function accepts no arguments as there are dedicated functions to set the status of events (e.g. setEventStatus)
    */
-  async persistEventStatus(tx, { skipChecks, statusMap = this.__statusMap } = {}) {
+  async persistEventStatus(tx, { skipChecks, statusMap = this.__statusMap, key, businessTxRolledBack = false } = {}) {
     this.logger.debug("entering persistEventStatus", {
       eventType: this.#eventType,
       eventSubType: this.#eventSubType,
@@ -537,9 +542,9 @@ class EventQueueProcessorBase {
         );
       }
 
-      if (this.#nextSagaEvents?.length) {
-        await tx.run(INSERT.into(this.#config.tableNameEventQueue).entries(this.#nextSagaEvents));
-        this.#nextSagaEvents = [];
+      const nextSagaEvents = this.#takeNextSagaEvents(key, businessTxRolledBack);
+      if (nextSagaEvents.length) {
+        await tx.run(INSERT.into(this.#config.tableNameEventQueue).entries(nextSagaEvents));
       }
     });
   }
@@ -650,13 +655,31 @@ class EventQueueProcessorBase {
     });
   }
 
-  handleErrorTx(error) {
+  handleErrorTx(error, queueEntries = this.__queueEntries) {
+    this.logErrorTx(error, queueEntries);
+    this.#setEventsToError(queueEntries);
+  }
+
+  handleErrorTxFallback(error, queueEntries) {
+    this.logger.error("Setting events to error after a failed transaction failed as well", error, {
+      eventType: this.#eventType,
+      eventSubType: this.#eventSubType,
+      queueEntriesIds: queueEntries.map(({ ID }) => ID),
+    });
+    this.#setEventsToError(queueEntries);
+  }
+
+  #setEventsToError(queueEntries) {
+    queueEntries.forEach((queueEntry) => {
+      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
+    });
+  }
+
+  logErrorTx(error, queueEntries = this.__queueEntries) {
     this.logger.error("Error in commit|rollback transaction, check handlers and constraints!", error, {
       eventType: this.#eventType,
       eventSubType: this.#eventSubType,
-    });
-    this.__queueEntries.forEach((queueEntry) => {
-      this.#determineAndAddEventStatusToMap(queueEntry.ID, EventProcessingStatus.Error);
+      queueEntriesIds: queueEntries.map(({ ID }) => ID),
     });
   }
 
@@ -1436,7 +1459,25 @@ class EventQueueProcessorBase {
   }
 
   set nextSagaEvents(value) {
-    this.#nextSagaEvents = value;
+    this.#nextSagaEvents.set(undefined, { events: value, insertedInBusinessTx: false });
+  }
+
+  // NOTE: events inserted in the business tx are only inserted again if the business tx has been rolled back
+  setNextSagaEvents(key, events, { insertedInBusinessTx = false } = {}) {
+    this.#nextSagaEvents.set(key, { events: events ?? [], insertedInBusinessTx });
+  }
+
+  discardNextSagaEvents(key) {
+    this.#nextSagaEvents.delete(key);
+  }
+
+  // NOTE: taken synchronously so parallel event transactions never insert the same follow-ups
+  #takeNextSagaEvents(key, businessTxRolledBack) {
+    const entries = key !== undefined ? [this.#nextSagaEvents.get(key)] : [...this.#nextSagaEvents.values()];
+    key !== undefined ? this.#nextSagaEvents.delete(key) : this.#nextSagaEvents.clear();
+    return entries
+      .filter((entry) => entry && (businessTxRolledBack || !entry.insertedInBusinessTx))
+      .flatMap(({ events }) => events);
   }
 }
 

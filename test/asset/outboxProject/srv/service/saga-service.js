@@ -7,7 +7,8 @@ const capturedTriggerEvents = {};
 class StandardService extends cds.Service {
   async init() {
     await super.init();
-    this.on("saga", (req) => {
+    this.on("saga", async (req) => {
+      await StandardService.beforeSagaReturn?.(req);
       capturedTriggerEvents[req.event] = req.eventQueue?.triggerEvent;
       cds.log(this.name).info(req.event, {
         data: req.data,
@@ -17,6 +18,10 @@ class StandardService extends cds.Service {
 
       if (req.data.throw) {
         throw new Error(req.data.throw);
+      }
+
+      if (req.data.rollback) {
+        req.eventQueue.processor.setShouldRollbackTransaction(req.eventQueue.key);
       }
 
       return {

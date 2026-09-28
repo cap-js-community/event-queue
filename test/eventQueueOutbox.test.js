@@ -178,6 +178,23 @@ cds.env.requires.Saga = {
   },
 };
 
+cds.env.requires.SagaParallel = {
+  impl: path.join(basePath, "srv/service/saga-service.js"),
+  queued: { kind: "persistent-queue", parallelEventProcessing: 3 },
+};
+
+for (const transactionMode of ["alwaysCommit", "alwaysRollback"]) {
+  cds.env.requires[`SagaParallel_${transactionMode}`] = {
+    impl: path.join(basePath, "srv/service/saga-service.js"),
+    queued: { kind: "persistent-queue", parallelEventProcessing: 3, transactionMode, checkForNextChunk: false },
+  };
+}
+
+cds.env.requires.SagaParallelLastAttempt = {
+  impl: path.join(basePath, "srv/service/saga-service.js"),
+  queued: { kind: "persistent-queue", parallelEventProcessing: 3, retryAttempts: 1, retryFailedAfter: 0 },
+};
+
 cds.env.requires.SagaSpecificConfig = {
   impl: path.join(basePath, "srv/service/saga-service.js"),
   queued: {
@@ -3175,6 +3192,171 @@ describe("event-queue outbox", () => {
           expect(payloads).toContain("saga/#done");
           expect(loggerMock.callsLengths().error).toEqual(0);
           config.insertEventsBeforeCommit = true;
+        });
+      });
+
+      describe("parallel event processing", () => {
+        const eventName = (event) => JSON.parse(event.payload).event;
+        const triggerEventId = (event) => JSON.parse(JSON.parse(event.payload).data.triggerEvent).ID;
+        const followUpTriggerIds = (events, name) =>
+          events
+            .filter((event) => eventName(event) === name)
+            .map(triggerEventId)
+            .sort();
+
+        const sendSagaEvents = async (serviceName, dataFn) => {
+          const service = await cds.connect.to(serviceName);
+          for (const n of [1, 2, 3]) {
+            await service.tx(context).send("saga", dataFn(n));
+          }
+          await commitAndOpenNew();
+          const sent = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 3,
+            additionalColumns: ["ID", "payload"],
+          });
+          const idOf = (n) => sent.find((event) => JSON.parse(event.payload).data.n === n).ID;
+          return { service, idOf };
+        };
+
+        afterEach(() => {
+          testHelper.restoreHoldPersist();
+          SagaService.beforeSagaReturn = null;
+        });
+
+        describe.each(["alwaysCommit", "alwaysRollback"])("shared transaction - %s", (transactionMode) => {
+          it.each([
+            ["succeeded", (n) => ({ n })],
+            ["failed", (n) => ({ n, status: EventProcessingStatus.Error, nextData: { n } })],
+          ])("each event inserts its own %s and done follow-ups", async (saga, dataFn) => {
+            const { service, idOf } = await sendSagaEvents(`SagaParallel_${transactionMode}`, dataFn);
+            SagaService.beforeSagaReturn = testHelper.createBarrier(3);
+
+            await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+            // NOTE: a follow-up left in the shared transaction is lost if that transaction is rolled back
+            expect(cds.tx(tx.context)._eventQueue?.events ?? []).toHaveLength(0);
+            await commitAndOpenNew();
+
+            const events = await testHelper.selectEventQueueAndReturn(tx, {
+              expectedLength: 9,
+              additionalColumns: ["ID", "payload"],
+            });
+            const sagaIds = [idOf(1), idOf(2), idOf(3)].sort();
+            expect(followUpTriggerIds(events, `saga/#${saga}`)).toEqual(sagaIds);
+            expect(followUpTriggerIds(events, "saga/#done")).toEqual(sagaIds);
+            expect(loggerMock.callsLengths().error).toEqual(0);
+          });
+        });
+
+        it("each event inserts its own succeeded and done follow-ups", async () => {
+          const { service, idOf } = await sendSagaEvents("SagaParallel", (n) => ({ n }));
+          testHelper.holdPersistUntilAllProcessed(3);
+
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+
+          const events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 9,
+            additionalColumns: ["ID", "payload"],
+          });
+          const sagaIds = [idOf(1), idOf(2), idOf(3)].sort();
+          const sagaEvents = events.filter((event) => eventName(event) === "saga");
+          expect(sagaEvents.map(({ status }) => status)).toEqual(Array(3).fill(EventProcessingStatus.Done));
+          expect(followUpTriggerIds(events, "saga/#succeeded")).toEqual(sagaIds);
+          expect(followUpTriggerIds(events, "saga/#done")).toEqual(sagaIds);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("each failed event inserts its own failed and done follow-ups", async () => {
+          const { service, idOf } = await sendSagaEvents("SagaParallel", (n) => ({
+            n,
+            status: EventProcessingStatus.Error,
+            nextData: { n, status: EventProcessingStatus.Done },
+          }));
+          testHelper.holdPersistUntilAllProcessed(3);
+
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+
+          const events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 9,
+            additionalColumns: ["ID", "payload"],
+          });
+          const sagaIds = [idOf(1), idOf(2), idOf(3)].sort();
+          const sagaEvents = events.filter((event) => eventName(event) === "saga");
+          expect(sagaEvents.map(({ status }) => status)).toEqual(Array(3).fill(EventProcessingStatus.Error));
+          expect(followUpTriggerIds(events, "saga/#failed")).toEqual(sagaIds);
+          expect(followUpTriggerIds(events, "saga/#done")).toEqual(sagaIds);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        it("a failing event transaction only sets its own event to error and triggers failed", async () => {
+          const { service, idOf } = await sendSagaEvents("SagaParallel", (n) => ({ n }));
+          testHelper.holdPersistUntilAllProcessed(3, { failForId: idOf(2) });
+
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+
+          const events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 9,
+            additionalColumns: ["ID", "payload"],
+          });
+          const statusById = Object.fromEntries(events.map(({ ID, status }) => [ID, status]));
+          expect(statusById[idOf(1)]).toEqual(EventProcessingStatus.Done);
+          expect(statusById[idOf(2)]).toEqual(EventProcessingStatus.Error);
+          expect(statusById[idOf(3)]).toEqual(EventProcessingStatus.Done);
+          expect(followUpTriggerIds(events, "saga/#succeeded")).toEqual([idOf(1), idOf(3)].sort());
+          expect(followUpTriggerIds(events, "saga/#failed")).toEqual([idOf(2)]);
+          expect(followUpTriggerIds(events, "saga/#done")).toEqual([idOf(1), idOf(2), idOf(3)].sort());
+        });
+
+        it("if setting the error status fails as well the event is still set to error", async () => {
+          const { service, idOf } = await sendSagaEvents("SagaParallel", (n) => ({ n }));
+          testHelper.holdPersistUntilAllProcessed(3, {
+            failForId: idOf(2),
+            failForStatuses: [EventProcessingStatus.Done, EventProcessingStatus.Error],
+          });
+
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+
+          const events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 7,
+            additionalColumns: ["ID", "payload"],
+          });
+          const statusById = Object.fromEntries(events.map(({ ID, status }) => [ID, status]));
+          expect(statusById[idOf(1)]).toEqual(EventProcessingStatus.Done);
+          expect(statusById[idOf(2)]).toEqual(EventProcessingStatus.Error);
+          expect(statusById[idOf(3)]).toEqual(EventProcessingStatus.Done);
+          expect(followUpTriggerIds(events, "saga/#succeeded")).toEqual([idOf(1), idOf(3)].sort());
+          expect(followUpTriggerIds(events, "saga/#failed")).toEqual([]);
+          expect(loggerMock.calls().error.map(([message]) => message)).toEqual([
+            "Error in commit|rollback transaction, check handlers and constraints!",
+            "Setting events to error after a failed transaction failed as well",
+          ]);
+        });
+
+        it("a failing event transaction in the last attempt still triggers failed", async () => {
+          const { service, idOf } = await sendSagaEvents("SagaParallelLastAttempt", (n) => ({ n }));
+          testHelper.holdPersistUntilAllProcessed(3, { failForId: idOf(2) });
+
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          testHelper.restoreHoldPersist();
+
+          let events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 9,
+            additionalColumns: ["ID", "payload"],
+          });
+          expect(events.find(({ ID }) => ID === idOf(2)).status).toEqual(EventProcessingStatus.Error);
+          expect(followUpTriggerIds(events, "saga/#failed")).toEqual([idOf(2)]);
+
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+          events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 9,
+            additionalColumns: ["ID", "payload"],
+          });
+          expect(events.find(({ ID }) => ID === idOf(2)).status).toEqual(EventProcessingStatus.Exceeded);
         });
       });
     });
