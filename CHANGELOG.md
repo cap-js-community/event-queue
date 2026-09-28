@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v2.3.2 - 2026-09-25
+
+### Fixed
+
+- Saga follow-ups (`#succeeded`, `#failed`, `#done`) are now reliably assigned to the transaction of the event which created them when events are processed in parallel. This prevents missing follow-ups and duplicate key errors.
+- Improved follow-up handling for transaction mode `alwaysCommit` and `alwaysRollback`, so that all follow-ups of a chunk with multiple events are inserted.
+- Improved error handling in transaction mode `isolated`: a failing event transaction now only sets its own events to error and triggers `#failed` for them. Other events of the chunk keep their status.
+- With `insertEventsBeforeCommit: false`, `#succeeded` and `#done` follow-ups are now also inserted if the business transaction is rolled back.
+
+### Added
+
+- `EventQueueProcessorBase.handleEventTransactionError` to set the status of events whose transaction failed after processing.
+
 ## v2.3.1 - 2026-09-17
 
 ### Fixed
