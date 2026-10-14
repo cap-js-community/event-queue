@@ -75,6 +75,7 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = c
         return;
       }
       eventTypeInstance.endPerformanceTracerPreprocessing();
+      let businessTxRolledBack = false;
       if (Object.keys(eventTypeInstance.queueEntriesWithPayloadMap).length) {
         await executeInNewTransaction(context, `eventQueue-processing-${eventType}##${eventSubType}`, async (tx) => {
           eventTypeInstance.processEventContext = tx.context;
@@ -90,12 +91,13 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = c
               eventTypeInstance.shouldRollbackTransaction(key)
             )
           ) {
+            businessTxRolledBack = true;
             await tx.rollback();
           }
         });
       }
       await executeInNewTransaction(context, `eventQueue-persistStatus-${eventType}##${eventSubType}`, async (tx) => {
-        await eventTypeInstance.persistEventStatus(tx);
+        await eventTypeInstance.persistEventStatus(tx, { businessTxRolledBack });
       });
       shouldContinue = reevaluateShouldContinue(eventTypeInstance, iterationCounter, eventConfig.startTime);
     }
@@ -225,24 +227,29 @@ const processEventMap = async (instance) => {
     async ([key, { queueEntries, payload }]) => {
       if (instance.commitOnEventLevel) {
         let statusMap;
-        await executeInNewTransaction(
-          instance.baseContext,
-          `eventQueue-processEvent-${instance.eventType}##${instance.eventSubType}`,
-          async (tx) => {
-            statusMap = await _processEvent(instance, tx.context, key, queueEntries, payload);
-            const shouldRollback =
-              instance.statusMapContainsError(statusMap) || instance.shouldRollbackTransaction(key);
-            if (shouldRollback) {
-              await tx.rollback();
-              await _commitStatusInNewTx(instance, statusMap);
-            } else {
-              await instance.persistEventStatus(tx, {
-                skipChecks: true,
-                statusMap,
-              });
+        try {
+          await executeInNewTransaction(
+            instance.baseContext,
+            `eventQueue-processEvent-${instance.eventType}##${instance.eventSubType}`,
+            async (tx) => {
+              statusMap = await _processEvent(instance, tx.context, key, queueEntries, payload);
+              const shouldRollback =
+                instance.statusMapContainsError(statusMap) || instance.shouldRollbackTransaction(key);
+              if (shouldRollback) {
+                await tx.rollback();
+                await _commitStatusInNewTx(instance, statusMap, key);
+              } else {
+                await instance.persistEventStatus(tx, {
+                  skipChecks: true,
+                  statusMap,
+                  key,
+                });
+              }
             }
-          }
-        );
+          );
+        } catch (err) {
+          await _handleEventTransactionError(instance, key, queueEntries, payload, err);
+        }
       } else {
         await _processEvent(instance, instance.context, key, queueEntries, payload);
       }
@@ -262,7 +269,28 @@ const processEventMap = async (instance) => {
   instance.endPerformanceTracerEvents();
 };
 
-const _commitStatusInNewTx = async (eventTypeInstance, statusMap) =>
+// NOTE: only the events of the failed transaction are affected, parallel events have their own transaction
+const _handleEventTransactionError = async (instance, key, queueEntries, payload, error) => {
+  instance.discardNextSagaEvents(key);
+  instance.logErrorTx(error, queueEntries);
+  try {
+    await executeInNewTransaction(
+      instance.baseContext,
+      `eventQueue-handleTransactionError-${instance.eventType}##${instance.eventSubType}`,
+      async (tx) => {
+        const statusTuple = await instance.handleEventTransactionError(tx.context, key, queueEntries, payload, error);
+        const statusMap = instance.setEventStatus(queueEntries, statusTuple);
+        await instance.persistEventStatus(tx, { skipChecks: true, statusMap, key });
+      }
+    );
+  } catch (err) {
+    instance.discardNextSagaEvents(key);
+    instance.handleErrorTxFallback(err, queueEntries);
+  }
+};
+
+// NOTE: only used after the business tx of the event has been rolled back
+const _commitStatusInNewTx = async (eventTypeInstance, statusMap, key) =>
   await executeInNewTransaction(
     eventTypeInstance.baseContext,
     `eventQueue-persistStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
@@ -271,6 +299,8 @@ const _commitStatusInNewTx = async (eventTypeInstance, statusMap) =>
       await eventTypeInstance.persistEventStatus(tx, {
         skipChecks: true,
         statusMap,
+        key,
+        businessTxRolledBack: true,
       });
     }
   );

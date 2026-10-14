@@ -103,7 +103,80 @@ const selectEventQueueAndReturn = async (
   return events;
 };
 
+const holdPersistSpies = [];
+
+// processEvent runs one after another, persistEventStatus waits until the first `count` calls arrived
+const holdPersistUntilAllProcessed = (
+  count,
+  { failForId, failAfterPersist = false, failForStatuses = [EventProcessingStatus.Done] } = {}
+) => {
+  const EventQueueGenericOutboxHandler = require("../src/outbox/EventQueueGenericOutboxHandler");
+  const EventQueueProcessorBase = require("../src/EventQueueProcessorBase");
+
+  const originalProcessEvent = EventQueueGenericOutboxHandler.prototype.processEvent;
+  let processQueue = Promise.resolve();
+  const processEventSpy = jest
+    .spyOn(EventQueueGenericOutboxHandler.prototype, "processEvent")
+    .mockImplementation(function (...args) {
+      const result = processQueue.then(() => originalProcessEvent.apply(this, args));
+      processQueue = result.catch(() => {});
+      return result;
+    });
+
+  const originalPersist = EventQueueProcessorBase.prototype.persistEventStatus;
+  let arrived = 0;
+  let release;
+  // NOTE: released after 30s so a missing call fails the test instead of blocking it
+  const barrier = new Promise((resolve) => {
+    release = resolve;
+    setTimeout(resolve, 30 * 1000).unref();
+  });
+  const persistSpy = jest
+    .spyOn(EventQueueProcessorBase.prototype, "persistEventStatus")
+    .mockImplementation(async function (tx, options) {
+      if (arrived < count) {
+        arrived++;
+        arrived === count && release();
+        await barrier;
+      }
+      const shouldFail = failForId && failForStatuses.includes(options?.statusMap?.[failForId]?.status);
+      if (shouldFail && !failAfterPersist) {
+        throw new Error("persist failed");
+      }
+      const result = await originalPersist.call(this, tx, options);
+      if (shouldFail) {
+        throw new Error("persist failed");
+      }
+      return result;
+    });
+  holdPersistSpies.push(processEventSpy, persistSpy);
+};
+
+// NOTE: restores only these spies, jest.restoreAllMocks would also restore the logger mock
+const restoreHoldPersist = () => {
+  holdPersistSpies.splice(0).forEach((spy) => spy.mockRestore());
+};
+
+// resolves the returned function for all callers once `count` callers are waiting
+const createBarrier = (count) => {
+  let arrived = 0;
+  let release;
+  // NOTE: released after 30s so a missing caller fails the test instead of blocking it
+  const barrier = new Promise((resolve) => {
+    release = resolve;
+    setTimeout(resolve, 30 * 1000).unref();
+  });
+  return async () => {
+    arrived++;
+    arrived === count && release();
+    await barrier;
+  };
+};
+
 module.exports = {
+  createBarrier,
+  holdPersistUntilAllProcessed,
+  restoreHoldPersist,
   selectEventQueueAndExpectDone,
   selectEventQueueAndExpectOpen,
   selectEventQueueAndExpectError,

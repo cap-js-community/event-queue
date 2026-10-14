@@ -29,6 +29,8 @@ const PROPAGATE_EVENT_QUEUE_ENTRIES = [
 ];
 
 class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
+  #followupLocks = new WeakMap();
+
   constructor(context, eventType, eventSubType, config) {
     super(context, eventType, eventSubType, config);
     this.logger = cds.log(`${COMPONENT_NAME}/${eventSubType}`);
@@ -403,11 +405,19 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       ]);
     }
 
-    await this.#publishFollowupEvents(processContext, req, statusTuple, result);
+    await this.#publishFollowupEvents(processContext, key, req, statusTuple, result);
     return statusTuple;
   }
 
-  async #publishFollowupEvents(processContext, req, statusTuple, triggerEventResult) {
+  async handleEventTransactionError(processContext, key, queueEntries, payload, error) {
+    const statusTuple = await super.handleEventTransactionError(processContext, key, queueEntries, payload, error);
+    const { userId, req } = this.#buildDispatchData(payload, { key, queueEntries });
+    await this.#setContextUser(processContext, userId, req);
+    await this.#publishFollowupEvents(processContext, key, req, statusTuple);
+    return statusTuple;
+  }
+
+  async #publishFollowupEvents(processContext, key, req, statusTuple, triggerEventResult) {
     const succeeded = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_SUCCESS });
     const failed = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_FAILED });
     const done = this.#checkHandlerExists({ event: req.event, saga: EVENT_QUEUE_ACTIONS.SAGA_DONE });
@@ -422,6 +432,31 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
 
     // NOTE: required for #failed because tx is rolledback and new events would not be commmited!
     const tx = cds.tx(processContext);
+    // NOTE: events sharing a transaction (alwaysCommit|alwaysRollback) must not interleave while its events are swapped
+    const previous = this.#followupLocks.get(tx.context) ?? Promise.resolve();
+    const current = previous.then(() =>
+      this.#collectFollowupEvents(tx, processContext, key, req, statusTuple, triggerEventResult, {
+        succeeded,
+        failed,
+        done,
+      })
+    );
+    this.#followupLocks.set(
+      tx.context,
+      current.catch(() => {})
+    );
+    await current;
+  }
+
+  async #collectFollowupEvents(
+    tx,
+    processContext,
+    key,
+    req,
+    statusTuple,
+    triggerEventResult,
+    { succeeded, failed, done }
+  ) {
     const nextEvents = tx._eventQueue?.events;
 
     if (nextEvents?.length) {
@@ -476,15 +511,9 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       delete result.nextData;
     }
 
-    if (config.insertEventsBeforeCommit) {
-      this.nextSagaEvents = tx._eventQueue?.events;
-    } else {
-      const hasError = statusTuple.some(([, result]) => result.status === EventProcessingStatus.Error);
-      this.nextSagaEvents = tx._eventQueue?.events.filter((event) => {
-        const eventName = JSON.parse(event.payload).event;
-        return eventName === failed || (hasError && eventName === done);
-      });
-    }
+    this.setNextSagaEvents(key, tx._eventQueue?.events, {
+      insertedInBusinessTx: !config.insertEventsBeforeCommit,
+    });
 
     if (tx._eventQueue) {
       tx._eventQueue.events = nextEvents ?? [];
