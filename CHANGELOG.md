@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## v2.3.2 - 2026-09-25
+## v2.3.2 - 2026-10-15
 
 ### Fixed
 
@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Improved follow-up handling for transaction mode `alwaysCommit` and `alwaysRollback`, so that all follow-ups of a chunk with multiple events are inserted.
 - Improved error handling in transaction mode `isolated`: a failing event transaction now only sets its own events to error and triggers `#failed` for them. Other events of the chunk keep their status.
 - With `insertEventsBeforeCommit: false`, `#succeeded` and `#done` follow-ups are now also inserted if the business transaction is rolled back.
+- Without Redis, scheduled event processing (e.g. the next tick of a periodic event) no longer nests into the context of the previous run. The growing context chain could cause `Maximum call stack size exceeded` on long running instances.
 
 ## v2.3.1 - 2026-09-17
 
