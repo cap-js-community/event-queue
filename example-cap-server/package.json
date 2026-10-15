@@ -28,7 +28,7 @@
     "jest": "^30.5.1",
     "prettier": "^3.9.6",
     "redis": "^6.2.1",
-    "yaml": "2.9.0"
+    "yaml": "2.9.1"
   },
   "cds": {
     "eventQueue": {
