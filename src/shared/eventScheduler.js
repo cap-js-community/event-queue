@@ -34,6 +34,8 @@ class EventScheduler {
       clearTimeout(timeout);
       delete this.#eventsByTenants[tenantId][timeout];
       delete this.#scheduledEvents[key];
+      // NOTE: the timer inherits the context of the scheduling tx; a new root keeps runs from nesting into each other
+      cds.context = new cds.EventContext({ tenant: tenantId });
       redisPub.broadcastEvent(tenantId, { type, subType, namespace }).catch((err) => {
         cds.log(COMPONENT_NAME).error("could not execute scheduled event", err, {
           tenantId,

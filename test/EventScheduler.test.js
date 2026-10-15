@@ -8,6 +8,11 @@ const { getInstance: getEventSchedulerInstance } = require("../src/shared/eventS
 const config = require("../src/config");
 
 jest.mock("@sap/cds", () => ({
+  EventContext: class EventContext {
+    constructor(data) {
+      Object.assign(this, data);
+    }
+  },
   log: jest.fn().mockReturnValue({
     info: jest.fn(),
     error: jest.fn(),
