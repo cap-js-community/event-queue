@@ -24,6 +24,10 @@ class StandardService extends cds.Service {
         req.eventQueue.processor.setShouldRollbackTransaction(req.eventQueue.key);
       }
 
+      if (req.data.returnValue) {
+        return req.data.returnValue;
+      }
+
       return {
         status: req.data.status ?? 2,
         ...(req.data.nextData && { nextData: req.data.nextData }),
