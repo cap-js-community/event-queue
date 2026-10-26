@@ -91,8 +91,9 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = c
               eventTypeInstance.shouldRollbackTransaction(key)
             )
           ) {
-            businessTxRolledBack = true;
             await tx.rollback();
+            // NOTE: rollback is a no-op if the tx is borrowed from the caller (sqlite), follow-ups are then persisted already
+            businessTxRolledBack = tx.ready === "rolled back";
           }
         });
       }
@@ -237,7 +238,7 @@ const processEventMap = async (instance) => {
                 instance.statusMapContainsError(statusMap) || instance.shouldRollbackTransaction(key);
               if (shouldRollback) {
                 await tx.rollback();
-                await _commitStatusInNewTx(instance, statusMap, key);
+                await _commitStatusInNewTx(instance, statusMap, key, tx.ready === "rolled back");
               } else {
                 await instance.persistEventStatus(tx, {
                   skipChecks: true,
@@ -290,7 +291,7 @@ const _handleEventTransactionError = async (instance, key, queueEntries, payload
 };
 
 // NOTE: only used after the business tx of the event has been rolled back
-const _commitStatusInNewTx = async (eventTypeInstance, statusMap, key) =>
+const _commitStatusInNewTx = async (eventTypeInstance, statusMap, key, businessTxRolledBack) =>
   await executeInNewTransaction(
     eventTypeInstance.baseContext,
     `eventQueue-persistStatus-${eventTypeInstance.eventType}##${eventTypeInstance.eventSubType}`,
@@ -300,7 +301,7 @@ const _commitStatusInNewTx = async (eventTypeInstance, statusMap, key) =>
         skipChecks: true,
         statusMap,
         key,
-        businessTxRolledBack: true,
+        businessTxRolledBack,
       });
     }
   );
