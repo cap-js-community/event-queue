@@ -181,7 +181,7 @@ describe("keep-alive-tx-handling-e2e", () => {
         expect(releaseOptions.token).toEqual(acquireOptions.value);
 
         const remainingLocks = await cds.tx({ tenant: context.tenant }, (tx2) =>
-          tx2.run(SELECT.from("sap.eventqueue.Lock"))
+          tx2.run(SELECT.from("sap.eventqueue.Lock").where("value IS NOT NULL"))
         );
         expect(remainingLocks).toHaveLength(0);
 

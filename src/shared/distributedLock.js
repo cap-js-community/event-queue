@@ -8,6 +8,7 @@ const existingLocks = {};
 const REDIS_COMMAND_OK = "OK";
 const COMPONENT_NAME = "/eventQueue/distributedLock";
 const EVENT_LOCK_KEY_PARTS = 5;
+const RELEASED_AT = new Date(0).toISOString();
 
 const generateEventLockKey = (namespace, type, subType) => [namespace, type, subType].join("##");
 
@@ -139,7 +140,7 @@ const _getLockValueRedis = async (context, fullKey) => {
 const _getLockValueDb = async (context, fullKey) => {
   let result;
   await cdsHelper.executeInNewTransaction(context, "distributedLock-checkExists", async (tx) => {
-    result = await tx.run(SELECT.one.from(config.tableNameEventLock).where("code =", fullKey));
+    result = await tx.run(SELECT.one.from(config.tableNameEventLock).where("code =", fullKey, "AND value IS NOT NULL"));
   });
   return result?.value;
 };
@@ -159,11 +160,12 @@ const _releaseLockRedis = async (context, fullKey, { token } = {}) => {
 
 const _releaseLockDb = async (context, fullKey, { token } = {}) => {
   await cdsHelper.executeInNewTransaction(context, "distributedLock-release", async (tx) => {
-    const cqn = DELETE.from(config.tableNameEventLock).where("code =", fullKey);
-    if (token) {
-      cqn.and("value =", token);
-    }
-    await tx.run(cqn);
+    // NOTE: keep the row so that the next acquire is a single UPDATE without a unique constraint violation
+    await tx.run(
+      UPDATE.entity(config.tableNameEventLock)
+        .set({ createdAt: RELEASED_AT, value: null })
+        .where(...(token ? ["code =", fullKey, "AND value =", token] : ["code =", fullKey]))
+    );
   });
   delete existingLocks[fullKey];
   return true;
@@ -183,7 +185,7 @@ const _renewLockDb = async (context, fullKey, { token } = {}) => {
       return;
     }
 
-    if (token && !_isSameToken(currentEntry.value, token)) {
+    if (token && currentEntry.value !== null && !_isSameToken(currentEntry.value, token)) {
       result = false;
       return;
     }
@@ -205,50 +207,46 @@ const _acquireLockDB = async (
   { value = "true", overrideValue = false, keepTrackOfLock } = {}
 ) => {
   let result;
-  try {
-    await cdsHelper.executeInNewTransaction(context, "distributedLock-acquire", async (tx) => {
-      await tx.run(
-        INSERT.into(config.tableNameEventLock).entries({
-          code: fullKey,
-          value,
-        })
-      );
+  await cdsHelper.executeInNewTransaction(context, "distributedLock-acquire", async (tx) => {
+    // NOTE: released locks carry RELEASED_AT and are therefore always expired
+    const expiredBefore = new Date(Date.now() - Math.round(expiryTime)).toISOString();
+    const updateCqn = UPDATE.entity(config.tableNameEventLock)
+      .set({ createdAt: new Date().toISOString(), value })
+      .where(...(overrideValue ? ["code =", fullKey] : ["code =", fullKey, "AND createdAt <=", expiredBefore]));
+    if (await tx.run(updateCqn)) {
       result = true;
-    });
-  } catch {
-    await cdsHelper.executeInNewTransaction(context, "distributedLock-acquire-takeover", async (tx) => {
-      let currentEntry;
-
-      if (!overrideValue) {
-        currentEntry = await tx.run(
-          SELECT.one
-            .from(config.tableNameEventLock)
-            .forUpdate({ wait: config.forUpdateTimeout })
-            .where("code =", fullKey)
-        );
-      }
-      if (
-        overrideValue ||
-        (currentEntry && new Date(currentEntry.createdAt).getTime() + Math.round(expiryTime) <= Date.now())
-      ) {
-        await tx.run(
-          UPDATE.entity(config.tableNameEventLock)
-            .set({
-              createdAt: new Date().toISOString(),
-              value,
-            })
-            .where("code =", fullKey)
-        );
-        result = true;
-      } else {
+      return;
+    }
+    if (!overrideValue) {
+      const existingEntry = await tx.run(
+        SELECT.one.from(config.tableNameEventLock).columns("code").where("code =", fullKey)
+      );
+      if (existingEntry) {
         result = false;
       }
-    });
+    }
+  });
+
+  if (result === undefined) {
+    result = await _insertLockDb(context, fullKey, value);
   }
   if (result && keepTrackOfLock) {
     existingLocks[fullKey] = { tenant: context.tenant, token: value };
   }
   return result;
+};
+
+const _insertLockDb = async (context, fullKey, value) => {
+  try {
+    await cdsHelper.executeInNewTransaction(context, "distributedLock-acquire-insert", async (tx) => {
+      await tx.run(INSERT.into(config.tableNameEventLock).entries({ code: fullKey, value }));
+    });
+    return true;
+  } catch (err) {
+    // NOTE: only reachable on the first use of a key, another instance inserted the same key in parallel
+    cds.log(COMPONENT_NAME).debug("lock row was inserted concurrently, lock not acquired", { key: fullKey, err });
+    return false;
+  }
 };
 
 const _generateKey = (context, tenantScoped, key, skipNamespace) => {
