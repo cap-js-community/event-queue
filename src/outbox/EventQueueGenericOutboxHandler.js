@@ -457,66 +457,64 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     triggerEventResult,
     { succeeded, failed, done }
   ) {
-    const nextEvents = tx._eventQueue?.events;
-
-    if (nextEvents?.length) {
-      tx._eventQueue.events = [];
-    }
-
-    const queued = cds.queued(this.__srv);
-    for (const [, result] of statusTuple) {
-      const data = result.nextData ?? req.data;
-      if (
-        succeeded &&
-        result.status === EventProcessingStatus.Done &&
-        !req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_SUCCESS)
-      ) {
-        if (statusTuple.length === 1 && req.eventQueue.queueEntries.length === 1) {
-          const triggerEventPropagate = { triggerEventResult };
-          const [triggerEvent] = req.eventQueue.queueEntries;
-          for (const propertyName of PROPAGATE_EVENT_QUEUE_ENTRIES) {
-            triggerEventPropagate[propertyName] = triggerEvent[propertyName];
+    // NOTE: follow-ups are not inserted in the business tx but collected and inserted with the event status
+    tx._eventQueue ??= { events: [], handlerRegistered: false };
+    const nextEvents = tx._eventQueue.events;
+    tx._eventQueue.events = [];
+    tx._eventQueue.collectOnly = true;
+    try {
+      const queued = cds.queued(this.__srv);
+      for (const [, result] of statusTuple) {
+        const data = result.nextData ?? req.data;
+        if (
+          succeeded &&
+          result.status === EventProcessingStatus.Done &&
+          !req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_SUCCESS)
+        ) {
+          if (statusTuple.length === 1 && req.eventQueue.queueEntries.length === 1) {
+            const triggerEventPropagate = { triggerEventResult };
+            const [triggerEvent] = req.eventQueue.queueEntries;
+            for (const propertyName of PROPAGATE_EVENT_QUEUE_ENTRIES) {
+              triggerEventPropagate[propertyName] = triggerEvent[propertyName];
+            }
+            data.triggerEvent = JSON.stringify(triggerEventPropagate);
           }
-          data.triggerEvent = JSON.stringify(triggerEventPropagate);
+
+          await queued.tx(processContext).send(succeeded, data);
         }
 
-        await queued.tx(processContext).send(succeeded, data);
-      }
-
-      if (failed && result.status === EventProcessingStatus.Error) {
-        result.error && (data.error = this._error2String(result.error));
-        if (statusTuple.length === 1 && req.eventQueue.queueEntries.length === 1) {
-          const triggerEventPropagate = { triggerEventResult };
-          const [triggerEvent] = req.eventQueue.queueEntries;
-          for (const propertyName of PROPAGATE_EVENT_QUEUE_ENTRIES) {
-            triggerEventPropagate[propertyName] = triggerEvent[propertyName];
+        if (failed && result.status === EventProcessingStatus.Error) {
+          result.error && (data.error = this._error2String(result.error));
+          if (statusTuple.length === 1 && req.eventQueue.queueEntries.length === 1) {
+            const triggerEventPropagate = { triggerEventResult };
+            const [triggerEvent] = req.eventQueue.queueEntries;
+            for (const propertyName of PROPAGATE_EVENT_QUEUE_ENTRIES) {
+              triggerEventPropagate[propertyName] = triggerEvent[propertyName];
+            }
+            data.triggerEvent = JSON.stringify(triggerEventPropagate);
           }
-          data.triggerEvent = JSON.stringify(triggerEventPropagate);
+          await queued.tx(processContext).send(failed, data);
         }
-        await queued.tx(processContext).send(failed, data);
-      }
 
-      if (done && !req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_SUCCESS)) {
-        if (statusTuple.length === 1 && req.eventQueue.queueEntries.length === 1) {
-          const triggerEventPropagate = { triggerEventResult };
-          const [triggerEvent] = req.eventQueue.queueEntries;
-          for (const propertyName of PROPAGATE_EVENT_QUEUE_ENTRIES) {
-            triggerEventPropagate[propertyName] = triggerEvent[propertyName];
+        if (done && !req.event.endsWith(EVENT_QUEUE_ACTIONS.SAGA_SUCCESS)) {
+          if (statusTuple.length === 1 && req.eventQueue.queueEntries.length === 1) {
+            const triggerEventPropagate = { triggerEventResult };
+            const [triggerEvent] = req.eventQueue.queueEntries;
+            for (const propertyName of PROPAGATE_EVENT_QUEUE_ENTRIES) {
+              triggerEventPropagate[propertyName] = triggerEvent[propertyName];
+            }
+            data.triggerEvent = JSON.stringify(triggerEventPropagate);
           }
-          data.triggerEvent = JSON.stringify(triggerEventPropagate);
+          await queued.tx(processContext).send(done, data);
         }
-        await queued.tx(processContext).send(done, data);
+
+        delete result.nextData;
       }
 
-      delete result.nextData;
-    }
-
-    this.setNextSagaEvents(key, tx._eventQueue?.events, {
-      insertedInBusinessTx: !config.insertEventsBeforeCommit,
-    });
-
-    if (tx._eventQueue) {
-      tx._eventQueue.events = nextEvents ?? [];
+      this.setNextSagaEvents(key, tx._eventQueue.events);
+    } finally {
+      tx._eventQueue.collectOnly = false;
+      tx._eventQueue.events = nextEvents;
     }
   }
 
@@ -535,7 +533,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
       ]);
     }
 
-    if (!Array.isArray(result)) {
+    if (!Array.isArray(result) || this.#isUnrelatedResult(result, queueEntries)) {
       return queueEntries.map((queueEntry) => [queueEntry.ID, { status: EventProcessingStatus.Done }]);
     }
 
@@ -554,9 +552,7 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
         });
       }
     } else if (firstEntry instanceof Object) {
-      return result.reduce((result, entry) => {
-        let { ID } = entry;
-
+      return result.map(({ ID, ...data }) => {
         if (!ID) {
           if (queueEntries.length > 1) {
             throw new Error(
@@ -567,20 +563,12 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
           }
         }
 
-        delete entry.ID;
-        const allAllowed = !Object.keys(entry).some((name) => !this.allowedFieldsEventHandler.includes(name));
-
-        if (!allAllowed) {
-          result.push([ID, { status: EventProcessingStatus.Done }]);
-        }
-
-        if (!("status" in entry)) {
-          entry.status = EventProcessingStatus.Done;
-        }
-
-        result.push([ID, entry]);
-        return result;
-      }, []);
+        const allAllowed = !Object.keys(data).some((name) => !this.allowedFieldsEventHandler.includes(name));
+        return [
+          ID,
+          allAllowed ? { status: EventProcessingStatus.Done, ...data } : { status: EventProcessingStatus.Done },
+        ];
+      });
     }
 
     const valid = !result.some((entry) => {
@@ -593,6 +581,12 @@ class EventQueueGenericOutboxHandler extends EventQueueBaseClass {
     } else {
       return queueEntries.map((queueEntry) => [queueEntry.ID, { status: EventProcessingStatus.Done }]);
     }
+  }
+
+  // NOTE: arrays which reference none of the processed events are a regular return value (e.g. the keys of an INSERT)
+  #isUnrelatedResult(result, queueEntries) {
+    const ids = result.map((entry) => (Array.isArray(entry) ? entry[0] : entry?.ID)).filter((id) => id !== undefined);
+    return ids.length > 0 && !ids.some((id) => queueEntries.some((queueEntry) => queueEntry.ID === id));
   }
 }
 

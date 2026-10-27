@@ -77,6 +77,10 @@ const publishEvent = async (
     }
   }
   _addEventsToContext(tx, events);
+  // NOTE: saga follow-ups are only collected here and inserted together with the status of the triggering event
+  if (tx._eventQueue.collectOnly) {
+    return;
+  }
   if (config.insertEventsBeforeCommit && !skipInsertEventsBeforeCommit) {
     _registerHandler(tx, skipBroadcast);
   } else {

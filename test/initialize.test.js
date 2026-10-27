@@ -13,6 +13,7 @@ const eventQueue = require("../src");
 const runner = require("../src/runner/runner");
 const config = require("../src/config");
 const redis = require("../src/shared/redis");
+const redisClient = require("../src/shared/redis/client");
 const periodicEvents = require("../src/periodicEvents");
 const cdsHelper = require("../src/shared/cdsHelper");
 
@@ -310,7 +311,7 @@ describe("initialize", () => {
       cds.emit("connect", await cds.connect.to("db"));
       await promisify(setImmediate)();
       expect(multiTenancyDbSpy).toHaveBeenCalledTimes(1);
-      cds.requires.multitenancy = null;
+      delete cds.requires.multitenancy;
     });
 
     test("calling initialize twice should only processed once", async () => {
@@ -338,7 +339,7 @@ describe("initialize", () => {
       };
       const multiTenancyRedisSpy = jest.spyOn(runner, "multiTenancyRedis").mockResolvedValueOnce();
       jest.spyOn(redis, "connectionCheck").mockResolvedValueOnce(true);
-      jest.spyOn(redis, "subscribeRedisChannel").mockResolvedValue();
+      jest.spyOn(redisClient, "subscribeRedisChannel").mockResolvedValue();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -348,7 +349,7 @@ describe("initialize", () => {
       cds.emit("connect", await cds.connect.to("db"));
       await promisify(setImmediate)();
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(1);
-      cds.requires.multitenancy = null;
+      delete cds.requires.multitenancy;
     });
 
     test("single tenant with redis", async () => {
@@ -357,7 +358,7 @@ describe("initialize", () => {
       };
       const singleTenantRedisSpy = jest.spyOn(runner, "singleTenantRedis").mockResolvedValueOnce();
       jest.spyOn(redis, "connectionCheck").mockResolvedValueOnce(true);
-      jest.spyOn(redis, "subscribeRedisChannel").mockResolvedValue();
+      jest.spyOn(redisClient, "subscribeRedisChannel").mockResolvedValue();
       await eventQueue.initialize({
         configFilePath,
         processEventsAfterPublish: false,
@@ -367,7 +368,7 @@ describe("initialize", () => {
       cds.emit("connect", await cds.connect.to("db"));
       await promisify(setImmediate)();
       expect(singleTenantRedisSpy).toHaveBeenCalledTimes(1);
-      cds.requires.multitenancy = null;
+      delete cds.requires.multitenancy;
     });
 
     test("multi tenancy with redis - option to disable redis", async () => {
@@ -382,7 +383,7 @@ describe("initialize", () => {
         disableRedis: true,
       });
       expect(multiTenancyRedisSpy).toHaveBeenCalledTimes(0);
-      cds.requires.multitenancy = null;
+      delete cds.requires.multitenancy;
     });
 
     test("mode none should not register any runner", async () => {

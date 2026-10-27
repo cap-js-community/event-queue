@@ -2,23 +2,22 @@
 
 exports[`integration-main cluster multiplies out 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 4,
+  "BEGIN": 8,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 2,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`integration-main empty queue - nothing to do 1`] = `
 {
-  "BEGIN": 4,
-  "COMMIT": 3,
+  "BEGIN": 5,
+  "COMMIT": 4,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 2,
+  "READ": 3,
+  "UPDATE": 2,
 }
 `;
 
@@ -40,12 +39,11 @@ exports[`integration-main if checkEventAndGeneratePayload methods throws an erro
 
 exports[`integration-main if checkEventAndGeneratePayload methods throws an error --> entry should not be processed + status should be error 2`] = `
 {
-  "BEGIN": 5,
-  "COMMIT": 4,
+  "BEGIN": 6,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 2,
-  "UPDATE": 2,
+  "READ": 3,
+  "UPDATE": 4,
 }
 `;
 
@@ -64,13 +62,12 @@ exports[`integration-main if cluster methods throws an error --> entry should no
 
 exports[`integration-main if cluster methods throws an error --> entry should not be processed + status should be error 3`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 4,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 3,
+  "READ": 4,
   "ROLLBACK": 1,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
@@ -92,118 +89,109 @@ exports[`integration-main if modifyQueueEntry methods throws an error --> entry 
 
 exports[`integration-main if modifyQueueEntry methods throws an error --> entry should not be processed + status should be error 2`] = `
 {
-  "BEGIN": 5,
-  "COMMIT": 4,
+  "BEGIN": 6,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 2,
-  "UPDATE": 2,
+  "READ": 3,
+  "UPDATE": 4,
 }
 `;
 
 exports[`integration-main if process event returns an error --> tx should be rolled backed 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 4,
+  "BEGIN": 8,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 2,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`integration-main if process event throws an error --> tx should be rolled backed 2`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 4,
+  "BEGIN": 8,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 2,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`integration-main if processing time is exceeded broadcast should trigger processing again 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 4,
+  "BEGIN": 8,
+  "COMMIT": 5,
   "CREATE": 2,
-  "DELETE": 1,
-  "READ": 3,
+  "READ": 4,
   "ROLLBACK": 2,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`integration-main insert one delayed entry and process - should not be processed 1`] = `
 {
-  "BEGIN": 4,
-  "COMMIT": 3,
+  "BEGIN": 5,
+  "COMMIT": 4,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 2,
+  "READ": 3,
+  "UPDATE": 2,
 }
 `;
 
 exports[`integration-main insert one entry - checkForNext but return status 0 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 8,
+  "COMMIT": 6,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 5,
+  "READ": 6,
   "ROLLBACK": 1,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`integration-main insert one entry and process 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 4,
+  "BEGIN": 8,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 2,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`integration-main register retry for failed event after configured interval 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 4,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 3,
+  "READ": 4,
   "ROLLBACK": 1,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`integration-main register retry for failed event after default interval 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 4,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 3,
+  "READ": 4,
   "ROLLBACK": 1,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`integration-main returning exceeded status should be allowed 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 4,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 3,
+  "READ": 4,
   "ROLLBACK": 1,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
@@ -211,42 +199,38 @@ exports[`integration-main returning exceeded status should be allowed 2`] = `
 {
   "BEGIN": 3,
   "COMMIT": 3,
-  "CREATE": 1,
-  "DELETE": 1,
   "READ": 2,
+  "UPDATE": 2,
 }
 `;
 
 exports[`integration-main should do nothing if lock for event combination cannot be acquired 1`] = `
 {
-  "BEGIN": 3,
+  "BEGIN": 2,
   "COMMIT": 1,
-  "CREATE": 1,
   "READ": 2,
-  "ROLLBACK": 1,
+  "UPDATE": 1,
 }
 `;
 
 exports[`integration-main should set db user correctly 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 8,
+  "COMMIT": 6,
   "CREATE": 2,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 1,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`integration-main two entries with no commit on event level 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 4,
+  "BEGIN": 8,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 6,
+  "READ": 7,
   "ROLLBACK": 2,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;

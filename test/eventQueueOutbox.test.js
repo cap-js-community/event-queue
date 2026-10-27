@@ -190,6 +190,13 @@ for (const transactionMode of ["alwaysCommit", "alwaysRollback"]) {
   };
 }
 
+for (const transactionMode of ["alwaysCommit", "alwaysRollback"]) {
+  cds.env.requires[`SagaSingle_${transactionMode}`] = {
+    impl: path.join(basePath, "srv/service/saga-service.js"),
+    queued: { kind: "persistent-queue", transactionMode },
+  };
+}
+
 cds.env.requires.SagaParallelLastAttempt = {
   impl: path.join(basePath, "srv/service/saga-service.js"),
   queued: { kind: "persistent-queue", parallelEventProcessing: 3, retryAttempts: 1, retryFailedAfter: 0 },
@@ -3357,6 +3364,65 @@ describe("event-queue outbox", () => {
             additionalColumns: ["ID", "payload"],
           });
           expect(events.find(({ ID }) => ID === idOf(2)).status).toEqual(EventProcessingStatus.Exceeded);
+        });
+      });
+
+      describe.each([true, false])("follow-up insertion - insertEventsBeforeCommit=%s", (insertEventsBeforeCommit) => {
+        const eventNames = (events) => events.map((event) => JSON.parse(event.payload).event).sort();
+
+        beforeEach(() => {
+          config.insertEventsBeforeCommit = insertEventsBeforeCommit;
+          Object.keys(SagaService.capturedTriggerEvents).forEach(
+            (key) => delete SagaService.capturedTriggerEvents[key]
+          );
+        });
+
+        afterEach(() => {
+          config.insertEventsBeforeCommit = true;
+        });
+
+        it("a returned array without processed event IDs is a regular result and not a status", async () => {
+          const returnValue = [{ ID: cds.utils.uuid() }];
+          const service = await cds.connect.to("Saga");
+          await service.tx(context).send("saga", { returnValue });
+          await commitAndOpenNew();
+          await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+          await commitAndOpenNew();
+
+          const events = await testHelper.selectEventQueueAndReturn(tx, {
+            expectedLength: 3,
+            additionalColumns: ["payload"],
+          });
+          expect(eventNames(events)).toEqual(["saga", "saga/#done", "saga/#succeeded"]);
+          expect(events.map(({ status }) => status)).toEqual(Array(3).fill(EventProcessingStatus.Done));
+          expect(SagaService.capturedTriggerEvents["saga/#succeeded"].triggerEventResult).toEqual(returnValue);
+          expect(loggerMock.callsLengths().error).toEqual(0);
+        });
+
+        describe.each(["Saga", "SagaSingle_alwaysCommit", "SagaSingle_alwaysRollback"])("%s", (serviceName) => {
+          it.each([
+            ["succeeded", {}, "saga/#succeeded"],
+            ["failed", { status: EventProcessingStatus.Error, nextData: { failed: true } }, "saga/#failed"],
+            ["rolled back", { rollback: true }, "saga/#succeeded"],
+          ])(
+            "%s event processed in an already started transaction inserts its follow-ups once",
+            async (_, data, followUp) => {
+              const service = await cds.connect.to(serviceName);
+              await service.tx(context).send("saga", data);
+              await commitAndOpenNew();
+              // NOTE: on sqlite the processing reuses an already started transaction of the caller
+              await tx.run(SELECT.one.from("sap.eventqueue.Event"));
+              await processEventQueue(tx.context, "CAP_OUTBOX", service.name);
+              await commitAndOpenNew();
+
+              const events = await testHelper.selectEventQueueAndReturn(tx, {
+                expectedLength: 3,
+                additionalColumns: ["payload"],
+              });
+              expect(eventNames(events)).toEqual(["saga", "saga/#done", followUp].sort());
+              expect(loggerMock.callsLengths().error).toEqual(0);
+            }
+          );
         });
       });
     });

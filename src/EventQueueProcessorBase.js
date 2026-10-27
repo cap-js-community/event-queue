@@ -447,7 +447,7 @@ class EventQueueProcessorBase {
    * selected events a status has been submitted. Persisting the status of events is done in a dedicated database tx.
    * The function accepts no arguments as there are dedicated functions to set the status of events (e.g. setEventStatus)
    */
-  async persistEventStatus(tx, { skipChecks, statusMap = this.__statusMap, key, businessTxRolledBack = false } = {}) {
+  async persistEventStatus(tx, { skipChecks, statusMap = this.__statusMap, key } = {}) {
     this.logger.debug("entering persistEventStatus", {
       eventType: this.#eventType,
       eventSubType: this.#eventSubType,
@@ -476,10 +476,6 @@ class EventQueueProcessorBase {
         result[key].ids.push(id);
         return result;
       }, {});
-
-      if (!Object.values(updateData).length) {
-        return;
-      }
 
       for (const { ids, data } of Object.values(updateData)) {
         if (!("status" in data)) {
@@ -542,7 +538,7 @@ class EventQueueProcessorBase {
         );
       }
 
-      const nextSagaEvents = this.#takeNextSagaEvents(key, businessTxRolledBack);
+      const nextSagaEvents = this.#takeNextSagaEvents(key);
       if (nextSagaEvents.length) {
         await tx.run(INSERT.into(this.#config.tableNameEventQueue).entries(nextSagaEvents));
       }
@@ -1459,12 +1455,11 @@ class EventQueueProcessorBase {
   }
 
   set nextSagaEvents(value) {
-    this.#nextSagaEvents.set(undefined, { events: value, insertedInBusinessTx: false });
+    this.#nextSagaEvents.set(undefined, value ?? []);
   }
 
-  // NOTE: events inserted in the business tx are only inserted again if the business tx has been rolled back
-  setNextSagaEvents(key, events, { insertedInBusinessTx = false } = {}) {
-    this.#nextSagaEvents.set(key, { events: events ?? [], insertedInBusinessTx });
+  setNextSagaEvents(key, events) {
+    this.#nextSagaEvents.set(key, events ?? []);
   }
 
   discardNextSagaEvents(key) {
@@ -1472,12 +1467,10 @@ class EventQueueProcessorBase {
   }
 
   // NOTE: taken synchronously so parallel event transactions never insert the same follow-ups
-  #takeNextSagaEvents(key, businessTxRolledBack) {
-    const entries = key !== undefined ? [this.#nextSagaEvents.get(key)] : [...this.#nextSagaEvents.values()];
+  #takeNextSagaEvents(key) {
+    const entries = key !== undefined ? [this.#nextSagaEvents.get(key) ?? []] : [...this.#nextSagaEvents.values()];
     key !== undefined ? this.#nextSagaEvents.delete(key) : this.#nextSagaEvents.clear();
-    return entries
-      .filter((entry) => entry && (businessTxRolledBack || !entry.insertedInBusinessTx))
-      .flatMap(({ events }) => events);
+    return entries.flat();
   }
 }
 

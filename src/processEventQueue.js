@@ -75,7 +75,6 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = c
         return;
       }
       eventTypeInstance.endPerformanceTracerPreprocessing();
-      let businessTxRolledBack = false;
       if (Object.keys(eventTypeInstance.queueEntriesWithPayloadMap).length) {
         await executeInNewTransaction(context, `eventQueue-processing-${eventType}##${eventSubType}`, async (tx) => {
           eventTypeInstance.processEventContext = tx.context;
@@ -91,13 +90,12 @@ const processEventQueue = async (context, eventType, eventSubType, namespace = c
               eventTypeInstance.shouldRollbackTransaction(key)
             )
           ) {
-            businessTxRolledBack = true;
             await tx.rollback();
           }
         });
       }
       await executeInNewTransaction(context, `eventQueue-persistStatus-${eventType}##${eventSubType}`, async (tx) => {
-        await eventTypeInstance.persistEventStatus(tx, { businessTxRolledBack });
+        await eventTypeInstance.persistEventStatus(tx);
       });
       shouldContinue = reevaluateShouldContinue(eventTypeInstance, iterationCounter, eventConfig.startTime);
     }
@@ -300,7 +298,6 @@ const _commitStatusInNewTx = async (eventTypeInstance, statusMap, key) =>
         skipChecks: true,
         statusMap,
         key,
-        businessTxRolledBack: true,
       });
     }
   );

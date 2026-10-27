@@ -2,72 +2,66 @@
 
 exports[`keep-alive-tx-handling-e2e error handling on commit errors - isolated transaction mode error on commit 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 8,
+  "COMMIT": 6,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 2,
-  "UPDATE": 3,
+  "UPDATE": 5,
 }
 `;
 
 exports[`keep-alive-tx-handling-e2e error handling on commit errors - isolated transaction mode one red 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 4,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 1,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`keep-alive-tx-handling-e2e error handling on commit errors - isolated transaction mode one red and one green 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 8,
+  "COMMIT": 6,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 6,
+  "READ": 7,
   "ROLLBACK": 1,
-  "UPDATE": 3,
+  "UPDATE": 5,
 }
 `;
 
 exports[`keep-alive-tx-handling-e2e error handling on commit errors - isolated transaction mode two red 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 8,
+  "COMMIT": 6,
   "CREATE": 1,
-  "DELETE": 1,
-  "READ": 6,
+  "READ": 7,
   "ROLLBACK": 1,
-  "UPDATE": 3,
+  "UPDATE": 5,
 }
 `;
 
 exports[`keep-alive-tx-handling-e2e hookForExceededEvents hookForExceededEvents throws - rollback + counter increase 1`] = `
 {
-  "BEGIN": 7,
-  "COMMIT": 5,
+  "BEGIN": 8,
+  "COMMIT": 6,
   "CREATE": 3,
-  "DELETE": 1,
-  "READ": 3,
+  "READ": 4,
   "ROLLBACK": 1,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
 exports[`keep-alive-tx-handling-e2e hookForExceededEvents if event retries is exceeded hookForExceededEvents should be called and correct event status 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 5,
+  "BEGIN": 7,
+  "COMMIT": 6,
   "CREATE": 3,
-  "DELETE": 1,
-  "READ": 3,
-  "UPDATE": 2,
+  "READ": 4,
+  "UPDATE": 4,
 }
 `;
 
@@ -106,13 +100,12 @@ exports[`keep-alive-tx-handling-e2e parallel event processing in the same instan
 
 exports[`keep-alive-tx-handling-e2e transactionMode=alwaysCommit one green with register rollback in processEvent --> tx rollback even mode alwaysCommit 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 4,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 2,
-  "DELETE": 1,
-  "READ": 2,
+  "READ": 3,
   "ROLLBACK": 2,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
@@ -127,13 +120,12 @@ exports[`keep-alive-tx-handling-e2e transactionMode=alwaysCommit one green with 
 
 exports[`keep-alive-tx-handling-e2e transactionMode=alwaysCommit one with error + one without error --> tx no rollback because mode alwaysCommit 2`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 5,
+  "BEGIN": 7,
+  "COMMIT": 6,
   "CREATE": 2,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 1,
-  "UPDATE": 3,
+  "UPDATE": 5,
 }
 `;
 
@@ -156,13 +148,12 @@ exports[`keep-alive-tx-handling-e2e transactionMode=alwaysCommit one with error 
 
 exports[`keep-alive-tx-handling-e2e transactionMode=alwaysRollback one green --> tx rollback even all green 1`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 4,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 2,
-  "DELETE": 1,
-  "READ": 2,
+  "READ": 3,
   "ROLLBACK": 2,
-  "UPDATE": 2,
+  "UPDATE": 4,
 }
 `;
 
@@ -178,13 +169,12 @@ exports[`keep-alive-tx-handling-e2e transactionMode=alwaysRollback one green -->
 
 exports[`keep-alive-tx-handling-e2e transactionMode=alwaysRollback one with error + one without error --> tx rollback because mode alwaysRollback 2`] = `
 {
-  "BEGIN": 6,
-  "COMMIT": 4,
+  "BEGIN": 7,
+  "COMMIT": 5,
   "CREATE": 2,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 2,
-  "UPDATE": 3,
+  "UPDATE": 5,
 }
 `;
 
@@ -203,13 +193,12 @@ exports[`keep-alive-tx-handling-e2e transactionMode=alwaysRollback one with erro
 
 exports[`keep-alive-tx-handling-e2e transactionMode=isolated both processed register tx rollback - both should be roll back 1`] = `
 {
-  "BEGIN": 9,
-  "COMMIT": 5,
+  "BEGIN": 10,
+  "COMMIT": 6,
   "CREATE": 3,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 3,
-  "UPDATE": 3,
+  "UPDATE": 5,
 }
 `;
 
@@ -235,12 +224,11 @@ exports[`keep-alive-tx-handling-e2e transactionMode=isolated first processed reg
 
 exports[`keep-alive-tx-handling-e2e transactionMode=isolated first processed register tx rollback - only first should be rolled back 2`] = `
 {
-  "BEGIN": 8,
-  "COMMIT": 5,
+  "BEGIN": 9,
+  "COMMIT": 6,
   "CREATE": 3,
-  "DELETE": 1,
-  "READ": 4,
+  "READ": 5,
   "ROLLBACK": 2,
-  "UPDATE": 3,
+  "UPDATE": 5,
 }
 `;
