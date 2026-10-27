@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v2.3.3 - 2026-10-25
+
+### Changed
+
+- Database locks are acquired with a conditional `UPDATE` instead of an `INSERT`. Released locks keep their row, so acquiring an existing, expired or released lock no longer causes unique constraint violations in the database. An `INSERT` is only done on the first use of a lock key.
+
+### Fixed
+
+- Saga follow-ups (`#succeeded`, `#failed`, `#done`) could be inserted twice and fail with a unique constraint violation, which left the triggering event in status `InProgress`. Follow-ups are now never inserted in the business transaction but only collected and inserted exactly once together with the status of the triggering event, independent of `insertEventsBeforeCommit`.
+- Arrays returned by an outboxed handler which reference none of the processed events (e.g. the keys returned by a queued `INSERT`) were interpreted as status values for unknown events. They are now treated as a regular return value, so the processed events are set to `Done`.
+- The handler return value is no longer modified while determining the event status, so `triggerEventResult` contains the unchanged return value. Objects with unsupported properties in an array return value no longer create two status entries for the same event.
+
 ## v2.3.2 - 2026-10-15
 
 ### Fixed

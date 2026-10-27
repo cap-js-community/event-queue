@@ -56,7 +56,39 @@ describe("distributedLock", () => {
     await distributedLock.releaseLock(context, "key");
 
     const afterRelease = await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code LIKE '%key%'"));
-    expect(afterRelease).toEqual(undefined);
+    expect(afterRelease.value).toEqual(null);
+    expect(await distributedLock.checkLockExists(context, "key")).toEqual(false);
+  });
+
+  it("acquire after release must reuse the existing row without insert", async () => {
+    await distributedLock.acquireLock(context, "key");
+    await distributedLock.releaseLock(context, "key");
+    const runSpy = jest.spyOn(tx, "run");
+
+    expect(await distributedLock.acquireLock(context, "key")).toEqual(true);
+
+    expect(runSpy.mock.calls.filter(([query]) => query.INSERT)).toHaveLength(0);
+    expect(await tx.run(SELECT.from("sap.eventqueue.Lock").where("code LIKE '%key%'"))).toHaveLength(1);
+    expect(await distributedLock.checkLockExists(context, "key")).toEqual(true);
+    runSpy.mockRestore();
+  });
+
+  it("acquire of a held lock must not try to insert", async () => {
+    await distributedLock.acquireLock(context, "key");
+    const runSpy = jest.spyOn(tx, "run");
+
+    expect(await distributedLock.acquireLock(context, "key")).toEqual(false);
+
+    expect(runSpy.mock.calls.filter(([query]) => query.INSERT)).toHaveLength(0);
+    runSpy.mockRestore();
+  });
+
+  it("setValueWithExpire with overrideValue must overwrite a valid value", async () => {
+    await distributedLock.setValueWithExpire(context, "key", "first");
+
+    expect(await distributedLock.setValueWithExpire(context, "key", "second")).toEqual(false);
+    expect(await distributedLock.setValueWithExpire(context, "key", "second", { overrideValue: true })).toEqual(true);
+    expect(await distributedLock.getValue(context, "key")).toEqual("second");
   });
 
   it("redis only accepts integer as lock time", async () => {
@@ -97,7 +129,7 @@ describe("distributedLock", () => {
     expect(lockAcquiredSecond).toEqual(true);
   });
 
-  it("takeover of an existing lock must not run in the transaction of the failed insert", async () => {
+  it("takeover of an expired lock must run in a single transaction without insert", async () => {
     await distributedLock.acquireLock(context, "key");
     await tx.run(
       UPDATE.entity("sap.eventqueue.Lock")
@@ -108,10 +140,7 @@ describe("distributedLock", () => {
 
     expect(await distributedLock.acquireLock(context, "key")).toEqual(true);
 
-    expect(executeInNewTransactionSpy.mock.calls.map(([, tag]) => tag)).toEqual([
-      "distributedLock-acquire",
-      "distributedLock-acquire-takeover",
-    ]);
+    expect(executeInNewTransactionSpy.mock.calls.map(([, tag]) => tag)).toEqual(["distributedLock-acquire"]);
   });
 
   describe("event processing lock", () => {
@@ -121,7 +150,8 @@ describe("distributedLock", () => {
     const lockKey = () => distributedLock.generateEventLockKey(NAMESPACE, TYPE, SUB_TYPE);
     const acquireOptions = (token) => ({ skipNamespace: true, value: token });
 
-    const allLocks = async () => (await tx.run(SELECT.from("sap.eventqueue.Lock").orderBy("code"))).map((l) => l.code);
+    const allLocks = async () =>
+      (await tx.run(SELECT.from("sap.eventqueue.Lock").where("value IS NOT NULL").orderBy("code"))).map((l) => l.code);
 
     it("renew must refresh the lock which has been acquired and must not create a second one", async () => {
       const token = distributedLock.generateLockToken();
@@ -168,6 +198,24 @@ describe("distributedLock", () => {
 
       expect(await distributedLock.renewLock(context, lockKey(), { skipNamespace: true, token })).toEqual(true);
       expect(await allLocks()).toHaveLength(1);
+    });
+
+    it("renew must take the lock again if it was released and nobody else acquired it", async () => {
+      const token = distributedLock.generateLockToken();
+      await distributedLock.acquireLock(context, lockKey(), acquireOptions(token));
+      await distributedLock.releaseLock(context, lockKey(), { skipNamespace: true, token });
+
+      expect(await distributedLock.renewLock(context, lockKey(), { skipNamespace: true, token })).toEqual(true);
+      expect(await allLocks()).toHaveLength(1);
+    });
+
+    it("renew must fail if the lock was released and acquired by another instance", async () => {
+      const token = distributedLock.generateLockToken();
+      await distributedLock.acquireLock(context, lockKey(), acquireOptions(token));
+      await distributedLock.releaseLock(context, lockKey(), { skipNamespace: true, token });
+      await distributedLock.acquireLock(context, lockKey(), acquireOptions(distributedLock.generateLockToken()));
+
+      expect(await distributedLock.renewLock(context, lockKey(), { skipNamespace: true, token })).toEqual(false);
     });
 
     describe("redis", () => {
@@ -230,8 +278,7 @@ describe("distributedLock", () => {
 
       await distributedLock.shutdownHandler();
 
-      const afterRelease = await tx.run(SELECT.one.from("sap.eventqueue.Lock").where("code LIKE '%key%'"));
-      expect(afterRelease).toEqual(undefined);
+      expect(await distributedLock.checkLockExists(context, "key")).toEqual(false);
     });
 
     it("should keep track of multiple locks and delete during shutdown", async () => {
@@ -240,7 +287,9 @@ describe("distributedLock", () => {
 
       await distributedLock.shutdownHandler();
 
-      const afterRelease = await tx.run(SELECT.from("sap.eventqueue.Lock").where("code LIKE '%key%'"));
+      const afterRelease = await tx.run(
+        SELECT.from("sap.eventqueue.Lock").where("code LIKE '%key%' AND value IS NOT NULL")
+      );
       expect(afterRelease).toHaveLength(0);
     });
 
@@ -250,7 +299,9 @@ describe("distributedLock", () => {
 
       await distributedLock.shutdownHandler();
 
-      const afterRelease = await tx.run(SELECT.from("sap.eventqueue.Lock").where("code LIKE '%key%'"));
+      const afterRelease = await tx.run(
+        SELECT.from("sap.eventqueue.Lock").where("code LIKE '%key%' AND value IS NOT NULL")
+      );
       expect(afterRelease).toHaveLength(1);
     });
   });

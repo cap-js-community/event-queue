@@ -425,7 +425,7 @@ describe("baseFunctionality", () => {
         await testHelper.selectEventQueueAndReturn(tx, {
           expectedLength: 0,
         });
-        const locks = await tx.run(SELECT.from("sap.eventqueue.Lock"));
+        const locks = await tx.run(SELECT.from("sap.eventqueue.Lock").where("value IS NOT NULL"));
         expect(locks).toHaveLength(0);
       });
     });

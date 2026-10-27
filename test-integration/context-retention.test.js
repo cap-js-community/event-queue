@@ -37,6 +37,7 @@ describe("context retention of scheduled periodic events", () => {
   });
 
   afterAll(async () => {
+    eventQueue.config.isEventQueueActive = false;
     await cds.disconnect();
     await cds.shutdown();
   });
@@ -54,8 +55,9 @@ describe("context retention of scheduled periodic events", () => {
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
-    const [first, ...rest] = ContextDepthService.contextDepths;
-    expect(rest).toHaveLength(3);
-    expect(rest).toEqual(Array(3).fill(first));
+    // NOTE: the first tick is triggered by the broadcast of the test and has a different depth than scheduled ticks
+    const [, ...scheduled] = ContextDepthService.contextDepths;
+    expect(scheduled).toHaveLength(3);
+    expect(scheduled).toEqual(Array(3).fill(scheduled[0]));
   });
 });

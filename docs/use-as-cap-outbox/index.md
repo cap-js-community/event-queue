@@ -410,6 +410,11 @@ this.on("myBatchEvent", (req) => {
 });
 ```
 
+Arrays (formats 3 and 4) are only interpreted as status values if they reference at least one of the processed event
+entries by `ID`. Arrays which reference no processed event entry, e.g. the keys returned by a queued `INSERT`, are treated
+as a regular return value: the events are set to `Done` and the array is passed unchanged as `triggerEventResult` to
+the successor events.
+
 ## Event Chaining
 
 The event-queue supports chaining event handlers based on outcome. When a handler completes, the event-queue

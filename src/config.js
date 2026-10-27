@@ -344,7 +344,7 @@ class Config {
   #cdsQueueEventsFromEnv() {
     return Object.entries(cds.env.requires).reduce(
       (result, [name, value]) => {
-        const config = value.outbox ?? value.queued;
+        const config = value?.outbox ?? value?.queued;
 
         if (!config) {
           return result;

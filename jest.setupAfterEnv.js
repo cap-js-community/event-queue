@@ -19,3 +19,11 @@ process.env.CDS_CONFIG = JSON.stringify(parsedCdsOptions);
 jest.spyOn(console, "log").mockImplementation();
 jest.spyOn(console, "info").mockImplementation();
 jest.spyOn(console, "warn").mockImplementation();
+
+// scheduled event timers outlive the test file and log into a torn down environment
+afterAll(() => {
+  const eventScheduler = require("./src/shared/eventScheduler").getInstance();
+  for (const tenantId of Object.keys(eventScheduler.eventsByTenants)) {
+    eventScheduler.clearForTenant(tenantId);
+  }
+});
