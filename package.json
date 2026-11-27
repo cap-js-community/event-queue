@@ -117,7 +117,7 @@
       }
     }
   },
-  "author": "Maximilian Gruenfelder <Maximilian.Gruenfelder@scheer-group.com>, Oliver Klemenz <oliver.klemenz@sap.com>",
+  "author": "Maximilian Gruenfelder <maximilian.gruenfelder@scheer-group.com>, Oliver Klemenz <oliver.klemenz@sap.com>",
   "license": "Apache-2.0",
   "allowScripts": {
     "@parcel/watcher@2.6.0": true
