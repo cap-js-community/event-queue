@@ -15,7 +15,7 @@ jobs:
     environment: hana-integration
     strategy:
       matrix:
-        node-version: [22, 24]
+        node-version: [22, 24, 26]
 
     name: test - node.js ${{ matrix.node-version }}
     steps:
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [22, 24]
+        node-version: [22, 24, 26]
 
     name: postgres test - node.js ${{ matrix.node-version }}
     services:
